@@ -18,7 +18,8 @@ classifiers = [
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "torch==2.6.0",
+    "mani-skill>=3.0.0b22",
+    "torch==2.9.1",
     "typer==0.15.1",
 ]
 
