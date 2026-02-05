@@ -8,9 +8,18 @@ PYTHON_VERSION = "3.11"
 
 # Project commands
 @task
-def preprocess_data(ctx: Context) -> None:
-    """Preprocess data."""
-    ctx.run(f"uv run src/{PROJECT_NAME}/data.py data/raw data/processed", echo=True, pty=not WINDOWS)
+def download_data(ctx: Context, skill: str = "PickCube-v1") -> None:
+    """Download ManiSkill demonstrations to data/raw."""
+    ctx.run(f"uv run python scripts/download_data.py --skill {skill}", echo=True, pty=not WINDOWS)
+
+
+@task
+def preprocess_data(ctx: Context, skill: str = "PickCube-v1", max_episodes: str = "") -> None:
+    """Preprocess raw demos in data/raw to VLA .pt files in data/preprocessed."""
+    cmd = f"uv run python scripts/preprocess_data.py --skill {skill}"
+    if max_episodes:
+        cmd += f" --max-episodes {max_episodes}"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 @task
 def train(ctx: Context) -> None:
