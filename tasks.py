@@ -49,16 +49,18 @@ def serve_docs(ctx: Context) -> None:
     ctx.run("uv run mkdocs serve --config-file docs/mkdocs.yaml", echo=True, pty=not WINDOWS)
 
 @task
-def visualize(ctx: Context, env: str = "PickCube-v1", shader: str = "default") -> None:
-    """Run ManiSkill visualizer."""
-    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py visualize --env {env} --shader {shader}", echo=True, pty=not WINDOWS)
+def replay(ctx: Context, env: str = "PegInsertionSide-v1", episode: int = 0, speed: float = 1.0, use_actions: bool = False) -> None:
+    """Replay a ManiSkill demonstration."""
+    mode_flag = "--use-actions" if use_actions else "--use-env-states"
+    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py replay --env {env} --episode {episode} --speed {speed} {mode_flag}", echo=True, pty=not WINDOWS)
+
+@task
+def list_demos(ctx: Context, env: str = "") -> None:
+    """List available ManiSkill demonstrations."""
+    env_flag = f"--env {env}" if env else ""
+    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-demos {env_flag}", echo=True, pty=not WINDOWS)
 
 @task
 def list_envs(ctx: Context) -> None:
     """List available ManiSkill environments."""
     ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-envs", echo=True, pty=not WINDOWS)
-
-@task
-def record(ctx: Context, env: str = "PickCube-v1", output: str = "output.mp4") -> None:
-    """Record a video of the environment."""
-    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py record --env {env} --output {output}", echo=True, pty=not WINDOWS)
