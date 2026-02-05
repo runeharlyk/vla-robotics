@@ -47,3 +47,18 @@ def build_docs(ctx: Context) -> None:
 def serve_docs(ctx: Context) -> None:
     """Serve documentation."""
     ctx.run("uv run mkdocs serve --config-file docs/mkdocs.yaml", echo=True, pty=not WINDOWS)
+
+@task
+def visualize(ctx: Context, env: str = "PickCube-v1", shader: str = "default") -> None:
+    """Run ManiSkill visualizer."""
+    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py visualize --env {env} --shader {shader}", echo=True, pty=not WINDOWS)
+
+@task
+def list_envs(ctx: Context) -> None:
+    """List available ManiSkill environments."""
+    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-envs", echo=True, pty=not WINDOWS)
+
+@task
+def record(ctx: Context, env: str = "PickCube-v1", output: str = "output.mp4") -> None:
+    """Record a video of the environment."""
+    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py record --env {env} --output {output}", echo=True, pty=not WINDOWS)
