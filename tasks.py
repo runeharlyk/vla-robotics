@@ -58,21 +58,30 @@ def serve_docs(ctx: Context) -> None:
     ctx.run("uv run mkdocs serve --config-file docs/mkdocs.yaml", echo=True, pty=not WINDOWS)
 
 @task
-def replay(ctx: Context, env: str = "PegInsertionSide-v1", episode: int = 0, speed: float = 1.0, use_actions: bool = False) -> None:
+def replay(ctx: Context, env: str = "PickCube-v1", episode: int = 0, speed: float = 1.0, loop: bool = False) -> None:
     """Replay a ManiSkill demonstration."""
-    mode_flag = "--use-actions" if use_actions else "--use-env-states"
-    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py replay --env {env} --episode {episode} --speed {speed} {mode_flag}", echo=True, pty=not WINDOWS)
+    loop_flag = "--loop" if loop else ""
+    ctx.run(f"uv run python src/vla/visualizer.py replay --env {env} --episode {episode} --speed {speed} {loop_flag}", echo=True, pty=not WINDOWS)
 
 @task
 def list_demos(ctx: Context, env: str = "") -> None:
     """List available ManiSkill demonstrations."""
     env_flag = f"--env {env}" if env else ""
-    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-demos {env_flag}", echo=True, pty=not WINDOWS)
+    ctx.run(f"uv run python src/vla/visualizer.py list-demos {env_flag}", echo=True, pty=not WINDOWS)
 
 @task
-def list_envs(ctx: Context) -> None:
-    """List available ManiSkill environments."""
-    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-envs", echo=True, pty=not WINDOWS)
+def visualize_policy(ctx: Context, model: str = "", env: str = "PickCube-v1", speed: float = 1.0, loop: bool = False, device: str = "cuda") -> None:
+    """Visualize trained policy running in environment."""
+    if not model:
+        model = f"models/rt1_{env.lower().replace('-', '_')}.pt"
+    loop_flag = "--loop" if loop else ""
+    ctx.run(f"uv run python src/vla/visualizer.py policy --model {model} --env {env} --speed {speed} --device {device} {loop_flag}", echo=True, pty=not WINDOWS)
+
+@task
+def test_env(ctx: Context, env: str = "PickCube-v1", steps: int = 100, speed: float = 1.0) -> None:
+    """Test environment rendering with random actions."""
+    ctx.run(f"uv run python src/vla/visualizer.py test-env --env {env} --steps {steps} --speed {speed}", echo=True, pty=not WINDOWS)
+
 
 @task
 def train_rt1(
@@ -88,7 +97,7 @@ def train_rt1(
     """Train RT-1 on preprocessed ManiSkill demonstrations."""
     amp_flag = "--amp" if amp else "--no-amp"
     cmd = (
-        f"uv run python src/vla/train_rt1.py train "
+        f"uv run python src/vla/train.py rt1 "
         f"--env {env} --epochs {epochs} --batch-size {batch_size} "
         f"--lr {lr} --model-size {model_size} --device {device} {amp_flag}"
     )
@@ -102,15 +111,15 @@ def eval_rt1(
     model: str = "",
     num_episodes: int = 20,
     device: str = "cuda",
-    render: bool = False,
+    save_video: bool = False,
 ) -> None:
     """Evaluate trained RT-1 model on ManiSkill environment."""
     if not model:
         model = f"models/rt1_{env.lower().replace('-', '_')}.pt"
-    render_flag = "--render" if render else "--no-render"
+    video_flag = "--save-video" if save_video else ""
     cmd = (
-        f"uv run python src/vla/train_rt1.py evaluate "
+        f"uv run python src/vla/evaluate.py rt1 "
         f"--env {env} --model {model} --num-episodes {num_episodes} "
-        f"--device {device} {render_flag}"
+        f"--device {device} {video_flag}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)
