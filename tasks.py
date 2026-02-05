@@ -73,3 +73,44 @@ def list_demos(ctx: Context, env: str = "") -> None:
 def list_envs(ctx: Context) -> None:
     """List available ManiSkill environments."""
     ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-envs", echo=True, pty=not WINDOWS)
+
+@task
+def train_rt1(
+    ctx: Context,
+    env: str = "PickCube-v1",
+    epochs: int = 100,
+    batch_size: int = 32,
+    lr: float = 1e-4,
+    model_size: str = "small",
+    device: str = "cuda",
+    amp: bool = True,
+) -> None:
+    """Train RT-1 on preprocessed ManiSkill demonstrations."""
+    amp_flag = "--amp" if amp else "--no-amp"
+    cmd = (
+        f"uv run python src/vla/train_rt1.py train "
+        f"--env {env} --epochs {epochs} --batch-size {batch_size} "
+        f"--lr {lr} --model-size {model_size} --device {device} {amp_flag}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
+def eval_rt1(
+    ctx: Context,
+    env: str = "PickCube-v1",
+    model: str = "",
+    num_episodes: int = 20,
+    device: str = "cuda",
+    render: bool = False,
+) -> None:
+    """Evaluate trained RT-1 model on ManiSkill environment."""
+    if not model:
+        model = f"models/rt1_{env.lower().replace('-', '_')}.pt"
+    render_flag = "--render" if render else "--no-render"
+    cmd = (
+        f"uv run python src/vla/train_rt1.py evaluate "
+        f"--env {env} --model {model} --num-episodes {num_episodes} "
+        f"--device {device} {render_flag}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
