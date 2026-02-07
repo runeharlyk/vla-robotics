@@ -1,14 +1,17 @@
 """
 Dataset utilities for VLA training.
 
-Provides PyTorch Dataset classes for loading preprocessed demonstrations.
+Provides PyTorch Dataset classes for loading preprocessed HDF5 demonstrations
+with lazy image decoding for low memory usage.
 """
+import io
 from pathlib import Path
 from typing import Optional
 
 import h5py
 import numpy as np
 import torch
+from PIL import Image
 from torch.utils.data import Dataset
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -18,7 +21,7 @@ PREPROCESSED_DIR = DATA_DIR / "preprocessed"
 
 
 def get_skill_filename(env_id: str) -> str:
-    return env_id.replace("-v1", "").replace("-", "_").lower() + ".pt"
+    return env_id.replace("-v1", "").replace("-", "_").lower() + ".h5"
 
 
 def get_preprocessed_path(env_id: str) -> Path:
@@ -27,16 +30,13 @@ def get_preprocessed_path(env_id: str) -> Path:
 
 class PreprocessedDataset(Dataset):
     """
-    Dataset that loads preprocessed .pt files with images, states, and actions.
-    
-    Each preprocessed file contains episodes with:
-        - images: (T, 3, H, W) tensor
-        - states: (T, state_dim) tensor
-        - actions: (T, action_dim) tensor
-        - instruction: str
-    
+    Dataset that lazily loads from HDF5 files with JPEG-compressed images.
+
+    Only a sample index is built in __init__ (fast, no images loaded).
+    Images are decoded on demand in __getitem__.
+
     Args:
-        data_path: Path to preprocessed .pt file
+        data_path: Path to preprocessed .h5 file
         image_size: Expected image size (for validation)
         sequence_length: Number of frames per sample (for temporal models)
         action_horizon: Number of future actions to predict
@@ -49,79 +49,108 @@ class PreprocessedDataset(Dataset):
         sequence_length: int = 1,
         action_horizon: int = 1,
     ):
+        self.data_path = str(data_path)
         self.image_size = image_size
         self.sequence_length = sequence_length
         self.action_horizon = action_horizon
-        self.samples = []
+        self._h5: Optional[h5py.File] = None
 
-        if not data_path.exists():
+        if not Path(data_path).exists():
             raise FileNotFoundError(f"Data file not found: {data_path}")
 
         print(f"Loading preprocessed data from {data_path}")
-        data = torch.load(data_path, weights_only=False)
-        self.metadata = data["metadata"]
-        episodes = data["episodes"]
+        with h5py.File(data_path, "r") as f:
+            self.metadata = {k: v for k, v in f.attrs.items()}
+            self.num_episodes = int(self.metadata["num_episodes"])
+            self._episode_lengths: list[int] = []
+            for i in range(self.num_episodes):
+                T = f[f"episode_{i}/actions"].shape[0]
+                self._episode_lengths.append(T)
 
-        for ep in episodes:
-            images = ep["images"]
-            states = ep["states"]
-            actions = ep["actions"]
-            instruction = ep["instruction"]
-            T = len(actions)
-
+        self._index: list[tuple[int, int]] = []
+        for ep_idx, T in enumerate(self._episode_lengths):
             for t in range(T - action_horizon + 1):
-                start_idx = max(0, t - sequence_length + 1)
-                img_seq = images[start_idx : t + 1]
+                self._index.append((ep_idx, t))
 
-                if img_seq.shape[0] < sequence_length:
-                    pad_size = sequence_length - img_seq.shape[0]
-                    padding = img_seq[0:1].repeat(pad_size, 1, 1, 1)
-                    img_seq = torch.cat([padding, img_seq], dim=0)
-
-                action_seq = actions[t : t + action_horizon]
-
-                self.samples.append({
-                    "images": img_seq,
-                    "state": states[t],
-                    "actions": action_seq,
-                    "instruction": instruction,
-                })
-
-        print(f"Loaded {len(self.samples)} samples from {len(episodes)} episodes")
+        total_transitions = sum(self._episode_lengths)
+        print(f"Indexed {len(self._index)} samples from {self.num_episodes} episodes ({total_transitions} transitions)")
         print(f"  Action dim: {self.metadata['action_dim']}")
         print(f"  State dim: {self.metadata['state_dim']}")
 
+    def __getstate__(self) -> dict:
+        """Exclude the h5py handle so the dataset can be pickled across workers."""
+        state = self.__dict__.copy()
+        state["_h5"] = None
+        return state
+
+    @property
+    def h5(self) -> h5py.File:
+        """Lazy-open the HDF5 file (re-opened per DataLoader worker)."""
+        if self._h5 is None or not self._h5.id.valid:
+            self._h5 = h5py.File(self.data_path, "r")
+        return self._h5
+
+    def _decode_jpeg(self, jpeg_bytes: np.ndarray) -> torch.Tensor:
+        """Decode JPEG bytes to a (3, H, W) float32 tensor in [0, 1]."""
+        img = Image.open(io.BytesIO(jpeg_bytes.tobytes()))
+        arr = np.array(img, dtype=np.float32) / 255.0
+        return torch.from_numpy(arr).permute(2, 0, 1)
+
     def __len__(self) -> int:
-        return len(self.samples)
+        return len(self._index)
 
     def __getitem__(self, idx: int) -> dict:
-        sample = self.samples[idx]
-        images = sample["images"].float() / 255.0
+        ep_idx, t = self._index[idx]
+        grp = self.h5[f"episode_{ep_idx}"]
+
+        start_idx = max(0, t - self.sequence_length + 1)
+        img_indices = list(range(start_idx, t + 1))
+        pad_count = self.sequence_length - len(img_indices)
+
+        frames = []
+        for i in img_indices:
+            frames.append(self._decode_jpeg(grp["images"][i]))
+        if pad_count > 0:
+            first_frame = frames[0]
+            frames = [first_frame] * pad_count + frames
+        images = torch.stack(frames, dim=0)
+
+        state = torch.from_numpy(grp["states"][t].astype(np.float32))
+        actions = torch.from_numpy(grp["actions"][t : t + self.action_horizon].astype(np.float32))
+
         return {
             "images": images,
-            "state": sample["state"],
-            "actions": sample["actions"],
-            "instruction": sample["instruction"],
+            "state": state,
+            "actions": actions,
+            "instruction": str(self.metadata["instruction"]),
         }
+
+    def get_all_actions(self) -> torch.Tensor:
+        """Load all actions into a single tensor (for computing normalization bounds)."""
+        parts = []
+        for ep_idx in range(self.num_episodes):
+            actions = self.h5[f"episode_{ep_idx}/actions"][:]
+            parts.append(torch.from_numpy(actions.astype(np.float32)))
+        return torch.cat(parts, dim=0)
 
     @property
     def action_dim(self) -> int:
-        return self.metadata["action_dim"]
+        return int(self.metadata["action_dim"])
 
     @property
     def state_dim(self) -> int:
-        return self.metadata["state_dim"]
+        return int(self.metadata["state_dim"])
 
     @property
     def instruction(self) -> str:
-        return self.metadata["instruction"]
+        return str(self.metadata["instruction"])
 
 
 class RawH5Dataset(Dataset):
     """
     Fallback dataset that loads directly from h5 files (uses dummy images).
     Use PreprocessedDataset when possible for real images.
-    
+
     Args:
         demo_path: Path to demo directory
         env_id: Environment ID
@@ -206,15 +235,15 @@ def load_dataset(
 ) -> PreprocessedDataset:
     """
     Load a preprocessed dataset for the given environment.
-    
+
     Args:
         env_id: Environment ID (e.g., "PickCube-v1")
         sequence_length: Number of frames per sample
         action_horizon: Number of future actions to predict
-    
+
     Returns:
         PreprocessedDataset instance
-    
+
     Raises:
         FileNotFoundError: If preprocessed data doesn't exist
     """

@@ -1,19 +1,19 @@
 """
-Preprocess raw ManiSkill demos into VLA-ready .pt files in data/preprocessed.
+Preprocess raw ManiSkill demos into VLA-ready HDF5 files in data/preprocessed.
 
 Replays each trajectory in simulation to collect RGB, state, and actions,
-then saves a single .pt file with everything needed to train a VLA.
+then saves a single .h5 file with JPEG-compressed images for efficient training.
 
 Usage:
     uv run python scripts/preprocess_data.py
     uv run python scripts/preprocess_data.py --skill PickCube-v1 --max-episodes 100
 """
+import io
 from pathlib import Path
 
 import gymnasium as gym
 import h5py
 import numpy as np
-import torch
 import typer
 from PIL import Image
 from tqdm import tqdm
@@ -27,6 +27,8 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 PREPROCESSED_DIR = PROJECT_ROOT / "data" / "preprocessed"
 DEFAULT_SKILL = "PickCube-v1"
 PICK_CUBE_INSTRUCTION = "pick up the red cube and move it to the green goal"
+
+JPEG_QUALITY = 95
 
 
 def find_trajectory_files(raw_dir: Path, env_id: str) -> tuple[Path, Path]:
@@ -75,6 +77,13 @@ def load_json(path: Path) -> dict:
     return io_utils.load_json(str(path))
 
 
+def encode_jpeg(rgb: np.ndarray, quality: int = JPEG_QUALITY) -> bytes:
+    """Encode an RGB numpy array as JPEG bytes."""
+    buf = io.BytesIO()
+    Image.fromarray(rgb).save(buf, format="JPEG", quality=quality)
+    return buf.getvalue()
+
+
 def main(
     skill: str = typer.Option(DEFAULT_SKILL, "--skill", "-s", help="ManiSkill env ID"),
     raw_dir: Path = typer.Option(RAW_DIR, "--raw-dir", "-r", path_type=Path),
@@ -82,8 +91,9 @@ def main(
     max_episodes: int = typer.Option(None, "--max-episodes", "-n", help="Cap number of episodes (default: all)"),
     image_size: int = typer.Option(256, "--image-size", help="Resize RGB to this width/height"),
     obs_mode: str = typer.Option("state", "--obs-mode", help="Observation mode for replay"),
+    jpeg_quality: int = typer.Option(JPEG_QUALITY, "--jpeg-quality", help="JPEG compression quality (1-100)"),
 ) -> None:
-    """Replay raw trajectories to collect RGB + state + actions and save a single .pt file."""
+    """Replay raw trajectories to collect RGB + state + actions and save a single HDF5 file."""
     raw_dir = raw_dir.resolve()
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -108,27 +118,36 @@ def main(
     typer.echo(f"Replaying {len(episodes_meta)} episodes from {h5_path}")
 
     env = gym.make(env_id, **env_kwargs)
-    episodes_out = []
     base = env.unwrapped
 
-    with h5py.File(h5_path, "r") as f:
+    out_name = skill.replace("-v1", "").replace("-", "_").lower() + ".h5"
+    out_path = output_dir / out_name
+
+    jpeg_dtype = h5py.special_dtype(vlen=np.uint8)
+    num_written = 0
+    first_action_dim = None
+    first_state_dim = None
+
+    with h5py.File(out_path, "w") as out_h5, h5py.File(h5_path, "r") as raw_h5:
         for ep_meta in tqdm(episodes_meta, desc="Episodes"):
             ep_id = ep_meta["episode_id"]
             traj_id = f"traj_{ep_id}"
-            if traj_id not in f:
+            if traj_id not in raw_h5:
                 continue
             try:
-                traj = f[traj_id]
+                traj = raw_h5[traj_id]
                 env_states = trajectory_utils.dict_to_list_of_dicts(traj["env_states"])
-                actions = np.asarray(traj["actions"][:])
+                actions = np.asarray(traj["actions"][:], dtype=np.float32)
                 seed = ep_meta.get("episode_seed", ep_meta.get("reset_kwargs", {}).get("seed", 0))
                 if isinstance(seed, list):
                     seed = seed[0]
                 env.reset(seed=seed)
                 base.set_state_dict(common.batch(env_states[0]))
+
                 T = len(actions)
-                images = []
-                states = []
+                jpeg_list = []
+                state_list = []
+
                 for t in range(T):
                     base.set_state_dict(common.batch(env_states[t]))
                     obs = base.get_obs(unflattened=True)
@@ -137,44 +156,45 @@ def main(
                     rgb = extract_rgb_from_render(env)
                     state = flatten_obs_state(obs)
                     img_pil = Image.fromarray(rgb).resize((image_size, image_size), Image.BILINEAR)
-                    images.append(np.array(img_pil))
-                    states.append(np.asarray(state, dtype=np.float32).flatten())
-                images_np = np.stack(images, axis=0)
-                states_np = np.stack(states, axis=0)
-                actions_np = np.asarray(actions, dtype=np.float32)
-                episodes_out.append({
-                    "images": torch.from_numpy(images_np).permute(0, 3, 1, 2),
-                    "states": torch.from_numpy(states_np),
-                    "actions": torch.from_numpy(actions_np),
-                    "instruction": PICK_CUBE_INSTRUCTION,
-                })
+                    jpeg_list.append(np.frombuffer(encode_jpeg(np.array(img_pil), jpeg_quality), dtype=np.uint8))
+                    state_list.append(state)
+
+                states_np = np.stack(state_list, axis=0)
+
+                grp = out_h5.create_group(f"episode_{num_written}")
+                img_ds = grp.create_dataset("images", shape=(T,), dtype=jpeg_dtype)
+                for t, jpg in enumerate(jpeg_list):
+                    img_ds[t] = jpg
+                grp.create_dataset("states", data=states_np, dtype=np.float32)
+                grp.create_dataset("actions", data=actions, dtype=np.float32)
+
+                if first_action_dim is None:
+                    first_action_dim = int(actions.shape[-1])
+                    first_state_dim = int(states_np.shape[-1])
+
+                num_written += 1
             except Exception as e:
                 tqdm.write(f"Episode {ep_id} failed: {e}")
                 raise
 
     env.close()
 
-    if not episodes_out:
-        typer.echo("No episodes were processed. Check that trajectory keys exist (traj_0, traj_1, ...).", err=True)
+    if num_written == 0:
+        typer.echo("No episodes were processed.", err=True)
         raise typer.Exit(1)
 
-    action_dim = int(episodes_out[0]["actions"].shape[-1])
-    state_dim = int(episodes_out[0]["states"].shape[-1])
-    out_name = skill.replace("-v1", "").replace("-", "_").lower() + ".pt"
-    out_path = output_dir / out_name
-    torch.save({
-        "episodes": episodes_out,
-        "metadata": {
-            "env_id": env_id,
-            "skill": skill,
-            "num_episodes": len(episodes_out),
-            "action_dim": action_dim,
-            "state_dim": state_dim,
-            "image_size": image_size,
-            "instruction": PICK_CUBE_INSTRUCTION,
-        },
-    }, out_path)
-    typer.echo(f"Saved {len(episodes_out)} episodes to {out_path}")
+    with h5py.File(out_path, "a") as out_h5:
+        out_h5.attrs["env_id"] = env_id
+        out_h5.attrs["skill"] = skill
+        out_h5.attrs["num_episodes"] = num_written
+        out_h5.attrs["action_dim"] = first_action_dim
+        out_h5.attrs["state_dim"] = first_state_dim
+        out_h5.attrs["image_size"] = image_size
+        out_h5.attrs["instruction"] = PICK_CUBE_INSTRUCTION
+        out_h5.attrs["jpeg_quality"] = jpeg_quality
+
+    size_mb = out_path.stat().st_size / (1024 * 1024)
+    typer.echo(f"Saved {num_written} episodes to {out_path} ({size_mb:.1f} MB)")
 
 
 if __name__ == "__main__":
