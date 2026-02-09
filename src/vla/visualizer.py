@@ -12,6 +12,7 @@ Usage:
     uv run python src/vla/visualizer.py test-env
 """
 import time
+from collections import deque
 from pathlib import Path
 from typing import Optional
 
@@ -88,50 +89,18 @@ def display_frame(frame: np.ndarray, window_name: str = "Visualization", wait_ms
     return not (key & 0xFF == ord('q'))
 
 
+from vla.train import create_rt1_model
+
+DEFAULT_ACTION_LOW = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, -1.0], dtype=np.float32)
+DEFAULT_ACTION_HIGH = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973, 1.0], dtype=np.float32)
+
+
 def bins_to_continuous(bins: torch.Tensor, num_bins: int = 256) -> torch.Tensor:
     return (bins.float() / (num_bins - 1)) * 2 - 1
 
 
-def create_rt1_model(action_dim: int, device: str, model_size: str):
-    from robotic_transformer_pytorch import RT1, MaxViT
-
-    configs = {
-        "tiny": {
-            "dim_conv_stem": 16, "dim": 32, "dim_head": 16, "depth": (1, 1, 1, 1),
-            "rt1_depth": 2, "rt1_heads": 2, "rt1_dim_head": 16,
-        },
-        "small": {
-            "dim_conv_stem": 32, "dim": 48, "dim_head": 16, "depth": (1, 1, 2, 1),
-            "rt1_depth": 4, "rt1_heads": 4, "rt1_dim_head": 32,
-        },
-        "base": {
-            "dim_conv_stem": 64, "dim": 96, "dim_head": 32, "depth": (2, 2, 5, 2),
-            "rt1_depth": 6, "rt1_heads": 8, "rt1_dim_head": 64,
-        },
-    }
-    cfg = configs.get(model_size, configs["small"])
-
-    vit = MaxViT(
-        num_classes=1000,
-        dim_conv_stem=cfg["dim_conv_stem"],
-        dim=cfg["dim"],
-        dim_head=cfg["dim_head"],
-        depth=cfg["depth"],
-        window_size=8,
-        mbconv_expansion_rate=4,
-        mbconv_shrinkage_rate=0.25,
-        dropout=0.1,
-    )
-
-    return RT1(
-        vit=vit,
-        num_actions=action_dim,
-        action_bins=256,
-        depth=cfg["rt1_depth"],
-        heads=cfg["rt1_heads"],
-        dim_head=cfg["rt1_dim_head"],
-        cond_drop_prob=0.2,
-    ).to(device)
+def denormalize_action(action_norm: np.ndarray, low: np.ndarray, high: np.ndarray) -> np.ndarray:
+    return (action_norm + 1.0) / 2.0 * (high - low) + low
 
 
 @app.command()
@@ -209,11 +178,16 @@ def policy(
     action_dim = config["action_dim"]
     model_size = config["model_size"]
     instruction = config["instruction"]
+    use_pretrained = config.get("pretrained", False)
+    image_size = config.get("image_size", 256)
+    sequence_length = config.get("sequence_length", 1)
+    action_low = np.array(config.get("action_low", DEFAULT_ACTION_LOW), dtype=np.float32)
+    action_high = np.array(config.get("action_high", DEFAULT_ACTION_HIGH), dtype=np.float32)
 
-    model = create_rt1_model(action_dim, device, model_size)
+    model = create_rt1_model(action_dim, device, model_size, pretrained=use_pretrained)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
-    print(f"Model loaded: {model_size}, action_dim={action_dim}")
+    print(f"Model loaded: pretrained={use_pretrained}, action_dim={action_dim}, seq_len={sequence_length}")
 
     print(f"Creating environment: {env_id}")
     env = create_env(env_id)
@@ -233,22 +207,30 @@ def policy(
         while True:
             obs, info = env.reset(seed=ep)
             episode_reward = 0.0
+            frame_buffer: deque[torch.Tensor] = deque(maxlen=sequence_length)
             print(f"\nEpisode {ep + 1}...")
 
             for step in range(max_steps):
                 frame = get_frame(env)
-                rgb = np.array(Image.fromarray(frame).resize((256, 256)))
+                rgb = np.array(Image.fromarray(frame).resize((image_size, image_size)))
 
                 img_tensor = torch.from_numpy(rgb).float() / 255.0
                 img_tensor = img_tensor.permute(2, 0, 1)
-                video = img_tensor.unsqueeze(0).unsqueeze(0).to(device)
+                frame_buffer.append(img_tensor)
+
+                while len(frame_buffer) < sequence_length:
+                    frame_buffer.appendleft(frame_buffer[0])
+
+                frames = torch.stack(list(frame_buffer), dim=0)
+                video = frames.unsqueeze(0).to(device)
                 video = video.permute(0, 2, 1, 3, 4)
 
                 with torch.no_grad():
                     logits = model(video, texts=[instruction])
-                    action_bins = logits.argmax(dim=-1)[0, 0]
+                    action_bins = logits.argmax(dim=-1)[0, -1]
 
-                action = bins_to_continuous(action_bins).cpu().numpy()
+                action_norm = bins_to_continuous(action_bins).cpu().numpy()
+                action = denormalize_action(action_norm, action_low, action_high)
                 action = action.reshape(1, -1)
 
                 obs, reward, terminated, truncated, info = env.step(action)

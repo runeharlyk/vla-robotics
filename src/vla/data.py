@@ -11,6 +11,7 @@ from typing import Optional
 import h5py
 import numpy as np
 import torch
+import torchvision.transforms.v2 as T
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -37,9 +38,10 @@ class PreprocessedDataset(Dataset):
 
     Args:
         data_path: Path to preprocessed .h5 file
-        image_size: Expected image size (for validation)
+        image_size: Output image size (224 for pretrained backbone, 256 for scratch)
         sequence_length: Number of frames per sample (for temporal models)
         action_horizon: Number of future actions to predict
+        augment: Whether to apply data augmentation during training
     """
 
     def __init__(
@@ -48,12 +50,23 @@ class PreprocessedDataset(Dataset):
         image_size: int = 256,
         sequence_length: int = 1,
         action_horizon: int = 1,
+        augment: bool = False,
     ):
         self.data_path = str(data_path)
         self.image_size = image_size
         self.sequence_length = sequence_length
         self.action_horizon = action_horizon
+        self.augment = augment
         self._h5: Optional[h5py.File] = None
+
+        if augment:
+            self.train_transform = T.Compose([
+                T.RandomResizedCrop(image_size, scale=(0.85, 1.0), ratio=(0.9, 1.1), antialias=True),
+                T.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.05),
+                T.RandomAffine(degrees=3, translate=(0.03, 0.03)),
+            ])
+        else:
+            self.train_transform = None
 
         if not Path(data_path).exists():
             raise FileNotFoundError(f"Data file not found: {data_path}")
@@ -64,18 +77,20 @@ class PreprocessedDataset(Dataset):
             self.num_episodes = int(self.metadata["num_episodes"])
             self._episode_lengths: list[int] = []
             for i in range(self.num_episodes):
-                T = f[f"episode_{i}/actions"].shape[0]
-                self._episode_lengths.append(T)
+                ep_len = f[f"episode_{i}/actions"].shape[0]
+                self._episode_lengths.append(ep_len)
 
         self._index: list[tuple[int, int]] = []
-        for ep_idx, T in enumerate(self._episode_lengths):
-            for t in range(T - action_horizon + 1):
+        for ep_idx, ep_len in enumerate(self._episode_lengths):
+            for t in range(ep_len - action_horizon + 1):
                 self._index.append((ep_idx, t))
 
         total_transitions = sum(self._episode_lengths)
         print(f"Indexed {len(self._index)} samples from {self.num_episodes} episodes ({total_transitions} transitions)")
         print(f"  Action dim: {self.metadata['action_dim']}")
         print(f"  State dim: {self.metadata['state_dim']}")
+        print(f"  Image size: {image_size}")
+        print(f"  Augmentation: {augment}")
 
     def __getstate__(self) -> dict:
         """Exclude the h5py handle so the dataset can be pickled across workers."""
@@ -93,6 +108,8 @@ class PreprocessedDataset(Dataset):
     def _decode_jpeg(self, jpeg_bytes: np.ndarray) -> torch.Tensor:
         """Decode JPEG bytes to a (3, H, W) float32 tensor in [0, 1]."""
         img = Image.open(io.BytesIO(jpeg_bytes.tobytes()))
+        if img.size[0] != self.image_size or img.size[1] != self.image_size:
+            img = img.resize((self.image_size, self.image_size), Image.BILINEAR)
         arr = np.array(img, dtype=np.float32) / 255.0
         return torch.from_numpy(arr).permute(2, 0, 1)
 
@@ -114,6 +131,14 @@ class PreprocessedDataset(Dataset):
             first_frame = frames[0]
             frames = [first_frame] * pad_count + frames
         images = torch.stack(frames, dim=0)
+
+        if self.train_transform is not None:
+            seed = torch.randint(0, 2**31, (1,)).item()
+            augmented = []
+            for f in images:
+                torch.manual_seed(seed)
+                augmented.append(self.train_transform(f))
+            images = torch.stack(augmented, dim=0)
 
         state = torch.from_numpy(grp["states"][t].astype(np.float32))
         actions = torch.from_numpy(grp["actions"][t : t + self.action_horizon].astype(np.float32))
@@ -232,6 +257,8 @@ def load_dataset(
     env_id: str,
     sequence_length: int = 1,
     action_horizon: int = 1,
+    image_size: int = 256,
+    augment: bool = False,
 ) -> PreprocessedDataset:
     """
     Load a preprocessed dataset for the given environment.
@@ -240,6 +267,8 @@ def load_dataset(
         env_id: Environment ID (e.g., "PickCube-v1")
         sequence_length: Number of frames per sample
         action_horizon: Number of future actions to predict
+        image_size: Output image size (224 for pretrained backbone, 256 for scratch)
+        augment: Whether to apply data augmentation
 
     Returns:
         PreprocessedDataset instance
@@ -255,6 +284,8 @@ def load_dataset(
         )
     return PreprocessedDataset(
         data_path,
+        image_size=image_size,
         sequence_length=sequence_length,
         action_horizon=action_horizon,
+        augment=augment,
     )
