@@ -343,5 +343,19 @@ def list_demos(
             print(f"  Searched: {search_dirs}")
 
 
+@app.command()
+def list_envs() -> None:
+    """List all available ManiSkill environments."""
+    maniskill_envs = sorted(e for e in gym.registry if "v1" in e and any(
+        x in e for x in ["PickCube", "PushCube", "StackCube", "PegInsertion", "PlugCharger",
+                         "OpenCabinet", "PushChairs", "Drawer", "LiftPeg", "TurnFaucet",
+                         "MS-", "ManiSkill"]
+    ))
+    print("Available ManiSkill environments:")
+    for env in maniskill_envs:
+        print(f"  {env}")
+    print(f"\nTotal: {len(maniskill_envs)} environments")
+
+
 if __name__ == "__main__":
     app()

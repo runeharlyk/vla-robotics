@@ -70,6 +70,12 @@ def list_demos(ctx: Context, env: str = "") -> None:
     ctx.run(f"uv run python src/vla/visualizer.py list-demos {env_flag}", echo=True, pty=not WINDOWS)
 
 @task
+def list_envs(ctx: Context) -> None:
+    """List all available ManiSkill environments."""
+    ctx.run("uv run python src/vla/visualizer.py list-envs", echo=True, pty=not WINDOWS)
+
+
+@task
 def visualize_policy(ctx: Context, model: str = "", env: str = "PickCube-v1", speed: float = 1.0, loop: bool = False, device: str = "cuda") -> None:
     """Visualize trained policy running in environment."""
     if not model:
