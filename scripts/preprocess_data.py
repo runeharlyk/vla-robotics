@@ -9,6 +9,7 @@ Usage:
     uv run python scripts/preprocess_data.py --skill PickCube-v1 --max-episodes 100
 """
 import io
+import os
 from pathlib import Path
 
 import gymnasium as gym
@@ -92,8 +93,14 @@ def main(
     image_size: int = typer.Option(256, "--image-size", help="Resize RGB to this width/height"),
     obs_mode: str = typer.Option("state", "--obs-mode", help="Observation mode for replay"),
     jpeg_quality: int = typer.Option(JPEG_QUALITY, "--jpeg-quality", help="JPEG compression quality (1-100)"),
+    render_backend: str = typer.Option(
+        None, "--render-backend", help="Render backend: cpu or cuda (default: RENDER_BACKEND env var or cpu)"
+    ),
 ) -> None:
     """Replay raw trajectories to collect RGB + state + actions and save a single HDF5 file."""
+    if render_backend is None:
+        render_backend = os.environ.get("RENDER_BACKEND", "cpu")
+
     raw_dir = raw_dir.resolve()
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -108,7 +115,7 @@ def main(
         "control_mode": env_info.get("env_kwargs", {}).get("control_mode", "pd_joint_pos"),
         "render_mode": "rgb_array",
         "sim_backend": "physx_cpu",
-        "render_backend": "cpu",
+        "render_backend": render_backend,
     }
 
     episodes_meta = json_data["episodes"]
