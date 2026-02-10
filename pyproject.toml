@@ -16,14 +16,15 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.11.5"
 dependencies = [
+    "lerobot[smolvla]",
     "mani-skill>=3.0.0b22",
     "opencv-python",
     "robotic-transformer-pytorch",
     "sentencepiece>=0.2.1",
     "timm>=1.0.0",
-    "torch==2.9.1",
+    "torch>=2.2.1,<2.8.0",
     "torchvision",
     "typer>=0.15",
     "wandb>=0.24.2",
@@ -61,9 +62,16 @@ torchvision = [
   { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
   { index = "pytorch-cpu", marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
 ]
+lerobot = { path = "../../smolvla/lerobot", editable = true }
 
 [tool.ruff]
 line-length = 120
 
 [tool.coverage.run]
 omit = ["tests/*"]
+
+[tool.uv]
+override-dependencies = [
+    "gymnasium==0.29.1",
+    "mani-skill==3.0.0b22"
+]
