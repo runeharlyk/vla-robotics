@@ -18,9 +18,16 @@ classifiers = [
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "clip",
     "mani-skill>=3.0.0b22",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.2",
+    "opencv-python>=4.13.0.90",
+    "pillow>=12.1.0",
     "torch==2.9.1",
+    "torchvision>=0.24.1",
     "typer==0.15.1",
+    "ultralytics>=8.4.11",
 ]
 
 [dependency-groups]
@@ -55,6 +62,7 @@ torchvision = [
   { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
   { index = "pytorch-cpu", marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
 ]
+clip = { git = "https://github.com/openai/CLIP.git" }
 
 [tool.ruff]
 line-length = 120
