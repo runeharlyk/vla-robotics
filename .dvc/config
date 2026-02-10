@@ -1,0 +1,4 @@
+[core]
+    remote = gcs-storage
+['remote "gcs-storage"']
+    url = gs://vla-robotics-data
