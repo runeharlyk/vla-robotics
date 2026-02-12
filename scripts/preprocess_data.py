@@ -176,24 +176,69 @@ def extract_rgb_views(obs: dict, env, num_cameras: int) -> list[np.ndarray]:
 
 
 def flatten_obs_state(obs: dict) -> np.ndarray:
+    """
+    Handles:
+    - single-arm Panda
+    - two-arm Panda (TwoRobot*)
+    - state / state_dict modes
+    """
+
+    # Case 1: already flattened
     if "state" in obs:
         x = obs["state"]
+
+    # Case 2: ManiSkill state_dict
     elif "state_dict" in obs:
         x = common.flatten_state_dict(obs["state_dict"], use_torch=False)
-    else:
-        agent = obs.get("agent", {})
-        if "qpos" in agent and "qvel" in agent:
-            x = np.concatenate(
-                [
-                    np.asarray(agent["qpos"]).flatten(),
-                    np.asarray(agent["qvel"]).flatten(),
-                ],
-                axis=-1,
-            )
+
+    # Case 3: agent-based structure (single or multi robot)
+    elif "agent" in obs:
+        agent = obs["agent"]
+
+        # MULTI-ROBOT CASE
+        if isinstance(agent, dict) and all(isinstance(v, dict) for v in agent.values()):
+            parts = []
+
+            # Sort keys for deterministic ordering
+            for robot_name in sorted(agent.keys()):
+                robot = agent[robot_name]
+
+                if "qpos" not in robot or "qvel" not in robot:
+                    raise ValueError(f"Missing qpos/qvel in {robot_name}")
+
+                qpos = robot["qpos"]
+                qvel = robot["qvel"]
+
+                if hasattr(qpos, "cpu"):
+                    qpos = qpos.cpu().numpy()
+                if hasattr(qvel, "cpu"):
+                    qvel = qvel.cpu().numpy()
+
+                parts.append(np.concatenate([qpos.flatten(), qvel.flatten()]))
+
+            x = np.concatenate(parts)
+
+        # SINGLE ROBOT CASE
+        elif "qpos" in agent and "qvel" in agent:
+            qpos = agent["qpos"]
+            qvel = agent["qvel"]
+
+            if hasattr(qpos, "cpu"):
+                qpos = qpos.cpu().numpy()
+            if hasattr(qvel, "cpu"):
+                qvel = qvel.cpu().numpy()
+
+            x = np.concatenate([qpos.flatten(), qvel.flatten()])
+
         else:
-            raise ValueError(f"Cannot get state from obs. Keys: {list(obs.keys())}")
+            raise ValueError(f"Unsupported agent structure: {agent.keys()}")
+
+    else:
+        raise ValueError(f"Cannot get state from obs. Keys: {list(obs.keys())}")
+
     if hasattr(x, "cpu"):
         x = x.cpu().numpy()
+
     return np.asarray(x, dtype=np.float32).flatten()
 
 
@@ -393,7 +438,7 @@ def _replay_episode_chunk(
 
 
 def main(
-    skill: str = typer.Option(DEFAULT_SKILL, "--skill", "-s", help="ManiSkill env ID"),
+    skill: str = typer.Option(..., "--skill", "-s", help="ManiSkill env ID"),
     raw_dir: Path = typer.Option(RAW_DIR, "--raw-dir", "-r", path_type=Path),
     output_dir: Path = typer.Option(PREPROCESSED_DIR, "--output-dir", "-o", path_type=Path),
     max_episodes: int = typer.Option(None, "--max-episodes", "-n", help="Cap number of episodes (default: all)"),
@@ -411,6 +456,7 @@ def main(
     raw_dir = raw_dir.resolve()
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    instruction = INSTRUCTION_MAP.get(skill, skill)
 
     h5_path, json_path = find_trajectory_files(raw_dir, skill)
     json_data = load_json(json_path)
