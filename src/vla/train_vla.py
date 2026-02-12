@@ -4,6 +4,7 @@ Train SmoLVLA on ManiSkill demonstrations.
 Usage:
     uv run python src/vla/train_vla.py finetune --env PickCube-v1 --epochs 10 --batch-size 8
 """
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -38,7 +39,7 @@ def compute_action_bounds(dataset, margin: float = 0.1) -> tuple[np.ndarray, np.
     return action_low, action_high
 
 
-def run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj):
+def run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj, use_amp=False):
     """Run one validation pass and return average loss."""
     policy.eval()
     total_loss = 0.0
@@ -50,7 +51,8 @@ def run_validation(policy, val_loader, preprocess, chunk_size, action_dim, devic
             batch_preprocessed = preprocess(batch_mapped)
 
             try:
-                output = policy.forward(batch_preprocessed)
+                with torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
+                    output = policy.forward(batch_preprocessed)
                 if isinstance(output, dict):
                     loss = output["loss"]
                 elif isinstance(output, (tuple, list)):
@@ -78,7 +80,7 @@ def _build_batch_mapped(batch, chunk_size, action_dim):
     if imgs.shape[-3] == 4:
         imgs = imgs[..., :3, :, :]
 
-    last_frame = imgs[:, -1]
+    last_frame = imgs[:, -1] if imgs.ndim == 5 else imgs
 
     batch_mapped = {
         "observation.images.top": last_frame,
@@ -129,13 +131,18 @@ def finetune(
     freeze_vision: bool = typer.Option(True, "--freeze-vision/--no-freeze-vision", help="Freeze vision encoder"),
     val_split: float = typer.Option(0.1, "--val-split", help="Fraction of episodes for validation"),
     patience: int = typer.Option(5, "--patience", help="Early stopping patience (0 to disable)"),
+    amp: bool = typer.Option(False, "--amp/--no-amp", help="Use BF16 mixed precision (faster on Ampere+ GPUs)"),
+    num_workers: int = typer.Option(4, "--num-workers", help="Dataloader worker count"),
+    compile_model: bool = typer.Option(False, "--compile/--no-compile", help="Use torch.compile for faster training"),
+    grad_accum_steps: int = typer.Option(1, "--grad-accum", help="Gradient accumulation steps (effective batch = batch_size * grad_accum)"),
+    prefetch_factor: int = typer.Option(4, "--prefetch", help="DataLoader prefetch factor per worker"),
 ) -> None:
     """Finetune SmoLVLA on preprocessed ManiSkill demonstrations."""
 
     try:
         train_dataset, val_dataset = load_dataset_with_split(
             env_id,
-            sequence_length=sequence_length,
+            sequence_length=1,
             action_horizon=sequence_length,
             image_size=image_size,
             augment=True,
@@ -149,17 +156,20 @@ def finetune(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
+        num_workers=num_workers,
         pin_memory=True,
-        persistent_workers=True,
+        persistent_workers=num_workers > 0,
+        prefetch_factor=prefetch_factor if num_workers > 0 else None,
     )
+    val_workers = max(1, num_workers // 2)
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
+        num_workers=val_workers,
         pin_memory=True,
-        persistent_workers=True,
+        persistent_workers=val_workers > 0,
+        prefetch_factor=prefetch_factor if val_workers > 0 else None,
     )
 
     action_dim = train_dataset.action_dim
@@ -199,30 +209,34 @@ def finetune(
         preprocessor_overrides={"device_processor": {"device": str(device_obj)}},
     )
 
-    # Freeze vision encoder if requested
     if freeze_vision and hasattr(policy, 'vision_encoder'):
         print("Freezing vision encoder...")
         for param in policy.vision_encoder.parameters():
             param.requires_grad = False
 
-    # Count trainable parameters
     trainable_params = sum(p.numel() for p in policy.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in policy.parameters())
     print(f"  Trainable parameters: {trainable_params:,} / {total_params:,}")
 
-    # Setup optimizer and scheduler
+    chunk_size = policy.config.chunk_size
+
     optimizer = torch.optim.AdamW(
         [p for p in policy.parameters() if p.requires_grad],
         lr=lr,
         weight_decay=weight_decay,
     )
 
-    total_steps = len(train_loader) * epochs
+    if compile_model:
+        print("Compiling model with torch.compile...")
+        policy = torch.compile(policy, mode="reduce-overhead")
+
+    effective_batch_size = batch_size * grad_accum_steps
+    total_optim_steps = (len(train_loader) // grad_accum_steps) * epochs
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=lr,
-        total_steps=total_steps,
-        pct_start=min(warmup_steps / total_steps, 0.3),
+        total_steps=total_optim_steps,
+        pct_start=min(warmup_steps / total_optim_steps, 0.3),
     )
 
     if save_path is None:
@@ -232,7 +246,7 @@ def finetune(
 
     print(f"\nFinetuning SmoLVLA on {env_id}")
     print(f"  Epochs: {epochs}")
-    print(f"  Batch size: {batch_size}")
+    print(f"  Batch size: {batch_size} (effective: {effective_batch_size}, accum={grad_accum_steps})")
     print(f"  Learning rate: {lr}")
     print(f"  Action chunk size: {sequence_length}")
     print(f"  Image size: {image_size}")
@@ -240,6 +254,9 @@ def finetune(
     print(f"  Freeze vision: {freeze_vision}")
     print(f"  Val split: {val_split} ({len(val_dataset)} samples)")
     print(f"  Early stopping patience: {patience}")
+    print(f"  Mixed precision (AMP): {amp}")
+    print(f"  torch.compile: {compile_model}")
+    print(f"  Dataloader workers: {num_workers}, prefetch: {prefetch_factor}")
     if device == "cuda" and torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
@@ -249,7 +266,6 @@ def finetune(
     print(f"  Instruction: '{instruction}'")
     print(f"  Save path: {save_path}")
 
-    # Initialize wandb
     wandb.init(
         project=wandb_project,
         name=wandb_name,
@@ -257,6 +273,8 @@ def finetune(
             "env_id": env_id,
             "epochs": epochs,
             "batch_size": batch_size,
+            "effective_batch_size": effective_batch_size,
+            "grad_accum_steps": grad_accum_steps,
             "lr": lr,
             "weight_decay": weight_decay,
             "gradient_clip": gradient_clip,
@@ -275,62 +293,33 @@ def finetune(
             "patience": patience,
             "train_samples": len(train_dataset),
             "val_samples": len(val_dataset),
+            "amp": amp,
+            "compile": compile_model,
+            "num_workers": num_workers,
         },
     )
-    wandb.watch(policy, log="gradients", log_freq=100)
 
     best_val_loss = float("inf")
     epochs_without_improvement = 0
     global_step = 0
-    chunk_size = policy.config.chunk_size
+    optim_step = 0
+    epoch_start = time.time()
 
     for epoch in range(epochs):
         policy.train()
         total_loss = 0
         num_batches = 0
+        epoch_start = time.time()
 
         pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
-        for batch in pbar:
+        for batch_idx, batch in enumerate(pbar):
             batch_mapped = _build_batch_mapped(batch, chunk_size, action_dim)
-
-            if global_step == 0:
-                print("\n[DEBUG] batch_mapped keys and shapes:")
-                for k, v in batch_mapped.items():
-                    if hasattr(v, "shape"):
-                        print(f"  {k}: {v.shape} dtype={v.dtype}")
-                    else:
-                        print(f"  {k}: {type(v).__name__} = {v!r}")
-
-            # Preprocess (tokenize text, normalize, move to device)
             batch_preprocessed = preprocess(batch_mapped)
 
-            if global_step == 0:
-                print("\n[DEBUG] batch_preprocessed keys and shapes:")
-                for k, v in batch_preprocessed.items():
-                    if hasattr(v, "shape"):
-                        print(f"  {k}: {v.shape} dtype={v.dtype}")
-                    else:
-                        print(f"  {k}: {type(v).__name__} = {v!r}")
-
-            optimizer.zero_grad()
-
             try:
-                output = policy.forward(batch_preprocessed)
+                with torch.autocast("cuda", dtype=torch.bfloat16, enabled=amp):
+                    output = policy.forward(batch_preprocessed)
 
-                # Debug: inspect output type on first batch
-                if global_step == 0:
-                    print(f"\n[DEBUG] output type: {type(output)}")
-                    if isinstance(output, dict):
-                        print(f"  keys: {list(output.keys())}")
-                    elif isinstance(output, (tuple, list)):
-                        print(f"  length: {len(output)}")
-                        for i, v in enumerate(output):
-                            if hasattr(v, "shape"):
-                                print(f"  [{i}]: {v.shape} dtype={v.dtype}")
-                            else:
-                                print(f"  [{i}]: {type(v).__name__} = {v}")
-
-                # Extract loss from output (may be dict or tuple)
                 if isinstance(output, dict):
                     loss = output["loss"]
                 elif isinstance(output, (tuple, list)):
@@ -338,22 +327,22 @@ def finetune(
                 else:
                     loss = output
             except Exception as e:
-                if global_step == 0:
-                    import traceback
-                    traceback.print_exc()
                 print(f"\nError during forward pass: {e}")
-                print("Skipping batch...")
                 continue
 
             if torch.isnan(loss) or torch.isinf(loss):
                 pbar.set_postfix({"loss": "nan/inf (skipped)"})
                 continue
 
-            # Backward pass
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(policy.parameters(), gradient_clip)
-            optimizer.step()
-            scheduler.step()
+            scaled_loss = loss / grad_accum_steps
+            scaled_loss.backward()
+
+            if (batch_idx + 1) % grad_accum_steps == 0 or (batch_idx + 1) == len(train_loader):
+                torch.nn.utils.clip_grad_norm_(policy.parameters(), gradient_clip)
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                optim_step += 1
 
             step_loss = loss.item()
             total_loss += step_loss
@@ -366,17 +355,19 @@ def finetune(
                 "train/lr": scheduler.get_last_lr()[0],
             }, step=global_step)
 
+        epoch_time = time.time() - epoch_start
         avg_train_loss = total_loss / num_batches if num_batches > 0 else float("inf")
         current_lr = scheduler.get_last_lr()[0]
 
-        val_loss = run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj)
+        val_loss = run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj, use_amp=amp)
 
-        print(f"Epoch {epoch + 1}/{epochs} - Train loss: {avg_train_loss:.4f}, Val loss: {val_loss:.4f}, LR: {current_lr:.2e}")
+        print(f"Epoch {epoch + 1}/{epochs} - Train: {avg_train_loss:.4f}, Val: {val_loss:.4f}, LR: {current_lr:.2e}, Time: {epoch_time:.0f}s")
 
         wandb.log({
             "epoch/train_loss": avg_train_loss,
             "epoch/val_loss": val_loss,
             "epoch/lr": current_lr,
+            "epoch/time_seconds": epoch_time,
             "epoch": epoch + 1,
         }, step=global_step)
 

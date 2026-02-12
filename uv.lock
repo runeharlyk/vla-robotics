@@ -666,8 +666,10 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "dvc" },
+    { name = "lerobot", extra = ["smolvla"] },
     { name = "mani-skill" },
     { name = "num2words" },
+    { name = "numpy" },
     { name = "opencv-python" },
     { name = "robotic-transformer-pytorch" },
     { name = "sentencepiece" },
@@ -679,11 +681,6 @@ dependencies = [
     { name = "torchvision", version = "0.22.1+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (platform_python_implementation != 'CPython' and sys_platform == 'linux') or sys_platform == 'win32'" },
     { name = "typer" },
     { name = "wandb" },
-]
-
-[package.optional-dependencies]
-smolvla = [
-    { name = "lerobot", extra = ["smolvla"] },
 ]
 
 [package.dev-dependencies]
@@ -701,9 +698,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "dvc", extras = ["gcs"], specifier = ">=3.66.1" },
-    { name = "lerobot", extras = ["smolvla"], marker = "extra == 'smolvla'" },
+    { name = "lerobot", extras = ["smolvla"], specifier = ">=0.4.3" },
     { name = "mani-skill", specifier = ">=3.0.0b22" },
     { name = "num2words", specifier = ">=0.5.14" },
+    { name = "numpy", specifier = ">=2.2.6" },
     { name = "opencv-python" },
     { name = "robotic-transformer-pytorch" },
     { name = "sentencepiece", specifier = ">=0.2.1" },
@@ -715,7 +713,6 @@ requires-dist = [
     { name = "typer", specifier = ">=0.23" },
     { name = "wandb", specifier = ">=0.24.2" },
 ]
-provides-extras = ["smolvla"]
 
 [package.metadata.requires-dev]
 dev = [

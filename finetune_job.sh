@@ -21,10 +21,12 @@ module load cuda/12.2
 
 nvidia-smi
 
+uv sync
+
 uv run python src/vla/train_vla.py \
     --env PickCube-v1 \
     --epochs 50 \
-    --batch-size 64 \
+    --batch-size 128 \
     --lr 1e-5 \
     --model-id lerobot/smolvla_base \
     --seq-len 8 \
@@ -35,4 +37,8 @@ uv run python src/vla/train_vla.py \
     --warmup-steps 200 \
     --val-split 0.1 \
     --patience 10 \
+    --amp \
+    --compile \
+    --num-workers 6 \
+    --prefetch 4 \
     --wandb-project vla-smolvla
