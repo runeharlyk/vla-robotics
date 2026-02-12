@@ -74,7 +74,6 @@ class PretrainedRT1(nn.Module):
     ):
         super().__init__()
 
-        from einops import pack as pack_one_fn, reduce, repeat
         from einops.layers.torch import Rearrange
 
         from robotic_transformer_pytorch.robotic_transformer_pytorch import (
@@ -115,7 +114,7 @@ class PretrainedRT1(nn.Module):
         self._posemb_sincos_1d = posemb_sincos_1d
 
     def forward(self, video, texts=None, text_embeds=None, cond_drop_prob=0.0):
-        from einops import pack, reduce, repeat, unpack
+        from einops import reduce, repeat
 
         b, c, f, h, w = video.shape
         device = video.device
@@ -276,7 +275,7 @@ def rt1(
     instruction = dataset.instruction
 
     action_low, action_high = compute_action_bounds(dataset)
-    print(f"\nAction bounds (data-derived with margin):")
+    print("\nAction bounds (data-derived with margin):")
     print(f"  Low:  {action_low.tolist()}")
     print(f"  High: {action_high.tolist()}")
     bin_resolution = (action_high - action_low) / 255
@@ -466,8 +465,8 @@ def list_models() -> None:
     print("Available models:")
     print("  rt1 - Robotics Transformer 1 (tiny/small/base)")
     print("\nUsage:")
-    print("  uv run python src/vla/train.py rt1 --env PickCube-v1 --epochs 100")
+    print("  uv run python src/vla/train.py rt1 --env PickCube-v1 --epochs 100")  
 
-
+    
 if __name__ == "__main__":
     app()

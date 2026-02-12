@@ -129,3 +129,27 @@ def eval_rt1(
         f"--device {device} {video_flag}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
+def finetune(
+    ctx: Context,
+    env: str = "PickCube-v1",
+    epochs: int = 10,
+    batch_size: int = 8,
+    lr: float = 1e-5,
+    model_id: str = "lerobot/smolvla_base",
+    seq_len: int = 4,
+    device: str = "cuda",
+    freeze_vision: bool = True,
+    wandb_project: str = "vla-smolvla",
+) -> None:
+    """Finetune SmoLVLA on preprocessed ManiSkill demonstrations."""
+    freeze_flag = "--freeze-vision" if freeze_vision else "--no-freeze-vision"
+    cmd = (
+        f"uv run python src/vla/train_vla.py "
+        f"--env {env} --epochs {epochs} --batch-size {batch_size} "
+        f"--lr {lr} --model-id {model_id} --seq-len {seq_len} "
+        f"--device {device} {freeze_flag} --wandb-project {wandb_project}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)

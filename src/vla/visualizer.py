@@ -26,7 +26,6 @@ from mani_skill.trajectory import utils as trajectory_utils
 from mani_skill.utils import common
 from PIL import Image
 
-import mani_skill.envs
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -281,7 +280,7 @@ def test_env(
     cv2.namedWindow("Environment Test", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("Environment Test", 512, 512)
 
-    print(f"\nTesting environment with random actions")
+    print("\nTesting environment with random actions")
     print("Press 'q' to quit")
 
     try:

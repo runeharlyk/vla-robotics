@@ -7,10 +7,8 @@ Usage:
     uv run python src/vla/evaluate.py rt1 --model models/rt1_pickcube_v1.pt
     uv run python src/vla/evaluate.py --help
 """
-import time
 from collections import deque
 from pathlib import Path
-from typing import Optional
 
 import gymnasium as gym
 import numpy as np
@@ -18,7 +16,6 @@ import torch
 import typer
 from PIL import Image
 
-import mani_skill.envs
 from vla.train import create_rt1_model
 
 app = typer.Typer(no_args_is_help=True)

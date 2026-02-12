@@ -14,7 +14,6 @@ Available checkpoints:
 Requirements:
     pip install tensorflow tensorflow-hub tf-agents transforms3d
 """
-from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -74,7 +73,7 @@ class RT1TFPolicy:
                 "  unzip rt_1_x_tf_trained_for_002272480_step.zip"
             )
 
-        print(f"Loading language embedding model...")
+        print("Loading language embedding model...")
         self.lang_embed_model = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
 
         print(f"Loading RT-1 policy from {checkpoint_path}...")
@@ -101,7 +100,6 @@ class RT1TFPolicy:
         print("RT-1 TF model loaded successfully!")
 
     def _initialize_model(self) -> None:
-        import tensorflow as tf
         import tf_agents
         from tf_agents.trajectories import time_step as ts
 
@@ -113,7 +111,6 @@ class RT1TFPolicy:
         _ = self.tfa_policy.action(self.tfa_time_step, self.policy_state)
 
     def reset(self, task_description: str) -> None:
-        import tensorflow as tf
 
         self._initialize_model()
         self.task_description = task_description
@@ -185,7 +182,6 @@ class RT1TFPolicy:
             Action array with format depending on policy_setup:
             - For ManiSkill: (7,) array [x, y, z, rx, ry, rz, gripper]
         """
-        import tensorflow as tf
         from tf_agents.trajectories import time_step as ts
         from transforms3d.euler import euler2axangle
 
