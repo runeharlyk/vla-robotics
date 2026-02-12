@@ -1,5 +1,5 @@
 """
-Download ManiSkill demonstrations for all environments listed in skills.txt.
+Download ManiSkill demonstrations for all environments listed in all_envs.txt.
 
 - Skips envs with no demos
 - Skips envs that are already downloaded
@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-ENV_LIST = PROJECT_ROOT / "skills.txt"
+ENV_LIST = PROJECT_ROOT / "all_envs.txt"
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 LOG_FILE = PROJECT_ROOT / "download_all.log"
 

@@ -9,7 +9,6 @@ Usage:
     uv run python scripts/preprocess_data.py --skill PickCube-v1 --max-episodes 100
 """
 import io
-import os
 from pathlib import Path
 
 import gymnasium as gym
@@ -26,8 +25,21 @@ from mani_skill.utils import common, io_utils
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 PREPROCESSED_DIR = PROJECT_ROOT / "data" / "preprocessed"
-DEFAULT_SKILL = "PickCube-v1"
-PICK_CUBE_INSTRUCTION = "pick up the red cube and move it to the green goal"
+
+INSTRUCTION_MAP = {
+    "PickCube-v1": "pick up the red cube and move it to the green goal",
+    "StackCube-v1": "stack the red cube on top of the green cube",
+    "PegInsertionSide-v1": "insert the peg into the hole from the side",
+    "PushCube-v1": "push the cube to the target location",
+    "PullCube-v1": "pull the cube to the target location",
+    "PullCubeTool-v1": "use the tool to pull the cube to the goal",
+    "PokeCube-v1": "poke the cube toward the goal",
+    "RollBall-v1": "roll the ball to the target area",
+    "StackPyramid-v1": "stack the cubes into a pyramid",
+    "PlugCharger-v1": "plug the charger into the socket",
+    "TwoRobotPickCube-v1": "use both arms to pick up and place the cube",
+    "TwoRobotStackCube-v1": "use both arms to stack one cube on another",
+}
 
 JPEG_QUALITY = 95
 
@@ -53,25 +65,71 @@ def extract_rgb_from_render(env) -> np.ndarray:
 
 
 def flatten_obs_state(obs: dict) -> np.ndarray:
+    """
+    Handles:
+    - single-arm Panda
+    - two-arm Panda (TwoRobot*)
+    - state / state_dict modes
+    """
+
+    # Case 1: already flattened
     if "state" in obs:
         x = obs["state"]
+
+    # Case 2: ManiSkill state_dict
     elif "state_dict" in obs:
         x = common.flatten_state_dict(obs["state_dict"], use_torch=False)
-    else:
-        agent = obs.get("agent", {})
-        if "qpos" in agent and "qvel" in agent:
-            x = np.concatenate(
-                [
-                    np.asarray(agent["qpos"]).flatten(),
-                    np.asarray(agent["qvel"]).flatten(),
-                ],
-                axis=-1,
-            )
+
+    # Case 3: agent-based structure (single or multi robot)
+    elif "agent" in obs:
+        agent = obs["agent"]
+
+        # MULTI-ROBOT CASE
+        if isinstance(agent, dict) and all(isinstance(v, dict) for v in agent.values()):
+            parts = []
+
+            # Sort keys for deterministic ordering
+            for robot_name in sorted(agent.keys()):
+                robot = agent[robot_name]
+
+                if "qpos" not in robot or "qvel" not in robot:
+                    raise ValueError(f"Missing qpos/qvel in {robot_name}")
+
+                qpos = robot["qpos"]
+                qvel = robot["qvel"]
+
+                if hasattr(qpos, "cpu"):
+                    qpos = qpos.cpu().numpy()
+                if hasattr(qvel, "cpu"):
+                    qvel = qvel.cpu().numpy()
+
+                parts.append(np.concatenate([qpos.flatten(), qvel.flatten()]))
+
+            x = np.concatenate(parts)
+
+        # SINGLE ROBOT CASE
+        elif "qpos" in agent and "qvel" in agent:
+            qpos = agent["qpos"]
+            qvel = agent["qvel"]
+
+            if hasattr(qpos, "cpu"):
+                qpos = qpos.cpu().numpy()
+            if hasattr(qvel, "cpu"):
+                qvel = qvel.cpu().numpy()
+
+            x = np.concatenate([qpos.flatten(), qvel.flatten()])
+
         else:
-            raise ValueError(f"Cannot get state from obs. Keys: {list(obs.keys())}")
+            raise ValueError(f"Unsupported agent structure: {agent.keys()}")
+
+    else:
+        raise ValueError(f"Cannot get state from obs. Keys: {list(obs.keys())}")
+
     if hasattr(x, "cpu"):
         x = x.cpu().numpy()
+
     return np.asarray(x, dtype=np.float32).flatten()
+
 
 
 def load_json(path: Path) -> dict:
@@ -86,24 +144,19 @@ def encode_jpeg(rgb: np.ndarray, quality: int = JPEG_QUALITY) -> bytes:
 
 
 def main(
-    skill: str = typer.Option(DEFAULT_SKILL, "--skill", "-s", help="ManiSkill env ID"),
+    skill: str = typer.Option(..., "--skill", "-s", help="ManiSkill env ID"),
     raw_dir: Path = typer.Option(RAW_DIR, "--raw-dir", "-r", path_type=Path),
     output_dir: Path = typer.Option(PREPROCESSED_DIR, "--output-dir", "-o", path_type=Path),
     max_episodes: int = typer.Option(None, "--max-episodes", "-n", help="Cap number of episodes (default: all)"),
     image_size: int = typer.Option(256, "--image-size", help="Resize RGB to this width/height"),
     obs_mode: str = typer.Option("state", "--obs-mode", help="Observation mode for replay"),
     jpeg_quality: int = typer.Option(JPEG_QUALITY, "--jpeg-quality", help="JPEG compression quality (1-100)"),
-    render_backend: str = typer.Option(
-        None, "--render-backend", help="Render backend: cpu or cuda (default: RENDER_BACKEND env var or cpu)"
-    ),
 ) -> None:
     """Replay raw trajectories to collect RGB + state + actions and save a single HDF5 file."""
-    if render_backend is None:
-        render_backend = os.environ.get("RENDER_BACKEND", "cpu")
-
     raw_dir = raw_dir.resolve()
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    instruction = INSTRUCTION_MAP.get(skill, skill)
 
     h5_path, json_path = find_trajectory_files(raw_dir, skill)
     json_data = load_json(json_path)
@@ -115,7 +168,7 @@ def main(
         "control_mode": env_info.get("env_kwargs", {}).get("control_mode", "pd_joint_pos"),
         "render_mode": "rgb_array",
         "sim_backend": "physx_cpu",
-        "render_backend": render_backend,
+        "render_backend": "cpu",
     }
 
     episodes_meta = json_data["episodes"]
@@ -197,7 +250,7 @@ def main(
         out_h5.attrs["action_dim"] = first_action_dim
         out_h5.attrs["state_dim"] = first_state_dim
         out_h5.attrs["image_size"] = image_size
-        out_h5.attrs["instruction"] = PICK_CUBE_INSTRUCTION
+        out_h5.attrs["instruction"] = instruction
         out_h5.attrs["jpeg_quality"] = jpeg_quality
 
     size_mb = out_path.stat().st_size / (1024 * 1024)
