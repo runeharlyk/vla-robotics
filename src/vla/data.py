@@ -5,6 +5,7 @@ Provides PyTorch Dataset classes for loading preprocessed HDF5 demonstrations
 with lazy image decoding for low memory usage.
 """
 import io
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -18,7 +19,7 @@ from torch.utils.data import Dataset
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
-PREPROCESSED_DIR = DATA_DIR / "preprocessed"
+PREPROCESSED_DIR = Path(os.environ["DATA_DIR"]) if "DATA_DIR" in os.environ else DATA_DIR / "preprocessed"
 
 
 def get_skill_filename(env_id: str) -> str:
@@ -42,6 +43,7 @@ class PreprocessedDataset(Dataset):
         sequence_length: Number of frames per sample (for temporal models)
         action_horizon: Number of future actions to predict
         augment: Whether to apply data augmentation during training
+        episode_indices: If provided, only use these episode indices (for train/val splits)
     """
 
     def __init__(
@@ -51,6 +53,7 @@ class PreprocessedDataset(Dataset):
         sequence_length: int = 1,
         action_horizon: int = 1,
         augment: bool = False,
+        episode_indices: Optional[list[int]] = None,
     ):
         self.data_path = str(data_path)
         self.image_size = image_size
@@ -80,13 +83,16 @@ class PreprocessedDataset(Dataset):
                 ep_len = f[f"episode_{i}/actions"].shape[0]
                 self._episode_lengths.append(ep_len)
 
+        self._used_episodes = episode_indices if episode_indices is not None else list(range(self.num_episodes))
+
         self._index: list[tuple[int, int]] = []
-        for ep_idx, ep_len in enumerate(self._episode_lengths):
+        for ep_idx in self._used_episodes:
+            ep_len = self._episode_lengths[ep_idx]
             for t in range(ep_len - action_horizon + 1):
                 self._index.append((ep_idx, t))
 
-        total_transitions = sum(self._episode_lengths)
-        print(f"Indexed {len(self._index)} samples from {self.num_episodes} episodes ({total_transitions} transitions)")
+        used_transitions = sum(self._episode_lengths[i] for i in self._used_episodes)
+        print(f"Indexed {len(self._index)} samples from {len(self._used_episodes)} episodes ({used_transitions} transitions)")
         print(f"  Action dim: {self.metadata['action_dim']}")
         print(f"  State dim: {self.metadata['state_dim']}")
         print(f"  Image size: {image_size}")
@@ -289,3 +295,65 @@ def load_dataset(
         action_horizon=action_horizon,
         augment=augment,
     )
+
+
+def load_dataset_with_split(
+    env_id: str,
+    sequence_length: int = 1,
+    action_horizon: int = 1,
+    image_size: int = 256,
+    augment: bool = False,
+    val_ratio: float = 0.1,
+    seed: int = 42,
+) -> tuple[PreprocessedDataset, PreprocessedDataset]:
+    """Load preprocessed dataset split into train and validation sets by episode.
+
+    Args:
+        env_id: Environment ID (e.g., "PickCube-v1")
+        sequence_length: Number of frames per sample
+        action_horizon: Number of future actions to predict
+        image_size: Output image size
+        augment: Whether to apply data augmentation (only applied to train split)
+        val_ratio: Fraction of episodes to hold out for validation
+        seed: Random seed for reproducible splits
+
+    Returns:
+        Tuple of (train_dataset, val_dataset)
+    """
+    data_path = get_preprocessed_path(env_id)
+    if not data_path.exists():
+        raise FileNotFoundError(
+            f"Preprocessed data not found at {data_path}\n"
+            f"Run preprocessing first: uv run invoke preprocess-data --skill {env_id}"
+        )
+
+    with h5py.File(data_path, "r") as f:
+        num_episodes = int(f.attrs["num_episodes"])
+
+    rng = np.random.RandomState(seed)
+    all_indices = list(range(num_episodes))
+    rng.shuffle(all_indices)
+
+    n_val = max(1, int(num_episodes * val_ratio))
+    val_indices = sorted(all_indices[:n_val])
+    train_indices = sorted(all_indices[n_val:])
+
+    print(f"Split: {len(train_indices)} train episodes, {len(val_indices)} val episodes")
+
+    train_ds = PreprocessedDataset(
+        data_path,
+        image_size=image_size,
+        sequence_length=sequence_length,
+        action_horizon=action_horizon,
+        augment=augment,
+        episode_indices=train_indices,
+    )
+    val_ds = PreprocessedDataset(
+        data_path,
+        image_size=image_size,
+        sequence_length=sequence_length,
+        action_horizon=action_horizon,
+        augment=False,
+        episode_indices=val_indices,
+    )
+    return train_ds, val_ds

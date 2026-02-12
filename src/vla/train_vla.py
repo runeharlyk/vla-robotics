@@ -9,7 +9,6 @@ from typing import Optional
 
 import numpy as np
 import torch
-import torch.nn as nn
 import typer
 import wandb
 from torch.utils.data import DataLoader
@@ -18,7 +17,7 @@ from tqdm import tqdm
 from lerobot.configs.types import FeatureType, PolicyFeature
 from lerobot.policies.factory import make_pre_post_processors
 from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
-from vla.data import load_dataset
+from vla.data import load_dataset_with_split
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -39,6 +38,78 @@ def compute_action_bounds(dataset, margin: float = 0.1) -> tuple[np.ndarray, np.
     return action_low, action_high
 
 
+def run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj):
+    """Run one validation pass and return average loss."""
+    policy.eval()
+    total_loss = 0.0
+    num_batches = 0
+
+    with torch.no_grad():
+        for batch in val_loader:
+            batch_mapped = _build_batch_mapped(batch, chunk_size, action_dim)
+            batch_preprocessed = preprocess(batch_mapped)
+
+            try:
+                output = policy.forward(batch_preprocessed)
+                if isinstance(output, dict):
+                    loss = output["loss"]
+                elif isinstance(output, (tuple, list)):
+                    loss = output[0] if isinstance(output[0], torch.Tensor) and output[0].ndim == 0 else output[0].mean()
+                else:
+                    loss = output
+            except Exception:
+                continue
+
+            if torch.isnan(loss) or torch.isinf(loss):
+                continue
+
+            total_loss += loss.item()
+            num_batches += 1
+
+    policy.train()
+    return total_loss / num_batches if num_batches > 0 else float("inf")
+
+
+def _build_batch_mapped(batch, chunk_size, action_dim):
+    """Build the SmolVLA-format batch dict from a raw dataloader batch."""
+    imgs = batch["images"]
+    B = imgs.shape[0]
+
+    if imgs.shape[-3] == 4:
+        imgs = imgs[..., :3, :, :]
+
+    last_frame = imgs[:, -1]
+
+    batch_mapped = {
+        "observation.images.top": last_frame,
+    }
+
+    if "state" in batch:
+        state = batch["state"]
+        if state.shape[-1] > action_dim:
+            state = state[..., :action_dim]
+        batch_mapped["observation.state"] = state
+
+    actions = batch["actions"]
+    if actions.ndim == 2:
+        actions = actions.unsqueeze(1)
+    if actions.shape[1] < chunk_size:
+        pad_count = chunk_size - actions.shape[1]
+        last_action = actions[:, -1:, :].expand(-1, pad_count, -1)
+        actions = torch.cat([actions, last_action], dim=1)
+    actions = actions[:, :chunk_size, :]
+    batch_mapped["action"] = actions
+
+    if "instruction" in batch:
+        inst = batch["instruction"]
+        if isinstance(inst, (list, tuple)):
+            batch_mapped["task"] = list(inst)
+        else:
+            batch_mapped["task"] = [inst] * B
+
+    return batch_mapped
+
+
 @app.command()
 def finetune(
     env_id: str = typer.Option("PickCube-v1", "--env", "-e", help="Environment ID"),
@@ -48,7 +119,7 @@ def finetune(
     device: str = typer.Option("cuda", "--device", "-d", help="Device (cuda/cpu)"),
     save_path: Optional[str] = typer.Option(None, "--save", "-s", help="Path to save model"),
     model_id: str = typer.Option("lerobot/smolvla_base", "--model-id", "-m", help="Pretrained model ID"),
-    sequence_length: int = typer.Option(4, "--seq-len", help="Number of frames per sample"),
+    sequence_length: int = typer.Option(4, "--seq-len", help="Action chunk size (number of future actions to predict)"),
     image_size: int = typer.Option(224, "--image-size", help="Image size"),
     gradient_clip: float = typer.Option(1.0, "--grad-clip", help="Gradient clipping value"),
     weight_decay: float = typer.Option(0.01, "--weight-decay", help="Weight decay"),
@@ -56,34 +127,45 @@ def finetune(
     wandb_project: str = typer.Option("vla-smolvla", "--wandb-project", help="Weights & Biases project name"),
     wandb_name: Optional[str] = typer.Option(None, "--wandb-name", help="Weights & Biases run name"),
     freeze_vision: bool = typer.Option(True, "--freeze-vision/--no-freeze-vision", help="Freeze vision encoder"),
+    val_split: float = typer.Option(0.1, "--val-split", help="Fraction of episodes for validation"),
+    patience: int = typer.Option(5, "--patience", help="Early stopping patience (0 to disable)"),
 ) -> None:
     """Finetune SmoLVLA on preprocessed ManiSkill demonstrations."""
-    
-    # Load dataset
+
     try:
-        dataset = load_dataset(
-            env_id, 
-            sequence_length=sequence_length, 
-            image_size=image_size, 
-            augment=True
+        train_dataset, val_dataset = load_dataset_with_split(
+            env_id,
+            sequence_length=sequence_length,
+            action_horizon=sequence_length,
+            image_size=image_size,
+            augment=True,
+            val_ratio=val_split,
         )
     except FileNotFoundError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1)
 
-    dataloader = DataLoader(
-        dataset,
+    train_loader = DataLoader(
+        train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
     )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=2,
+        pin_memory=True,
+        persistent_workers=True,
+    )
 
-    action_dim = dataset.action_dim
-    instruction = dataset.instruction
-    
-    action_low, action_high = compute_action_bounds(dataset)
+    action_dim = train_dataset.action_dim
+    instruction = train_dataset.instruction
+
+    action_low, action_high = compute_action_bounds(train_dataset)
     print("\nAction bounds (data-derived with margin):")
     print(f"  Low:  {action_low.tolist()}")
     print(f"  High: {action_high.tolist()}")
@@ -135,15 +217,14 @@ def finetune(
         weight_decay=weight_decay,
     )
 
-    total_steps = len(dataloader) * epochs
+    total_steps = len(train_loader) * epochs
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=lr,
         total_steps=total_steps,
-        pct_start=warmup_steps / total_steps,
+        pct_start=min(warmup_steps / total_steps, 0.3),
     )
 
-    # Setup save path
     if save_path is None:
         save_path = str(MODELS_DIR / f"smolvla_{env_id.lower().replace('-', '_')}.pt")
     save_dir = Path(save_path).parent
@@ -153,10 +234,12 @@ def finetune(
     print(f"  Epochs: {epochs}")
     print(f"  Batch size: {batch_size}")
     print(f"  Learning rate: {lr}")
-    print(f"  Sequence length: {sequence_length}")
+    print(f"  Action chunk size: {sequence_length}")
     print(f"  Image size: {image_size}")
     print(f"  Action dim: {action_dim}")
     print(f"  Freeze vision: {freeze_vision}")
+    print(f"  Val split: {val_split} ({len(val_dataset)} samples)")
+    print(f"  Early stopping patience: {patience}")
     if device == "cuda" and torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
@@ -188,61 +271,28 @@ def finetune(
             "warmup_steps": warmup_steps,
             "action_low": action_low.tolist(),
             "action_high": action_high.tolist(),
+            "val_split": val_split,
+            "patience": patience,
+            "train_samples": len(train_dataset),
+            "val_samples": len(val_dataset),
         },
     )
     wandb.watch(policy, log="gradients", log_freq=100)
 
-    # Training loop
-    best_loss = float("inf")
+    best_val_loss = float("inf")
+    epochs_without_improvement = 0
     global_step = 0
     chunk_size = policy.config.chunk_size
 
     for epoch in range(epochs):
+        policy.train()
         total_loss = 0
         num_batches = 0
 
-        pbar = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
         for batch in pbar:
-            imgs = batch["images"]
-            B = imgs.shape[0]
+            batch_mapped = _build_batch_mapped(batch, chunk_size, action_dim)
 
-            # Ensure RGB (drop alpha if RGBA)
-            if imgs.shape[-3] == 4:
-                imgs = imgs[..., :3, :, :]
-
-            # Use last frame from the sequence: (B, T, C, H, W) -> (B, C, H, W)
-            last_frame = imgs[:, -1]
-
-            # Single camera — no need to duplicate across 3 cameras
-            batch_mapped = {
-                "observation.images.top": last_frame,
-            }
-
-            # Map state - truncate to action_dim (model pads to max_state_dim=32 internally)
-            if "state" in batch:
-                state = batch["state"]
-                if state.shape[-1] > action_dim:
-                    state = state[..., :action_dim]
-                batch_mapped["observation.state"] = state
-
-            # Map actions - truncate/pad to chunk_size
-            actions = batch["actions"]
-            if actions.ndim == 2:
-                actions = actions.unsqueeze(1)
-            if actions.shape[1] < chunk_size:
-                actions = actions.repeat(1, chunk_size, 1)[:, :chunk_size, :]
-            batch_mapped["action"] = actions
-
-            # Task instruction (preprocessor tokenizes this)
-            # Must be a list of B strings for proper batched tokenization
-            if "instruction" in batch:
-                inst = batch["instruction"]
-                if isinstance(inst, (list, tuple)):
-                    batch_mapped["task"] = list(inst)
-                else:
-                    batch_mapped["task"] = [inst] * B
-
-            # Debug: print shapes on first batch
             if global_step == 0:
                 print("\n[DEBUG] batch_mapped keys and shapes:")
                 for k, v in batch_mapped.items():
@@ -315,26 +365,30 @@ def finetune(
                 "train/loss": step_loss,
                 "train/lr": scheduler.get_last_lr()[0],
             }, step=global_step)
-        
-        # Epoch summary
-        avg_loss = total_loss / num_batches if num_batches > 0 else float("inf")
+
+        avg_train_loss = total_loss / num_batches if num_batches > 0 else float("inf")
         current_lr = scheduler.get_last_lr()[0]
-        print(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f}, LR: {current_lr:.2e}")
-        
+
+        val_loss = run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj)
+
+        print(f"Epoch {epoch + 1}/{epochs} - Train loss: {avg_train_loss:.4f}, Val loss: {val_loss:.4f}, LR: {current_lr:.2e}")
+
         wandb.log({
-            "epoch/avg_loss": avg_loss,
+            "epoch/train_loss": avg_train_loss,
+            "epoch/val_loss": val_loss,
             "epoch/lr": current_lr,
             "epoch": epoch + 1,
         }, step=global_step)
-        
-        # Save best model
-        if avg_loss < best_loss:
-            best_loss = avg_loss
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            epochs_without_improvement = 0
             torch.save({
                 "model_state_dict": policy.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "epoch": epoch,
-                "loss": avg_loss,
+                "train_loss": avg_train_loss,
+                "val_loss": val_loss,
                 "config": {
                     "model_id": model_id,
                     "action_dim": action_dim,
@@ -346,21 +400,28 @@ def finetune(
                     "sequence_length": sequence_length,
                 },
             }, save_path)
-            print(f"  Saved best model (loss={avg_loss:.4f})")
-            
-            wandb.log({"epoch/best_loss": avg_loss}, step=global_step)
-            
+            print(f"  Saved best model (val_loss={val_loss:.4f})")
+
+            wandb.log({"epoch/best_val_loss": val_loss}, step=global_step)
+
             artifact = wandb.Artifact(
                 f"smolvla-{env_id.lower().replace('-', '_')}",
                 type="model",
-                metadata={"epoch": epoch + 1, "loss": avg_loss},
+                metadata={"epoch": epoch + 1, "val_loss": val_loss, "train_loss": avg_train_loss},
             )
             artifact.add_file(save_path)
             wandb.log_artifact(artifact)
+        else:
+            epochs_without_improvement += 1
+            print(f"  No improvement for {epochs_without_improvement} epoch(s) (best val_loss={best_val_loss:.4f})")
 
-    wandb.log({"final/best_loss": best_loss, "final/epochs_completed": epochs})
+            if patience > 0 and epochs_without_improvement >= patience:
+                print(f"\nEarly stopping triggered after {patience} epochs without improvement.")
+                break
+
+    wandb.log({"final/best_val_loss": best_val_loss, "final/epochs_completed": epoch + 1})
     wandb.finish()
-    print(f"\nTraining complete! Best loss: {best_loss:.4f}")
+    print(f"\nTraining complete! Best val loss: {best_val_loss:.4f}")
     print(f"Model saved to: {save_path}")
 
 

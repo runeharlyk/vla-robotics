@@ -143,6 +143,8 @@ def finetune(
     device: str = "cuda",
     freeze_vision: bool = True,
     wandb_project: str = "vla-smolvla",
+    val_split: float = 0.1,
+    patience: int = 5,
 ) -> None:
     """Finetune SmoLVLA on preprocessed ManiSkill demonstrations."""
     freeze_flag = "--freeze-vision" if freeze_vision else "--no-freeze-vision"
@@ -150,6 +152,7 @@ def finetune(
         f"uv run python src/vla/train_vla.py "
         f"--env {env} --epochs {epochs} --batch-size {batch_size} "
         f"--lr {lr} --model-id {model_id} --seq-len {seq_len} "
-        f"--device {device} {freeze_flag} --wandb-project {wandb_project}"
+        f"--device {device} {freeze_flag} --wandb-project {wandb_project} "
+        f"--val-split {val_split} --patience {patience}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)
