@@ -57,7 +57,6 @@ class RT1TFPolicy:
             import tensorflow as tf
             import tensorflow_hub as hub
             from tf_agents.policies import py_tf_eager_policy
-            from tf_agents import specs as tf_specs
         except ImportError:
             raise ImportError(
                 "TensorFlow dependencies not installed. Install with:\n"
@@ -97,7 +96,24 @@ class RT1TFPolicy:
             raise ValueError(f"Unknown policy_setup: {self.policy_setup}")
 
         self._initialize_model()
+        self._compile_tf_functions(tf)
         print("RT-1 TF model loaded successfully!")
+
+    def _compile_tf_functions(self, tf) -> None:
+        """Compile TensorFlow functions once to avoid graph rebuilding."""
+        width, height = self.image_width, self.image_height
+
+        @tf.function
+        def resize_image(image):
+            image = tf.image.resize_with_pad(image, target_width=width, target_height=height)
+            return tf.cast(image, tf.uint8)
+
+        @tf.function
+        def filter_gripper_action(gripper):
+            return tf.where(tf.abs(gripper) < 1e-2, tf.zeros_like(gripper), gripper)
+
+        self._resize_image_fn = resize_image
+        self._filter_gripper_fn = filter_gripper_action
 
     def _initialize_model(self) -> None:
         import tf_agents
@@ -137,33 +153,11 @@ class RT1TFPolicy:
         )
         return action
 
-    def _resize_image(self, image: np.ndarray) -> "tf.Tensor":
-        import tensorflow as tf
-        image = tf.image.resize_with_pad(image, target_width=self.image_width, target_height=self.image_height)
-        image = tf.cast(image, tf.uint8)
-        return image
+    def _resize_image(self, image: np.ndarray):
+        return self._resize_image_fn(image)
 
-    @staticmethod
-    def _small_action_filter(raw_action: dict, arm_movement: bool = False, gripper: bool = True) -> dict:
-        import tensorflow as tf
-
-        if arm_movement:
-            raw_action["world_vector"] = tf.where(
-                tf.abs(raw_action["world_vector"]) < 5e-3,
-                tf.zeros_like(raw_action["world_vector"]),
-                raw_action["world_vector"],
-            )
-            raw_action["rotation_delta"] = tf.where(
-                tf.abs(raw_action["rotation_delta"]) < 5e-3,
-                tf.zeros_like(raw_action["rotation_delta"]),
-                raw_action["rotation_delta"],
-            )
-        if gripper:
-            raw_action["gripper_closedness_action"] = tf.where(
-                tf.abs(raw_action["gripper_closedness_action"]) < 1e-2,
-                tf.zeros_like(raw_action["gripper_closedness_action"]),
-                raw_action["gripper_closedness_action"],
-            )
+    def _filter_gripper(self, raw_action: dict) -> dict:
+        raw_action["gripper_closedness_action"] = self._filter_gripper_fn(raw_action["gripper_closedness_action"])
         return raw_action
 
     def predict_action(
@@ -203,43 +197,46 @@ class RT1TFPolicy:
         raw_action = policy_step.action
 
         if self.policy_setup == "google_robot":
-            raw_action = self._small_action_filter(raw_action, arm_movement=False, gripper=True)
+            raw_action = self._filter_gripper(raw_action)
         if self.unnormalize_action:
             raw_action = self.unnormalize_action_fxn(raw_action)
 
         for k in raw_action.keys():
-            raw_action[k] = np.asarray(raw_action[k])
+            raw_action[k] = np.asarray(raw_action[k], dtype=np.float32)
 
-        world_vector = np.asarray(raw_action["world_vector"], dtype=np.float64) * self.action_scale
+        world_vector = raw_action["world_vector"] * self.action_scale
 
         if self.action_rotation_mode == "axis_angle":
-            rotation_delta = np.asarray(raw_action["rotation_delta"], dtype=np.float64)
+            rotation_delta = raw_action["rotation_delta"]
             rotation_angle = np.linalg.norm(rotation_delta)
-            rotation_ax = rotation_delta / rotation_angle if rotation_angle > 1e-6 else np.array([0.0, 1.0, 0.0])
+            rotation_ax = (
+                rotation_delta / rotation_angle
+                if rotation_angle > 1e-6
+                else np.array([0.0, 1.0, 0.0], dtype=np.float32)
+            )
             rot_axangle = rotation_ax * rotation_angle * self.action_scale
         elif self.action_rotation_mode in ["rpy", "ypr", "pry"]:
+            rotation_delta = raw_action["rotation_delta"]
             if self.action_rotation_mode == "rpy":
-                roll, pitch, yaw = np.asarray(raw_action["rotation_delta"], dtype=np.float64)
+                roll, pitch, yaw = rotation_delta
             elif self.action_rotation_mode == "ypr":
-                yaw, pitch, roll = np.asarray(raw_action["rotation_delta"], dtype=np.float64)
+                yaw, pitch, roll = rotation_delta
             elif self.action_rotation_mode == "pry":
-                pitch, roll, yaw = np.asarray(raw_action["rotation_delta"], dtype=np.float64)
+                pitch, roll, yaw = rotation_delta
             rotation_ax, rotation_angle = euler2axangle(roll, pitch, yaw)
-            rot_axangle = rotation_ax * rotation_angle * self.action_scale
+            rot_axangle = (rotation_ax * rotation_angle * self.action_scale).astype(np.float32)
         else:
             raise NotImplementedError()
 
-        raw_gripper = raw_action["gripper_closedness_action"]
+        gripper = raw_action["gripper_closedness_action"]
         if self.invert_gripper_action:
-            raw_gripper = -raw_gripper
-        gripper = np.asarray(raw_gripper, dtype=np.float64)
+            gripper = -gripper
         if self.policy_setup == "widowx_bridge":
-            gripper = 2.0 * (gripper > 0.0) - 1.0
+            gripper = np.where(gripper > 0.0, 1.0, -1.0).astype(np.float32)
 
         self.policy_state = policy_step.state
 
-        action = np.concatenate([world_vector.flatten(), rot_axangle.flatten(), gripper.flatten()])
-        return action.astype(np.float32)
+        return np.concatenate([world_vector.flatten(), rot_axangle.flatten(), gripper.flatten()])
 
     def get_terminate_episode(self) -> bool:
         return False

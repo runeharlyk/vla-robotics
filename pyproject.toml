@@ -18,7 +18,9 @@ classifiers = [
 readme = "README.md"
 requires-python = "==3.11.14"
 dependencies = [
+    "lerobot>=0.4.4",
     "mani-skill>=3.0.0b22",
+    "num2words>=0.5.14",
     "opencv-python",
     "robotic-transformer-pytorch",
     "sentencepiece>=0.2.1",
@@ -64,7 +66,7 @@ torchvision = [
   { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
   { index = "pytorch-cpu", marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
 ]
-lerobot = { path = "/../smolvla/lerobot", editable = true }
+lerobot = { path = "../lerobot", editable = true }
 
 [tool.ruff]
 line-length = 120
