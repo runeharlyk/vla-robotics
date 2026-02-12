@@ -2,12 +2,11 @@
 
 # ---------------- LSF directives ----------------
 #BSUB -J smolvla-finetune
-#BSUB -q gpua100
-#BSUB -W 08:00
+#BSUB -q gpul40s
+#BSUB -W 04:00
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
-#BSUB -R "select[gpu40gb]"
-#BSUB -R "rusage[mem=12GB]"
+#BSUB -R "rusage[mem=4GB]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -u s234834@dtu.dk
 #BSUB -B
@@ -22,16 +21,10 @@ module load cuda/12.2
 
 nvidia-smi
 
-LOCAL_DATA="$TMPDIR/data/preprocessed"
-mkdir -p "$LOCAL_DATA"
-cp data/preprocessed/*.h5 "$LOCAL_DATA/"
-
-echo "Copied data to $LOCAL_DATA ($(du -sh "$LOCAL_DATA" | cut -f1))"
-
-DATA_DIR="$LOCAL_DATA" uv run python src/vla/train_vla.py \
+uv run python src/vla/train_vla.py \
     --env PickCube-v1 \
     --epochs 50 \
-    --batch-size 32 \
+    --batch-size 64 \
     --lr 1e-5 \
     --model-id lerobot/smolvla_base \
     --seq-len 8 \
