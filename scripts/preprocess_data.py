@@ -31,6 +31,7 @@ INSTRUCTION_MAP = {
     "StackCube-v1": "stack the red cube on top of the green cube",
     "PegInsertionSide-v1": "insert the peg into the hole from the side",
     "PushCube-v1": "push the cube to the target location",
+    "PushT-v1": "push the T-shaped block to the target pose",
     "PullCube-v1": "pull the cube to the target location",
     "PullCubeTool-v1": "use the tool to pull the cube to the goal",
     "PokeCube-v1": "poke the cube toward the goal",
@@ -162,10 +163,11 @@ def main(
     json_data = load_json(json_path)
     env_info = json_data["env_info"]
     env_id = env_info["env_id"]
+    control_mode = env_info.get("env_kwargs", {}).get("control_mode", "pd_joint_pos")
     env_kwargs = {
         "num_envs": 1,
         "obs_mode": obs_mode,
-        "control_mode": env_info.get("env_kwargs", {}).get("control_mode", "pd_joint_pos"),
+        "control_mode": control_mode,
         "render_mode": "rgb_array",
         "sim_backend": "physx_cpu",
         "render_backend": "cpu",
@@ -252,6 +254,7 @@ def main(
         out_h5.attrs["image_size"] = image_size
         out_h5.attrs["instruction"] = instruction
         out_h5.attrs["jpeg_quality"] = jpeg_quality
+        out_h5.attrs["control_mode"] = control_mode
 
     size_mb = out_path.stat().st_size / (1024 * 1024)
     typer.echo(f"Saved {num_written} episodes to {out_path} ({size_mb:.1f} MB)")

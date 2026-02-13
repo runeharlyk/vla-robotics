@@ -389,6 +389,7 @@ def finetune(
                     "action_high": action_high.tolist(),
                     "image_size": image_size,
                     "sequence_length": sequence_length,
+                    "control_mode": train_dataset.metadata.get("control_mode", "pd_joint_pos"),
                 },
             }, save_path)
             print(f"  Saved best model (val_loss={val_loss:.4f})")

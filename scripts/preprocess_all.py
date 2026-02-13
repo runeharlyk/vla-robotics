@@ -82,9 +82,9 @@ def main(
         result = subprocess.run(cmd, cwd=PROJECT_ROOT)
 
         if result.returncode != 0:
-            print(f"❌ Preprocessing failed for {env_id}")
+            print(f"FAILED: Preprocessing failed for {env_id}")
         else:
-            print(f"✅ Finished {env_id}")
+            print(f"DONE: Finished {env_id}")
 
 
 if __name__ == "__main__":

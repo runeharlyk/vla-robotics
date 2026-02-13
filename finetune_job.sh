@@ -8,7 +8,7 @@
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=4GB]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -u s234834@dtu.dk
+#BSUB -u s234814@dtu.dk
 #BSUB -B
 #BSUB -N
 #BSUB -oo logs/%J.out
@@ -34,7 +34,7 @@ uv sync
 uv run python src/vla/train_vla.py \
     --env PickCube-v1 \
     --epochs 50 \
-    --batch-size 128 \
+    --batch-size 64 \
     --lr 1e-5 \
     --model-id lerobot/smolvla_base \
     --seq-len 8 \
