@@ -3,7 +3,7 @@
 # ---------------- LSF directives ----------------
 #BSUB -J smolvla-finetune
 #BSUB -q gpul40s
-#BSUB -W 04:00
+#BSUB -W 24:00
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=4GB]"
@@ -16,6 +16,14 @@
 # -------------------------------------------------
 
 set -e
+
+export HF_HOME=/work3/s234814/.cache/huggingface
+export WANDB_DIR=/work3/s234814/.cache/wandb
+export WANDB_CACHE_DIR=/work3/s234814/.cache/wandb
+export UV_CACHE_DIR=/work3/s234814/.cache/uv
+export UV_PROJECT_ENVIRONMENT=/work3/s234814/.venvs/vla-robotics
+
+mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT"
 
 module load cuda/12.2
 
