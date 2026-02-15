@@ -132,31 +132,61 @@ def eval_rt1(
 
 
 @task
+def visualize_smolvla(
+    ctx: Context,
+    model: str = "",
+    env: str = "PickCube-v1",
+    num_episodes: int = 3,
+    max_steps: int = 100,
+    device: str = "cpu",
+    save_video: bool = True,
+    output_dir: str = "outputs/visualize",
+) -> None:
+    """Visualize fine-tuned SmolVLA policy in ManiSkill environment."""
+    if not model:
+        model = f"models/smolvla_{env.lower().replace('-', '_')}.pt"
+    video_flag = "--save-video" if save_video else "--no-save-video"
+    cmd = (
+        f"uv run --extra smolvla python src/vla/visualizer.py smolvla "
+        f"--model {model} --env {env} --num-episodes {num_episodes} "
+        f"--max-steps {max_steps} --device {device} {video_flag} "
+        f"--output-dir {output_dir} --no-show"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
 def finetune(
     ctx: Context,
-    env: str = "PickCube-v1",
-    epochs: int = 10,
-    batch_size: int = 8,
-    lr: float = 1e-5,
+    env: str = "all",
+    steps: int = 20000,
+    batch_size: int = 64,
+    lr: float = 1e-4,
+    decay_lr: float = 2.5e-6,
+    warmup_steps: int = 1000,
+    decay_steps: int = 30000,
     model_id: str = "lerobot/smolvla_base",
-    seq_len: int = 4,
+    seq_len: int = 50,
     device: str = "cuda",
-    freeze_vision: bool = True,
     wandb_project: str = "vla-smolvla",
     val_split: float = 0.1,
-    patience: int = 5,
+    val_every: int = 500,
     amp: bool = False,
     num_workers: int = 4,
+    weight_decay: float = 1e-10,
+    grad_clip: float = 10.0,
 ) -> None:
     """Finetune SmoLVLA on preprocessed ManiSkill demonstrations."""
-    freeze_flag = "--freeze-vision" if freeze_vision else "--no-freeze-vision"
     amp_flag = "--amp" if amp else "--no-amp"
     cmd = (
         f"uv run python src/vla/train_vla.py "
-        f"--env {env} --epochs {epochs} --batch-size {batch_size} "
-        f"--lr {lr} --model-id {model_id} --seq-len {seq_len} "
-        f"--device {device} {freeze_flag} --wandb-project {wandb_project} "
-        f"--val-split {val_split} --patience {patience} "
+        f"--env {env} --steps {steps} --batch-size {batch_size} "
+        f"--lr {lr} --decay-lr {decay_lr} "
+        f"--warmup-steps {warmup_steps} --decay-steps {decay_steps} "
+        f"--model-id {model_id} --seq-len {seq_len} "
+        f"--device {device} --wandb-project {wandb_project} "
+        f"--val-split {val_split} --val-every {val_every} "
+        f"--weight-decay {weight_decay} --grad-clip {grad_clip} "
         f"{amp_flag} --num-workers {num_workers}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)

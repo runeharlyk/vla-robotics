@@ -33,21 +33,22 @@ nvidia-smi
 uv sync
 
 uv run python src/vla/train_vla.py \
-    --env PickCube-v1 \
-    --epochs 50 \
+    --env all \
+    --steps 20000 \
     --batch-size 64 \
-    --lr 2e-5 \
+    --lr 1e-4 \
+    --decay-lr 2.5e-6 \
+    --warmup-steps 1000 \
+    --decay-steps 30000 \
     --model-id lerobot/smolvla_base \
-    --seq-len 8 \
+    --seq-len 50 \
     --device cuda \
-    --no-freeze-vision \
-    --weight-decay 0.01 \
-    --grad-clip 1.0 \
-    --warmup-steps 200 \
+    --weight-decay 1e-10 \
+    --grad-clip 10.0 \
     --val-split 0.1 \
-    --patience 10 \
+    --val-every 500 \
     --amp \
-    --compile \
     --num-workers 6 \
     --prefetch 4 \
+    --log-every 50 \
     --wandb-project vla-smolvla

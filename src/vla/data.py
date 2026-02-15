@@ -14,7 +14,7 @@ import numpy as np
 import torch
 import torchvision.transforms.v2 as T
 from PIL import Image
-from torch.utils.data import Dataset
+from torch.utils.data import ConcatDataset, Dataset
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
@@ -357,3 +357,71 @@ def load_dataset_with_split(
         episode_indices=val_indices,
     )
     return train_ds, val_ds
+
+
+def discover_available_envs() -> list[str]:
+    reverse_map: dict[str, str] = {}
+    envs_file = PROJECT_ROOT / "all_envs.txt"
+    if envs_file.exists():
+        for line in envs_file.read_text().strip().splitlines():
+            env_id = line.strip()
+            if env_id:
+                reverse_map[get_skill_filename(env_id)] = env_id
+
+    h5_files = sorted(PREPROCESSED_DIR.glob("*.h5"))
+    result = []
+    for f in h5_files:
+        if f.name in reverse_map:
+            result.append(reverse_map[f.name])
+        else:
+            result.append(f.stem)
+    return result
+
+
+def _read_action_dim(data_path: Path) -> int:
+    with h5py.File(data_path, "r") as f:
+        return int(f.attrs["action_dim"])
+
+
+def load_multi_dataset_with_split(
+    env_ids: list[str],
+    sequence_length: int = 1,
+    action_horizon: int = 1,
+    image_size: int = 256,
+    augment: bool = False,
+    val_ratio: float = 0.1,
+    seed: int = 42,
+) -> tuple[ConcatDataset, ConcatDataset, list[PreprocessedDataset], list[PreprocessedDataset]]:
+    paths: list[tuple[str, Path]] = []
+    for env_id in env_ids:
+        data_path = get_preprocessed_path(env_id)
+        if not data_path.exists():
+            print(f"Skipping {env_id}: {data_path} not found")
+            continue
+        paths.append((env_id, data_path))
+
+    if not paths:
+        raise FileNotFoundError("No preprocessed data found for any environment")
+
+    ref_dim = _read_action_dim(paths[0][1])
+    compatible = []
+    for env_id, data_path in paths:
+        dim = _read_action_dim(data_path)
+        if dim != ref_dim:
+            print(f"Skipping {env_id}: action_dim={dim} (expected {ref_dim})")
+        else:
+            compatible.append(env_id)
+
+    if not compatible:
+        raise FileNotFoundError("No environments with matching action_dim found")
+
+    train_parts: list[PreprocessedDataset] = []
+    val_parts: list[PreprocessedDataset] = []
+    for env_id in compatible:
+        train_ds, val_ds = load_dataset_with_split(
+            env_id, sequence_length, action_horizon, image_size, augment, val_ratio, seed,
+        )
+        train_parts.append(train_ds)
+        val_parts.append(val_ds)
+
+    return ConcatDataset(train_parts), ConcatDataset(val_parts), train_parts, val_parts, compatible
