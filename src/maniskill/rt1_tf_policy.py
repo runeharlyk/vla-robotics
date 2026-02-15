@@ -7,13 +7,14 @@ These checkpoints can be downloaded from:
 
 Available checkpoints:
     - rt_1_x_tf_trained_for_002272480_step (RT-1-X)
-    - rt_1_tf_trained_for_000400120 (RT-1-Converged) 
+    - rt_1_tf_trained_for_000400120 (RT-1-Converged)
     - rt_1_tf_trained_for_000058240 (RT-1-15%)
     - rt_1_tf_trained_for_000001120 (RT-1-Begin)
 
 Requirements:
     pip install tensorflow tensorflow-hub tf-agents transforms3d
 """
+
 from pathlib import Path
 from typing import Optional
 
@@ -23,7 +24,7 @@ import numpy as np
 class RT1TFPolicy:
     """
     Wrapper for official Google RT-1 TensorFlow checkpoints.
-    
+
     Args:
         checkpoint_path: Path to the TensorFlow SavedModel checkpoint directory
         image_width: Width to resize images to (default: 320)
@@ -45,7 +46,7 @@ class RT1TFPolicy:
         self.image_height = image_height
         self.action_scale = action_scale
         self.policy_setup = policy_setup
-        
+
         self.model = None
         self.lang_embed_model = None
         self.policy_state = None
@@ -167,11 +168,11 @@ class RT1TFPolicy:
     ) -> np.ndarray:
         """
         Predict robot action from image and language instruction.
-        
+
         Args:
             image: RGB image (H, W, 3) as numpy array, uint8
             instruction: Natural language task instruction
-        
+
         Returns:
             Action array with format depending on policy_setup:
             - For ManiSkill: (7,) array [x, y, z, rx, ry, rz, gripper]

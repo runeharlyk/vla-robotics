@@ -11,6 +11,7 @@ Usage:
     uv run python src/vla/visualizer.py policy --model models/rt1_pickcube_v1.pt --render
     uv run python src/vla/visualizer.py test-env
 """
+
 import time
 from collections import deque
 from pathlib import Path
@@ -85,10 +86,10 @@ def display_frame(frame: np.ndarray, window_name: str = "Visualization", wait_ms
     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
     cv2.imshow(window_name, frame_bgr)
     key = cv2.waitKey(wait_ms)
-    return not (key & 0xFF == ord('q'))
+    return not (key & 0xFF == ord("q"))
 
 
-from vla.train import create_rt1_model
+from maniskill.train import create_rt1_model
 
 DEFAULT_ACTION_LOW = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, -1.0], dtype=np.float32)
 DEFAULT_ACTION_HIGH = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973, 1.0], dtype=np.float32)
@@ -345,11 +346,28 @@ def list_demos(
 @app.command()
 def list_envs() -> None:
     """List all available ManiSkill environments."""
-    maniskill_envs = sorted(e for e in gym.registry if "v1" in e and any(
-        x in e for x in ["PickCube", "PushCube", "StackCube", "PegInsertion", "PlugCharger",
-                         "OpenCabinet", "PushChairs", "Drawer", "LiftPeg", "TurnFaucet",
-                         "MS-", "ManiSkill"]
-    ))
+    maniskill_envs = sorted(
+        e
+        for e in gym.registry
+        if "v1" in e
+        and any(
+            x in e
+            for x in [
+                "PickCube",
+                "PushCube",
+                "StackCube",
+                "PegInsertion",
+                "PlugCharger",
+                "OpenCabinet",
+                "PushChairs",
+                "Drawer",
+                "LiftPeg",
+                "TurnFaucet",
+                "MS-",
+                "ManiSkill",
+            ]
+        )
+    )
     print("Available ManiSkill environments:")
     for env in maniskill_envs:
         print(f"  {env}")

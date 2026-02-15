@@ -24,7 +24,7 @@ source .venv/bin/activate
 
 nvidia-smi
 
-uv run python src/vla/train.py rt1 \
+uv run python src/maniskill/train.py rt1 \
     --env PickCube-v1 \
     --epochs 200 \
     --batch-size 32 \

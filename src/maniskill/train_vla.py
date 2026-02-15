@@ -4,6 +4,7 @@ Train SmoLVLA on ManiSkill demonstrations.
 Usage:
     uv run python src/vla/train_vla.py finetune --env PickCube-v1 --steps 20000 --batch-size 64
 """
+
 import math
 import time
 from pathlib import Path
@@ -19,7 +20,7 @@ from tqdm import tqdm
 from lerobot.configs.types import FeatureType, PolicyFeature
 from lerobot.policies.factory import make_pre_post_processors
 from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
-from vla.data import discover_available_envs, load_dataset_with_split, load_multi_dataset_with_split
+from maniskill.data import discover_available_envs, load_dataset_with_split, load_multi_dataset_with_split
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -77,7 +78,9 @@ def run_validation(policy, val_loader, preprocess, chunk_size, action_dim, devic
                 if isinstance(output, dict):
                     loss = output["loss"]
                 elif isinstance(output, (tuple, list)):
-                    loss = output[0] if isinstance(output[0], torch.Tensor) and output[0].ndim == 0 else output[0].mean()
+                    loss = (
+                        output[0] if isinstance(output[0], torch.Tensor) and output[0].ndim == 0 else output[0].mean()
+                    )
                 else:
                     loss = output
             except Exception:
@@ -230,7 +233,7 @@ def finetune(
     )
 
     action_low, action_high = compute_action_bounds(train_parts)
-    print(f"\nAction bounds (data-derived with margin):")
+    print("\nAction bounds (data-derived with margin):")
     print(f"  Low:  {action_low.tolist()}")
     print(f"  High: {action_high.tolist()}")
 
@@ -410,44 +413,55 @@ def finetune(
                 avg_loss = running_loss / running_count
                 current_lr = scheduler.get_last_lr()[0]
                 elapsed = time.time() - train_start
-                wandb.log({
-                    "train/loss": avg_loss,
-                    "train/lr": current_lr,
-                    "train/elapsed_hours": elapsed / 3600,
-                }, step=optim_step)
+                wandb.log(
+                    {
+                        "train/loss": avg_loss,
+                        "train/lr": current_lr,
+                        "train/elapsed_hours": elapsed / 3600,
+                    },
+                    step=optim_step,
+                )
                 running_loss = 0.0
                 running_count = 0
 
             if val_every > 0 and optim_step % val_every == 0:
-                val_loss = run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj, use_amp=amp)
+                val_loss = run_validation(
+                    policy, val_loader, preprocess, chunk_size, action_dim, device_obj, use_amp=amp
+                )
                 elapsed = time.time() - train_start
                 print(f"\n[Step {optim_step}/{steps}] Val loss: {val_loss:.4f}, Elapsed: {elapsed / 3600:.1f}h")
 
-                wandb.log({
-                    "val/loss": val_loss,
-                }, step=optim_step)
+                wandb.log(
+                    {
+                        "val/loss": val_loss,
+                    },
+                    step=optim_step,
+                )
 
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     intervals_without_improvement = 0
-                    torch.save({
-                        "model_state_dict": policy.state_dict(),
-                        "optimizer_state_dict": optimizer.state_dict(),
-                        "step": optim_step,
-                        "val_loss": val_loss,
-                        "config": {
-                            "model_id": model_id,
-                            "action_dim": action_dim,
-                            "env_ids": env_ids,
-                            "env_id": env_ids[0] if len(env_ids) == 1 else "multi",
-                            "instruction": instruction,
-                            "action_low": action_low.tolist(),
-                            "action_high": action_high.tolist(),
-                            "image_size": image_size,
-                            "sequence_length": sequence_length,
-                            "control_mode": control_mode,
+                    torch.save(
+                        {
+                            "model_state_dict": policy.state_dict(),
+                            "optimizer_state_dict": optimizer.state_dict(),
+                            "step": optim_step,
+                            "val_loss": val_loss,
+                            "config": {
+                                "model_id": model_id,
+                                "action_dim": action_dim,
+                                "env_ids": env_ids,
+                                "env_id": env_ids[0] if len(env_ids) == 1 else "multi",
+                                "instruction": instruction,
+                                "action_low": action_low.tolist(),
+                                "action_high": action_high.tolist(),
+                                "image_size": image_size,
+                                "sequence_length": sequence_length,
+                                "control_mode": control_mode,
+                            },
                         },
-                    }, save_path)
+                        save_path,
+                    )
                     print(f"  Saved best model (val_loss={val_loss:.4f})")
 
                     wandb.log({"val/best_loss": val_loss}, step=optim_step)
@@ -461,7 +475,9 @@ def finetune(
                     wandb.log_artifact(artifact)
                 else:
                     intervals_without_improvement += 1
-                    print(f"  No improvement for {intervals_without_improvement} interval(s) (best={best_val_loss:.4f})")
+                    print(
+                        f"  No improvement for {intervals_without_improvement} interval(s) (best={best_val_loss:.4f})"
+                    )
 
                     if patience > 0 and intervals_without_improvement >= patience:
                         print(f"\nEarly stopping after {patience} intervals without improvement.")
@@ -471,24 +487,27 @@ def finetune(
 
     if best_val_loss == float("inf"):
         val_loss = run_validation(policy, val_loader, preprocess, chunk_size, action_dim, device_obj, use_amp=amp)
-        torch.save({
-            "model_state_dict": policy.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "step": optim_step,
-            "val_loss": val_loss,
-            "config": {
-                "model_id": model_id,
-                "action_dim": action_dim,
-                "env_ids": env_ids,
-                "env_id": env_ids[0] if len(env_ids) == 1 else "multi",
-                "instruction": instruction,
-                "action_low": action_low.tolist(),
-                "action_high": action_high.tolist(),
-                "image_size": image_size,
-                "sequence_length": sequence_length,
-                "control_mode": control_mode,
+        torch.save(
+            {
+                "model_state_dict": policy.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "step": optim_step,
+                "val_loss": val_loss,
+                "config": {
+                    "model_id": model_id,
+                    "action_dim": action_dim,
+                    "env_ids": env_ids,
+                    "env_id": env_ids[0] if len(env_ids) == 1 else "multi",
+                    "instruction": instruction,
+                    "action_low": action_low.tolist(),
+                    "action_high": action_high.tolist(),
+                    "image_size": image_size,
+                    "sequence_length": sequence_length,
+                    "control_mode": control_mode,
+                },
             },
-        }, save_path)
+            save_path,
+        )
         print(f"  Saved final model (val_loss={val_loss:.4f})")
 
     wandb.log({"final/best_val_loss": best_val_loss, "final/steps_completed": optim_step})

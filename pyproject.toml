@@ -3,9 +3,9 @@ requires = ["uv_build>=0.9.22,<0.10.0"]
 build-backend = "uv_build"
 
 [project]
-name = "diffusion_policy"
-version = "0.0.1"
-description = "VLA Robotics"
+name = "vla-robotics"
+version = "0.1.0"
+description = "VLA Robotics -- LIBERO benchmarking with SmolVLA and custom VLA models"
 authors = [
   { name = "Rune Harlyk", email = "s234814@dtu.dk" }
 ]
@@ -31,6 +31,14 @@ dependencies = [
     "typer>=0.23",
     "wandb>=0.24.2",
     "lerobot[smolvla]>=0.4.3",
+    "transformers>=4.40.0",
+    "sentence-transformers>=3.0.0",
+]
+
+[project.optional-dependencies]
+sim = [
+    "robosuite==1.4.0",
+    "libero>=0.1.0",
 ]
 
 [dependency-groups]

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
-#BSUB -J smolvla-finetune
+#BSUB -J smolvla-libero
 #BSUB -q gpul40s
 #BSUB -W 24:00
 #BSUB -n 8
@@ -22,7 +22,6 @@ export WANDB_DIR=/work3/s234814/.cache/wandb
 export WANDB_CACHE_DIR=/work3/s234814/.cache/wandb
 export UV_CACHE_DIR=/work3/s234814/.cache/uv
 export UV_PROJECT_ENVIRONMENT=/work3/s234814/.venvs/vla-robotics
-export DATA_DIR=/work3/s234814/data
 
 mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT"
 
@@ -32,8 +31,8 @@ nvidia-smi
 
 uv sync
 
-uv run python src/vla/train_vla.py \
-    --env all \
+uv run python src/vla/train_smolvla.py \
+    --suite long \
     --steps 20000 \
     --batch-size 64 \
     --lr 1e-4 \
@@ -41,7 +40,7 @@ uv run python src/vla/train_vla.py \
     --warmup-steps 1000 \
     --decay-steps 30000 \
     --model-id lerobot/smolvla_base \
-    --seq-len 50 \
+    --chunk-size 50 \
     --device cuda \
     --weight-decay 1e-10 \
     --grad-clip 10.0 \
@@ -49,6 +48,5 @@ uv run python src/vla/train_vla.py \
     --val-every 500 \
     --amp \
     --num-workers 6 \
-    --prefetch 4 \
     --log-every 50 \
-    --wandb-project vla-smolvla
+    --wandb-project vla-smolvla-libero

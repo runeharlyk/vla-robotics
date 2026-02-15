@@ -7,6 +7,7 @@ Usage:
     uv run python src/vla/train.py rt1 --env PickCube-v1 --epochs 200 --seq-len 6 --pretrained
     uv run python src/vla/train.py rt1 --help
 """
+
 from pathlib import Path
 from typing import Optional
 
@@ -19,7 +20,7 @@ import wandb
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from vla.data import load_dataset
+from maniskill.data import load_dataset
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -43,7 +44,9 @@ def compute_action_bounds(dataset, margin: float = 0.1) -> tuple[np.ndarray, np.
     return action_low, action_high
 
 
-def normalize_actions(actions: torch.Tensor, low: np.ndarray = ACTION_LOW, high: np.ndarray = ACTION_HIGH) -> torch.Tensor:
+def normalize_actions(
+    actions: torch.Tensor, low: np.ndarray = ACTION_LOW, high: np.ndarray = ACTION_HIGH
+) -> torch.Tensor:
     low_t = torch.tensor(low, device=actions.device, dtype=actions.dtype)
     high_t = torch.tensor(high, device=actions.device, dtype=actions.dtype)
     return 2.0 * (actions - low_t) / (high_t - low_t) - 1.0
@@ -136,12 +139,8 @@ class PretrainedRT1(nn.Module):
             r2=self.num_learned_tokens,
         )
 
-        pos_emb = self._posemb_sincos_1d(
-            f, self._embed_dim, dtype=learned_tokens.dtype, device=device
-        )
-        learned_tokens = learned_tokens + repeat(
-            pos_emb, "n d -> (n r) d", r=self.num_learned_tokens
-        )
+        pos_emb = self._posemb_sincos_1d(f, self._embed_dim, dtype=learned_tokens.dtype, device=device)
+        learned_tokens = learned_tokens + repeat(pos_emb, "n d -> (n r) d", r=self.num_learned_tokens)
 
         attended_tokens = self.transformer(learned_tokens, attn_mask=~attn_mask)
         pooled = reduce(attended_tokens, "b (f n) d -> b f d", "mean", f=f)
@@ -418,31 +417,37 @@ def rt1(
         current_lr = scheduler.get_last_lr()[0]
         print(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f}, LR: {current_lr:.2e}")
 
-        wandb.log({
-            "epoch/avg_loss": avg_loss,
-            "epoch/lr": current_lr,
-            "epoch": epoch + 1,
-        }, step=global_step)
+        wandb.log(
+            {
+                "epoch/avg_loss": avg_loss,
+                "epoch/lr": current_lr,
+                "epoch": epoch + 1,
+            },
+            step=global_step,
+        )
 
         if avg_loss < best_loss:
             best_loss = avg_loss
-            torch.save({
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "epoch": epoch,
-                "loss": avg_loss,
-                "config": {
-                    "action_dim": action_dim,
-                    "model_size": model_size,
-                    "env_id": env_id,
-                    "instruction": instruction,
-                    "action_low": action_low.tolist(),
-                    "action_high": action_high.tolist(),
-                    "pretrained": pretrained,
-                    "image_size": image_size,
-                    "sequence_length": sequence_length,
+            torch.save(
+                {
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "epoch": epoch,
+                    "loss": avg_loss,
+                    "config": {
+                        "action_dim": action_dim,
+                        "model_size": model_size,
+                        "env_id": env_id,
+                        "instruction": instruction,
+                        "action_low": action_low.tolist(),
+                        "action_high": action_high.tolist(),
+                        "pretrained": pretrained,
+                        "image_size": image_size,
+                        "sequence_length": sequence_length,
+                    },
                 },
-            }, save_path)
+                save_path,
+            )
             print(f"  Saved best model (loss={avg_loss:.4f})")
             wandb.log({"epoch/best_loss": avg_loss}, step=global_step)
             artifact = wandb.Artifact(
@@ -465,8 +470,8 @@ def list_models() -> None:
     print("Available models:")
     print("  rt1 - Robotics Transformer 1 (tiny/small/base)")
     print("\nUsage:")
-    print("  uv run python src/vla/train.py rt1 --env PickCube-v1 --epochs 100")  
+    print("  uv run python src/vla/train.py rt1 --env PickCube-v1 --epochs 100")
 
-    
+
 if __name__ == "__main__":
     app()
