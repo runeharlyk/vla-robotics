@@ -193,6 +193,8 @@ def _run_libero_eval(
     import torch
     from lerobot.envs.libero import LiberoEnv, _get_suite
 
+    from tqdm import tqdm
+
     all_results: dict[str, dict[str, float]] = {}
 
     for suite_name in suites:
@@ -205,7 +207,8 @@ def _run_libero_eval(
         num_tasks = len(benchmark_suite.tasks)
         task_results: dict[str, float] = {}
 
-        for task_id in range(num_tasks):
+        task_bar = tqdm(range(num_tasks), desc="Tasks", unit="task", position=0)
+        for task_id in task_bar:
             env = LiberoEnv(
                 task_suite=benchmark_suite,
                 task_id=task_id,
@@ -218,73 +221,81 @@ def _run_libero_eval(
             max_steps = env._max_episode_steps
             successes = 0
 
-            print(f"\n  Task {task_id}: {task_name} (max_steps={max_steps})")
-            print(f"    Instruction: {task_desc}")
+            task_bar.set_description(f"Task {task_id}: {task_desc}")
 
-            for ep in range(num_episodes):
+            ep_bar = tqdm(range(num_episodes), desc="  Episodes", unit="ep", position=1, leave=False)
+            for ep in ep_bar:
                 obs_raw, info = env.reset(seed=ep)
                 policy.reset()
                 episode_success = False
 
-                for _step in range(max_steps):
+                step_bar = tqdm(range(max_steps), desc="    Steps", unit="step", position=2, leave=False)
+                for _step in step_bar:
                     batch = _obs_to_batch(obs_raw, task_desc, state_dim)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        print(f"\n    [DEBUG] First observation diagnostics:")
+                        tqdm.write(f"\n    [DEBUG] First observation diagnostics:")
                         for k, v in batch.items():
                             if isinstance(v, torch.Tensor):
-                                print(f"      {k}: shape={v.shape}, dtype={v.dtype}, "
-                                      f"min={v.min().item():.4f}, max={v.max().item():.4f}, "
-                                      f"mean={v.mean().item():.4f}")
+                                tqdm.write(f"      {k}: shape={v.shape}, dtype={v.dtype}, "
+                                           f"min={v.min().item():.4f}, max={v.max().item():.4f}, "
+                                           f"mean={v.mean().item():.4f}")
                             else:
-                                print(f"      {k}: {v}")
+                                tqdm.write(f"      {k}: {v}")
 
                     batch = preprocessor(batch)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        print(f"    [DEBUG] After preprocessor:")
+                        tqdm.write(f"    [DEBUG] After preprocessor:")
                         for k, v in batch.items():
                             if isinstance(v, torch.Tensor):
-                                print(f"      {k}: shape={v.shape}, dtype={v.dtype}, "
-                                      f"min={v.min().item():.4f}, max={v.max().item():.4f}")
+                                tqdm.write(f"      {k}: shape={v.shape}, dtype={v.dtype}, "
+                                           f"min={v.min().item():.4f}, max={v.max().item():.4f}")
 
                     with torch.no_grad():
                         action = policy.select_action(batch)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        print(f"    [DEBUG] Raw model action: shape={action.shape}, "
-                              f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
-                              f"mean={action.mean().item():.4f}")
+                        tqdm.write(f"    [DEBUG] Raw model action: shape={action.shape}, "
+                                   f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
+                                   f"mean={action.mean().item():.4f}")
 
                     action = postprocessor(action)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        print(f"    [DEBUG] After postprocessor: shape={action.shape}, "
-                              f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
-                              f"mean={action.mean().item():.4f}")
+                        tqdm.write(f"    [DEBUG] After postprocessor: shape={action.shape}, "
+                                   f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
+                                   f"mean={action.mean().item():.4f}")
 
                     action_np = action.to("cpu").numpy()
                     if action_np.ndim == 2:
                         action_np = action_np[0]
 
                     if ep == 0 and _step < 3 and task_id == 0:
-                        print(f"    [DEBUG] Step {_step} action sent to env: {action_np}")
+                        tqdm.write(f"    [DEBUG] Step {_step} action sent to env: {action_np}")
 
                     obs_raw, reward, terminated, truncated, info = env.step(action_np)
 
                     if info.get("is_success", False):
                         episode_success = True
+                        step_bar.set_postfix(result="success")
                         break
                     if terminated or truncated:
+                        step_bar.set_postfix(result="done")
                         break
+                step_bar.close()
 
                 if episode_success:
                     successes += 1
+                ep_bar.set_postfix(sr=f"{successes}/{ep + 1}")
+            ep_bar.close()
 
             env.close()
             sr = successes / num_episodes
             task_results[task_name] = sr
-            print(f"    Success rate: {sr * 100:.1f}% ({successes}/{num_episodes})")
+            task_bar.set_postfix(last_sr=f"{sr * 100:.0f}%")
+            tqdm.write(f"  Task {task_id}: {sr * 100:.1f}% ({successes}/{num_episodes}) - {task_desc}")
+        task_bar.close()
 
         all_results[suite_name] = task_results
 
@@ -301,6 +312,7 @@ def _run_custom_eval(
     import numpy as np
     import torch
     from lerobot.envs.libero import LiberoEnv, _get_suite
+    from tqdm import tqdm
 
     all_results: dict[str, dict[str, float]] = {}
 
@@ -314,7 +326,8 @@ def _run_custom_eval(
         num_tasks = len(benchmark_suite.tasks)
         task_results: dict[str, float] = {}
 
-        for task_id in range(num_tasks):
+        task_bar = tqdm(range(num_tasks), desc="Tasks", unit="task", position=0)
+        for task_id in task_bar:
             env = LiberoEnv(
                 task_suite=benchmark_suite,
                 task_id=task_id,
@@ -327,11 +340,15 @@ def _run_custom_eval(
             max_steps = env._max_episode_steps
             successes = 0
 
-            for ep in range(num_episodes):
+            task_bar.set_description(f"Task {task_id}: {task_desc}")
+
+            ep_bar = tqdm(range(num_episodes), desc="  Episodes", unit="ep", position=1, leave=False)
+            for ep in ep_bar:
                 obs_raw, info = env.reset(seed=ep)
                 episode_success = False
 
-                for _step in range(max_steps):
+                step_bar = tqdm(range(max_steps), desc="    Steps", unit="step", position=2, leave=False)
+                for _step in step_bar:
                     batch = _obs_to_batch(obs_raw, task_desc, action_dim)
                     images = batch.get("observation.images.image")
                     state = batch.get("observation.state")
@@ -351,17 +368,24 @@ def _run_custom_eval(
 
                     if info.get("is_success", False):
                         episode_success = True
+                        step_bar.set_postfix(result="success")
                         break
                     if terminated or truncated:
+                        step_bar.set_postfix(result="done")
                         break
+                step_bar.close()
 
                 if episode_success:
                     successes += 1
+                ep_bar.set_postfix(sr=f"{successes}/{ep + 1}")
+            ep_bar.close()
 
             env.close()
             sr = successes / num_episodes
             task_results[task_name] = sr
-            print(f"  {task_name}: {sr * 100:.1f}%")
+            task_bar.set_postfix(last_sr=f"{sr * 100:.0f}%")
+            tqdm.write(f"  Task {task_id}: {sr * 100:.1f}% ({successes}/{num_episodes}) - {task_desc}")
+        task_bar.close()
 
         all_results[suite_name] = task_results
 
