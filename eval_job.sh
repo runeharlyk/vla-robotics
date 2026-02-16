@@ -1,0 +1,60 @@
+#!/bin/sh
+
+# ---------------- LSF directives ----------------
+#BSUB -J smolvla-eval
+#BSUB -q gpul40s
+#BSUB -W 04:00
+#BSUB -n 4
+#BSUB -R "span[hosts=1]"
+#BSUB -R "rusage[mem=4GB]"
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -u s234814@dtu.dk
+#BSUB -B
+#BSUB -N
+#BSUB -oo logs/%J.out
+#BSUB -eo logs/%J.err
+# -------------------------------------------------
+
+set -e
+
+exec 2>&1
+
+export HF_HOME=/work3/s234814/.cache/huggingface
+export WANDB_DIR=/work3/s234814/.cache/wandb
+export WANDB_CACHE_DIR=/work3/s234814/.cache/wandb
+export UV_CACHE_DIR=/work3/s234814/.cache/uv
+export UV_PROJECT_ENVIRONMENT=/work3/s234814/.venvs/vla-robotics
+
+export MUJOCO_GL=egl
+export PYOPENGL_PLATFORM=egl
+export EGL_DEVICE_ID=0
+
+export LIBERO_PATH=/work3/s234814/libero
+export PYTHONUNBUFFERED=1
+
+mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT"
+mkdir -p "$LIBERO_PATH"
+
+module load cuda/12.2
+
+nvidia-smi
+
+uv sync --extra sim
+
+echo "=== Pre-configuring libero dataset path ==="
+printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
+
+echo "=== Sanity check: official SmolVLA LIBERO model ==="
+uv run python src/vla/evaluate.py smolvla \
+    --checkpoint HuggingFaceVLA/smolvla_libero \
+    --suite long \
+    --num-episodes 5 \
+    --device cuda
+
+echo "=== Evaluating fine-tuned model ==="
+uv run python src/vla/evaluate.py smolvla \
+    --checkpoint models/smolvla_libero_long.pt \
+    --suite long \
+    --num-episodes 20 \
+    --device cuda \
+    --wandb-project vla-smolvla-libero
