@@ -197,3 +197,87 @@ def list_demos(ctx: Context, env: str = "") -> None:
 def list_envs(ctx: Context) -> None:
     """List all available ManiSkill environments."""
     ctx.run("uv run python src/maniskill/visualizer.py list-envs", echo=True, pty=not WINDOWS)
+
+
+@task
+def visualize_maniskill(
+    ctx: Context,
+    env: str = "PickCube-v1",
+    steps: int = 200,
+    seed: int = 0,
+    save: bool = False,
+) -> None:
+    """Visualize a ManiSkill task with random actions."""
+    save_flag = "--save" if save else "--no-save"
+    ctx.run(
+        f"uv run python scripts/visualize.py maniskill --env {env} --steps {steps} --seed {seed} {save_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def visualize_libero(
+    ctx: Context,
+    suite: str = "long",
+    task_id: int = 0,
+    steps: int = 300,
+    seed: int = 0,
+    save: bool = False,
+) -> None:
+    """Visualize a LIBERO task with random actions."""
+    save_flag = "--save" if save else "--no-save"
+    ctx.run(
+        f"uv run python scripts/visualize.py libero --suite {suite} --task {task_id} --steps {steps} --seed {seed} {save_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def visualize_smolvla(
+    ctx: Context,
+    checkpoint: str = "HuggingFaceVLA/smolvla_libero",
+    suite: str = "long",
+    tasks: str = "",
+    episodes: int = 1,
+    device: str = "cuda",
+) -> None:
+    """Visualize SmolVLA policy on LIBERO tasks."""
+    tasks_flag = f"--tasks {tasks}" if tasks else ""
+    ctx.run(
+        f"uv run python scripts/visualize.py smolvla "
+        f"--checkpoint {checkpoint} --suite {suite} {tasks_flag} "
+        f"--episodes {episodes} --device {device}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def visualize_smolvla_maniskill(
+    ctx: Context,
+    checkpoint: str = "",
+    env: str = "",
+    episodes: int = 1,
+    steps: int = 200,
+    device: str = "cuda",
+) -> None:
+    """Visualize SmolVLA policy on a ManiSkill environment."""
+    if not checkpoint:
+        checkpoint = "models/smolvla_pickcube_v1.pt"
+    env_flag = f"--env {env}" if env else ""
+    ctx.run(
+        f"uv run python scripts/visualize.py smolvla-maniskill "
+        f"--checkpoint {checkpoint} {env_flag} "
+        f"--episodes {episodes} --steps {steps} --device {device}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def list_tasks(ctx: Context, benchmark: str = "") -> None:
+    """List available tasks for ManiSkill and/or LIBERO."""
+    bench_flag = f"--benchmark {benchmark}" if benchmark else ""
+    ctx.run(f"uv run python scripts/visualize.py list {bench_flag}", echo=True, pty=not WINDOWS)
