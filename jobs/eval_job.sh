@@ -17,6 +17,8 @@
 
 set -e
 
+cd "$(dirname "$0")/.."
+
 exec 2>&1
 
 export HF_HOME=/work3/s234814/.cache/huggingface
