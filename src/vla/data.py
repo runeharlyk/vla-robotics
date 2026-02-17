@@ -6,19 +6,11 @@ and provide batches compatible with our custom training loop.
 """
 
 from typing import Optional
+import constants
 
 import numpy as np
 import torch
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
-
-LIBERO_SUITES = {
-    "spatial": "lerobot/libero_spatial_image",
-    "object": "lerobot/libero_object_image",
-    "goal": "lerobot/libero_goal_image",
-    "long": "lerobot/libero_10_image",
-}
-
-ACTION_DIM = 7
 
 
 class LiberoDataset(Dataset):

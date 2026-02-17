@@ -11,9 +11,14 @@ Usage:
 
 from pathlib import Path
 from typing import Optional
+from models import SmollVLA
+import wandb
 
 import torch
 from lerobot.envs.libero import LiberoEnv, _get_suite
+from lerobot.configs.types import FeatureType, PolicyFeature
+from lerobot.policies.factory import make_pre_post_processors
+from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
 from tqdm import tqdm
 
 import typer
@@ -74,7 +79,8 @@ def _obs_to_batch(raw_obs: dict, task_description: str, state_dim: int = 8) -> d
 
 
 @app.command()
-def smolvla(
+def evaluate(
+    model: str = typer.Option("smolvla","--model","-m"),
     checkpoint: str = typer.Option(..., "--checkpoint", "-c", help="Local .pt path or HF model id"),
     suite: str = typer.Option("all", "--suite", "-s", help="LIBERO suite(s): spatial,object,goal,long or all"),
     num_episodes: int = typer.Option(20, "--num-episodes", "-n", help="Episodes per task"),
@@ -82,46 +88,17 @@ def smolvla(
     batch_size: int = typer.Option(10, "--batch-size", "-b", help="Not used for sequential eval"),
     wandb_project: Optional[str] = typer.Option(None, "--wandb-project"),
 ) -> None:
-    """Evaluate SmolVLA on LIBERO."""
-    import torch
-    from lerobot.configs.types import FeatureType, PolicyFeature
-    from lerobot.policies.factory import make_pre_post_processors
-    from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
+    """Evaluate model on LIBERO."""
 
     suites = _resolve_suites(suite)
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
 
-    checkpoint_path = Path(checkpoint)
-    if checkpoint_path.exists() and checkpoint_path.suffix == ".pt":
-        print(f"Loading SmolVLA from local checkpoint: {checkpoint}")
-        ckpt = torch.load(checkpoint, map_location=device_obj, weights_only=False)
-        config = ckpt["config"]
-        model_id = config["model_id"]
-        action_dim = config.get("action_dim", 7)
-        image_size = config.get("image_size", 256)
-        chunk_size = config.get("chunk_size", 50)
+    if model == "smolvla" :
+        policy,model_id,action_dim = smolvla(checkpoint,device)
+    else: 
+        print(f"No model named {model}")
+        exit()
 
-        policy = SmolVLAPolicy.from_pretrained(model_id)
-
-        policy.config.input_features = {
-            "observation.images.image": PolicyFeature(type=FeatureType.VISUAL, shape=(3, image_size, image_size)),
-            "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(action_dim,)),
-        }
-        policy.config.output_features = {
-            "action": PolicyFeature(type=FeatureType.ACTION, shape=(action_dim,)),
-        }
-        policy.config.empty_cameras = 0
-        policy.config.chunk_size = chunk_size
-        policy.config.n_action_steps = chunk_size
-
-        policy.load_state_dict(ckpt["model_state_dict"])
-    else:
-        print(f"Loading SmolVLA from HuggingFace: {checkpoint}")
-        model_id = checkpoint
-        action_dim = 7
-        policy = SmolVLAPolicy.from_pretrained(checkpoint)
-
-    policy = policy.to(device_obj)
     policy.eval()
 
     state_feature = policy.config.input_features.get("observation.state")
@@ -151,40 +128,6 @@ def smolvla(
         _log_wandb(results, wandb_project, "smolvla", checkpoint)
 
 
-@app.command()
-def custom(
-    checkpoint: str = typer.Option(..., "--checkpoint", "-c", help="Path to custom model .pt"),
-    suite: str = typer.Option("all", "--suite", "-s"),
-    num_episodes: int = typer.Option(20, "--num-episodes", "-n"),
-    device: str = typer.Option("cuda", "--device", "-d"),
-    batch_size: int = typer.Option(10, "--batch-size", "-b"),
-    wandb_project: Optional[str] = typer.Option(None, "--wandb-project"),
-) -> None:
-    """Evaluate custom VLA model on LIBERO."""
-    import torch
-
-    from vla.custom_model import CustomVLA
-
-    suites = _resolve_suites(suite)
-    device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
-
-    print(f"Loading custom model from: {checkpoint}")
-    ckpt = torch.load(checkpoint, map_location=device_obj, weights_only=False)
-    config = ckpt["config"]
-    action_dim = config.get("action_dim", 7)
-
-    model = CustomVLA(**config["model_kwargs"])
-    model.load_state_dict(ckpt["model_state_dict"])
-    model = model.to(device_obj)
-    model.eval()
-
-    results = _run_custom_eval(model, suites, num_episodes, action_dim, device_obj)
-    _print_results(results, "CustomVLA")
-
-    if wandb_project:
-        _log_wandb(results, wandb_project, "custom", checkpoint)
-
-
 def _run_libero_eval(
     policy,
     preprocessor,
@@ -194,10 +137,6 @@ def _run_libero_eval(
     state_dim: int,
     device: "torch.device",
 ) -> dict[str, dict[str, float]]:
-    import torch
-    from lerobot.envs.libero import LiberoEnv, _get_suite
-
-    from tqdm import tqdm
 
     all_results: dict[str, dict[str, float]] = {}
 
@@ -314,91 +253,6 @@ def _run_libero_eval(
     return all_results
 
 
-def _run_custom_eval(
-    model,
-    suites: list[str],
-    num_episodes: int,
-    action_dim: int,
-    device: torch.device,
-) -> dict[str, dict[str, float]]:
-    all_results: dict[str, dict[str, float]] = {}
-
-    for suite_name in suites:
-        libero_suite_name = SUITE_MAP.get(suite_name, f"libero_{suite_name}")
-        print(f"\n{'=' * 60}")
-        print(f"Evaluating on LIBERO-{suite_name.capitalize()} ({libero_suite_name})")
-        print(f"{'=' * 60}")
-
-        benchmark_suite = _get_suite(libero_suite_name)
-        num_tasks = len(benchmark_suite.tasks)
-        task_results: dict[str, float] = {}
-
-        task_bar = tqdm(range(num_tasks), desc="Tasks", unit="task", position=0)
-        for task_id in task_bar:
-            env = LiberoEnv(
-                task_suite=benchmark_suite,
-                task_id=task_id,
-                task_suite_name=libero_suite_name,
-                obs_type="pixels_agent_pos",
-            )
-
-            task_name = env.task
-            task_desc = env.task_description
-            max_steps = env._max_episode_steps
-            successes = 0
-
-            task_bar.set_description(f"Task {task_id}: {task_desc}")
-
-            ep_bar = tqdm(range(num_episodes), desc="  Episodes", unit="ep", position=1, leave=False)
-            for ep in ep_bar:
-                obs_raw, info = env.reset(seed=ep)
-                episode_success = False
-
-                step_bar = tqdm(range(max_steps), desc="    Steps", unit="step", position=2, leave=False)
-                for _step in step_bar:
-                    batch = _obs_to_batch(obs_raw, task_desc, action_dim)
-                    images = batch.get("observation.images.image")
-                    state = batch.get("observation.state")
-                    if images is not None:
-                        images = images.to(device)
-                    if state is not None:
-                        state = state.to(device)
-
-                    with torch.no_grad():
-                        action = model.predict(images, state, task_desc)
-
-                    action_np = action.cpu().numpy()
-                    if action_np.ndim == 2:
-                        action_np = action_np[0]
-
-                    obs_raw, reward, terminated, truncated, info = env.step(action_np)
-
-                    if info.get("is_success", False):
-                        episode_success = True
-                        step_bar.set_postfix(result="success")
-                        break
-                    if terminated or truncated:
-                        step_bar.set_postfix(result="done")
-                        break
-                step_bar.close()
-
-                if episode_success:
-                    successes += 1
-                ep_bar.set_postfix(sr=f"{successes}/{ep + 1}")
-            ep_bar.close()
-
-            env.close()
-            sr = successes / num_episodes
-            task_results[task_name] = sr
-            task_bar.set_postfix(last_sr=f"{sr * 100:.0f}%")
-            tqdm.write(f"  Task {task_id}: {sr * 100:.1f}% ({successes}/{num_episodes}) - {task_desc}")
-        task_bar.close()
-
-        all_results[suite_name] = task_results
-
-    return all_results
-
-
 def _print_results(results: dict[str, dict[str, float]], model_name: str) -> None:
     print(f"\n{'=' * 60}")
     print(f"Results: {model_name}")
@@ -429,7 +283,6 @@ def _log_wandb(
     model_name: str,
     checkpoint: str,
 ) -> None:
-    import wandb
 
     wandb.init(project=project, name=f"eval-{model_name}", config={"checkpoint": checkpoint})
 
