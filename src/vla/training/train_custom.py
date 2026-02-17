@@ -9,9 +9,9 @@ from tqdm import tqdm
 
 
 from vla.constants import ACTION_DIM, LIBERO_SUITES, MODELS_DIR, resolve_suites
-from vla.custom_model import CustomVLA
-from vla.data import load_libero_all, load_libero_suite, make_dataloader, split_dataset
-from vla.lr_scheduler import CosineDecayWithWarmup
+from vla.data.dataset import load_libero_all, load_libero_suite, make_dataloader, split_dataset
+from vla.models.custom_vla import CustomVLA
+from vla.training.lr_scheduler import CosineDecayWithWarmup
 
 app = typer.Typer(no_args_is_help=True)
 

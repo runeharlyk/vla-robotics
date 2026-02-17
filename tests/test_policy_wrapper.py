@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from vla.policy_wrapper import ActionPolicy, PolicyWrapper
+from vla.models.policy_wrapper import ActionPolicy, PolicyWrapper
 
 
 class DummyPolicy(nn.Module):

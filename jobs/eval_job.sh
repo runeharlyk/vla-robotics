@@ -45,7 +45,7 @@ echo "=== Pre-configuring libero dataset path ==="
 printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
 
 echo "=== Evaluating official SmolVLA LIBERO baseline ==="
-uv run python src/vla/evaluate.py evaluate \
+uv run python -m vla evaluate \
     --model smolvla \
     --checkpoint HuggingFaceVLA/smolvla_libero \
     --suite all \

@@ -78,7 +78,7 @@ def train_custom(
     """Train custom VLA on LIBERO demonstrations."""
     amp_flag = "--amp" if amp else "--no-amp"
     cmd = (
-        f"uv run python src/vla/train_custom.py "
+        f"uv run python -m vla train "
         f"--suite {suite} --steps {steps} --batch-size {batch_size} "
         f"--lr {lr} --device {device} {amp_flag}"
     )
@@ -95,7 +95,7 @@ def evaluate(
     device: str = "cuda",
 ) -> None:
     cmd = (
-        f"uv run python src/vla/evaluate.py evaluate "
+        f"uv run python -m vla evaluate "
         f"--model {model} --checkpoint {checkpoint} --suite {suite} "
         f"--num-episodes {num_episodes} --device {device}"
     )

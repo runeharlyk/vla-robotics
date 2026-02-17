@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from vla.custom_model import CrossAttentionFusion, FlowMatchingActionHead
+from vla.models.custom_vla import CrossAttentionFusion, FlowMatchingActionHead
 
 
 class TestCrossAttentionFusion:

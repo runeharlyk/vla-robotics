@@ -12,7 +12,7 @@ from lerobot.processor.env_processor import LiberoProcessorStep
 from tqdm import tqdm
 
 from vla.constants import SUITE_MAP, resolve_suites
-from vla.models.SmollVLA import smolvla
+from vla.models.smolvla import smolvla
 
 app = typer.Typer(no_args_is_help=True)
 

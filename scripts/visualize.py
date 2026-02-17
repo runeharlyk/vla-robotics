@@ -240,7 +240,7 @@ def smolvla(
     from lerobot.policies.factory import make_pre_post_processors
     from tqdm import tqdm
 
-    from vla.evaluate import _obs_to_batch
+    from vla.evaluation.evaluate import _obs_to_batch
 
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
     policy, model_id, _ = _load_smolvla(checkpoint, device_obj, image_key="observation.images.image")

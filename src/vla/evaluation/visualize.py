@@ -47,8 +47,8 @@ def main(
     from lerobot.policies.factory import make_pre_post_processors
     from tqdm import tqdm
 
-    from vla.evaluate import _obs_to_batch
-    from vla.models.SmollVLA import smolvla as load_smolvla
+    from vla.evaluation.evaluate import _obs_to_batch
+    from vla.models.smolvla import smolvla as load_smolvla
 
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
     policy, model_id, action_dim = load_smolvla(checkpoint, device)
