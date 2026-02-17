@@ -1,25 +1,10 @@
-"""
-Record videos of a VLA policy solving LIBERO tasks.
-
-Usage:
-    uv run python src/vla/visualize.py --checkpoint HuggingFaceVLA/smolvla_libero --suite long
-    uv run python src/vla/visualize.py -c models/smolvla_libero_long.pt -s long --tasks 0,2,5
-"""
-
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import typer
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-
-SUITE_MAP = {
-    "spatial": "libero_spatial",
-    "object": "libero_object",
-    "goal": "libero_goal",
-    "long": "libero_10",
-}
+from vla.constants import SUITE_MAP, VIDEOS_DIR
 
 
 def _save_video(frames: list, path: Path, fps: int = 30) -> None:
@@ -48,54 +33,26 @@ def _collect_frame(obs_raw: dict) -> np.ndarray:
 
 
 def main(
-    checkpoint: str = typer.Option(..., "--checkpoint", "-c", help="Local .pt path or HF model id"),
-    suite: str = typer.Option("long", "--suite", "-s", help="LIBERO suite: spatial, object, goal, long"),
-    episodes: int = typer.Option(1, "--episodes", "-n", help="Episodes to record per task"),
+    checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
+    suite: str = typer.Option("long", "--suite", "-s"),
+    episodes: int = typer.Option(1, "--episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
-    output_dir: str = typer.Option("videos", "--output-dir", "-o", help="Output directory for videos"),
-    tasks: Optional[str] = typer.Option(None, "--tasks", "-t", help="Comma-separated task ids (default: all)"),
-    fps: int = typer.Option(30, "--fps", help="Video frame rate"),
-    seed: int = typer.Option(0, "--seed", help="Starting seed for episodes"),
+    output_dir: str = typer.Option("videos", "--output-dir", "-o"),
+    tasks: Optional[str] = typer.Option(None, "--tasks", "-t"),
+    fps: int = typer.Option(30, "--fps"),
+    seed: int = typer.Option(0, "--seed"),
 ) -> None:
-    """Record videos of SmolVLA solving LIBERO tasks."""
     import torch
-    from lerobot.configs.types import FeatureType, PolicyFeature
     from lerobot.envs.libero import LiberoEnv, _get_suite
     from lerobot.policies.factory import make_pre_post_processors
-    from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
+    from tqdm import tqdm
 
     from vla.evaluate import _obs_to_batch
+    from vla.models.SmollVLA import smolvla as load_smolvla
 
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
+    policy, model_id, action_dim = load_smolvla(checkpoint, device)
 
-    checkpoint_path = Path(checkpoint)
-    if checkpoint_path.exists() and checkpoint_path.suffix == ".pt":
-        print(f"Loading SmolVLA from local checkpoint: {checkpoint}")
-        ckpt = torch.load(checkpoint, map_location=device_obj, weights_only=False)
-        config = ckpt["config"]
-        model_id = config["model_id"]
-        action_dim = config.get("action_dim", 7)
-        image_size = config.get("image_size", 256)
-        chunk_size = config.get("chunk_size", 50)
-
-        policy = SmolVLAPolicy.from_pretrained(model_id)
-        policy.config.input_features = {
-            "observation.images.image": PolicyFeature(type=FeatureType.VISUAL, shape=(3, image_size, image_size)),
-            "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(action_dim,)),
-        }
-        policy.config.output_features = {
-            "action": PolicyFeature(type=FeatureType.ACTION, shape=(action_dim,)),
-        }
-        policy.config.empty_cameras = 0
-        policy.config.chunk_size = chunk_size
-        policy.config.n_action_steps = chunk_size
-        policy.load_state_dict(ckpt["model_state_dict"])
-    else:
-        print(f"Loading SmolVLA from HuggingFace: {checkpoint}")
-        model_id = checkpoint
-        policy = SmolVLAPolicy.from_pretrained(checkpoint)
-
-    policy = policy.to(device_obj)
     policy.eval()
 
     state_feature = policy.config.input_features.get("observation.state")
@@ -121,8 +78,6 @@ def main(
     total_videos = len(task_ids) * episodes
     print(f"\nRecording {total_videos} videos -> {out}/")
     print(f"Suite: {suite} ({libero_suite_name}), Tasks: {task_ids}, Episodes/task: {episodes}\n")
-
-    from tqdm import tqdm
 
     task_bar = tqdm(task_ids, desc="Tasks", unit="task", position=0)
     for task_id in task_bar:

@@ -1,15 +1,3 @@
-"""
-Train the custom VLA model on LIBERO demonstrations.
-
-Uses the same training loop pattern as SmolVLA fine-tuning,
-with flow matching loss and cosine decay schedule.
-
-Usage:
-    uv run python src/vla/train_custom.py --suite spatial --steps 30000
-    uv run python src/vla/train_custom.py --suite all --steps 80000 --amp
-"""
-
-import math
 import time
 from pathlib import Path
 from typing import Optional
@@ -19,44 +7,16 @@ import typer
 import wandb
 from tqdm import tqdm
 
+
+from vla.constants import ACTION_DIM, LIBERO_SUITES, MODELS_DIR, resolve_suites
 from vla.custom_model import CustomVLA
-from vla.data import (
-    load_libero_all,
-    load_libero_suite,
-    make_dataloader,
-    split_dataset,
-)
+from vla.data import load_libero_all, load_libero_suite, make_dataloader, split_dataset
+from vla.lr_scheduler import CosineDecayWithWarmup
 
 app = typer.Typer(no_args_is_help=True)
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-MODELS_DIR = PROJECT_ROOT / "models"
-
-
-class CosineDecayWithWarmup(torch.optim.lr_scheduler._LRScheduler):
-    """Cosine decay schedule with linear warmup."""
-
-    def __init__(self, optimizer, peak_lr, decay_lr, warmup_steps, decay_steps, last_epoch=-1):
-        self.peak_lr = peak_lr
-        self.decay_lr = decay_lr
-        self._warmup_steps = warmup_steps
-        self._decay_steps = decay_steps
-        super().__init__(optimizer, last_epoch)
-
-    def get_lr(self):
-        step = self.last_epoch
-        if step < self._warmup_steps:
-            lr = self.peak_lr * step / max(1, self._warmup_steps)
-        elif step < self._decay_steps:
-            progress = (step - self._warmup_steps) / max(1, self._decay_steps - self._warmup_steps)
-            lr = self.decay_lr + (self.peak_lr - self.decay_lr) * 0.5 * (1.0 + math.cos(math.pi * progress))
-        else:
-            lr = self.decay_lr
-        return [lr for _ in self.base_lrs]
-
 
 def _prepare_batch(batch: dict, chunk_size: int, action_dim: int) -> dict:
-    """Prepare batch for CustomVLA forward pass."""
     images = batch["images"]
     actions = batch["actions"]
 
@@ -79,7 +39,6 @@ def _prepare_batch(batch: dict, chunk_size: int, action_dim: int) -> dict:
 
 
 def _run_validation(model, val_loader, chunk_size, action_dim, device, use_amp=False):
-    """Evaluate on validation set."""
     model.eval()
     total_loss = 0.0
     n = 0
@@ -108,7 +67,7 @@ def _run_validation(model, val_loader, chunk_size, action_dim, device, use_amp=F
 
 @app.command()
 def train(
-    suite: str = typer.Option("all", "--suite", "-s", help="LIBERO suite(s) or 'all'"),
+    suite: str = typer.Option("all", "--suite", "-s"),
     steps: int = typer.Option(30000, "--steps"),
     batch_size: int = typer.Option(64, "--batch-size", "-b"),
     lr: float = typer.Option(3e-4, "--lr"),
@@ -139,15 +98,8 @@ def train(
     grad_accum_steps: int = typer.Option(1, "--grad-accum"),
     log_every: int = typer.Option(50, "--log-every"),
 ) -> None:
-    """Train custom VLA on LIBERO demonstrations."""
-    from vla.data import LIBERO_SUITES
-
-    if suite.lower() == "all":
-        suite_names = list(LIBERO_SUITES.keys())
-    else:
-        suite_names = [s.strip().lower() for s in suite.split(",")]
-
-    action_dim = 7
+    suite_names = resolve_suites(suite)
+    action_dim = ACTION_DIM
     suite_label = suite_names[0] if len(suite_names) == 1 else f"{len(suite_names)}_suites"
 
     print(f"Loading LIBERO data for suites: {suite_names}")
@@ -201,6 +153,7 @@ def train(
 
     if save_path is None:
         save_path = str(MODELS_DIR / f"custom_vla_libero_{suite_label}.pt")
+
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
 
     print(f"\nTraining Custom VLA on LIBERO-{suite_label}")

@@ -31,22 +31,12 @@ nvidia-smi
 
 uv sync
 
-uv run python src/vla/train_smolvla.py \
-    --suite long \
-    --steps 20000 \
-    --batch-size 64 \
-    --lr 1e-4 \
-    --decay-lr 2.5e-6 \
-    --warmup-steps 1000 \
-    --decay-steps 30000 \
-    --model-id lerobot/smolvla_base \
-    --chunk-size 50 \
-    --device cuda \
-    --weight-decay 1e-10 \
-    --grad-clip 10.0 \
-    --val-split 0.1 \
-    --val-every 500 \
-    --amp \
-    --num-workers 6 \
-    --log-every 50 \
-    --wandb-project vla-smolvla-libero
+uv run lerobot_train \
+    --dataset.repo_id=lerobot/libero_10_image \
+    --policy.type=smolvla \
+    --policy.pretrained_path=lerobot/smolvla_base \
+    --steps=20000 \
+    --batch_size=64 \
+    --lr=1e-4 \
+    --device=cuda \
+    --wandb.project=vla-smolvla-libero

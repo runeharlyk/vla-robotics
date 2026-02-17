@@ -1,52 +1,23 @@
-"""
-LIBERO evaluation harness.
-
-Wraps LeRobot's LIBERO environment and SmolVLA preprocessor pipeline
-to evaluate fine-tuned models with the same processing as training.
-
-Usage:
-    uv run python src/vla/evaluate.py smolvla --checkpoint models/smolvla_libero_long.pt --suite long
-    uv run python src/vla/evaluate.py custom --checkpoint models/custom_vla_libero.pt --suite all
-"""
-
 from pathlib import Path
 from typing import Optional
-from models import SmollVLA
-import wandb
 
+import einops
 import torch
-from lerobot.envs.libero import LiberoEnv, _get_suite
+import typer
+import wandb
 from lerobot.configs.types import FeatureType, PolicyFeature
+from lerobot.envs.libero import LiberoEnv, _get_suite
 from lerobot.policies.factory import make_pre_post_processors
-from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
+from lerobot.processor.env_processor import LiberoProcessorStep
 from tqdm import tqdm
 
-import typer
+from vla.constants import SUITE_MAP, resolve_suites
+from vla.models.SmollVLA import smolvla
 
 app = typer.Typer(no_args_is_help=True)
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-MODELS_DIR = PROJECT_ROOT / "models"
-
-SUITE_MAP = {
-    "spatial": "libero_spatial",
-    "object": "libero_object",
-    "goal": "libero_goal",
-    "long": "libero_10",
-}
-
-
-def _resolve_suites(suite: str) -> list[str]:
-    if suite.lower() == "all":
-        return list(SUITE_MAP.keys())
-    return [s.strip().lower() for s in suite.split(",")]
-
 
 def _obs_to_batch(raw_obs: dict, task_description: str, state_dim: int = 8) -> dict:
-    import einops
-    import torch
-    from lerobot.processor.env_processor import LiberoProcessorStep
-
     batch: dict = {}
 
     if "pixels" in raw_obs and isinstance(raw_obs["pixels"], dict):
@@ -80,24 +51,21 @@ def _obs_to_batch(raw_obs: dict, task_description: str, state_dim: int = 8) -> d
 
 @app.command()
 def evaluate(
-    model: str = typer.Option("smolvla","--model","-m"),
-    checkpoint: str = typer.Option(..., "--checkpoint", "-c", help="Local .pt path or HF model id"),
-    suite: str = typer.Option("all", "--suite", "-s", help="LIBERO suite(s): spatial,object,goal,long or all"),
-    num_episodes: int = typer.Option(20, "--num-episodes", "-n", help="Episodes per task"),
+    model: str = typer.Option("smolvla", "--model", "-m"),
+    checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
+    suite: str = typer.Option("all", "--suite", "-s"),
+    num_episodes: int = typer.Option(20, "--num-episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
-    batch_size: int = typer.Option(10, "--batch-size", "-b", help="Not used for sequential eval"),
     wandb_project: Optional[str] = typer.Option(None, "--wandb-project"),
 ) -> None:
-    """Evaluate model on LIBERO."""
-
-    suites = _resolve_suites(suite)
+    suites = resolve_suites(suite)
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
 
-    if model == "smolvla" :
-        policy,model_id,action_dim = smolvla(checkpoint,device)
-    else: 
-        print(f"No model named {model}")
-        exit()
+    if model == "smolvla":
+        policy, model_id, action_dim = smolvla(checkpoint, device)
+    else:
+        print(f"Unknown model: {model}")
+        raise typer.Exit(1)
 
     policy.eval()
 
@@ -122,10 +90,10 @@ def evaluate(
         state_dim,
         device_obj,
     )
-    _print_results(results, "SmolVLA")
+    _print_results(results, model)
 
     if wandb_project:
-        _log_wandb(results, wandb_project, "smolvla", checkpoint)
+        _log_wandb(results, wandb_project, model, checkpoint)
 
 
 def _run_libero_eval(
@@ -172,69 +140,25 @@ def _run_libero_eval(
                 policy.reset()
                 episode_success = False
 
-                step_bar = tqdm(range(max_steps), desc="    Steps", unit="step", position=2, leave=False)
-                for _step in step_bar:
+                for _step in range(max_steps):
                     batch = _obs_to_batch(obs_raw, task_desc, state_dim)
-
-                    if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write("\n    [DEBUG] First observation diagnostics:")
-                        for k, v in batch.items():
-                            if isinstance(v, torch.Tensor):
-                                tqdm.write(
-                                    f"      {k}: shape={v.shape}, dtype={v.dtype}, "
-                                    f"min={v.min().item():.4f}, max={v.max().item():.4f}, "
-                                    f"mean={v.mean().item():.4f}"
-                                )
-                            else:
-                                tqdm.write(f"      {k}: {v}")
-
                     batch = preprocessor(batch)
-
-                    if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write("    [DEBUG] After preprocessor:")
-                        for k, v in batch.items():
-                            if isinstance(v, torch.Tensor):
-                                tqdm.write(
-                                    f"      {k}: shape={v.shape}, dtype={v.dtype}, "
-                                    f"min={v.min().item():.4f}, max={v.max().item():.4f}"
-                                )
 
                     with torch.no_grad():
                         action = policy.select_action(batch)
 
-                    if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write(
-                            f"    [DEBUG] Raw model action: shape={action.shape}, "
-                            f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
-                            f"mean={action.mean().item():.4f}"
-                        )
-
                     action = postprocessor(action)
-
-                    if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write(
-                            f"    [DEBUG] After postprocessor: shape={action.shape}, "
-                            f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
-                            f"mean={action.mean().item():.4f}"
-                        )
-
                     action_np = action.to("cpu").numpy()
                     if action_np.ndim == 2:
                         action_np = action_np[0]
-
-                    if ep == 0 and _step < 3 and task_id == 0:
-                        tqdm.write(f"    [DEBUG] Step {_step} action sent to env: {action_np}")
 
                     obs_raw, reward, terminated, truncated, info = env.step(action_np)
 
                     if info.get("is_success", False):
                         episode_success = True
-                        step_bar.set_postfix(result="success")
                         break
                     if terminated or truncated:
-                        step_bar.set_postfix(result="done")
                         break
-                step_bar.close()
 
                 if episode_success:
                     successes += 1

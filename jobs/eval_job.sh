@@ -44,17 +44,11 @@ uv sync --extra sim
 echo "=== Pre-configuring libero dataset path ==="
 printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
 
-echo "=== Sanity check: official SmolVLA LIBERO model ==="
-uv run python src/vla/evaluate.py smolvla \
+echo "=== Evaluating official SmolVLA LIBERO baseline ==="
+uv run python src/vla/evaluate.py evaluate \
+    --model smolvla \
     --checkpoint HuggingFaceVLA/smolvla_libero \
-    --suite long \
-    --num-episodes 5 \
-    --device cuda
-
-echo "=== Evaluating fine-tuned model ==="
-uv run python src/vla/evaluate.py smolvla \
-    --checkpoint models/smolvla_libero_long.pt \
-    --suite long \
+    --suite all \
     --num-episodes 20 \
     --device cuda \
     --wandb-project vla-smolvla-libero

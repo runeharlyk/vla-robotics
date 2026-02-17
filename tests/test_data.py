@@ -1,7 +1,8 @@
 import torch
 from torch.utils.data import Subset, TensorDataset
 
-from vla.data import LIBERO_SUITES, make_dataloader, split_dataset
+from vla.constants import LIBERO_SUITES
+from vla.data import make_dataloader, split_dataset
 
 
 class TestLiberoSuites:

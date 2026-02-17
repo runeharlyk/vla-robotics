@@ -1,33 +1,13 @@
-"""
-Dataset utilities for LIBERO training.
-
-Wraps LeRobot's LeRobotDataset to load LIBERO task suites from HuggingFace
-and provide batches compatible with our custom training loop.
-"""
-
 from typing import Optional
-import constants
 
 import numpy as np
 import torch
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
 
+from vla.constants import ACTION_DIM, LIBERO_SUITES
+
 
 class LiberoDataset(Dataset):
-    """Wraps a LeRobotDataset for use with our training loop.
-
-    Converts LeRobot sample format to the dict format expected by our trainers:
-    ``{"images": Tensor, "state": Tensor, "actions": Tensor, "instruction": str}``
-
-    Args:
-        repo_id: HuggingFace dataset repo id (e.g. "lerobot/libero_spatial_image")
-        image_key: Key for the camera image in the LeRobot dataset
-        action_key: Key for the action in the LeRobot dataset
-        state_key: Key for the robot state in the LeRobot dataset
-        delta_timestamps: Dict mapping keys to lists of relative timestamps for chunking
-        episodes: Optional list of episode indices to load
-    """
-
     def __init__(
         self,
         repo_id: str,
@@ -105,16 +85,6 @@ def load_libero_suite(
     delta_timestamps: Optional[dict[str, list[float]]] = None,
     episodes: Optional[list[int]] = None,
 ) -> LiberoDataset:
-    """Load a single LIBERO task suite.
-
-    Args:
-        suite: One of "spatial", "object", "goal", "long" or a full HF repo id
-        delta_timestamps: Delta timestamp config for action chunking
-        episodes: Optional list of episode indices to load
-
-    Returns:
-        LiberoDataset wrapping the requested suite
-    """
     repo_id = LIBERO_SUITES.get(suite.lower(), suite)
     return LiberoDataset(repo_id, delta_timestamps=delta_timestamps, episodes=episodes)
 
@@ -124,16 +94,6 @@ def load_libero_all(
     delta_timestamps: Optional[dict[str, list[float]]] = None,
     episodes: Optional[list[int]] = None,
 ) -> ConcatDataset:
-    """Load multiple LIBERO suites as a single ConcatDataset.
-
-    Args:
-        suites: List of suite names. Defaults to all four.
-        delta_timestamps: Delta timestamp config
-        episodes: Optional list of episode indices to load (applied per suite)
-
-    Returns:
-        ConcatDataset over the requested suites
-    """
     if suites is None:
         suites = list(LIBERO_SUITES.keys())
 
@@ -146,16 +106,6 @@ def split_dataset(
     val_ratio: float = 0.1,
     seed: int = 42,
 ) -> tuple[Subset, Subset]:
-    """Split a dataset into train/val by random indices.
-
-    Args:
-        dataset: Source dataset
-        val_ratio: Fraction for validation
-        seed: Random seed
-
-    Returns:
-        Tuple of (train_subset, val_subset)
-    """
     n = len(dataset)
     rng = np.random.RandomState(seed)
     indices = rng.permutation(n).tolist()
@@ -171,19 +121,6 @@ def make_dataloader(
     prefetch_factor: int = 4,
     drop_last: bool = True,
 ) -> DataLoader:
-    """Create a DataLoader with sensible defaults for training.
-
-    Args:
-        dataset: Source dataset
-        batch_size: Batch size
-        shuffle: Whether to shuffle
-        num_workers: DataLoader workers
-        prefetch_factor: Prefetch factor per worker
-        drop_last: Drop the last incomplete batch
-
-    Returns:
-        Configured DataLoader
-    """
     return DataLoader(
         dataset,
         batch_size=batch_size,

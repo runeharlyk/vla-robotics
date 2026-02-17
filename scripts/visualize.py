@@ -1,15 +1,3 @@
-"""
-Unified task visualizer for ManiSkill and LIBERO benchmarks.
-
-Supports random-action exploration and policy rollouts (SmolVLA).
-
-Usage:
-    uv run python scripts/visualize.py maniskill --env PickCube-v1
-    uv run python scripts/visualize.py libero --suite long --task 0
-    uv run python scripts/visualize.py smolvla -c HuggingFaceVLA/smolvla_libero -s long
-    uv run python scripts/visualize.py list
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,14 +7,12 @@ import cv2
 import numpy as np
 import typer
 
-app = typer.Typer(no_args_is_help=True)
+from vla.constants import SUITE_MAP, VIDEOS_DIR
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-VIDEOS_DIR = PROJECT_ROOT / "videos"
+app = typer.Typer(no_args_is_help=True)
 
 
 def _has_gui() -> bool:
-    """Check whether OpenCV highgui can open a window."""
     try:
         cv2.namedWindow("__probe__", cv2.WINDOW_NORMAL)
         cv2.destroyWindow("__probe__")
@@ -36,7 +22,6 @@ def _has_gui() -> bool:
 
 
 def _save_video(frames: list[np.ndarray], path: Path, fps: int = 30) -> None:
-    """Write a list of RGB frames to an mp4 file."""
     if not frames:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -49,7 +34,6 @@ def _save_video(frames: list[np.ndarray], path: Path, fps: int = 30) -> None:
 
 
 def _display_frames(frames: list[np.ndarray], title: str, speed: float = 1.0) -> None:
-    """Show frames in an OpenCV window."""
     cv2.namedWindow(title, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(title, 640, 480)
     for frame in frames:
@@ -67,7 +51,6 @@ def _output_frames(
     save: bool,
     speed: float,
 ) -> None:
-    """Save or display frames, falling back to save when GUI is unavailable."""
     if output:
         _save_video(frames, Path(output))
     elif save or not _has_gui():
@@ -79,7 +62,6 @@ def _output_frames(
 
 
 def _get_maniskill_frame(env) -> np.ndarray:
-    """Extract an RGB numpy array from a ManiSkill environment render."""
     frame = env.render()
     if hasattr(frame, "cpu"):
         frame = frame.cpu().numpy()
@@ -89,7 +71,6 @@ def _get_maniskill_frame(env) -> np.ndarray:
 
 
 def _get_libero_frame(obs_raw: dict) -> np.ndarray:
-    """Extract an RGB numpy array from a LIBERO observation."""
     if "pixels" not in obs_raw or not isinstance(obs_raw["pixels"], dict):
         return np.zeros((256, 256, 3), dtype=np.uint8)
     cams = list(obs_raw["pixels"].values())
@@ -99,24 +80,15 @@ def _get_libero_frame(obs_raw: dict) -> np.ndarray:
     return np.concatenate(flipped, axis=1)
 
 
-LIBERO_SUITE_MAP = {
-    "spatial": "libero_spatial",
-    "object": "libero_object",
-    "goal": "libero_goal",
-    "long": "libero_10",
-}
-
-
 @app.command()
 def maniskill(
-    env_id: str = typer.Option("PickCube-v1", "--env", "-e", help="ManiSkill environment id"),
-    steps: int = typer.Option(200, "--steps", "-s", help="Number of steps to run"),
-    seed: int = typer.Option(0, "--seed", help="Random seed"),
-    speed: float = typer.Option(1.0, "--speed", help="Playback speed multiplier"),
-    save: bool = typer.Option(False, "--save", help="Force saving video to file"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output video path"),
+    env_id: str = typer.Option("PickCube-v1", "--env", "-e"),
+    steps: int = typer.Option(200, "--steps", "-s"),
+    seed: int = typer.Option(0, "--seed"),
+    speed: float = typer.Option(1.0, "--speed"),
+    save: bool = typer.Option(False, "--save"),
+    output: Optional[str] = typer.Option(None, "--output", "-o"),
 ) -> None:
-    """Visualize a ManiSkill task with random actions."""
     import gymnasium as gym
     import mani_skill  # noqa: F401
 
@@ -159,18 +131,17 @@ def maniskill(
 
 @app.command()
 def libero(
-    suite: str = typer.Option("long", "--suite", "-s", help="LIBERO suite: spatial, object, goal, long"),
-    task: int = typer.Option(0, "--task", "-t", help="Task index within the suite"),
-    steps: int = typer.Option(300, "--steps", "-n", help="Max steps per episode"),
-    seed: int = typer.Option(0, "--seed", help="Random seed"),
-    speed: float = typer.Option(1.0, "--speed", help="Playback speed multiplier"),
-    save: bool = typer.Option(False, "--save", help="Force saving video to file"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output video path"),
+    suite: str = typer.Option("long", "--suite", "-s"),
+    task: int = typer.Option(0, "--task", "-t"),
+    steps: int = typer.Option(300, "--steps", "-n"),
+    seed: int = typer.Option(0, "--seed"),
+    speed: float = typer.Option(1.0, "--speed"),
+    save: bool = typer.Option(False, "--save"),
+    output: Optional[str] = typer.Option(None, "--output", "-o"),
 ) -> None:
-    """Visualize a LIBERO task with random actions."""
     from lerobot.envs.libero import LiberoEnv, _get_suite
 
-    libero_suite_name = LIBERO_SUITE_MAP.get(suite.lower(), f"libero_{suite}")
+    libero_suite_name = SUITE_MAP.get(suite.lower(), f"libero_{suite}")
     benchmark_suite = _get_suite(libero_suite_name)
     num_tasks = len(benchmark_suite.tasks)
 
@@ -215,8 +186,7 @@ def libero(
     typer.echo("Done.")
 
 
-def _load_smolvla(checkpoint: str, device: torch.device, image_key: str = "observation.images.image"):
-    """Load a SmolVLA policy from a local .pt or HuggingFace id."""
+def _load_smolvla(checkpoint: str, device, image_key: str = "observation.images.image"):
     import torch
     from lerobot.configs.types import FeatureType, PolicyFeature
     from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
@@ -256,16 +226,15 @@ def _load_smolvla(checkpoint: str, device: torch.device, image_key: str = "obser
 
 @app.command()
 def smolvla(
-    checkpoint: str = typer.Option(..., "--checkpoint", "-c", help="Local .pt path or HF model id"),
-    suite: str = typer.Option("long", "--suite", "-s", help="LIBERO suite: spatial, object, goal, long"),
-    tasks: Optional[str] = typer.Option(None, "--tasks", "-t", help="Comma-separated task ids (default: all)"),
-    episodes: int = typer.Option(1, "--episodes", "-n", help="Episodes per task"),
+    checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
+    suite: str = typer.Option("long", "--suite", "-s"),
+    tasks: Optional[str] = typer.Option(None, "--tasks", "-t"),
+    episodes: int = typer.Option(1, "--episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
-    seed: int = typer.Option(0, "--seed", help="Starting seed"),
-    fps: int = typer.Option(30, "--fps", help="Video frame rate"),
-    output_dir: Optional[str] = typer.Option(None, "--output-dir", "-o", help="Output directory"),
+    seed: int = typer.Option(0, "--seed"),
+    fps: int = typer.Option(30, "--fps"),
+    output_dir: Optional[str] = typer.Option(None, "--output-dir", "-o"),
 ) -> None:
-    """Visualize SmolVLA policy solving LIBERO tasks."""
     import torch
     from lerobot.envs.libero import LiberoEnv, _get_suite
     from lerobot.policies.factory import make_pre_post_processors
@@ -285,7 +254,7 @@ def smolvla(
         preprocessor_overrides={"device_processor": {"device": str(device_obj)}},
     )
 
-    libero_suite_name = LIBERO_SUITE_MAP.get(suite.lower(), f"libero_{suite}")
+    libero_suite_name = SUITE_MAP.get(suite.lower(), f"libero_{suite}")
     benchmark_suite = _get_suite(libero_suite_name)
     num_tasks = len(benchmark_suite.tasks)
 
@@ -366,7 +335,6 @@ def _maniskill_obs_to_batch(
     image_size: int,
     image_key: str,
 ) -> dict:
-    """Build a SmolVLA batch dict from a ManiSkill env + observation."""
     import torch
     from PIL import Image as PILImage
 
@@ -407,17 +375,16 @@ def _maniskill_obs_to_batch(
 
 @app.command(name="smolvla-maniskill")
 def smolvla_maniskill(
-    checkpoint: str = typer.Option(..., "--checkpoint", "-c", help="Local .pt checkpoint path"),
-    env_id: Optional[str] = typer.Option(None, "--env", "-e", help="Override env id (default: from checkpoint)"),
-    instruction: Optional[str] = typer.Option(None, "--instruction", "-i", help="Override task instruction"),
-    steps: int = typer.Option(200, "--steps", "-s", help="Max steps per episode"),
-    episodes: int = typer.Option(1, "--episodes", "-n", help="Number of episodes"),
+    checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
+    env_id: Optional[str] = typer.Option(None, "--env", "-e"),
+    instruction: Optional[str] = typer.Option(None, "--instruction", "-i"),
+    steps: int = typer.Option(200, "--steps", "-s"),
+    episodes: int = typer.Option(1, "--episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
-    seed: int = typer.Option(0, "--seed", help="Starting seed"),
-    fps: int = typer.Option(30, "--fps", help="Video frame rate"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output video path or directory"),
+    seed: int = typer.Option(0, "--seed"),
+    fps: int = typer.Option(30, "--fps"),
+    output: Optional[str] = typer.Option(None, "--output", "-o"),
 ) -> None:
-    """Visualize SmolVLA policy on a ManiSkill environment."""
     import gymnasium as gym
     import mani_skill  # noqa: F401
     import torch
@@ -499,11 +466,8 @@ def smolvla_maniskill(
 
 @app.command(name="list")
 def list_tasks(
-    benchmark: Optional[str] = typer.Option(
-        None, "--benchmark", "-b", help="Filter: maniskill or libero (default: both)"
-    ),
+    benchmark: Optional[str] = typer.Option(None, "--benchmark", "-b"),
 ) -> None:
-    """List available tasks for each benchmark."""
     show_maniskill = benchmark is None or benchmark.lower() == "maniskill"
     show_libero = benchmark is None or benchmark.lower() == "libero"
 
@@ -561,7 +525,7 @@ def _list_libero_tasks() -> None:
     typer.echo("LIBERO tasks")
     typer.echo(f"{'=' * 50}")
 
-    for short_name, libero_name in LIBERO_SUITE_MAP.items():
+    for short_name, libero_name in SUITE_MAP.items():
         try:
             suite = _get_suite(libero_name)
             typer.echo(f"\n  Suite: {short_name} ({libero_name}) — {len(suite.tasks)} tasks")
