@@ -26,6 +26,7 @@ import typer
 from mani_skill.trajectory import utils as trajectory_utils
 from mani_skill.utils import common
 from PIL import Image
+from maniskill.train import create_rt1_model
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -88,8 +89,6 @@ def display_frame(frame: np.ndarray, window_name: str = "Visualization", wait_ms
     key = cv2.waitKey(wait_ms)
     return not (key & 0xFF == ord("q"))
 
-
-from maniskill.train import create_rt1_model
 
 DEFAULT_ACTION_LOW = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, -1.0], dtype=np.float32)
 DEFAULT_ACTION_HIGH = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973, 1.0], dtype=np.float32)

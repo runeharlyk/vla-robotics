@@ -46,11 +46,7 @@ def main(
     PREPROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     # Only preprocess Panda environments that actually exist locally
-    envs = sorted(
-        d.name
-        for d in RAW_DIR.iterdir()
-        if d.is_dir() and d.name in PANDA_ENVS
-    )
+    envs = sorted(d.name for d in RAW_DIR.iterdir() if d.is_dir() and d.name in PANDA_ENVS)
 
     if not envs:
         print("No Panda-based environments found in data/raw")
@@ -71,9 +67,12 @@ def main(
         cmd = [
             sys.executable,
             str(PREPROCESS_SCRIPT),
-            "--skill", env_id,
-            "--image-size", str(image_size),
-            "--jpeg-quality", str(jpeg_quality),
+            "--skill",
+            env_id,
+            "--image-size",
+            str(image_size),
+            "--jpeg-quality",
+            str(jpeg_quality),
         ]
 
         if max_episodes is not None:

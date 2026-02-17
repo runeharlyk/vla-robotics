@@ -12,6 +12,10 @@ Usage:
 from pathlib import Path
 from typing import Optional
 
+import torch
+from lerobot.envs.libero import LiberoEnv, _get_suite
+from tqdm import tqdm
+
 import typer
 
 app = typer.Typer(no_args_is_help=True)
@@ -79,10 +83,8 @@ def smolvla(
     wandb_project: Optional[str] = typer.Option(None, "--wandb-project"),
 ) -> None:
     """Evaluate SmolVLA on LIBERO."""
-    import numpy as np
     import torch
     from lerobot.configs.types import FeatureType, PolicyFeature
-    from lerobot.envs.libero import LiberoEnv, _get_suite
     from lerobot.policies.factory import make_pre_post_processors
     from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
 
@@ -135,8 +137,13 @@ def smolvla(
     print(f"  Device: {device_obj}")
 
     results = _run_libero_eval(
-        policy, preprocessor, postprocessor,
-        suites, num_episodes, state_dim, device_obj,
+        policy,
+        preprocessor,
+        postprocessor,
+        suites,
+        num_episodes,
+        state_dim,
+        device_obj,
     )
     _print_results(results, "SmolVLA")
 
@@ -154,9 +161,7 @@ def custom(
     wandb_project: Optional[str] = typer.Option(None, "--wandb-project"),
 ) -> None:
     """Evaluate custom VLA model on LIBERO."""
-    import numpy as np
     import torch
-    from lerobot.envs.libero import LiberoEnv, _get_suite
 
     from vla.custom_model import CustomVLA
 
@@ -189,7 +194,6 @@ def _run_libero_eval(
     state_dim: int,
     device: "torch.device",
 ) -> dict[str, dict[str, float]]:
-    import numpy as np
     import torch
     from lerobot.envs.libero import LiberoEnv, _get_suite
 
@@ -234,38 +238,46 @@ def _run_libero_eval(
                     batch = _obs_to_batch(obs_raw, task_desc, state_dim)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write(f"\n    [DEBUG] First observation diagnostics:")
+                        tqdm.write("\n    [DEBUG] First observation diagnostics:")
                         for k, v in batch.items():
                             if isinstance(v, torch.Tensor):
-                                tqdm.write(f"      {k}: shape={v.shape}, dtype={v.dtype}, "
-                                           f"min={v.min().item():.4f}, max={v.max().item():.4f}, "
-                                           f"mean={v.mean().item():.4f}")
+                                tqdm.write(
+                                    f"      {k}: shape={v.shape}, dtype={v.dtype}, "
+                                    f"min={v.min().item():.4f}, max={v.max().item():.4f}, "
+                                    f"mean={v.mean().item():.4f}"
+                                )
                             else:
                                 tqdm.write(f"      {k}: {v}")
 
                     batch = preprocessor(batch)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write(f"    [DEBUG] After preprocessor:")
+                        tqdm.write("    [DEBUG] After preprocessor:")
                         for k, v in batch.items():
                             if isinstance(v, torch.Tensor):
-                                tqdm.write(f"      {k}: shape={v.shape}, dtype={v.dtype}, "
-                                           f"min={v.min().item():.4f}, max={v.max().item():.4f}")
+                                tqdm.write(
+                                    f"      {k}: shape={v.shape}, dtype={v.dtype}, "
+                                    f"min={v.min().item():.4f}, max={v.max().item():.4f}"
+                                )
 
                     with torch.no_grad():
                         action = policy.select_action(batch)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write(f"    [DEBUG] Raw model action: shape={action.shape}, "
-                                   f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
-                                   f"mean={action.mean().item():.4f}")
+                        tqdm.write(
+                            f"    [DEBUG] Raw model action: shape={action.shape}, "
+                            f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
+                            f"mean={action.mean().item():.4f}"
+                        )
 
                     action = postprocessor(action)
 
                     if ep == 0 and _step == 0 and task_id == 0:
-                        tqdm.write(f"    [DEBUG] After postprocessor: shape={action.shape}, "
-                                   f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
-                                   f"mean={action.mean().item():.4f}")
+                        tqdm.write(
+                            f"    [DEBUG] After postprocessor: shape={action.shape}, "
+                            f"min={action.min().item():.4f}, max={action.max().item():.4f}, "
+                            f"mean={action.mean().item():.4f}"
+                        )
 
                     action_np = action.to("cpu").numpy()
                     if action_np.ndim == 2:
@@ -307,13 +319,8 @@ def _run_custom_eval(
     suites: list[str],
     num_episodes: int,
     action_dim: int,
-    device: "torch.device",
+    device: torch.device,
 ) -> dict[str, dict[str, float]]:
-    import numpy as np
-    import torch
-    from lerobot.envs.libero import LiberoEnv, _get_suite
-    from tqdm import tqdm
-
     all_results: dict[str, dict[str, float]] = {}
 
     for suite_name in suites:

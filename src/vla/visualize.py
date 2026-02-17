@@ -9,6 +9,7 @@ Usage:
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import typer
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -34,9 +35,7 @@ def _save_video(frames: list, path: Path, fps: int = 30) -> None:
     print(f"  Saved: {path} ({len(frames)} frames, {len(frames) / fps:.1f}s)")
 
 
-def _collect_frame(obs_raw: dict) -> "np.ndarray":
-    import numpy as np
-
+def _collect_frame(obs_raw: dict) -> np.ndarray:
     if "pixels" not in obs_raw or not isinstance(obs_raw["pixels"], dict):
         return np.zeros((256, 256, 3), dtype=np.uint8)
 
@@ -59,7 +58,6 @@ def main(
     seed: int = typer.Option(0, "--seed", help="Starting seed for episodes"),
 ) -> None:
     """Record videos of SmolVLA solving LIBERO tasks."""
-    import numpy as np
     import torch
     from lerobot.configs.types import FeatureType, PolicyFeature
     from lerobot.envs.libero import LiberoEnv, _get_suite

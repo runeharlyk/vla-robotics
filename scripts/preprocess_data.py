@@ -8,6 +8,7 @@ Usage:
     uv run python scripts/preprocess_data.py
     uv run python scripts/preprocess_data.py --skill PickCube-v1 --max-episodes 100
 """
+
 import io
 from pathlib import Path
 
@@ -18,7 +19,6 @@ import typer
 from PIL import Image
 from tqdm import tqdm
 
-import mani_skill.envs
 from mani_skill.trajectory import utils as trajectory_utils
 from mani_skill.utils import common, io_utils
 
@@ -130,7 +130,6 @@ def flatten_obs_state(obs: dict) -> np.ndarray:
         x = x.cpu().numpy()
 
     return np.asarray(x, dtype=np.float32).flatten()
-
 
 
 def load_json(path: Path) -> dict:

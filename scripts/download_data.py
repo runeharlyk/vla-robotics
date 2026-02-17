@@ -5,6 +5,7 @@ Usage:
     uv run python scripts/download_data.py
     uv run python scripts/download_data.py --skill PickCube-v1
 """
+
 import subprocess
 import sys
 from pathlib import Path
