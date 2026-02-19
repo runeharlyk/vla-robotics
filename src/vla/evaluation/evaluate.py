@@ -1,11 +1,9 @@
-from pathlib import Path
 from typing import Optional
 
 import einops
 import torch
 import typer
 import wandb
-from lerobot.configs.types import FeatureType, PolicyFeature
 from lerobot.envs.libero import LiberoEnv, _get_suite
 from lerobot.policies.factory import make_pre_post_processors
 from lerobot.processor.env_processor import LiberoProcessorStep
@@ -81,19 +79,23 @@ def evaluate(
     print(f"  Action dim: {action_dim}, State dim: {state_dim}, Chunk: {policy.config.chunk_size}")
     print(f"  Device: {device_obj}")
 
-    results = _run_libero_eval(
-        policy,
-        preprocessor,
-        postprocessor,
-        suites,
-        num_episodes,
-        state_dim,
-        device_obj,
-    )
-    _print_results(results, model)
-
     if wandb_project:
-        _log_wandb(results, wandb_project, model, checkpoint)
+        wandb.init(project=wandb_project, name=f"eval-{model}", config={"checkpoint": checkpoint})
+
+    try:
+        results = _run_libero_eval(
+            policy,
+            preprocessor,
+            postprocessor,
+            suites,
+            num_episodes,
+            state_dim,
+            device_obj,
+        )
+        _print_results(results, model)
+    finally:
+        if wandb_project and wandb.run is not None:
+            wandb.finish()
 
 
 def _run_libero_eval(
@@ -174,6 +176,16 @@ def _run_libero_eval(
 
         all_results[suite_name] = task_results
 
+        if wandb.run is not None:
+            suite_metrics = {}
+            for task_name, sr in task_results.items():
+                suite_metrics[f"eval/{suite_name}/{task_name}"] = sr
+            avg = sum(task_results.values()) / max(len(task_results), 1)
+            suite_metrics[f"eval/{suite_name}/average"] = avg
+            suite_avgs = {s: sum(r.values()) / max(len(r), 1) for s, r in all_results.items()}
+            suite_metrics["eval/overall_average"] = sum(suite_avgs.values()) / max(len(suite_avgs), 1)
+            wandb.log(suite_metrics)
+
     return all_results
 
 
@@ -199,29 +211,6 @@ def _print_results(results: dict[str, dict[str, float]], model_name: str) -> Non
     for suite_name, avg in suite_avgs.items():
         print(f"  | {suite_name.capitalize():12s} | {avg * 100:10.1f}% |")
     print(f"  | {'Overall':12s} | {overall * 100:10.1f}% |")
-
-
-def _log_wandb(
-    results: dict[str, dict[str, float]],
-    project: str,
-    model_name: str,
-    checkpoint: str,
-) -> None:
-
-    wandb.init(project=project, name=f"eval-{model_name}", config={"checkpoint": checkpoint})
-
-    flat = {}
-    suite_avgs = {}
-    for suite_name, task_results in results.items():
-        for task_name, sr in task_results.items():
-            flat[f"eval/{suite_name}/{task_name}"] = sr
-        avg = sum(task_results.values()) / max(len(task_results), 1)
-        flat[f"eval/{suite_name}/average"] = avg
-        suite_avgs[suite_name] = avg
-
-    flat["eval/overall_average"] = sum(suite_avgs.values()) / max(len(suite_avgs), 1)
-    wandb.log(flat)
-    wandb.finish()
 
 
 if __name__ == "__main__":
