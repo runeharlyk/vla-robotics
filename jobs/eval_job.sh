@@ -17,7 +17,7 @@
 
 set -e
 
-cd "$(dirname "$0")/.."
+cd "$LSB_SUBCWD"
 
 exec 2>&1
 
