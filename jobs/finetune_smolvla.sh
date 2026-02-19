@@ -27,7 +27,7 @@ export UV_CACHE_DIR=/work3/s234814/.cache/uv
 export UV_PROJECT_ENVIRONMENT=/work3/s234814/.venvs/vla-robotics
 export PYTHONUNBUFFERED=1
 
-mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT"
+mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT" logs
 
 module load cuda/12.2
 
@@ -41,6 +41,10 @@ uv run lerobot-train \
     --policy.pretrained_path=lerobot/smolvla_base \
     --steps=50000 \
     --batch_size=64 \
-    --lr=1e-4 \
-    --device=cuda \
+    --optimizer.lr=1e-4 \
+    --policy.device=cuda \
+    --output_dir=outputs/smolvla_libero90 \
+    --save_checkpoint=true \
+    --save_freq=5000 \
+    --wandb.enable=true \
     --wandb.project=vla-smolvla-libero90
