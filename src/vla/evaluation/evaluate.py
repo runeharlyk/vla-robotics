@@ -14,8 +14,10 @@ from vla.models.smolvla import smolvla
 
 app = typer.Typer(no_args_is_help=True)
 
+_LIBERO_PROC = LiberoProcessorStep()
 
-def _obs_to_batch(raw_obs: dict, task_description: str, state_dim: int = 8) -> dict:
+
+def _obs_to_batch(raw_obs: dict, task_description: str, state_dim: int = 8, device: torch.device | None = None) -> dict:
     batch: dict = {}
 
     if "pixels" in raw_obs and isinstance(raw_obs["pixels"], dict):
@@ -26,6 +28,8 @@ def _obs_to_batch(raw_obs: dict, task_description: str, state_dim: int = 8) -> d
             img = einops.rearrange(img, "b h w c -> b c h w").contiguous()
             img = img.float() / 255.0
             img = torch.flip(img, dims=[2, 3])
+            if device is not None:
+                img = img.to(device, non_blocking=True)
             batch[f"observation.images.{cam_key}"] = img
 
     if "robot_state" in raw_obs:
@@ -34,12 +38,13 @@ def _obs_to_batch(raw_obs: dict, task_description: str, state_dim: int = 8) -> d
         eef_quat = torch.from_numpy(rs["eef"]["quat"]).float().unsqueeze(0)
         gripper_qpos = torch.from_numpy(rs["gripper"]["qpos"]).float().unsqueeze(0)
 
-        proc = LiberoProcessorStep()
-        eef_axisangle = proc._quat2axisangle(eef_quat)
+        eef_axisangle = _LIBERO_PROC._quat2axisangle(eef_quat)
 
         state = torch.cat((eef_pos, eef_axisangle, gripper_qpos), dim=-1)
         if state_dim < state.shape[-1]:
             state = state[..., :state_dim]
+        if device is not None:
+            state = state.to(device, non_blocking=True)
         batch["observation.state"] = state
 
     batch["task"] = [task_description]
@@ -55,9 +60,13 @@ def evaluate(
     num_episodes: int = typer.Option(20, "--num-episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
     wandb_project: Optional[str] = typer.Option(None, "--wandb-project"),
+    compile_model: bool = typer.Option(False, "--compile/--no-compile"),
 ) -> None:
     suites = resolve_suites(suite)
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
+
+    if device_obj.type == "cuda":
+        torch.backends.cudnn.benchmark = True
 
     if model == "smolvla":
         policy, model_id, action_dim = smolvla(checkpoint, device)
@@ -66,6 +75,10 @@ def evaluate(
         raise typer.Exit(1)
 
     policy.eval()
+
+    if compile_model and hasattr(torch, "compile"):
+        print("  Compiling model with torch.compile ...")
+        policy = torch.compile(policy, mode="default")
 
     state_feature = policy.config.input_features.get("observation.state")
     state_dim = state_feature.shape[0] if state_feature else 8
@@ -120,6 +133,8 @@ def _run_libero_eval(
         num_tasks = len(benchmark_suite.tasks)
         task_results: dict[str, float] = {}
 
+        use_amp = device.type == "cuda"
+
         task_bar = tqdm(range(num_tasks), desc="Tasks", unit="task", position=0)
         for task_id in task_bar:
             env = LiberoEnv(
@@ -143,10 +158,10 @@ def _run_libero_eval(
                 episode_success = False
 
                 for _step in range(max_steps):
-                    batch = _obs_to_batch(obs_raw, task_desc, state_dim)
+                    batch = _obs_to_batch(obs_raw, task_desc, state_dim, device=device)
                     batch = preprocessor(batch)
 
-                    with torch.no_grad():
+                    with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
                         action = policy.select_action(batch)
 
                     action = postprocessor(action)

@@ -52,4 +52,5 @@ uv run python -m vla evaluate \
     --suite all \
     --num-episodes 20 \
     --device cuda \
+    --compile \
     --wandb-project vla-smolvla-libero

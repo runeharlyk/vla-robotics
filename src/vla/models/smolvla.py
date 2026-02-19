@@ -39,6 +39,7 @@ def smolvla(checkpoint: str, device: str):
         action_dim = 7
         policy = SmolVLAPolicy.from_pretrained(checkpoint)
 
-    policy = policy.to(device_obj)
+    dtype = torch.bfloat16 if device_obj.type == "cuda" else torch.float32
+    policy = policy.to(device_obj, dtype=dtype)
 
     return policy, model_id, action_dim
