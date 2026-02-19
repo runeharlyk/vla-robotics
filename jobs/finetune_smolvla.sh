@@ -12,7 +12,6 @@
 #BSUB -B
 #BSUB -N
 #BSUB -oo logs/%J.out
-#BSUB -eo logs/%J.err
 # -------------------------------------------------
 
 set -e
