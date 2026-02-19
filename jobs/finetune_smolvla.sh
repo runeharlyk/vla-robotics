@@ -36,7 +36,7 @@ nvidia-smi
 
 uv sync
 
-uv run lerobot_train \
+uv run lerobot-train \
     --dataset.repo_id=lerobot/libero_90_image \
     --policy.type=smolvla \
     --policy.pretrained_path=lerobot/smolvla_base \
