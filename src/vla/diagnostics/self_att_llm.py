@@ -26,7 +26,9 @@ def get_llm_attention(model, pil_image, task_description, device="cuda"):
     print("Isolated the Language Model successfully.")
 
     # 2. Target the final self-attention layer of the LLM
-    target_layer = llm.layers[-1].self_attn
+    # target_layer = llm.layers[-1].self_attn
+    # target middle layer
+    target_layer = llm.layers[round(len(llm.layers) // 2)].self_attn
     hook_handle = target_layer.register_forward_hook(forward_hook)
     
     # 3. Force the LLM to output attention (using the SDPA override hack)
@@ -136,7 +138,7 @@ if __name__ == "__main__":
     print(f"Task: {task_description}")
     
     # Run the diagnostic
-    attention_map, model_inputs = get_llm_attention(model, image, "cookie box", device)
+    attention_map, model_inputs = get_llm_attention(model, image, "box", device)
     
     print("Generating heatmap overlay...")
     visualize_text_to_image_heatmap(attention_map, model_inputs, image)
