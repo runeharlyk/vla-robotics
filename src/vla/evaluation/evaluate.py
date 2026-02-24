@@ -3,6 +3,7 @@ from typing import Optional
 import einops
 import torch
 import typer
+from vla.models.octo import octo
 import wandb
 from lerobot.envs.libero import LiberoEnv, _get_suite
 from lerobot.policies.factory import make_pre_post_processors
@@ -70,6 +71,8 @@ def evaluate(
 
     if model == "smolvla":
         policy, model_id, action_dim = smolvla(checkpoint, device)
+    if model == "octo":
+        policy, model_id, action_dim = octo(checkpoint, device)
     else:
         print(f"Unknown model: {model}")
         raise typer.Exit(1)
