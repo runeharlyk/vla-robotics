@@ -19,8 +19,10 @@ uv run python -m vla.data.image_export --dataset libero --max-episodes 5
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
+from huggingface_hub import hf_hub_download
 from tqdm import tqdm
 
 from vla.constants import PROJECT_ROOT
@@ -104,12 +106,29 @@ def export_images_from_suite(
     if ep_col is None:
         raise KeyError(f"No episode column found in {repo_id}. Columns: {columns}")
 
-    # Resolve task column (optional)
+    # Build task index → description mapping from meta/tasks.jsonl (preferred)
+    task_index_col: str | None = None
+    task_map: dict[int, str] = {}
+    if "task_index" in columns:
+        task_index_col = "task_index"
+        try:
+            path = hf_hub_download(repo_id, "meta/tasks.jsonl", repo_type="dataset")
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    entry = json.loads(line)
+                    task_map[int(entry["task_index"])] = entry["task"]
+            print(f"  Loaded {len(task_map)} task descriptions from meta/tasks.jsonl")
+        except Exception as e:
+            print(f"  [WARN] Could not load tasks.jsonl: {e}")
+            task_index_col = None  # fall back to text column
+
+    # Fall back to a text column only if tasks.jsonl failed
     task_col: str | None = None
-    for candidate in ("task", "language_instruction", "task_description"):
-        if candidate in columns:
-            task_col = candidate
-            break
+    if not task_map:
+        for candidate in ("task", "language_instruction", "task_description"):
+            if candidate in columns:
+                task_col = candidate
+                break
 
     print(f"  image_col={image_col!r}, ep_col={ep_col!r}, task_col={task_col!r}")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -125,7 +144,7 @@ def export_images_from_suite(
 
     for row in tqdm(ds_iter, desc="  Frames"):
         ep_idx = int(row[ep_col])
-
+        
         # Skip episodes we've already finished
         if ep_idx in episodes_done:
             continue
@@ -143,19 +162,27 @@ def export_images_from_suite(
             current_ep = ep_idx
             frame_counter = 0
 
-            if task_col is not None:
-                task_label = _sanitize(str(row[task_col]))
-                if len(task_label) > 80:
-                    task_label = task_label[:80]
+            # Resolve task description
+            if task_index_col is not None and task_map:
+                raw_task = task_map.get(int(row[task_index_col]), f"task_{ep_idx}")
+            elif task_col is not None:
+                raw_task = str(row[task_col])
             else:
-                task_label = f"task_{ep_idx}"
+                raw_task = ""
+
+            task_label = _sanitize(raw_task) if raw_task else f"task_{ep_idx}"
+            if len(task_label) > 80:
+                task_label = task_label[:80]
 
             ep_dir = output_dir / f"ep{ep_idx:04d}_{task_label}"
             ep_dir.mkdir(parents=True, exist_ok=True)
 
+            # Save the task instruction
+            (ep_dir / "task.txt").write_text(raw_task, encoding="utf-8")
+
         # Save frame
-        image = row[image_col]  # PIL Image
-        image.save(ep_dir / f"frame{frame_counter:04d}.png")
+        # image = row[image_col]  # PIL Image
+        # image.save(ep_dir / f"frame{frame_counter:04d}.png")
         frame_counter += 1
 
     # Flush last episode
