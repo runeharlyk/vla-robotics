@@ -142,3 +142,17 @@ def visualize_smolvla(
 def list_tasks(ctx: Context, benchmark: str = "") -> None:
     bench_flag = f"--benchmark {benchmark}" if benchmark else ""
     ctx.run(f"uv run python scripts/visualize.py list {bench_flag}", echo=True, pty=not WINDOWS)
+
+@task
+def export_images(
+    ctx: Context,
+    dataset: str = "libero",
+    suite: str = "",
+    max_episodes: int = 0,
+) -> None:
+    """Export PNG images from LIBERO / LIBERO-Pro datasets to data/images/."""
+    dataset_flag = f"--dataset {dataset}"
+    suite_flag = f"--suites {suite}" if suite else ""
+    max_flag = f"--max-episodes {max_episodes}" if max_episodes > 0 else ""
+    cmd = f"uv run python -m vla.data.image_export {dataset_flag} {suite_flag} {max_flag}"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
