@@ -2,13 +2,23 @@ print("Running self-attention diagnostics for VLM...")
 import torch
 print(f"PyTorch version: {torch.__version__}")
 from vla.data.dataset import load_libero_suite, make_dataloader, split_dataset
+print("Dataset utilities imported successfully.")
 from vla.constants import ACTION_DIM, LIBERO_SUITES, MODELS_DIR, resolve_suites
+print("Constants imported successfully.")
 from vla.training.train_custom import _prepare_batch
+print("Training utilities imported successfully.")
 from vla.models.smolvla import smolvla  
 print("Imports successful. Starting diagnostics...")
 
+from PIL import Image
+from torchvision import transforms
+
 def get_vlm_self_attention(model, image_tensor, text_input):
     """
+    params:
+    - model: The loaded VLM model (e.g., SmolVLA)
+    - image_tensor: A tensor representing the input image, preprocessed to match the model's expected input format (e.g., shape [1, 3, 512, 512])
+    - text_input: The task description as a string or list of strings, formatted as required by the model (e.g., ["Pick up the red block and place it on the blue block."])
     Hooks into the VLM to extract the final layer's self-attention map.
 
     Goal: Generate a heatmap to show the VLM's visual focus on the raw image pixels.
@@ -55,22 +65,34 @@ if __name__ == "__main__":
     model, model_id, action_dim = smolvla(checkpoint, device)
     print(f"Model loaded: {model_id}, Action dim: {action_dim}")
 
-    # Dummy inputs for testing
-    suite = "lerobot/libero_10_image"
-    suite_names = resolve_suites(suite)
-    print(f"Resolved suite names: {suite_names}")
-    action_dim = ACTION_DIM
-    suite_label = suite_names[0] if len(suite_names) == 1 else f"{len(suite_names)}_suites"
-    full_dataset = load_libero_suite(suite_names[0])
-    print(f"Loaded dataset for suite: {suite_names[0]}, Number of episodes: {len(full_dataset)}")
+    # # Dummy inputs for testing
+    # suite = "lerobot/libero_10_image"
+    # suite_names = resolve_suites(suite)
+    # print(f"Resolved suite names: {suite_names}")
+    # action_dim = ACTION_DIM
+    # suite_label = suite_names[0] if len(suite_names) == 1 else f"{len(suite_names)}_suites"
+    # full_dataset = load_libero_suite(suite_names[0])
+    # print(f"Loaded dataset for suite: {suite_names[0]}, Number of episodes: {len(full_dataset)}")
 
-    dataloader = make_dataloader(full_dataset, batch_size=1, shuffle=False, num_workers=0)
-    print(f"Created dataloader with batch. Number of batches: {len(dataloader)}")
-    data_iter = iter(dataloader)
-    batch = next(data_iter)
-    prepared_batch = _prepare_batch(batch, model.config, device)
-    print(f"Prepared batch keys: {prepared_batch.keys()}")
-    text_input = [""]  # Adjust format as needed
+    # dataloader = make_dataloader(full_dataset, batch_size=1, shuffle=False, num_workers=0)
+    # print(f"Created dataloader with batch. Number of batches: {len(dataloader)}")
+    # data_iter = iter(dataloader)
+    # batch = next(data_iter)
+    # prepared_batch = _prepare_batch(batch, 20, device)
+    # print(f"Prepared batch keys: {prepared_batch.keys()}")
+
+    img_path = "data/images/libero/spatial/ep0000_task_0/frame0000.png" 
+    task_path = "data/images/libero/spatial/ep0000_pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate/task.txt"
+    # load the image and convert to tensor
+    image = Image.open(img_path).convert("RGB")
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize((512, 512)), ]) # Resize to model's expected input size
+    image_tensor = transform(image).unsqueeze(0)  # Add batch dimension
+    # read the task description    with open(task_path, "r") as f:
+    with open(task_path, "r") as f:
+        task_description = f.read().strip()  # Assuming the task description is a single line of text
+    text_input = [task_description]  # Adjust format as needed
     
-    attention_map = get_vlm_self_attention(model, batch["image"], text_input)
+    attention_map = get_vlm_self_attention(model, image_tensor, text_input)
     print(attention_map.shape)
