@@ -25,18 +25,7 @@ from pathlib import Path
 from huggingface_hub import hf_hub_download
 from tqdm import tqdm
 
-from vla.constants import PROJECT_ROOT
-
-# ---------------------------------------------------------------------------
-# Dataset registry
-# ---------------------------------------------------------------------------
-
-LIBERO_SUITES: dict[str, str] = {
-    "spatial": "lerobot/libero_spatial_image",
-    "object": "lerobot/libero_object_image",
-    "goal": "lerobot/libero_goal_image",
-    "long": "lerobot/libero_10_image",
-}
+from vla.constants import LIBERO_SUITES, PROJECT_ROOT
 
 # TODO: fill in the correct HuggingFace repo IDs once LIBERO-Pro is available.
 # Ref: https://huggingface.co/papers/2510.03827
