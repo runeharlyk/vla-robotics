@@ -51,11 +51,11 @@ def get_multi_layer_attention(model, pil_image, task_description, device="cuda")
     # 4. Process the Image and Text together
     print("Processing image and text prompt...")
     processor = AutoProcessor.from_pretrained("HuggingFaceTB/SmolVLM2-500M-Instruct")
-
+    
     messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": task_description}]}]
     prompt = processor.apply_chat_template(messages, add_generation_prompt=True)
     inputs = processor(text=prompt, images=pil_image, return_tensors="pt").to(device)
-
+    
     # Ensure image dtype matches vision model
     vision_dtype = next(hf_vlm.model.vision_model.parameters()).dtype
     inputs["pixel_values"] = inputs["pixel_values"].to(vision_dtype)
@@ -130,7 +130,7 @@ def visualize_multi_layer_heatmap(attention_maps_dict, inputs, pil_image, layer_
         # Plot with BICUBIC interpolation for smoothness
         ax = axes[plot_idx + 1]
         ax.imshow(pil_image)
-        ax.imshow(salience_np, cmap="jet", alpha=0.5, extent=[0, pil_image.width, pil_image.height, 0])
+        im = ax.imshow(salience_np, cmap='jet', alpha=0.5, extent=[0, pil_image.width, pil_image.height, 0], interpolation='bicubic')
         ax.set_title(f"Layer {layer_idx} ({percentile_labels[plot_idx]})")
         ax.axis("off")
 
@@ -153,16 +153,22 @@ if __name__ == "__main__":
 
     print(f"Loading model from checkpoint: {checkpoint} on device: {device}")
     model, model_id, action_dim = smolvla(checkpoint, device)
-
+    
+    # Load Image
+    img_path = "data/images/libero/spatial/ep0000_task_0/frame0000.png" 
     image = Image.open(img_path).convert("RGB")
-
+    
+    # Load Full Task Description
+    task_path = "data/images/libero/spatial/ep0000_pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate/task.txt"
     with open(task_path, "r") as f:
         task_description = f.read().strip()
 
     print(f"Task: {task_description}")
-
-    target_word = "orange juice"
-
+    
+    # Pick a specific word to track (e.g., "bowl" or "box")
+    target_word = "box" 
+    
+    # Run the multi-layer diagnostic
     attention_maps_dict, model_inputs, layer_indices, processor = get_multi_layer_attention(
         model, image, task_description, device
     )
