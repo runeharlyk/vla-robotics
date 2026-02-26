@@ -57,6 +57,8 @@ def export_images_from_suite(
     repo_id: str,
     output_dir: Path,
     max_episodes: int = 1,
+    episode_ids: list[int] | None = None,
+    max_frames: int | None = None,
 ) -> None:
     """Stream *repo_id* from HuggingFace and save frames as PNGs.
 
@@ -69,7 +71,10 @@ def export_images_from_suite(
     """
     from datasets import load_dataset
 
-    print(f"  Streaming dataset: {repo_id}  (max_episodes={max_episodes})")
+    episode_set = set(episode_ids) if episode_ids is not None else None
+    print(
+        f"  Streaming dataset: {repo_id}  (max_episodes={max_episodes}, episode_ids={episode_ids}, max_frames={max_frames})"
+    )
     ds_iter = load_dataset(repo_id, split="train", streaming=True)
 
     # Determine column names from the first row
@@ -133,25 +138,20 @@ def export_images_from_suite(
 
     for row in tqdm(ds_iter, desc="  Frames"):
         ep_idx = int(row[ep_col])
-        
-        # Skip episodes we've already finished
-        if ep_idx in episodes_done:
+
+        if ep_idx in episodes_done or (episode_set is not None and ep_idx not in episode_set):
             continue
 
-        # Detect episode boundary
         if ep_idx != current_ep:
-            # Close out previous episode
             if current_ep is not None:
                 tqdm.write(f"    ep{current_ep:04d}: {frame_counter} frames saved")
                 episodes_done.add(current_ep)
                 if len(episodes_done) >= max_episodes:
                     break
 
-            # Start new episode
             current_ep = ep_idx
             frame_counter = 0
 
-            # Resolve task description
             if task_index_col is not None and task_map:
                 raw_task = task_map.get(int(row[task_index_col]), f"task_{ep_idx}")
             elif task_col is not None:
@@ -166,12 +166,13 @@ def export_images_from_suite(
             ep_dir = output_dir / f"ep{ep_idx:04d}_{task_label}"
             ep_dir.mkdir(parents=True, exist_ok=True)
 
-            # Save the task instruction
             (ep_dir / "task.txt").write_text(raw_task, encoding="utf-8")
 
-        # Save frame
-        # image = row[image_col]  # PIL Image
-        # image.save(ep_dir / f"frame{frame_counter:04d}.png")
+        if max_frames is not None and frame_counter >= max_frames:
+            continue
+
+        image = row[image_col]
+        image.save(ep_dir / f"frame{frame_counter:04d}.png")
         frame_counter += 1
 
     # Flush last episode
@@ -189,6 +190,8 @@ def export_images_from_suite(
 def export_libero(
     suites: list[str] | None = None,
     max_episodes: int = 1,
+    episode_ids: list[int] | None = None,
+    max_frames: int | None = None,
 ) -> None:
     """Export images from the standard LIBERO suites."""
     target = suites or list(LIBERO_SUITES.keys())
@@ -199,12 +202,16 @@ def export_libero(
         repo_id = LIBERO_SUITES[suite]
         out_dir = IMAGES_DIR / "libero" / suite
         print(f"\n[libero/{suite}]")
-        export_images_from_suite(repo_id, out_dir, max_episodes=max_episodes)
+        export_images_from_suite(
+            repo_id, out_dir, max_episodes=max_episodes, episode_ids=episode_ids, max_frames=max_frames
+        )
 
 
 def export_libero_pro(
     suites: list[str] | None = None,
     max_episodes: int = 1,
+    episode_ids: list[int] | None = None,
+    max_frames: int | None = None,
 ) -> None:
     """Export images from the LIBERO-Pro suites.
 
@@ -222,7 +229,9 @@ def export_libero_pro(
         repo_id = LIBERO_PRO_SUITES[suite]
         out_dir = IMAGES_DIR / "libero_pro" / suite
         print(f"\n[libero_pro/{suite}]")
-        export_images_from_suite(repo_id, out_dir, max_episodes=max_episodes)
+        export_images_from_suite(
+            repo_id, out_dir, max_episodes=max_episodes, episode_ids=episode_ids, max_frames=max_frames
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -255,15 +264,34 @@ if __name__ == "__main__":
         metavar="N",
         help="Number of episodes to export per suite (default: 1).",
     )
+    parser.add_argument(
+        "--episode-ids",
+        nargs="+",
+        type=int,
+        default=None,
+        metavar="ID",
+        help="Specific episode IDs to export (e.g. --episode-ids 0 3 7).",
+    )
+    parser.add_argument(
+        "--max-frames",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Maximum number of frames to export per episode.",
+    )
 
     args = parser.parse_args()
 
     if args.dataset in ("libero", "all"):
         print("=== Exporting standard LIBERO images ===")
-        export_libero(suites=args.suites, max_episodes=args.max_episodes)
+        export_libero(
+            suites=args.suites, max_episodes=args.max_episodes, episode_ids=args.episode_ids, max_frames=args.max_frames
+        )
 
     if args.dataset in ("pro", "all"):
         print("=== Exporting LIBERO-Pro images ===")
-        export_libero_pro(suites=args.suites, max_episodes=args.max_episodes)
+        export_libero_pro(
+            suites=args.suites, max_episodes=args.max_episodes, episode_ids=args.episode_ids, max_frames=args.max_frames
+        )
 
     print("\nExport complete.")
