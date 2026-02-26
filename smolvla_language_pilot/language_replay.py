@@ -44,6 +44,11 @@ model_dtype = next(policy.parameters()).dtype
 # ----------------------------
 def run_with_instruction(instruction):
 
+    # Force deterministic sampling
+    torch.manual_seed(0)
+    torch.cuda.manual_seed_all(0)
+    np.random.seed(0)
+
     if hasattr(policy, "reset"):
         policy.reset()
 
@@ -78,7 +83,6 @@ def run_with_instruction(instruction):
 # Language variants
 # ----------------------------
 variants = [
-    base_instruction,
     "please " + base_instruction,
     base_instruction + " carefully",
     base_instruction.replace("open", "pull open"),
@@ -89,14 +93,24 @@ variants = [
 # Compute divergences
 # ----------------------------
 base_actions = run_with_instruction(base_instruction)
+motion_scale = torch.norm(base_actions, dim=-1)
+eps = 1e-8
 
 divergences = {}
 
 for v in variants:
     actions_v = run_with_instruction(v)
-    diff = torch.norm(actions_v - base_actions, dim=-1)
-    divergences[v] = diff
-    print(f"{v[:40]} | mean divergence: {diff.mean().item():.6f}")
+    abs_l2 = torch.norm(actions_v - base_actions, dim=-1)
+    mask = motion_scale > 1e-3
+    rel_l2 = abs_l2[mask] / (motion_scale[mask] + eps)
+    divergences[v] = rel_l2
+    print(f"{v[:40]} | mean relative L2: {rel_l2.mean().item():.6f}")
+
+baseline_test = run_with_instruction(base_instruction)
+print("Baseline self L2:",
+      torch.norm(baseline_test - base_actions))
+print("Mean baseline action norm:",
+      torch.norm(base_actions, dim=-1).mean())
 
 # ----------------------------
 # Plot
@@ -107,8 +121,8 @@ for v, d in divergences.items():
     plt.plot(d.numpy(), label=v[:50])
 
 plt.xlabel("Timestep")
-plt.ylabel("L2 Action Difference")
-plt.title("SmolVLA Language Sensitivity (Replay)")
+plt.ylabel("Relative L2 Action Difference")
+plt.title("SmolVLA Language Sensitivity (Replay, Relative to Motion Scale)")
 plt.legend(fontsize=8)
 plt.tight_layout()
 plt.savefig("language_divergence.png", dpi=200)
