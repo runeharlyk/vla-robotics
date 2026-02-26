@@ -33,6 +33,7 @@ dependencies = [
     "lerobot[smolvla]>=0.4.3",
     "transformers>=4.40.0",
     "sentence-transformers>=3.0.0",
+    "seaborn>=0.13.2",
 ]
 
 [project.optional-dependencies]
