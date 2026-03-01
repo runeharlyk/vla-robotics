@@ -286,15 +286,18 @@ def train_sft(ctx: Context, num_demos: int = 10, seed: int = 42, no_wandb: bool 
 @task
 def train_srpo(
     ctx: Context,
-    sft_checkpoint: str = "checkpoints/sft/demos10_seed42/best",
+    sft_checkpoint: str = "checkpoints/sft/demos5_seed42/best",
     mode: str = "srpo",
+    num_demos: int = 5,
     seed: int = 42,
+    world_model: str = "dinov2",
     no_wandb: bool = False,
 ) -> None:
     """Run SRPO or sparse-RL training from an SFT checkpoint."""
     wandb_flag = "--no-wandb" if no_wandb else "--wandb"
     ctx.run(
-        f"uv run python scripts/train_srpo.py --sft-checkpoint {sft_checkpoint} --mode {mode} --seed {seed} {wandb_flag}",
+        f"uv run python scripts/train_srpo.py --sft-checkpoint {sft_checkpoint} --mode {mode} "
+        f"--num-demos {num_demos} --seed {seed} --world-model {world_model} {wandb_flag}",
         echo=True,
         pty=not WINDOWS,
     )

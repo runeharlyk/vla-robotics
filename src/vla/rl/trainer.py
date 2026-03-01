@@ -1,7 +1,21 @@
-"""Training loops for SFT (behavior cloning) and SRPO RL."""
+"""Training loops for SFT (behaviour cloning) and SRPO reinforcement learning.
+
+SFT (``train_sft``) is unchanged from the previous implementation.
+
+SRPO (``train_srpo``) now implements the full paper algorithm (Section 3.3):
+  1. Collect M trajectories with π_θ_old.
+  2. Compute world-progress trajectory rewards g_i via the world model.
+  3. Compute trajectory-level advantages  = (g_i − μ_g) / σ_g.
+  4. Cache per-step flow-matching losses under θ_old (fixed noise/time).
+  5. For each PPO-epoch:
+       - Recompute per-step FM losses under θ → importance ratio
+       - Clipped surrogate loss + KL regularisation against π_ref.
+  6. Update θ_old ← θ, add any new successes to reference set.
+"""
 
 from __future__ import annotations
 
+import copy
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,15 +27,16 @@ from torch.utils.data import DataLoader
 from vla.data.dataset import FewDemoDataset
 from vla.diagnostics.eval import evaluate, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
-from vla.rl.rollout import ManiSkillRollout
-from vla.rl.srpo_reward import compute_returns, compute_srpo_rewards
+from vla.models.world_model import WorldModelEncoder, build_world_model
+from vla.rl.rollout import ManiSkillRollout, Trajectory
+from vla.rl.srpo_reward import SRPORewardConfig, WorldProgressReward
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class SFTConfig:
-    """Hyperparameters for supervised fine-tuning (behavior cloning)."""
+    """Hyperparameters for supervised fine-tuning (behaviour cloning)."""
 
     lr: float = 1e-4
     batch_size: int = 32
@@ -41,8 +56,10 @@ class SRPOConfig:
     lr: float = 1e-5
     num_iterations: int = 100
     trajectories_per_iter: int = 16
-    gamma: float = 0.99
-    reward_scale: float = 1.0
+    ppo_epochs: int = 4
+    clip_epsilon: float = 0.2
+    kl_coeff: float = 0.01
+    max_grad_norm: float = 1.0
     eval_every: int = 10
     eval_episodes: int = 50
     max_steps: int = 200
@@ -50,6 +67,13 @@ class SRPOConfig:
     env_id: str = "PickCube-v1"
     seed: int = 42
     mode: str = "srpo"
+    world_model_type: str = "dinov2"
+    subsample_every: int = 5
+    dbscan_eps: float = 0.5
+    dbscan_min_samples: int = 2
+    num_fm_noise_samples: int = 4
+    gamma: float = 0.99
+    reward_scale: float = 1.0
 
 
 def train_sft(
@@ -58,7 +82,7 @@ def train_sft(
     config: SFTConfig,
     wandb_run: Any | None = None,
 ) -> SmolVLAPolicy:
-    """Run supervised fine-tuning (behavior cloning) on a few-demo dataset.
+    """Run supervised fine-tuning (behaviour cloning) on a few-demo dataset.
 
     Args:
         policy: SmolVLA policy to fine-tune.
@@ -108,12 +132,14 @@ def train_sft(
             )
             print_metrics(metrics, tag=f"SFT epoch {epoch}")
             if wandb_run is not None:
-                wandb_run.log({
-                    "sft/success_rate": metrics.success_rate,
-                    "sft/mean_reward": metrics.mean_reward,
-                    "sft/mean_ep_len": metrics.mean_episode_length,
-                    "sft/epoch": epoch,
-                })
+                wandb_run.log(
+                    {
+                        "sft/success_rate": metrics.success_rate,
+                        "sft/mean_reward": metrics.mean_reward,
+                        "sft/mean_ep_len": metrics.mean_episode_length,
+                        "sft/epoch": epoch,
+                    }
+                )
             if metrics.success_rate > best_success:
                 best_success = metrics.success_rate
                 policy.save_checkpoint(save_path / "best")
@@ -123,21 +149,102 @@ def train_sft(
     return policy
 
 
+def _compute_fm_loss_per_step(
+    policy: SmolVLAPolicy,
+    traj: Trajectory,
+    instruction: str,
+    fixed_noise: list[torch.Tensor],
+    fixed_time: list[torch.Tensor],
+) -> torch.Tensor:
+    """Compute per-timestep flow-matching loss for a trajectory.
+
+    Uses pre-sampled noise/time so that the same random quantities are
+    used under both θ_old and θ_new for valid importance-ratio estimation.
+    Multiple noise/time samples are averaged for variance reduction.
+
+    Args:
+        policy: The current policy (either θ or θ_old).
+        traj: Trajectory whose actions we evaluate.
+        instruction: Language instruction.
+        fixed_noise: Pre-sampled noise, one tensor per timestep.
+        fixed_time: Pre-sampled time, one tensor per timestep.
+
+    Returns:
+        ``(T,)`` mean FM loss per timestep.
+    """
+    T = traj.length
+    step_losses = []
+    for t in range(T):
+        img = traj.images[t].unsqueeze(0).to(policy.device)
+        action = traj.actions[t].unsqueeze(0).to(policy.device)
+
+        imgs_f = policy._to_float01(img).to(policy.device, dtype=policy.dtype)
+        img_list, mask_list = policy._prepare_images(imgs_f)
+        tokens, tmasks = policy._tokenize(instruction, batch_size=1)
+        state = torch.zeros(1, policy.max_state_dim, device=policy.device, dtype=policy.dtype)
+        action_padded = policy._prepare_action(action.to(policy.device, dtype=policy.dtype))
+        action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
+
+        losses_per_sample = policy.model.forward(
+            img_list,
+            mask_list,
+            tokens,
+            tmasks,
+            state,
+            action_padded,
+            noise=fixed_noise[t].to(policy.device, dtype=policy.dtype),
+            time=fixed_time[t].to(policy.device, dtype=policy.dtype),
+        )
+        step_losses.append(losses_per_sample[:, :, : policy.max_action_dim].mean().detach())
+
+    return torch.stack(step_losses)
+
+
+def _sample_fixed_noise_time(
+    traj: Trajectory,
+    policy: SmolVLAPolicy,
+) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
+    """Pre-sample noise and time tensors for each timestep in a trajectory.
+
+    Returns:
+        Tuple of (noise_list, time_list) – each is a list of T tensors.
+    """
+    T = traj.length
+    noise_list = []
+    time_list = []
+    for _ in range(T):
+        n = torch.randn(1, policy.chunk_size, policy.max_action_dim)
+        beta = torch.distributions.Beta(1.5, 1.0)
+        t = beta.sample((1,)) * 0.999 + 0.001
+        noise_list.append(n)
+        time_list.append(t)
+    return noise_list, time_list
+
+
 def train_srpo(
     policy: SmolVLAPolicy,
     config: SRPOConfig,
     instruction: str,
+    demo_trajectories: list[Trajectory] | None = None,
     wandb_run: Any | None = None,
 ) -> SmolVLAPolicy:
-    """Run SRPO (or sparse-RL baseline) on top of an SFT-initialised policy.
+    """Run SRPO training on top of an SFT-initialised policy.
 
-    When ``config.mode == "srpo"`` the SRPO Tier A shaped rewards are used.
-    When ``config.mode == "sparse_rl"`` only the binary environment reward is used.
+    Implements the full SRPO algorithm from the paper:
+      - World-progress reward shaping via world-model embeddings + DBSCAN
+      - Trajectory-level advantages (GRPO-style)
+      - Clipped surrogate objective with importance sampling
+      - KL regularisation against the reference (SFT) policy
+
+    When ``config.mode == "sparse_rl"`` the world-model rewards are
+    disabled and only the binary environment reward is used (ablation).
 
     Args:
-        policy: SFT-initialised SmolVLA policy.
-        config: SRPO/RL hyperparameters.
+        policy: SFT-initialised SmolVLA policy (becomes π_θ *and* π_ref).
+        config: SRPO hyperparameters.
         instruction: Language instruction for the task.
+        demo_trajectories: Optional list of demo trajectories to seed the
+            reference set.  Their images are used for world-model encoding.
         wandb_run: Optional wandb run for logging.
 
     Returns:
@@ -145,6 +252,38 @@ def train_srpo(
     """
     trainable = [p for p in policy.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(trainable, lr=config.lr)
+
+    ref_policy = copy.deepcopy(policy)
+    ref_policy.eval()
+    for p in ref_policy.parameters():
+        p.requires_grad_(False)
+
+    world_encoder: WorldModelEncoder | None = None
+    reward_model: WorldProgressReward | None = None
+
+    if config.mode == "srpo":
+        world_encoder = build_world_model(
+            model_type=config.world_model_type,
+            device=str(policy.device),
+        )
+        reward_cfg = SRPORewardConfig(
+            subsample_every=config.subsample_every,
+            dbscan_eps=config.dbscan_eps,
+            dbscan_min_samples=config.dbscan_min_samples,
+        )
+        reward_model = WorldProgressReward(world_encoder, reward_cfg)
+
+        if demo_trajectories:
+            demo_images = []
+            for dt in demo_trajectories:
+                imgs = dt.images[: dt.length]
+                if imgs.dtype == torch.uint8:
+                    imgs = imgs.float() / 255.0
+                else:
+                    imgs = imgs.float()
+                demo_images.append(imgs)
+            reward_model.add_demo_trajectories(demo_images)
+
     rollout_engine = ManiSkillRollout(
         env_id=config.env_id,
         num_envs=1,
@@ -154,6 +293,7 @@ def train_srpo(
     best_success = -1.0
 
     for iteration in range(1, config.num_iterations + 1):
+        # ── 1. Collect trajectories with current policy ─────────────────
         policy.eval()
         trajectories = rollout_engine.collect_batch(
             policy_fn=policy.predict_action,
@@ -161,56 +301,126 @@ def train_srpo(
             num_trajectories=config.trajectories_per_iter,
             seed=config.seed + iteration * 1000,
         )
-
         num_successes = sum(1 for t in trajectories if t.success)
-        logger.info(
-            f"Iter {iteration}: collected {len(trajectories)} trajs, "
-            f"{num_successes} successes"
-        )
+        logger.info(f"Iter {iteration}: collected {len(trajectories)} trajs, " f"{num_successes} successes")
 
-        if config.mode == "srpo":
-            shaped_rewards = compute_srpo_rewards(
-                trajectories,
-                gamma=config.gamma,
-                reward_scale=config.reward_scale,
-            )
+        # ── 2. Compute trajectory-level rewards g_i ─────────────────────
+        if config.mode == "srpo" and reward_model is not None:
+            g_values = reward_model.compute_trajectory_rewards(trajectories)
+            reward_model.add_successful_trajectories([t for t in trajectories if t.success])
         else:
-            shaped_rewards = [t.rewards[: t.length].clone() for t in trajectories]
+            g_values = [1.0 if t.success else 0.0 for t in trajectories]
 
+        # ── 3. Compute trajectory-level advantages  ──────────────────
+        g_tensor = torch.tensor(g_values, dtype=torch.float32)
+        g_mean = g_tensor.mean()
+        g_std = g_tensor.std().clamp(min=1e-8)
+        advantages = ((g_tensor - g_mean) / g_std).tolist()
+
+        # ── 4. Cache per-step FM loss under θ_old (+ sample fixed noise/time)
+        policy.eval()
+        old_losses_per_traj: list[torch.Tensor] = []
+        fixed_noise_per_traj: list[list[torch.Tensor]] = []
+        fixed_time_per_traj: list[list[torch.Tensor]] = []
+
+        with torch.no_grad():
+            for traj in trajectories:
+                noise_list, time_list = _sample_fixed_noise_time(traj, policy)
+                fixed_noise_per_traj.append(noise_list)
+                fixed_time_per_traj.append(time_list)
+                old_loss = _compute_fm_loss_per_step(policy, traj, instruction, noise_list, time_list)
+                old_losses_per_traj.append(old_loss)
+
+        # ── 5. PPO epochs ───────────────────────────────────────────────
         policy.train()
-        total_loss = 0.0
-        num_steps_total = 0
+        total_surrogate = 0.0
+        total_kl = 0.0
 
-        for traj, rewards in zip(trajectories, shaped_rewards):
-            returns = compute_returns(rewards, gamma=config.gamma)
-            returns = (returns - returns.mean()) / (returns.std() + 1e-8)
+        for ppo_epoch in range(config.ppo_epochs):
+            epoch_loss_sum = 0.0
+            for i, traj in enumerate(trajectories):
+                adv_i = advantages[i]
+                old_losses = old_losses_per_traj[i]
+                noise_list = fixed_noise_per_traj[i]
+                time_list = fixed_time_per_traj[i]
 
-            step_losses = []
-            for t in range(traj.length):
-                img = traj.images[t].unsqueeze(0).to(policy.device)
-                target = traj.actions[t].unsqueeze(0).to(policy.device)
-                out = policy(img, instruction, target)
-                step_losses.append(out["loss"])
+                new_step_losses = []
+                for t in range(traj.length):
+                    img = traj.images[t].unsqueeze(0).to(policy.device)
+                    action = traj.actions[t].unsqueeze(0).to(policy.device)
 
-            step_losses_t = torch.stack(step_losses)
-            returns_t = returns.to(policy.device)
-            loss = (step_losses_t * returns_t).mean()
+                    imgs_f = policy._to_float01(img).to(policy.device, dtype=policy.dtype)
+                    img_list, mask_list = policy._prepare_images(imgs_f)
+                    tokens, tmasks = policy._tokenize(instruction, batch_size=1)
+                    state = torch.zeros(1, policy.max_state_dim, device=policy.device, dtype=policy.dtype)
+                    action_padded = policy._prepare_action(action.to(policy.device, dtype=policy.dtype))
+                    action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
 
-            optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(trainable, max_norm=1.0)
-            optimizer.step()
+                    fm_loss = policy.model.forward(
+                        img_list,
+                        mask_list,
+                        tokens,
+                        tmasks,
+                        state,
+                        action_padded,
+                        noise=noise_list[t].to(policy.device, dtype=policy.dtype),
+                        time=time_list[t].to(policy.device, dtype=policy.dtype),
+                    )
+                    new_step_losses.append(fm_loss[:, :, : policy.max_action_dim].mean())
 
-            total_loss += loss.item()
-            num_steps_total += traj.length
+                if not new_step_losses:
+                    continue
 
-        avg_loss = total_loss / max(len(trajectories), 1)
+                new_losses_t = torch.stack(new_step_losses)
+                old_losses_t = old_losses.to(policy.device)
+
+                log_ratios = old_losses_t - new_losses_t
+                ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
+
+                adv_t = torch.full_like(ratios, adv_i)
+
+                surr1 = ratios * adv_t
+                surr2 = torch.clamp(ratios, 1.0 - config.clip_epsilon, 1.0 + config.clip_epsilon) * adv_t
+                clip_loss = -torch.min(surr1, surr2).mean()
+
+                with torch.no_grad():
+                    ref_losses = _compute_fm_loss_per_step(ref_policy, traj, instruction, noise_list, time_list).to(
+                        policy.device
+                    )
+                kl_approx = (ref_losses - new_losses_t.detach()).mean()
+                kl_penalty = config.kl_coeff * kl_approx
+
+                loss = clip_loss + kl_penalty
+
+                optimizer.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+                optimizer.step()
+
+                epoch_loss_sum += clip_loss.item()
+                total_kl += kl_penalty.item()
+
+            total_surrogate += epoch_loss_sum
+
+        avg_surr = total_surrogate / max(config.ppo_epochs * len(trajectories), 1)
+        avg_kl = total_kl / max(config.ppo_epochs * len(trajectories), 1)
+
+        # ── 6. Update θ_old for next iteration's ratio computation ──────
+        old_losses_per_traj.clear()
+        fixed_noise_per_traj.clear()
+        fixed_time_per_traj.clear()
+
         log_data = {
-            f"{config.mode}/loss": avg_loss,
+            f"{config.mode}/surrogate_loss": avg_surr,
+            f"{config.mode}/kl_penalty": avg_kl,
             f"{config.mode}/batch_successes": num_successes,
+            f"{config.mode}/mean_g": g_mean.item(),
             f"{config.mode}/iteration": iteration,
         }
-        logger.info(f"Iter {iteration}  loss={avg_loss:.6f}  successes={num_successes}")
+        logger.info(
+            f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  "
+            f"successes={num_successes}  g_mean={g_mean:.4f}"
+        )
         if wandb_run is not None:
             wandb_run.log(log_data)
 
@@ -225,12 +435,14 @@ def train_srpo(
             )
             print_metrics(metrics, tag=f"{config.mode} iter {iteration}")
             if wandb_run is not None:
-                wandb_run.log({
-                    f"{config.mode}/success_rate": metrics.success_rate,
-                    f"{config.mode}/mean_reward": metrics.mean_reward,
-                    f"{config.mode}/mean_ep_len": metrics.mean_episode_length,
-                    f"{config.mode}/iteration": iteration,
-                })
+                wandb_run.log(
+                    {
+                        f"{config.mode}/success_rate": metrics.success_rate,
+                        f"{config.mode}/mean_reward": metrics.mean_reward,
+                        f"{config.mode}/mean_ep_len": metrics.mean_episode_length,
+                        f"{config.mode}/iteration": iteration,
+                    }
+                )
             if metrics.success_rate > best_success:
                 best_success = metrics.success_rate
                 policy.save_checkpoint(save_path / "best")
