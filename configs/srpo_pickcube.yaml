@@ -17,6 +17,7 @@ sft:
   decay_steps: 30000
   decay_lr: 2.5e-6
   batch_size: 64
+  micro_batch_size: 4
   num_epochs: 50
   eval_every: 5
   eval_episodes: 50

@@ -74,6 +74,8 @@ def main(
                     str(sft_cfg["lr"]),
                     "--batch-size",
                     str(sft_cfg["batch_size"]),
+                    "--micro-batch-size",
+                    str(sft_cfg.get("micro_batch_size", 4)),
                     "--epochs",
                     str(sft_cfg["num_epochs"]),
                     "--warmup-steps",

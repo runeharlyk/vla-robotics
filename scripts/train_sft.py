@@ -29,6 +29,7 @@ def main(
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
     lr: float = typer.Option(1e-4, "--lr"),
     batch_size: int = typer.Option(64, "--batch-size"),
+    micro_batch_size: int = typer.Option(4, "--micro-batch-size"),
     num_epochs: int = typer.Option(50, "--epochs"),
     warmup_steps: int = typer.Option(1000, "--warmup-steps"),
     decay_steps: int = typer.Option(30000, "--decay-steps"),
@@ -58,6 +59,7 @@ def main(
     config = SFTConfig(
         lr=lr,
         batch_size=batch_size,
+        micro_batch_size=micro_batch_size,
         num_epochs=num_epochs,
         warmup_steps=warmup_steps,
         decay_steps=decay_steps,
@@ -82,6 +84,7 @@ def main(
                 "seed": seed,
                 "lr": lr,
                 "batch_size": batch_size,
+                "micro_batch_size": micro_batch_size,
                 "num_epochs": num_epochs,
                 "warmup_steps": warmup_steps,
                 "decay_steps": decay_steps,

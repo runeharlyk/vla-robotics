@@ -92,6 +92,7 @@ class SFTConfig:
     decay_steps: int = 30_000
     decay_lr: float = 2.5e-6
     batch_size: int = 64
+    micro_batch_size: int = 4
     num_epochs: int = 50
     eval_every: int = 5
     eval_episodes: int = 50
@@ -172,14 +173,21 @@ def train_sft(
         weight_decay=config.weight_decay,
     )
 
-    dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, drop_last=False)
-    batches_per_epoch = max(len(dataloader), 1)
-    total_steps = config.num_epochs * batches_per_epoch
+    micro_bs = min(config.micro_batch_size, config.batch_size)
+    grad_accum_steps = max(config.batch_size // micro_bs, 1)
+    dataloader = DataLoader(dataset, batch_size=micro_bs, shuffle=True, drop_last=False)
+    micro_batches_per_epoch = max(len(dataloader), 1)
+    optimizer_steps_per_epoch = max(micro_batches_per_epoch // grad_accum_steps, 1)
+    total_optimizer_steps = config.num_epochs * optimizer_steps_per_epoch
     logger.info(
-        "Training for %d epochs × %d batches = %d steps  (lr=%.2e, warmup=%d, decay=%d)",
+        "Training for %d epochs × %d optimizer steps = %d total  "
+        "(micro_bs=%d, grad_accum=%d, effective_bs=%d, lr=%.2e, warmup=%d, decay=%d)",
         config.num_epochs,
-        batches_per_epoch,
-        total_steps,
+        optimizer_steps_per_epoch,
+        total_optimizer_steps,
+        micro_bs,
+        grad_accum_steps,
+        micro_bs * grad_accum_steps,
         config.lr,
         config.warmup_steps,
         config.decay_steps,
@@ -190,7 +198,7 @@ def train_sft(
         decay_steps=config.decay_steps,
         peak_lr=config.lr,
         decay_lr=config.decay_lr,
-        total_steps=total_steps,
+        total_steps=total_optimizer_steps,
     )
     scheduler = LambdaLR(optimizer, lr_lambda)
 
@@ -202,27 +210,37 @@ def train_sft(
     for epoch in range(1, config.num_epochs + 1):
         policy.train()
         epoch_loss = 0.0
-        num_batches = 0
+        num_micro_batches = 0
+        optimizer.zero_grad()
 
         for batch in dataloader:
             images = batch["image"].to(policy.device)
             target_actions = batch["action"].to(policy.device)
             states = batch["state"].to(policy.device)
             out = policy(images, instruction, target_actions, states=states)
-            loss = out["loss"]
-
-            optimizer.zero_grad()
+            loss = out["loss"] / grad_accum_steps
             loss.backward()
+
+            epoch_loss += out["loss"].item()
+            num_micro_batches += 1
+
+            if num_micro_batches % grad_accum_steps == 0:
+                if config.grad_clip_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.grad_clip_norm)
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                global_step += 1
+
+        if num_micro_batches % grad_accum_steps != 0:
             if config.grad_clip_norm > 0:
                 torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.grad_clip_norm)
             optimizer.step()
             scheduler.step()
-
-            epoch_loss += loss.item()
-            num_batches += 1
+            optimizer.zero_grad()
             global_step += 1
 
-        avg_loss = epoch_loss / max(num_batches, 1)
+        avg_loss = epoch_loss / max(num_micro_batches, 1)
         current_lr = scheduler.get_last_lr()[0]
         logger.info(
             f"SFT epoch {epoch}/{config.num_epochs}  loss={avg_loss:.6f}  lr={current_lr:.2e}  step={global_step}"

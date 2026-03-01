@@ -267,9 +267,9 @@ class VLAFlowMatching(nn.Module):
             use_cache=False,
             fill_kv_cache=False,
         )
-        suffix_out = suffix_out[:, -self.chunk_size :].to(torch.float32)
+        suffix_out = suffix_out[:, -self.chunk_size :]
         v_t = self.action_out_proj(suffix_out)
-        return F.mse_loss(u_t.float(), v_t, reduction="none")
+        return F.mse_loss(u_t.float(), v_t.float(), reduction="none")
 
     def sample_actions(
         self,
@@ -333,7 +333,7 @@ class VLAFlowMatching(nn.Module):
             use_cache=self.use_cache,
             fill_kv_cache=False,
         )
-        suffix_out = out[1][:, -self.chunk_size :].to(torch.float32)
+        suffix_out = out[1][:, -self.chunk_size :]
         return self.action_out_proj(suffix_out)
 
 
