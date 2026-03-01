@@ -1,1 +1,1 @@
-from vla.models.smolvla import SmolVLAPolicy
+from vla.models.smolvla import SmolVLAPolicy  # noqa: F401

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from vla.data.dataset import FewDemoDataset
-from vla.diagnostics.eval import EvalMetrics, evaluate, print_metrics
+from vla.diagnostics.eval import evaluate, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.rollout import ManiSkillRollout
 from vla.rl.srpo_reward import compute_returns, compute_srpo_rewards
@@ -69,7 +69,8 @@ def train_sft(
     Returns:
         The fine-tuned policy.
     """
-    optimizer = torch.optim.AdamW(policy.action_head.parameters(), lr=config.lr)
+    trainable = [p for p in policy.parameters() if p.requires_grad]
+    optimizer = torch.optim.AdamW(trainable, lr=config.lr)
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, drop_last=False)
     instruction = dataset.instruction
     save_path = Path(config.save_dir)
@@ -142,7 +143,8 @@ def train_srpo(
     Returns:
         The RL-tuned policy.
     """
-    optimizer = torch.optim.AdamW(policy.action_head.parameters(), lr=config.lr)
+    trainable = [p for p in policy.parameters() if p.requires_grad]
+    optimizer = torch.optim.AdamW(trainable, lr=config.lr)
     rollout_engine = ManiSkillRollout(
         env_id=config.env_id,
         num_envs=1,
@@ -183,22 +185,20 @@ def train_srpo(
             returns = compute_returns(rewards, gamma=config.gamma)
             returns = (returns - returns.mean()) / (returns.std() + 1e-8)
 
-            log_probs = []
+            step_losses = []
             for t in range(traj.length):
-                img = traj.images[t].to(policy.device)
-                emb = policy._encode(img, instruction)
-                predicted = policy.action_head(emb)
-                actual = traj.actions[t].to(policy.device)
-                log_prob = -0.5 * ((predicted - actual) ** 2).sum()
-                log_probs.append(log_prob)
+                img = traj.images[t].unsqueeze(0).to(policy.device)
+                target = traj.actions[t].unsqueeze(0).to(policy.device)
+                out = policy(img, instruction, target)
+                step_losses.append(out["loss"])
 
-            log_probs_t = torch.stack(log_probs)
+            step_losses_t = torch.stack(step_losses)
             returns_t = returns.to(policy.device)
-            loss = -(log_probs_t * returns_t).mean()
+            loss = (step_losses_t * returns_t).mean()
 
             optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(policy.action_head.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(trainable, max_norm=1.0)
             optimizer.step()
 
             total_loss += loss.item()

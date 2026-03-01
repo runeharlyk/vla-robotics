@@ -38,6 +38,7 @@ dependencies = [
     "robosuite==1.4.0; sys_platform == 'linux'",
     "libero>=0.1.0; sys_platform == 'linux'",
     "pyyaml>=6.0",
+    "num2words>=0.5.14",
 ]
 
 [project.scripts]
