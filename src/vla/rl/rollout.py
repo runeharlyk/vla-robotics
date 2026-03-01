@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
@@ -65,6 +66,7 @@ class ManiSkillRollout:
             render_mode="rgb_array",
             sim_backend=sim_backend,
             render_backend=render_backend,
+            max_episode_steps=max_steps,
         )
 
     def _render_image(self) -> np.ndarray:
@@ -138,8 +140,9 @@ class ManiSkillRollout:
             img_np = np.array(pil, dtype=np.uint8)
             img_t = torch.from_numpy(img_np).permute(2, 0, 1)
             state = self._flatten_obs(obs)
+            state_t = torch.from_numpy(state)
 
-            action = policy_fn(img_t, instruction)
+            action = policy_fn(img_t, instruction, state_t)
             if isinstance(action, torch.Tensor):
                 action_np = action.detach().cpu().numpy().flatten()
             else:

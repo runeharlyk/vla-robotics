@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import torch
 
 from vla.rl.rollout import ManiSkillRollout, Trajectory
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -33,7 +36,7 @@ def evaluate(
     """Evaluate a policy in ManiSkill and return aggregated metrics.
 
     Args:
-        policy_fn: Callable ``(image_tensor, instruction) -> action_tensor``.
+        policy_fn: Callable ``(image_tensor, instruction, state_tensor) -> action_tensor``.
         instruction: Language instruction for the task.
         env_id: ManiSkill environment id.
         num_episodes: Number of evaluation episodes.
@@ -67,6 +70,15 @@ def evaluate(
         median_len = (lengths_sorted[mid - 1] + lengths_sorted[mid]) / 2.0
     else:
         median_len = float(lengths_sorted[mid])
+
+    all_actions = torch.cat([t.actions[: t.length] for t in trajectories], dim=0)
+    logger.info(
+        "Action diagnostics: mean=%s  std=%s  min=%.3f  max=%.3f",
+        all_actions.mean(dim=0).tolist(),
+        all_actions.std(dim=0).tolist(),
+        all_actions.min().item(),
+        all_actions.max().item(),
+    )
 
     return EvalMetrics(
         success_rate=successes / max(num_episodes, 1),

@@ -267,9 +267,9 @@ class VLAFlowMatching(nn.Module):
             use_cache=False,
             fill_kv_cache=False,
         )
-        suffix_out = suffix_out[:, -self.chunk_size :]
+        suffix_out = suffix_out[:, -self.chunk_size :].to(torch.float32)
         v_t = self.action_out_proj(suffix_out)
-        return F.mse_loss(u_t.float(), v_t.float(), reduction="none")
+        return F.mse_loss(u_t.float(), v_t, reduction="none")
 
     def sample_actions(
         self,
@@ -333,7 +333,7 @@ class VLAFlowMatching(nn.Module):
             use_cache=self.use_cache,
             fill_kv_cache=False,
         )
-        suffix_out = out[1][:, -self.chunk_size :]
+        suffix_out = out[1][:, -self.chunk_size :].to(torch.float32)
         return self.action_out_proj(suffix_out)
 
 
@@ -347,6 +347,7 @@ class SmolVLAPolicy(nn.Module):
     Args:
         checkpoint: HuggingFace model id or local path to a lerobot SmolVLA checkpoint.
         action_dim: Dimensionality of the robot action space (actual, before padding).
+        state_dim: Dimensionality of the robot proprioceptive state (actual).
         device: Torch device string.
         dtype: Model precision (default ``torch.bfloat16``).
     """
@@ -355,11 +356,13 @@ class SmolVLAPolicy(nn.Module):
         self,
         checkpoint: str = DEFAULT_CHECKPOINT,
         action_dim: int = 8,
+        state_dim: int = 0,
         device: str = "cuda",
         dtype: torch.dtype = torch.bfloat16,
     ) -> None:
         super().__init__()
         self.action_dim = action_dim
+        self.state_dim = state_dim
         self.device = torch.device(device)
         self.dtype = dtype
         self.checkpoint = checkpoint
@@ -388,6 +391,63 @@ class SmolVLAPolicy(nn.Module):
 
         self.model.to(device=self.device, dtype=self.dtype)
 
+        self.register_buffer("action_mean", torch.zeros(action_dim), persistent=True)
+        self.register_buffer("action_std", torch.ones(action_dim), persistent=True)
+        self.register_buffer("state_mean", torch.zeros(max(state_dim, 1)), persistent=True)
+        self.register_buffer("state_std", torch.ones(max(state_dim, 1)), persistent=True)
+
+    def set_normalization(
+        self,
+        action_mean: torch.Tensor,
+        action_std: torch.Tensor,
+        state_mean: torch.Tensor,
+        state_std: torch.Tensor,
+    ) -> None:
+        """Set mean/std normalization statistics for actions and state.
+
+        Args:
+            action_mean: ``(action_dim,)`` tensor.
+            action_std: ``(action_dim,)`` tensor.
+            state_mean: ``(state_dim,)`` tensor.
+            state_std: ``(state_dim,)`` tensor.
+        """
+        self.action_mean.copy_(action_mean.to(self.device))
+        self.action_std.copy_(action_std.to(self.device))
+        self.state_mean = state_mean.to(self.device)
+        self.state_std = state_std.to(self.device)
+
+    def _normalize_action(self, action: torch.Tensor) -> torch.Tensor:
+        mean = self.action_mean.to(action.device, dtype=action.dtype)
+        std = self.action_std.to(action.device, dtype=action.dtype).clamp(min=1e-8)
+        return (action - mean) / std
+
+    def _denormalize_action(self, action: torch.Tensor) -> torch.Tensor:
+        mean = self.action_mean.to(action.device, dtype=action.dtype)
+        std = self.action_std.to(action.device, dtype=action.dtype).clamp(min=1e-8)
+        return action * std + mean
+
+    def _normalize_state(self, state: torch.Tensor) -> torch.Tensor:
+        if self.state_dim == 0:
+            return state
+        sdim = min(state.shape[-1], self.state_mean.shape[0])
+        mean = self.state_mean[:sdim].to(state.device, dtype=state.dtype)
+        std = self.state_std[:sdim].to(state.device, dtype=state.dtype).clamp(min=1e-8)
+        out = state.clone()
+        out[..., :sdim] = (state[..., :sdim] - mean) / std
+        return out
+
+    def _prepare_state_input(self, state: torch.Tensor | None, batch_size: int) -> torch.Tensor:
+        """Prepare a ``(B, max_state_dim)`` state tensor from raw observation state."""
+        if state is None or self.state_dim == 0:
+            return torch.zeros(batch_size, self.max_state_dim, device=self.device, dtype=self.dtype)
+        s = state.to(self.device, dtype=self.dtype)
+        if s.ndim == 1:
+            s = s.unsqueeze(0)
+        sdim = min(s.shape[-1], self.max_state_dim)
+        s_trunc = s[..., :sdim]
+        s_norm = self._normalize_state(s_trunc)
+        return _pad_vector(s_norm, self.max_state_dim)
+
     @staticmethod
     def _load_ckpt_config(checkpoint: str) -> dict[str, Any]:
         if Path(checkpoint).is_dir():
@@ -405,8 +465,9 @@ class SmolVLAPolicy(nn.Module):
 
     def _tokenize(self, instruction: str, batch_size: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
         tok_max = self.ckpt_config.get("tokenizer_max_length", 48)
+        text = instruction if instruction.endswith("\n") else instruction + "\n"
         encoded = self.processor.tokenizer(
-            instruction,
+            text,
             padding="max_length",
             max_length=tok_max,
             truncation=True,
@@ -440,15 +501,16 @@ class SmolVLAPolicy(nn.Module):
             return img.float() / 255.0
         return img.float()
 
-    def predict_action(self, image: torch.Tensor, instruction: str) -> torch.Tensor:
+    def predict_action(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Predict a single action from an image observation.
 
         Args:
             image: (C, H, W) tensor (uint8 or float in [0, 1]).
             instruction: Language instruction.
+            state: Optional (state_dim,) proprioceptive state tensor.
 
         Returns:
-            (action_dim,) float tensor.
+            (action_dim,) float tensor (denormalized to environment scale).
         """
         self.eval()
         with torch.no_grad():
@@ -456,36 +518,48 @@ class SmolVLAPolicy(nn.Module):
             imgs = img.unsqueeze(0).to(self.device, dtype=self.dtype)
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
-            state = torch.zeros(1, self.max_state_dim, device=self.device, dtype=self.dtype)
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, state)
-            return actions[0, 0, : self.action_dim].float()
+            s = self._prepare_state_input(state, batch_size=1)
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            raw = actions[0, 0, : self.action_dim].float()
+            return self._denormalize_action(raw)
 
-    def predict_action_batch(self, images: torch.Tensor, instruction: str) -> torch.Tensor:
+    def predict_action_batch(
+        self, images: torch.Tensor, instruction: str, states: torch.Tensor | None = None
+    ) -> torch.Tensor:
         """Predict actions for a batch of images.
 
         Args:
             images: (B, C, H, W) tensor (uint8 or float in [0, 1]).
             instruction: Shared language instruction.
+            states: Optional (B, state_dim) proprioceptive state tensor.
 
         Returns:
-            (B, action_dim) float tensor.
+            (B, action_dim) float tensor (denormalized).
         """
         self.eval()
         with torch.no_grad():
             imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
-            state = torch.zeros(imgs.shape[0], self.max_state_dim, device=self.device, dtype=self.dtype)
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, state)
-            return actions[:, 0, : self.action_dim].float()
+            s = self._prepare_state_input(states, batch_size=imgs.shape[0])
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            raw = actions[:, 0, : self.action_dim].float()
+            return self._denormalize_action(raw)
 
-    def forward(self, images: torch.Tensor, instruction: str, target_actions: torch.Tensor) -> dict[str, torch.Tensor]:
+    def forward(
+        self,
+        images: torch.Tensor,
+        instruction: str,
+        target_actions: torch.Tensor,
+        states: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """Compute flow-matching MSE loss for behavior cloning.
 
         Args:
             images: (B, C, H, W) image batch in [0, 1].
             instruction: Shared language instruction.
-            target_actions: (B, action_dim) ground-truth actions.
+            target_actions: (B, action_dim) ground-truth actions (unnormalized).
+            states: Optional (B, state_dim) proprioceptive state.
 
         Returns:
             Dict with ``loss``.
@@ -494,20 +568,22 @@ class SmolVLAPolicy(nn.Module):
         imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
         img_list, mask_list = self._prepare_images(imgs)
         tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
-        state = torch.zeros(imgs.shape[0], self.max_state_dim, device=self.device, dtype=self.dtype)
-        actions_padded = self._prepare_action(target_actions.to(self.device, dtype=self.dtype))
+        s = self._prepare_state_input(states, batch_size=imgs.shape[0])
+        normalized_actions = self._normalize_action(target_actions.to(self.device, dtype=self.dtype))
+        actions_padded = self._prepare_action(normalized_actions)
         actions_padded = actions_padded.unsqueeze(1).expand(-1, self.chunk_size, -1)
 
-        losses = self.model.forward(img_list, mask_list, tokens, tmasks, state, actions_padded)
+        losses = self.model.forward(img_list, mask_list, tokens, tmasks, s, actions_padded)
         loss = losses[:, :, : self.max_action_dim].mean()
         return {"loss": loss}
 
-    def get_embedding(self, image: torch.Tensor, instruction: str) -> torch.Tensor:
+    def get_embedding(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Return the VLM backbone embedding for a single observation (for Tier B SRPO).
 
         Args:
             image: (C, H, W) tensor in [0, 1].
             instruction: Language instruction.
+            state: Optional (state_dim,) proprioceptive state tensor.
 
         Returns:
             (hidden_dim,) float tensor.
@@ -518,26 +594,39 @@ class SmolVLAPolicy(nn.Module):
             imgs = img.unsqueeze(0).to(self.device, dtype=self.dtype)
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
-            state = torch.zeros(1, self.max_state_dim, device=self.device, dtype=self.dtype)
-            embs, _, _ = self.model.embed_prefix(img_list, mask_list, tokens, tmasks, state)
+            s = self._prepare_state_input(state, batch_size=1)
+            embs, _, _ = self.model.embed_prefix(img_list, mask_list, tokens, tmasks, s)
             return embs[0, -1].float()
 
     def save_checkpoint(self, path: str | Path) -> None:
-        """Save full model weights."""
+        """Save full model weights and normalization statistics."""
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
         torch.save(
             {
                 "model_state_dict": self.model.state_dict(),
                 "action_dim": self.action_dim,
+                "state_dim": self.state_dim,
                 "checkpoint": self.checkpoint,
                 "ckpt_config": self.ckpt_config,
+                "action_mean": self.action_mean,
+                "action_std": self.action_std,
+                "state_mean": self.state_mean,
+                "state_std": self.state_std,
             },
             path / "policy.pt",
         )
 
     def load_checkpoint(self, path: str | Path) -> None:
-        """Load model weights from a previously saved checkpoint."""
+        """Load model weights and normalization statistics from a previously saved checkpoint."""
         path = Path(path)
         data = torch.load(path / "policy.pt", map_location=self.device, weights_only=False)
         self.model.load_state_dict(data["model_state_dict"])
+        if "action_mean" in data:
+            self.action_mean.copy_(data["action_mean"])
+            self.action_std.copy_(data["action_std"])
+        if "state_mean" in data:
+            self.state_mean = data["state_mean"].to(self.device)
+            self.state_std = data["state_std"].to(self.device)
+        if "state_dim" in data:
+            self.state_dim = data["state_dim"]

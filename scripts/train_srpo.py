@@ -26,31 +26,6 @@ DEFAULT_DATA = PROJECT_ROOT / "data" / "preprocessed" / "pickcube.pt"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
-def _build_demo_trajectories(dataset: FewDemoDataset) -> list[Trajectory]:
-    """Convert the few-demo dataset episodes into Trajectory objects for seeding."""
-    import torch
-
-    trajs = []
-    for i in range(dataset.num_episodes):
-        start, end = dataset.episode_boundaries[i]
-        images = dataset.images_cat[start:end]
-        states = dataset.states_cat[start:end]
-        actions = dataset.actions_cat[start:end]
-        T = actions.shape[0]
-        trajs.append(
-            Trajectory(
-                images=images,
-                states=states,
-                actions=actions,
-                rewards=torch.ones(T),
-                dones=torch.zeros(T),
-                success=True,
-                length=T,
-            )
-        )
-    return trajs
-
-
 def main(
     sft_checkpoint: Path = typer.Option(..., "--sft-checkpoint", "-s", path_type=Path),
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
@@ -82,18 +57,19 @@ def main(
     seed_everything(seed)
     device = get_device()
 
+    dataset = FewDemoDataset(data_path, num_demos=num_demos, seed=seed)
     policy = SmolVLAPolicy(
         checkpoint=checkpoint,
         action_dim=action_dim,
+        state_dim=dataset.state_dim,
         device=str(device),
     )
     policy.load_checkpoint(sft_checkpoint)
     logging.info(f"Loaded SFT checkpoint from {sft_checkpoint}")
 
     demo_trajectories: list[Trajectory] | None = None
-    if mode == "srpo" and data_path.exists():
-        dataset = FewDemoDataset(data_path, num_demos=num_demos, seed=seed)
-        demo_trajectories = _build_demo_trajectories(dataset)
+    if mode == "srpo":
+        demo_trajectories = dataset.episodes_as_trajectories()
         logging.info(f"Built {len(demo_trajectories)} demo trajectories for reference seeding")
 
     config = SRPOConfig(

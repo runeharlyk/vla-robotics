@@ -34,9 +34,9 @@ def main(
     seed_everything(seed)
     device = get_device()
 
-    policy = SmolVLAPolicy(checkpoint=checkpoint, action_dim=action_dim, device=str(device))
+    policy = SmolVLAPolicy(checkpoint=checkpoint, action_dim=action_dim, state_dim=0, device=str(device))
     policy.load_checkpoint(checkpoint_dir)
-    logging.info(f"Loaded checkpoint from {checkpoint_dir}")
+    logging.info(f"Loaded checkpoint from {checkpoint_dir} (state_dim={policy.state_dim})")
 
     metrics = evaluate(
         policy_fn=policy.predict_action,

@@ -1,8 +1,12 @@
 """Training loops for SFT (behaviour cloning) and SRPO reinforcement learning.
 
-SFT (``train_sft``) is unchanged from the previous implementation.
+SFT (``train_sft``) mirrors the LeRobot training recipe for SmolVLA fine-tuning:
+  - AdamW with betas=(0.9, 0.95), weight_decay=1e-10
+  - Cosine decay LR scheduler with linear warmup
+  - Gradient clipping at max_norm=10
+  - MEAN_STD action/state normalisation
 
-SRPO (``train_srpo``) now implements the full paper algorithm (Section 3.3):
+SRPO (``train_srpo``) implements the full paper algorithm (Section 3.3):
   1. Collect M trajectories with π_θ_old.
   2. Compute world-progress trajectory rewards g_i via the world model.
   3. Compute trajectory-level advantages  = (g_i − μ_g) / σ_g.
@@ -17,11 +21,13 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import torch
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 
 from vla.data.dataset import FewDemoDataset
@@ -34,12 +40,58 @@ from vla.rl.srpo_reward import SRPORewardConfig, WorldProgressReward
 logger = logging.getLogger(__name__)
 
 
+def _cosine_decay_with_warmup_schedule(
+    warmup_steps: int,
+    decay_steps: int,
+    peak_lr: float,
+    decay_lr: float,
+    total_steps: int,
+) -> callable:
+    """Return a lambda for :class:`LambdaLR` implementing cosine decay with linear warmup.
+
+    If ``total_steps < decay_steps`` both warmup and decay durations are
+    scaled proportionally (matching the LeRobot auto-scale behaviour).
+
+    Args:
+        warmup_steps: Number of linear warmup steps (before scaling).
+        decay_steps: Number of cosine decay steps (before scaling).
+        peak_lr: The learning rate at the end of warmup.
+        decay_lr: The minimum learning rate after decay.
+        total_steps: Actual number of optimiser steps for the run.
+
+    Returns:
+        A multiplier function ``step -> lr_multiplier`` for :class:`LambdaLR`.
+    """
+    if decay_steps > total_steps:
+        warmup_steps = int(warmup_steps * total_steps / decay_steps)
+        decay_steps = total_steps
+
+    def _lr_lambda(current_step: int) -> float:
+        if current_step < warmup_steps:
+            return (current_step + 1) / (warmup_steps + 1)
+        progress = min((current_step - warmup_steps) / max(decay_steps - warmup_steps, 1), 1.0)
+        cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
+        lr = decay_lr + (peak_lr - decay_lr) * cosine
+        return lr / peak_lr
+
+    return _lr_lambda
+
+
 @dataclass
 class SFTConfig:
-    """Hyperparameters for supervised fine-tuning (behaviour cloning)."""
+    """Hyperparameters for supervised fine-tuning (behaviour cloning).
+
+    Defaults match the LeRobot SmolVLA fine-tuning recipe.
+    """
 
     lr: float = 1e-4
-    batch_size: int = 32
+    betas: tuple[float, float] = (0.9, 0.95)
+    weight_decay: float = 1e-10
+    grad_clip_norm: float = 10.0
+    warmup_steps: int = 1_000
+    decay_steps: int = 30_000
+    decay_lr: float = 2.5e-6
+    batch_size: int = 64
     num_epochs: int = 50
     eval_every: int = 5
     eval_episodes: int = 50
@@ -54,12 +106,14 @@ class SRPOConfig:
     """Hyperparameters for SRPO RL training."""
 
     lr: float = 1e-5
+    betas: tuple[float, float] = (0.9, 0.95)
+    weight_decay: float = 1e-10
+    max_grad_norm: float = 10.0
     num_iterations: int = 100
     trajectories_per_iter: int = 16
     ppo_epochs: int = 4
     clip_epsilon: float = 0.2
     kl_coeff: float = 0.01
-    max_grad_norm: float = 1.0
     eval_every: int = 10
     eval_episodes: int = 50
     max_steps: int = 200
@@ -84,6 +138,11 @@ def train_sft(
 ) -> SmolVLAPolicy:
     """Run supervised fine-tuning (behaviour cloning) on a few-demo dataset.
 
+    Follows the LeRobot SmolVLA training recipe:
+      - AdamW with betas=(0.9, 0.95), weight_decay=1e-10
+      - Cosine decay LR with linear warmup (auto-scaled to total steps)
+      - Gradient clipping at ``config.grad_clip_norm``
+
     Args:
         policy: SmolVLA policy to fine-tune.
         dataset: Few-demo dataset.
@@ -93,12 +152,52 @@ def train_sft(
     Returns:
         The fine-tuned policy.
     """
+    policy.set_normalization(
+        dataset.norm_stats.action_mean,
+        dataset.norm_stats.action_std,
+        dataset.norm_stats.state_mean,
+        dataset.norm_stats.state_std,
+    )
+    logger.info(
+        "Action stats: mean=%s  std=%s",
+        dataset.norm_stats.action_mean.tolist(),
+        dataset.norm_stats.action_std.tolist(),
+    )
+
     trainable = [p for p in policy.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(trainable, lr=config.lr)
+    optimizer = torch.optim.AdamW(
+        trainable,
+        lr=config.lr,
+        betas=config.betas,
+        weight_decay=config.weight_decay,
+    )
+
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, drop_last=False)
+    batches_per_epoch = max(len(dataloader), 1)
+    total_steps = config.num_epochs * batches_per_epoch
+    logger.info(
+        "Training for %d epochs × %d batches = %d steps  (lr=%.2e, warmup=%d, decay=%d)",
+        config.num_epochs,
+        batches_per_epoch,
+        total_steps,
+        config.lr,
+        config.warmup_steps,
+        config.decay_steps,
+    )
+
+    lr_lambda = _cosine_decay_with_warmup_schedule(
+        warmup_steps=config.warmup_steps,
+        decay_steps=config.decay_steps,
+        peak_lr=config.lr,
+        decay_lr=config.decay_lr,
+        total_steps=total_steps,
+    )
+    scheduler = LambdaLR(optimizer, lr_lambda)
+
     instruction = dataset.instruction
     save_path = Path(config.save_dir)
     best_success = -1.0
+    global_step = 0
 
     for epoch in range(1, config.num_epochs + 1):
         policy.train()
@@ -108,18 +207,28 @@ def train_sft(
         for batch in dataloader:
             images = batch["image"].to(policy.device)
             target_actions = batch["action"].to(policy.device)
-            out = policy(images, instruction, target_actions)
+            states = batch["state"].to(policy.device)
+            out = policy(images, instruction, target_actions, states=states)
             loss = out["loss"]
+
             optimizer.zero_grad()
             loss.backward()
+            if config.grad_clip_norm > 0:
+                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.grad_clip_norm)
             optimizer.step()
+            scheduler.step()
+
             epoch_loss += loss.item()
             num_batches += 1
+            global_step += 1
 
         avg_loss = epoch_loss / max(num_batches, 1)
-        logger.info(f"SFT epoch {epoch}/{config.num_epochs}  loss={avg_loss:.6f}")
+        current_lr = scheduler.get_last_lr()[0]
+        logger.info(
+            f"SFT epoch {epoch}/{config.num_epochs}  loss={avg_loss:.6f}  lr={current_lr:.2e}  step={global_step}"
+        )
         if wandb_run is not None:
-            wandb_run.log({"sft/loss": avg_loss, "sft/epoch": epoch})
+            wandb_run.log({"sft/loss": avg_loss, "sft/lr": current_lr, "sft/epoch": epoch, "sft/step": global_step})
 
         if epoch % config.eval_every == 0 or epoch == config.num_epochs:
             metrics = evaluate(
@@ -181,8 +290,10 @@ def _compute_fm_loss_per_step(
         imgs_f = policy._to_float01(img).to(policy.device, dtype=policy.dtype)
         img_list, mask_list = policy._prepare_images(imgs_f)
         tokens, tmasks = policy._tokenize(instruction, batch_size=1)
-        state = torch.zeros(1, policy.max_state_dim, device=policy.device, dtype=policy.dtype)
-        action_padded = policy._prepare_action(action.to(policy.device, dtype=policy.dtype))
+        state_raw = traj.states[t].unsqueeze(0) if traj.states is not None else None
+        state = policy._prepare_state_input(state_raw, batch_size=1)
+        normalized_action = policy._normalize_action(action.to(policy.device, dtype=policy.dtype))
+        action_padded = policy._prepare_action(normalized_action)
         action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
 
         losses_per_sample = policy.model.forward(
@@ -251,7 +362,12 @@ def train_srpo(
         The RL-tuned policy.
     """
     trainable = [p for p in policy.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(trainable, lr=config.lr)
+    optimizer = torch.optim.AdamW(
+        trainable,
+        lr=config.lr,
+        betas=config.betas,
+        weight_decay=config.weight_decay,
+    )
 
     ref_policy = copy.deepcopy(policy)
     ref_policy.eval()
@@ -352,8 +468,10 @@ def train_srpo(
                     imgs_f = policy._to_float01(img).to(policy.device, dtype=policy.dtype)
                     img_list, mask_list = policy._prepare_images(imgs_f)
                     tokens, tmasks = policy._tokenize(instruction, batch_size=1)
-                    state = torch.zeros(1, policy.max_state_dim, device=policy.device, dtype=policy.dtype)
-                    action_padded = policy._prepare_action(action.to(policy.device, dtype=policy.dtype))
+                    state_raw = traj.states[t].unsqueeze(0) if traj.states is not None else None
+                    state = policy._prepare_state_input(state_raw, batch_size=1)
+                    normalized_action = policy._normalize_action(action.to(policy.device, dtype=policy.dtype))
+                    action_padded = policy._prepare_action(normalized_action)
                     action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
 
                     fm_loss = policy.model.forward(
