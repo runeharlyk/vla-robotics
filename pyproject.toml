@@ -37,6 +37,7 @@ dependencies = [
     "pin>=3.0.0; sys_platform == 'linux'",
     "robosuite==1.4.0; sys_platform == 'linux'",
     "libero>=0.1.0; sys_platform == 'linux'",
+    "pyyaml>=6.0",
 ]
 
 [project.scripts]

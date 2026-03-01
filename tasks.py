@@ -267,3 +267,60 @@ def create_job(
     print(script)
     print("--- end ---")
     print(f"\nSubmit with:  bsub < {script_path}")
+def list_envs(ctx: Context) -> None:
+    """List available ManiSkill environments."""
+    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-envs", echo=True, pty=not WINDOWS)
+
+
+@task
+def train_sft(ctx: Context, num_demos: int = 10, seed: int = 42, no_wandb: bool = False) -> None:
+    """Run SFT (behavior cloning) training from few demonstrations."""
+    wandb_flag = "--no-wandb" if no_wandb else "--wandb"
+    ctx.run(
+        f"uv run python scripts/train_sft.py --num-demos {num_demos} --seed {seed} {wandb_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def train_srpo(
+    ctx: Context,
+    sft_checkpoint: str = "checkpoints/sft/demos10_seed42/best",
+    mode: str = "srpo",
+    seed: int = 42,
+    no_wandb: bool = False,
+) -> None:
+    """Run SRPO or sparse-RL training from an SFT checkpoint."""
+    wandb_flag = "--no-wandb" if no_wandb else "--wandb"
+    ctx.run(
+        f"uv run python scripts/train_srpo.py --sft-checkpoint {sft_checkpoint} --mode {mode} --seed {seed} {wandb_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def run_experiment(ctx: Context, config: str = "configs/srpo_pickcube.yaml", no_wandb: bool = False) -> None:
+    """Run the full SRPO validation experiment matrix."""
+    wandb_flag = "--no-wandb" if no_wandb else ""
+    ctx.run(
+        f"uv run python scripts/run_experiment.py --config {config} {wandb_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def evaluate_policy(
+    ctx: Context,
+    checkpoint_dir: str = "checkpoints/sft/demos10_seed42/best",
+    num_episodes: int = 100,
+    env: str = "PickCube-v1",
+) -> None:
+    """Evaluate a saved policy checkpoint."""
+    ctx.run(
+        f"uv run python scripts/evaluate.py --checkpoint-dir {checkpoint_dir} --num-episodes {num_episodes} --env {env}",
+        echo=True,
+        pty=not WINDOWS,
+    )

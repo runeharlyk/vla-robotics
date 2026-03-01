@@ -1,0 +1,36 @@
+env_id: "PickCube-v1"
+checkpoint: "HuggingFaceVLA/smolvla_libero"
+instruction: "pick up the red cube and move it to the green goal"
+action_dim: 8
+image_size: 256
+data_path: "data/preprocessed/pickcube.pt"
+
+demo_counts: [1, 5, 10]
+seeds: [42, 123, 456]
+
+sft:
+  lr: 1.0e-4
+  batch_size: 32
+  num_epochs: 50
+  eval_every: 5
+  eval_episodes: 50
+  max_steps: 200
+
+srpo:
+  lr: 1.0e-5
+  num_iterations: 100
+  trajectories_per_iter: 16
+  gamma: 0.99
+  reward_scale: 1.0
+  eval_every: 10
+  eval_episodes: 50
+  max_steps: 200
+
+sparse_rl:
+  lr: 1.0e-5
+  num_iterations: 100
+  trajectories_per_iter: 16
+  gamma: 0.99
+  eval_every: 10
+  eval_episodes: 50
+  max_steps: 200
