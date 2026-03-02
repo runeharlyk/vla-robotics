@@ -8,6 +8,10 @@ Usage:
     uv run python scripts/preprocess_data.py
     uv run python scripts/preprocess_data.py --skill PickCube-v1 --max-episodes 100
 """
+import math
+import multiprocessing
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import gymnasium as gym
@@ -25,9 +29,42 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 PREPROCESSED_DIR = PROJECT_ROOT / "data" / "preprocessed"
 DEFAULT_SKILL = "PickCube-v1"
-PICK_CUBE_INSTRUCTION = "pick up the red cube and move it to the green goal"
+DEFAULT_INSTRUCTION = "complete the manipulation task"
 _warned_camera_fallback = False
 _warned_render_fallback = False
+
+
+def get_task_instruction(env_id: str) -> str:
+    """Extract a task instruction from the ManiSkill environment docstring.
+
+    Falls back to a generic instruction if the docstring does not contain
+    a ``**Task Description:**`` section.
+    """
+    import re
+
+    try:
+        env = gym.make(
+            env_id,
+            num_envs=1,
+            obs_mode="state",
+            render_mode="rgb_array",
+            sim_backend="physx_cpu",
+            render_backend="cpu",
+        )
+        doc = type(env.unwrapped).__doc__ or ""
+        env.close()
+    except Exception:
+        return DEFAULT_INSTRUCTION
+
+    match = re.search(r"\*\*Task Description:\*\*\s*\n\s*(.+?)(?:\n\s*\n|\n\s*\*\*)", doc, re.DOTALL)
+    if match:
+        desc = match.group(1).strip()
+        desc = re.sub(r"\s+", " ", desc)
+        desc = re.sub(r"\*[^*]*\*", "", desc).strip()
+        first_sentence = re.split(r"(?<=[.!?])\s", desc, maxsplit=1)[0]
+        if first_sentence:
+            return first_sentence[0].lower() + first_sentence[1:]
+    return DEFAULT_INSTRUCTION
 
 
 def find_trajectory_files(raw_dir: Path, env_id: str) -> tuple[Path, Path]:
@@ -155,6 +192,40 @@ def flatten_obs_state(obs: dict) -> np.ndarray:
     return np.asarray(x, dtype=np.float32).flatten()
 
 
+def build_state_key_map(env_state_dict: dict, saved_state_dict: dict) -> dict[str, str]:
+    """Build a mapping from saved state dict actor/articulation names to env names.
+
+    Handles the common case where saved demos use suffixed names (e.g. 'peg_0')
+    but the current ManiSkill version uses bare names (e.g. 'peg').
+    """
+    import re
+
+    key_map: dict[str, str] = {}
+    for category in ("actors", "articulations"):
+        env_keys = set(env_state_dict.get(category, {}).keys())
+        saved_keys = set(saved_state_dict.get(category, {}).keys())
+        for sk in saved_keys:
+            if sk in env_keys:
+                continue
+            bare = re.sub(r"_\d+$", "", sk)
+            if bare in env_keys:
+                key_map[sk] = bare
+    return key_map
+
+
+def remap_state_dict_keys(state_dict: dict, key_map: dict[str, str]) -> dict:
+    """Remap actor/articulation keys in a state dict using a pre-built key map."""
+    if not key_map:
+        return state_dict
+    remapped = {}
+    for category, sub in state_dict.items():
+        if category in ("actors", "articulations") and isinstance(sub, dict):
+            remapped[category] = {key_map.get(k, k): v for k, v in sub.items()}
+        else:
+            remapped[category] = sub
+    return remapped
+
+
 def load_json(path: Path) -> dict:
     return io_utils.load_json(str(path))
 
@@ -177,10 +248,14 @@ def collect_episode_with_actions(
     actions: np.ndarray,
     image_size: int,
     num_cameras: int,
+    initial_obs: dict | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     images = []
     states = []
-    obs = env.unwrapped.get_obs(unflattened=True)
+    if initial_obs is not None:
+        obs = initial_obs
+    else:
+        obs = env.unwrapped.get_obs(unflattened=True)
     if hasattr(obs, "keys"):
         obs = common.index_dict_array(obs, 0, inplace=False)
     T = len(actions)
@@ -202,6 +277,110 @@ def collect_episode_with_actions(
     return np.stack(images, axis=0), np.stack(states, axis=0)
 
 
+def _replay_episode_chunk(
+    episode_infos: list[tuple[dict, str]],
+    env_id: str,
+    control_mode: str,
+    obs_mode: str,
+    h5_path: str,
+    state_key_map: dict[str, str],
+    image_size: int,
+    num_cameras: int,
+    threads_per_worker: int = 0,
+) -> list[dict]:
+    """Worker: replay a chunk of episodes in a separate process.
+
+    Each worker creates its own single-env ManiSkill instance, opens the HDF5
+    file independently, and processes its assigned episodes via env-state replay
+    (falling back to action replay on failure).
+
+    Args:
+        episode_infos: List of ``(ep_meta, traj_id)`` for episodes to process.
+        env_id: ManiSkill environment ID.
+        control_mode: Robot control mode string.
+        obs_mode: Observation mode string.
+        h5_path: Path to the HDF5 trajectory file.
+        state_key_map: Actor/articulation key remapping.
+        image_size: Target image size (square).
+        num_cameras: Number of camera views per timestep.
+        threads_per_worker: Max threads for BLAS/OMP libraries (0 = no limit).
+
+    Returns:
+        List of episode dicts with numpy arrays (images NCTHWC, states, actions).
+    """
+    if threads_per_worker > 0:
+        t = str(threads_per_worker)
+        for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+            os.environ[var] = t
+
+    env = gym.make(
+        env_id,
+        num_envs=1,
+        obs_mode=obs_mode,
+        control_mode=control_mode,
+        render_mode="rgb_array",
+        sim_backend="physx_cpu",
+        render_backend="cpu",
+    )
+    base = env.unwrapped
+    env.reset()
+    results: list[dict] = []
+
+    with h5py.File(h5_path, "r") as f:
+        for ep_meta, traj_id in episode_infos:
+            traj = f[traj_id]
+            env_states = trajectory_utils.dict_to_list_of_dicts(traj["env_states"])
+            actions = np.asarray(traj["actions"][:])
+
+            try:
+                T = len(actions)
+                images: list[np.ndarray] = []
+                states: list[np.ndarray] = []
+                for t in range(T):
+                    st = remap_state_dict_keys(env_states[t], state_key_map)
+                    base.set_state_dict(common.batch(st))
+                    obs = base.get_obs(unflattened=True)
+                    if hasattr(obs, "keys"):
+                        obs = common.index_dict_array(obs, 0, inplace=False)
+                    rgbs = extract_rgb_views(obs, env, num_cameras=num_cameras)
+                    state = flatten_obs_state(obs)
+                    cams = [
+                        np.array(
+                            Image.fromarray(rgb).resize(
+                                (image_size, image_size),
+                                Image.BILINEAR,
+                            )
+                        )
+                        for rgb in rgbs
+                    ]
+                    images.append(np.stack(cams, axis=0))
+                    states.append(np.asarray(state, dtype=np.float32).flatten())
+                images_np = np.stack(images)
+                states_np = np.stack(states)
+                actions_np = np.asarray(actions[: images_np.shape[0]], dtype=np.float32)
+            except KeyError:
+                obs0, _ = reset_env_for_episode(env, ep_meta)
+                images_np, states_np = collect_episode_with_actions(
+                    env=env,
+                    actions=actions,
+                    image_size=image_size,
+                    num_cameras=num_cameras,
+                    initial_obs=obs0,
+                )
+                actions_np = np.asarray(actions[: images_np.shape[0]], dtype=np.float32)
+
+            results.append(
+                {
+                    "images": images_np,
+                    "states": states_np,
+                    "actions": actions_np,
+                }
+            )
+
+    env.close()
+    return results
+
+
 def main(
     skill: str = typer.Option(DEFAULT_SKILL, "--skill", "-s", help="ManiSkill env ID"),
     raw_dir: Path = typer.Option(RAW_DIR, "--raw-dir", "-r", path_type=Path),
@@ -210,6 +389,12 @@ def main(
     image_size: int = typer.Option(256, "--image-size", help="Resize RGB to this width/height"),
     num_cameras: int = typer.Option(2, "--num-cameras", help="Number of camera views to store per timestep"),
     obs_mode: str = typer.Option("rgb+state", "--obs-mode", help="Observation mode for replay"),
+    num_workers: int = typer.Option(
+        min(os.cpu_count() or 1, 8),
+        "--num-workers",
+        "-w",
+        help="Parallel worker processes (default: min(cpu_count, 8))",
+    ),
 ) -> None:
     """Replay raw trajectories to collect RGB + state + actions and save a single .pt file."""
     raw_dir = raw_dir.resolve()
@@ -220,105 +405,154 @@ def main(
     json_data = load_json(json_path)
     env_info = json_data["env_info"]
     env_id = env_info["env_id"]
-    env_kwargs = {
-        "num_envs": 1,
-        "obs_mode": obs_mode,
-        "control_mode": env_info.get("env_kwargs", {}).get("control_mode", "pd_joint_pos"),
-        "render_mode": "rgb_array",
-        "sim_backend": "physx_cpu",
-        "render_backend": "cpu",
-    }
+    control_mode = env_info.get("env_kwargs", {}).get("control_mode", "pd_joint_pos")
 
     episodes_meta = json_data["episodes"]
     if max_episodes is not None:
         episodes_meta = episodes_meta[:max_episodes]
 
-    typer.echo(f"Replaying {len(episodes_meta)} episodes from {h5_path}")
+    typer.echo(f"Replaying {len(episodes_meta)} episodes from {h5_path} " f"(num_workers={num_workers})")
 
-    env = gym.make(env_id, **env_kwargs)
-    episodes_out = []
-    base = env.unwrapped
-
+    # Build state key map using a disposable single-env probe
+    state_key_map: dict[str, str] = {}
+    probe_env = gym.make(
+        env_id,
+        num_envs=1,
+        obs_mode=obs_mode,
+        control_mode=control_mode,
+        render_mode="rgb_array",
+        sim_backend="physx_cpu",
+        render_backend="cpu",
+    )
+    probe_env.reset()
     with h5py.File(h5_path, "r") as f:
-        for ep_meta in tqdm(episodes_meta, desc="Episodes"):
-            ep_id = ep_meta["episode_id"]
-            traj_id = f"traj_{ep_id}"
-            if traj_id not in f:
-                continue
-            try:
-                traj = f[traj_id]
-                env_states = trajectory_utils.dict_to_list_of_dicts(traj["env_states"])
-                actions = np.asarray(traj["actions"][:])
-                reset_env_for_episode(env, ep_meta)
+        for ep_meta in episodes_meta:
+            traj_id = f"traj_{ep_meta['episode_id']}"
+            if traj_id in f:
+                sample = trajectory_utils.dict_to_list_of_dicts(f[traj_id]["env_states"])
+                state_key_map = build_state_key_map(
+                    probe_env.unwrapped.get_state_dict(),
+                    sample[0],
+                )
+                break
+    probe_env.close()
+    if state_key_map:
+        typer.echo(f"Remapping saved state keys: {state_key_map}")
 
-                try:
-                    base.set_state_dict(common.batch(env_states[0]))
-                    T = len(actions)
-                    images = []
-                    states = []
-                    for t in range(T):
-                        base.set_state_dict(common.batch(env_states[t]))
-                        obs = base.get_obs(unflattened=True)
-                        if hasattr(obs, "keys"):
-                            obs = common.index_dict_array(obs, 0, inplace=False)
-                        rgbs = extract_rgb_views(obs, env, num_cameras=num_cameras)
-                        state = flatten_obs_state(obs)
-                        cams = []
-                        for rgb in rgbs:
-                            img_pil = Image.fromarray(rgb).resize((image_size, image_size), Image.BILINEAR)
-                            cams.append(np.array(img_pil))
-                        images.append(np.stack(cams, axis=0))
-                        states.append(np.asarray(state, dtype=np.float32).flatten())
-                    images_np = np.stack(images, axis=0)
-                    states_np = np.stack(states, axis=0)
-                    actions_np = np.asarray(actions[: images_np.shape[0]], dtype=np.float32)
-                except KeyError as e:
-                    tqdm.write(
-                        f"Episode {ep_id}: env-state replay failed ({e}); falling back to action replay for this episode."
-                    )
-                    obs0, _ = reset_env_for_episode(env, ep_meta)
-                    if hasattr(obs0, "keys"):
-                        _ = common.index_dict_array(obs0, 0, inplace=False)
-                    images_np, states_np = collect_episode_with_actions(
-                        env=env,
-                        actions=actions,
-                        image_size=image_size,
-                        num_cameras=num_cameras,
-                    )
-                    actions_np = np.asarray(actions[: images_np.shape[0]], dtype=np.float32)
-                episodes_out.append({
-                    "images": torch.from_numpy(images_np).permute(0, 1, 4, 2, 3),
-                    "states": torch.from_numpy(states_np),
-                    "actions": torch.from_numpy(actions_np),
-                    "instruction": PICK_CUBE_INSTRUCTION,
-                })
-            except Exception as e:
-                tqdm.write(f"Episode {ep_id} failed: {e}")
-                raise
+    # Filter to episodes that exist in the HDF5 file
+    h5_path_str = str(h5_path)
+    with h5py.File(h5_path_str, "r") as f:
+        valid: list[tuple[dict, str]] = []
+        for ep_meta in episodes_meta:
+            traj_id = f"traj_{ep_meta['episode_id']}"
+            if traj_id in f:
+                valid.append((ep_meta, traj_id))
 
-    env.close()
+    if not valid:
+        typer.echo("No valid episodes found in HDF5 file.", err=True)
+        raise typer.Exit(1)
+
+    task_instruction = get_task_instruction(env_id)
+    typer.echo(f"Task instruction: {task_instruction!r}")
+
+    # Split episodes into chunks for parallel workers
+    effective_workers = min(num_workers, len(valid))
+    chunk_size = math.ceil(len(valid) / effective_workers)
+    chunks = [valid[i : i + chunk_size] for i in range(0, len(valid), chunk_size)]
+
+    typer.echo(f"Dispatching {len(valid)} episodes across {len(chunks)} workers")
+
+    threads_per_worker = max(1, (os.cpu_count() or 1) // effective_workers)
+    episodes_out: list[dict] = []
+
+    if effective_workers == 1:
+        # Single-worker: run directly in the main process (no IPC overhead)
+        chunk_results = _replay_episode_chunk(
+            chunks[0],
+            env_id,
+            control_mode,
+            obs_mode,
+            h5_path_str,
+            state_key_map,
+            image_size,
+            num_cameras,
+            threads_per_worker,
+        )
+        for ep_data in tqdm(chunk_results, desc="Episodes"):
+            episodes_out.append(
+                {
+                    "images": torch.from_numpy(ep_data["images"]).permute(0, 1, 4, 2, 3),
+                    "states": torch.from_numpy(ep_data["states"]),
+                    "actions": torch.from_numpy(ep_data["actions"]),
+                    "instruction": task_instruction,
+                }
+            )
+    else:
+        # Multi-worker: each process creates its own env + HDF5 handle
+        mp_context = multiprocessing.get_context("spawn")
+        futures_map: dict[object, int] = {}
+        with ProcessPoolExecutor(
+            max_workers=effective_workers,
+            mp_context=mp_context,
+        ) as executor:
+            for idx, chunk in enumerate(chunks):
+                future = executor.submit(
+                    _replay_episode_chunk,
+                    chunk,
+                    env_id,
+                    control_mode,
+                    obs_mode,
+                    h5_path_str,
+                    state_key_map,
+                    image_size,
+                    num_cameras,
+                    threads_per_worker,
+                )
+                futures_map[future] = idx
+
+            for future in tqdm(
+                as_completed(futures_map),
+                total=len(futures_map),
+                desc="Workers",
+            ):
+                chunk_results = future.result()
+                for ep_data in chunk_results:
+                    episodes_out.append(
+                        {
+                            "images": torch.from_numpy(ep_data["images"]).permute(0, 1, 4, 2, 3),
+                            "states": torch.from_numpy(ep_data["states"]),
+                            "actions": torch.from_numpy(ep_data["actions"]),
+                            "instruction": task_instruction,
+                        }
+                    )
 
     if not episodes_out:
-        typer.echo("No episodes were processed. Check that trajectory keys exist (traj_0, traj_1, ...).", err=True)
+        typer.echo(
+            "No episodes were processed. Check that trajectory keys exist " "(traj_0, traj_1, ...).",
+            err=True,
+        )
         raise typer.Exit(1)
 
     action_dim = int(episodes_out[0]["actions"].shape[-1])
     state_dim = int(episodes_out[0]["states"].shape[-1])
     out_name = skill.replace("-v1", "").replace("-", "_").lower() + ".pt"
     out_path = output_dir / out_name
-    torch.save({
-        "episodes": episodes_out,
-        "metadata": {
-            "env_id": env_id,
-            "skill": skill,
-            "num_episodes": len(episodes_out),
-            "action_dim": action_dim,
-            "state_dim": state_dim,
-            "image_size": image_size,
-            "num_cameras": num_cameras,
-            "instruction": PICK_CUBE_INSTRUCTION,
+    torch.save(
+        {
+            "episodes": episodes_out,
+            "metadata": {
+                "env_id": env_id,
+                "skill": skill,
+                "num_episodes": len(episodes_out),
+                "action_dim": action_dim,
+                "state_dim": state_dim,
+                "image_size": image_size,
+                "num_cameras": num_cameras,
+                "instruction": task_instruction,
+            },
         },
-    }, out_path)
+        out_path,
+    )
     typer.echo(f"Saved {len(episodes_out)} episodes to {out_path}")
 
 

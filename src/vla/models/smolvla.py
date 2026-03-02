@@ -42,7 +42,8 @@ def _create_sinusoidal_pos_embedding(
     device: torch.device,
 ) -> torch.Tensor:
     dtype = _get_safe_dtype(torch.float64, device.type)
-    fraction = torch.linspace(0.0, 1.0, dimension // 2, dtype=dtype, device=device)
+    fraction = torch.linspace(0.0, 1.0, dimension //
+                              2, dtype=dtype, device=device)
     period = min_period * (max_period / min_period) ** fraction
     scaling_factor = 1.0 / period * 2 * math.pi
     sin_input = scaling_factor[None, :] * time[:, None]
@@ -60,7 +61,8 @@ def _resize_with_pad(img: torch.Tensor, width: int, height: int, pad_value: floa
     cur_height, cur_width = img.shape[2:]
     ratio = max(cur_width / width, cur_height / height)
     rh, rw = int(cur_height / ratio), int(cur_width / ratio)
-    resized = F.interpolate(img, size=(rh, rw), mode="bilinear", align_corners=False)
+    resized = F.interpolate(img, size=(
+        rh, rw), mode="bilinear", align_corners=False)
     ph, pw = max(0, height - rh), max(0, width - rw)
     return F.pad(resized, (pw, 0, ph, 0), value=pad_value)
 
@@ -78,7 +80,8 @@ def _pad_vector(vector: torch.Tensor, new_dim: int) -> torch.Tensor:
 
 def _pad_tensor(tensor: torch.Tensor, max_len: int, pad_value: float = 0) -> torch.Tensor:
     b, d = tensor.shape[:2]
-    padded = torch.full((b, max_len, *tensor.shape[2:]), pad_value, dtype=tensor.dtype, device=tensor.device)
+    padded = torch.full(
+        (b, max_len, *tensor.shape[2:]), pad_value, dtype=tensor.dtype, device=tensor.device)
     padded[:, :d] = tensor
     return padded
 
@@ -96,8 +99,10 @@ class VLAFlowMatching(nn.Module):
         self.min_period: float = config.get("min_period", 4e-3)
         self.max_period: float = config.get("max_period", 4.0)
         self.use_cache: bool = config.get("use_cache", True)
-        self.resize_imgs_with_padding: list[int] | None = config.get("resize_imgs_with_padding")
-        self.add_image_special_tokens: bool = config.get("add_image_special_tokens", False)
+        self.resize_imgs_with_padding: list[int] | None = config.get(
+            "resize_imgs_with_padding")
+        self.add_image_special_tokens: bool = config.get(
+            "add_image_special_tokens", False)
         self.prefix_length: int = config.get("prefix_length", 0)
 
         self.vlm_with_expert = SmolVLMWithExpertModel(
@@ -123,8 +128,10 @@ class VLAFlowMatching(nn.Module):
 
         self.fake_image_token = self.vlm_with_expert.processor.tokenizer.fake_image_token_id
         self.global_image_token = self.vlm_with_expert.processor.tokenizer.global_image_token_id
-        self.global_image_start_token = torch.tensor([self.fake_image_token, self.global_image_token], dtype=torch.long)
-        self.image_end_token = torch.tensor([self.fake_image_token], dtype=torch.long)
+        self.global_image_start_token = torch.tensor(
+            [self.fake_image_token, self.global_image_token], dtype=torch.long)
+        self.image_end_token = torch.tensor(
+            [self.fake_image_token], dtype=torch.long)
 
     def _sample_noise(self, shape: tuple, device: torch.device) -> torch.Tensor:
         return torch.randn(shape, dtype=torch.float32, device=device)
@@ -148,12 +155,14 @@ class VLAFlowMatching(nn.Module):
             if self.add_image_special_tokens:
                 start_tok = (
                     self.vlm_with_expert.embed_language_tokens(
-                        self.global_image_start_token.to(device=self.vlm_with_expert.vlm.device)
+                        self.global_image_start_token.to(
+                            device=self.vlm_with_expert.vlm.device)
                     )
                     .unsqueeze(0)
                     .expand(img.shape[0], -1, -1)
                 )
-                start_mask = torch.ones_like(start_tok[:, :, 0], dtype=torch.bool)
+                start_mask = torch.ones_like(
+                    start_tok[:, :, 0], dtype=torch.bool)
                 att_masks += [0] * start_mask.shape[-1]
                 embs.append(start_tok)
                 pad_masks.append(start_mask)
@@ -170,7 +179,8 @@ class VLAFlowMatching(nn.Module):
             if self.add_image_special_tokens:
                 end_tok = (
                     self.vlm_with_expert.embed_language_tokens(
-                        self.image_end_token.to(device=self.vlm_with_expert.vlm.device)
+                        self.image_end_token.to(
+                            device=self.vlm_with_expert.vlm.device)
                     )
                     .unsqueeze(0)
                     .expand(img.shape[0], -1, -1)
@@ -193,12 +203,14 @@ class VLAFlowMatching(nn.Module):
         bsize = state_emb.shape[0]
         device = state_emb.device
         s_len = state_emb.shape[1]
-        pad_masks.append(torch.ones(bsize, s_len, dtype=torch.bool, device=device))
+        pad_masks.append(torch.ones(
+            bsize, s_len, dtype=torch.bool, device=device))
         att_masks += [1] * s_len
 
         embs_t = torch.cat(embs, dim=1)
         pad_t = torch.cat(pad_masks, dim=1)
-        att_t = torch.tensor(att_masks, dtype=torch.bool, device=pad_t.device)[None, :]
+        att_t = torch.tensor(att_masks, dtype=torch.bool,
+                             device=pad_t.device)[None, :]
 
         seq_len = pad_t.shape[1]
         if self.prefix_length > 0 and seq_len < self.prefix_length:
@@ -220,12 +232,15 @@ class VLAFlowMatching(nn.Module):
             timestep, self.vlm_with_expert.expert_hidden_size, self.min_period, self.max_period, device
         ).to(dtype)
         time_emb = time_emb[:, None, :].expand_as(action_emb)
-        at_emb = F.silu(self.action_time_mlp_in(torch.cat([action_emb, time_emb], dim=2)))
+        at_emb = F.silu(self.action_time_mlp_in(
+            torch.cat([action_emb, time_emb], dim=2)))
         at_emb = self.action_time_mlp_out(at_emb)
 
-        at_mask = torch.ones(bsize, at_emb.shape[1], dtype=torch.bool, device=device)
+        at_mask = torch.ones(
+            bsize, at_emb.shape[1], dtype=torch.bool, device=device)
         att = [1] * self.chunk_size
-        att_t = torch.tensor(att, dtype=at_emb.dtype, device=device)[None, :].expand(bsize, -1)
+        att_t = torch.tensor(att, dtype=at_emb.dtype, device=device)[
+            None, :].expand(bsize, -1)
         return at_emb, at_mask, att_t
 
     def forward(
@@ -241,11 +256,13 @@ class VLAFlowMatching(nn.Module):
     ) -> torch.Tensor:
         act_dtype = actions.dtype
         if noise is None:
-            noise = self._sample_noise(actions.shape, actions.device).to(act_dtype)
+            noise = self._sample_noise(
+                actions.shape, actions.device).to(act_dtype)
         else:
             noise = noise.to(act_dtype)
         if time is None:
-            time = self._sample_time(actions.shape[0], actions.device).to(act_dtype)
+            time = self._sample_time(
+                actions.shape[0], actions.device).to(act_dtype)
         else:
             time = time.to(act_dtype)
 
@@ -253,7 +270,8 @@ class VLAFlowMatching(nn.Module):
         x_t = t * noise + (1 - t) * actions
         u_t = noise - actions
 
-        pre_embs, pre_pad, pre_att = self.embed_prefix(images, img_masks, lang_tokens, lang_masks, state)
+        pre_embs, pre_pad, pre_att = self.embed_prefix(
+            images, img_masks, lang_tokens, lang_masks, state)
         suf_embs, suf_pad, suf_att = self.embed_suffix(x_t, time)
 
         pad = torch.cat([pre_pad, suf_pad], dim=1)
@@ -269,7 +287,7 @@ class VLAFlowMatching(nn.Module):
             use_cache=False,
             fill_kv_cache=False,
         )
-        suffix_out = suffix_out[:, -self.chunk_size :]
+        suffix_out = suffix_out[:, -self.chunk_size:]
         v_t = self.action_out_proj(suffix_out)
         return F.mse_loss(u_t.float(), v_t.float(), reduction="none")
 
@@ -286,9 +304,11 @@ class VLAFlowMatching(nn.Module):
         device = state.device
         mdtype = state.dtype
         if noise is None:
-            noise = self._sample_noise((bsize, self.chunk_size, self.max_action_dim), device).to(mdtype)
+            noise = self._sample_noise(
+                (bsize, self.chunk_size, self.max_action_dim), device).to(mdtype)
 
-        pre_embs, pre_pad, pre_att = self.embed_prefix(images, img_masks, lang_tokens, lang_masks, state)
+        pre_embs, pre_pad, pre_att = self.embed_prefix(
+            images, img_masks, lang_tokens, lang_masks, state)
         pre_att_2d = _make_att_2d_masks(pre_pad, pre_att)
         pre_pos = torch.cumsum(pre_pad, dim=1) - 1
 
@@ -305,7 +325,8 @@ class VLAFlowMatching(nn.Module):
         x_t = noise
         for step in range(self.num_steps):
             t_val = 1.0 + step * dt
-            t_tensor = torch.tensor(t_val, dtype=mdtype, device=device).expand(bsize)
+            t_tensor = torch.tensor(
+                t_val, dtype=mdtype, device=device).expand(bsize)
             v_t = self._denoise_step(x_t, pre_pad, past_kv, t_tensor)
             x_t = x_t + dt * v_t
         return x_t
@@ -335,7 +356,7 @@ class VLAFlowMatching(nn.Module):
             use_cache=self.use_cache,
             fill_kv_cache=False,
         )
-        suffix_out = out[1][:, -self.chunk_size :]
+        suffix_out = out[1][:, -self.chunk_size:]
         return self.action_out_proj(suffix_out)
 
 
@@ -394,19 +415,26 @@ class SmolVLAPolicy(nn.Module):
         weights_path = self._resolve_weights(checkpoint)
         raw_sd = load_safetensors(weights_path, device="cpu")
         prefix = "model."
-        state_dict = {k[len(prefix) :] if k.startswith(prefix) else k: v for k, v in raw_sd.items()}
-        missing, unexpected = self.model.load_state_dict(state_dict, strict=False)
+        state_dict = {k[len(prefix):] if k.startswith(
+            prefix) else k: v for k, v in raw_sd.items()}
+        missing, unexpected = self.model.load_state_dict(
+            state_dict, strict=False)
         if unexpected:
             import logging
 
-            logging.warning("Unexpected keys when loading SmolVLA checkpoint: %s", unexpected[:10])
+            logging.warning(
+                "Unexpected keys when loading SmolVLA checkpoint: %s", unexpected[:10])
 
         self.model.to(device=self.device, dtype=self.dtype)
 
-        self.register_buffer("action_mean", torch.zeros(action_dim), persistent=True)
-        self.register_buffer("action_std", torch.ones(action_dim), persistent=True)
-        self.register_buffer("state_mean", torch.zeros(max(state_dim, 1)), persistent=True)
-        self.register_buffer("state_std", torch.ones(max(state_dim, 1)), persistent=True)
+        self.register_buffer("action_mean", torch.zeros(
+            action_dim), persistent=True)
+        self.register_buffer("action_std", torch.ones(
+            action_dim), persistent=True)
+        self.register_buffer("state_mean", torch.zeros(
+            max(state_dim, 1)), persistent=True)
+        self.register_buffer("state_std", torch.ones(
+            max(state_dim, 1)), persistent=True)
 
     def set_normalization(
         self,
@@ -425,17 +453,19 @@ class SmolVLAPolicy(nn.Module):
         """
         self.action_mean.copy_(action_mean.to(self.device))
         self.action_std.copy_(action_std.to(self.device))
-        self.state_mean = state_mean.to(self.device)
-        self.state_std = state_std.to(self.device)
+        self.state_mean.copy_(state_mean.to(self.device))
+        self.state_std.copy_(state_std.to(self.device))
 
     def _normalize_action(self, action: torch.Tensor) -> torch.Tensor:
         mean = self.action_mean.to(action.device, dtype=action.dtype)
-        std = self.action_std.to(action.device, dtype=action.dtype).clamp(min=1e-8)
+        std = self.action_std.to(
+            action.device, dtype=action.dtype).clamp(min=1e-8)
         return (action - mean) / std
 
     def _denormalize_action(self, action: torch.Tensor) -> torch.Tensor:
         mean = self.action_mean.to(action.device, dtype=action.dtype)
-        std = self.action_std.to(action.device, dtype=action.dtype).clamp(min=1e-8)
+        std = self.action_std.to(
+            action.device, dtype=action.dtype).clamp(min=1e-8)
         return action * std + mean
 
     def _normalize_state(self, state: torch.Tensor) -> torch.Tensor:
@@ -443,7 +473,8 @@ class SmolVLAPolicy(nn.Module):
             return state
         sdim = min(state.shape[-1], self.state_mean.shape[0])
         mean = self.state_mean[:sdim].to(state.device, dtype=state.dtype)
-        std = self.state_std[:sdim].to(state.device, dtype=state.dtype).clamp(min=1e-8)
+        std = self.state_std[:sdim].to(
+            state.device, dtype=state.dtype).clamp(min=1e-8)
         out = state.clone()
         out[..., :sdim] = (state[..., :sdim] - mean) / std
         return out
@@ -477,7 +508,8 @@ class SmolVLAPolicy(nn.Module):
 
     def _tokenize(self, instruction: str, batch_size: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
         tok_max = self.ckpt_config.get("tokenizer_max_length", 48)
-        text = instruction if instruction.endswith("\n") else instruction + "\n"
+        text = instruction if instruction.endswith(
+            "\n") else instruction + "\n"
         encoded = self.processor.tokenizer(
             text,
             padding="max_length",
@@ -486,14 +518,16 @@ class SmolVLAPolicy(nn.Module):
             return_tensors="pt",
         )
         tokens = encoded["input_ids"].to(self.device).expand(batch_size, -1)
-        masks = encoded["attention_mask"].to(self.device).bool().expand(batch_size, -1)
+        masks = encoded["attention_mask"].to(
+            self.device).bool().expand(batch_size, -1)
         return tokens, masks
 
     def _prepare_images(self, images: torch.Tensor) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
         if images.ndim == 4:
             images = images.unsqueeze(1)
         if images.ndim != 5:
-            raise ValueError(f"Expected image tensor with 4 or 5 dims, got shape {tuple(images.shape)}")
+            raise ValueError(
+                f"Expected image tensor with 4 or 5 dims, got shape {tuple(images.shape)}")
 
         bsize, n_views, _, _, _ = images.shape
         if n_views < self.num_image_inputs:
@@ -505,7 +539,8 @@ class SmolVLAPolicy(nn.Module):
                     self.num_image_inputs,
                 )
                 self._warned_camera_fallback = True
-            pad = images[:, -1:].expand(-1, self.num_image_inputs - n_views, -1, -1, -1)
+            pad = images[:, -1:].expand(-1,
+                                        self.num_image_inputs - n_views, -1, -1, -1)
             images = torch.cat([images, pad], dim=1)
         elif n_views > self.num_image_inputs:
             images = images[:, : self.num_image_inputs]
@@ -552,12 +587,14 @@ class SmolVLAPolicy(nn.Module):
         with torch.no_grad():
             img = self._to_float01(image)
             if img.ndim not in (3, 4):
-                raise ValueError(f"Expected image shape (C,H,W) or (N,C,H,W), got {tuple(img.shape)}")
+                raise ValueError(
+                    f"Expected image shape (C,H,W) or (N,C,H,W), got {tuple(img.shape)}")
             imgs = img.unsqueeze(0).to(self.device, dtype=self.dtype)
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
             s = self._prepare_state_input(state, batch_size=1)
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            actions = self.model.sample_actions(
+                img_list, mask_list, tokens, tmasks, s)
             raw = actions[0, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
 
@@ -577,12 +614,15 @@ class SmolVLAPolicy(nn.Module):
         self.eval()
         with torch.no_grad():
             if images.ndim not in (4, 5):
-                raise ValueError(f"Expected image batch shape (B,C,H,W) or (B,N,C,H,W), got {tuple(images.shape)}")
+                raise ValueError(
+                    f"Expected image batch shape (B,C,H,W) or (B,N,C,H,W), got {tuple(images.shape)}")
             imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
             img_list, mask_list = self._prepare_images(imgs)
-            tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
+            tokens, tmasks = self._tokenize(
+                instruction, batch_size=imgs.shape[0])
             s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            actions = self.model.sample_actions(
+                img_list, mask_list, tokens, tmasks, s)
             raw = actions[:, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
 
@@ -609,11 +649,14 @@ class SmolVLAPolicy(nn.Module):
         img_list, mask_list = self._prepare_images(imgs)
         tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
         s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-        normalized_actions = self._normalize_action(target_actions.to(self.device, dtype=self.dtype))
+        normalized_actions = self._normalize_action(
+            target_actions.to(self.device, dtype=self.dtype))
         actions_padded = self._prepare_action(normalized_actions)
-        actions_padded = actions_padded.unsqueeze(1).expand(-1, self.chunk_size, -1)
+        actions_padded = actions_padded.unsqueeze(
+            1).expand(-1, self.chunk_size, -1)
 
-        losses = self.model.forward(img_list, mask_list, tokens, tmasks, s, actions_padded)
+        losses = self.model.forward(
+            img_list, mask_list, tokens, tmasks, s, actions_padded)
         loss = losses[:, :, : self.max_action_dim].mean()
         return {"loss": loss}
 
@@ -635,7 +678,8 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
             s = self._prepare_state_input(state, batch_size=1)
-            embs, _, _ = self.model.embed_prefix(img_list, mask_list, tokens, tmasks, s)
+            embs, _, _ = self.model.embed_prefix(
+                img_list, mask_list, tokens, tmasks, s)
             return embs[0, -1].float()
 
     def save_checkpoint(self, path: str | Path) -> None:
@@ -660,7 +704,8 @@ class SmolVLAPolicy(nn.Module):
     def load_checkpoint(self, path: str | Path) -> None:
         """Load model weights and normalization statistics from a previously saved checkpoint."""
         path = Path(path)
-        data = torch.load(path / "policy.pt", map_location=self.device, weights_only=False)
+        data = torch.load(path / "policy.pt",
+                          map_location=self.device, weights_only=False)
         self.model.load_state_dict(data["model_state_dict"])
         if "action_mean" in data:
             self.action_mean.copy_(data["action_mean"])
