@@ -65,6 +65,9 @@ class WorldModelEncoder(ABC):
         """
         indices = list(range(0, images.shape[0], subsample_every))
         frames = images[indices]
+        if frames.ndim == 5:
+            t, v, c, h, w = frames.shape
+            frames = frames.reshape(t * v, c, h, w)
         frame_embs = self.encode_frames(frames)
         return frame_embs.mean(dim=0)
 

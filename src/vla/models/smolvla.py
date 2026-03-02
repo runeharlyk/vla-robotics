@@ -10,6 +10,7 @@ id stored in the checkpoint config (e.g. ``HuggingFaceTB/SmolVLM2-500M-Instruct`
 from __future__ import annotations
 
 import json
+import logging
 import math
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,7 @@ from transformers import AutoProcessor
 from vla.models.vendor.smolvlm_with_expert import SmolVLMWithExpertModel
 
 DEFAULT_CHECKPOINT = "HuggingFaceVLA/smolvla_libero"
+logger = logging.getLogger(__name__)
 
 
 def _get_safe_dtype(dtype: torch.dtype, device_type: str) -> torch.dtype:
@@ -374,6 +376,16 @@ class SmolVLAPolicy(nn.Module):
         self.max_state_dim: int = ckpt_config.get("max_state_dim", 32)
         self.max_action_dim: int = ckpt_config.get("max_action_dim", 32)
         self.chunk_size: int = ckpt_config.get("chunk_size", 50)
+        input_features = ckpt_config.get("input_features", {})
+        self.num_image_inputs = max(
+            1,
+            sum(
+                1
+                for spec in input_features.values()
+                if isinstance(spec, dict) and spec.get("type") == "VISUAL"
+            ),
+        )
+        self._warned_camera_fallback = False
 
         self.processor = AutoProcessor.from_pretrained(self.vlm_model_name)
 
@@ -478,14 +490,38 @@ class SmolVLAPolicy(nn.Module):
         return tokens, masks
 
     def _prepare_images(self, images: torch.Tensor) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
+        if images.ndim == 4:
+            images = images.unsqueeze(1)
+        if images.ndim != 5:
+            raise ValueError(f"Expected image tensor with 4 or 5 dims, got shape {tuple(images.shape)}")
+
+        bsize, n_views, _, _, _ = images.shape
+        if n_views < self.num_image_inputs:
+            if not self._warned_camera_fallback:
+                logger.warning(
+                    "Only %d camera view(s) provided, but checkpoint expects %d. "
+                    "Falling back by duplicating the last camera view.",
+                    n_views,
+                    self.num_image_inputs,
+                )
+                self._warned_camera_fallback = True
+            pad = images[:, -1:].expand(-1, self.num_image_inputs - n_views, -1, -1, -1)
+            images = torch.cat([images, pad], dim=1)
+        elif n_views > self.num_image_inputs:
+            images = images[:, : self.num_image_inputs]
+
         resize = self.ckpt_config.get("resize_imgs_with_padding")
-        img = images
-        if resize is not None:
-            img = _resize_with_pad(img, *resize, pad_value=0)
-        img = img * 2.0 - 1.0
-        bsize = img.shape[0]
-        mask = torch.ones(bsize, dtype=torch.bool, device=img.device)
-        return [img], [mask]
+        img_list: list[torch.Tensor] = []
+        mask_list: list[torch.Tensor] = []
+        for i in range(self.num_image_inputs):
+            img = images[:, i]
+            if resize is not None:
+                img = _resize_with_pad(img, *resize, pad_value=0)
+            img = img * 2.0 - 1.0
+            mask = torch.ones(bsize, dtype=torch.bool, device=img.device)
+            img_list.append(img)
+            mask_list.append(mask)
+        return img_list, mask_list
 
     def _prepare_state(self, state: torch.Tensor) -> torch.Tensor:
         return _pad_vector(state, self.max_state_dim)
@@ -515,6 +551,8 @@ class SmolVLAPolicy(nn.Module):
         self.eval()
         with torch.no_grad():
             img = self._to_float01(image)
+            if img.ndim not in (3, 4):
+                raise ValueError(f"Expected image shape (C,H,W) or (N,C,H,W), got {tuple(img.shape)}")
             imgs = img.unsqueeze(0).to(self.device, dtype=self.dtype)
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
@@ -538,6 +576,8 @@ class SmolVLAPolicy(nn.Module):
         """
         self.eval()
         with torch.no_grad():
+            if images.ndim not in (4, 5):
+                raise ValueError(f"Expected image batch shape (B,C,H,W) or (B,N,C,H,W), got {tuple(images.shape)}")
             imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])

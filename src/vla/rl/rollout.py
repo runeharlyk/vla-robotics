@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,6 +11,8 @@ import numpy as np
 import torch
 
 import mani_skill.envs  # noqa: F401 – registers envs
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -48,14 +51,18 @@ class ManiSkillRollout:
         num_envs: int = 1,
         max_steps: int = 200,
         image_size: int = 256,
-        obs_mode: str = "state",
+        obs_mode: str = "rgb+state",
         control_mode: str = "pd_joint_pos",
         sim_backend: str = "physx_cpu",
+        num_cameras: int = 2,
     ) -> None:
         self.env_id = env_id
         self.num_envs = num_envs
         self.max_steps = max_steps
         self.image_size = image_size
+        self.num_cameras = max(1, num_cameras)
+        self._warned_camera_fallback = False
+        self._warned_render_fallback = False
 
         render_backend = "cpu" if sim_backend == "physx_cpu" else "gpu"
         self.env = gym.make(
@@ -66,17 +73,55 @@ class ManiSkillRollout:
             render_mode="rgb_array",
             sim_backend=sim_backend,
             render_backend=render_backend,
+            sensor_configs={"width": image_size, "height": image_size},
             max_episode_steps=max_steps,
         )
 
-    def _render_image(self) -> np.ndarray:
-        """Render the current scene and return ``(H, W, 3)`` uint8 array."""
-        frame = self.env.render()
+    @staticmethod
+    def _frame_to_rgb_list(frame: Any) -> list[np.ndarray]:
+        frames: list[np.ndarray] = []
+        if frame is None:
+            return frames
         if hasattr(frame, "cpu"):
             frame = frame.cpu().numpy()
-        if frame.ndim == 4:
-            frame = frame[0]
-        return np.asarray(frame, dtype=np.uint8)
+        if isinstance(frame, dict):
+            for value in frame.values():
+                frames.extend(ManiSkillRollout._frame_to_rgb_list(value))
+            return frames
+        if isinstance(frame, (list, tuple)):
+            for value in frame:
+                frames.extend(ManiSkillRollout._frame_to_rgb_list(value))
+            return frames
+
+        arr = np.asarray(frame)
+        if arr.ndim == 3:
+            if arr.shape[-1] == 3:
+                frames.append(arr.astype(np.uint8))
+            elif arr.shape[0] == 3:
+                frames.append(np.transpose(arr, (1, 2, 0)).astype(np.uint8))
+            return frames
+        if arr.ndim == 4:
+            if arr.shape[-1] == 3:
+                if arr.shape[0] == 1:
+                    frames.append(arr[0].astype(np.uint8))
+                else:
+                    frames.extend([arr[i].astype(np.uint8) for i in range(arr.shape[0])])
+            elif arr.shape[1] == 3:
+                frames.extend([np.transpose(arr[i], (1, 2, 0)).astype(np.uint8) for i in range(arr.shape[0])])
+            return frames
+        if arr.ndim == 5 and arr.shape[-1] == 3:
+            if arr.shape[0] == 1:
+                frames.extend([arr[0, i].astype(np.uint8) for i in range(arr.shape[1])])
+            return frames
+        return frames
+
+    def _render_images(self) -> list[np.ndarray]:
+        """Render the current scene and return a list of ``(H, W, 3)`` uint8 images."""
+        frame = self.env.render()
+        frames = self._frame_to_rgb_list(frame)
+        if not frames:
+            raise RuntimeError("Could not extract RGB frame(s) from environment render output")
+        return frames
 
     @staticmethod
     def _flatten_obs(obs: dict | np.ndarray) -> np.ndarray:
@@ -101,6 +146,55 @@ class ManiSkillRollout:
         if hasattr(x, "cpu"):
             x = x.cpu().numpy()
         return np.asarray(x, dtype=np.float32).flatten()
+
+    @staticmethod
+    def _extract_sensor_rgbs(obs: dict | np.ndarray) -> list[np.ndarray]:
+        if not isinstance(obs, dict) or "sensor_data" not in obs:
+            return []
+        sensor_data = obs["sensor_data"]
+        if not isinstance(sensor_data, dict):
+            return []
+        frames: list[np.ndarray] = []
+        for cam_data in sensor_data.values():
+            if not isinstance(cam_data, dict) or "rgb" not in cam_data:
+                continue
+            rgb = cam_data["rgb"]
+            if hasattr(rgb, "cpu"):
+                rgb = rgb.cpu().numpy()
+            arr = np.asarray(rgb)
+            if arr.ndim == 4:
+                arr = arr[0]
+            if arr.ndim == 3 and arr.shape[-1] == 3:
+                frames.append(arr.astype(np.uint8))
+        return frames
+
+    def _get_camera_images(self, obs: dict | np.ndarray) -> list[np.ndarray]:
+        sensor_frames = self._extract_sensor_rgbs(obs)
+        if len(sensor_frames) >= self.num_cameras:
+            return sensor_frames[: self.num_cameras]
+        render_frames = self._render_images()
+        if len(sensor_frames) < self.num_cameras and render_frames and not self._warned_render_fallback:
+            logger.warning(
+                "Only %d sensor camera view(s) available, but %d requested. "
+                "Using render() views to fill remaining camera slots before duplication fallback.",
+                len(sensor_frames),
+                self.num_cameras,
+            )
+            self._warned_render_fallback = True
+        frames = sensor_frames + render_frames
+        if not frames:
+            raise RuntimeError("Could not extract any camera images from sensor_data or render output")
+        if len(frames) < self.num_cameras:
+            if not self._warned_camera_fallback:
+                logger.warning(
+                    "Only %d total camera view(s) available after sensor+render extraction, but %d requested. "
+                    "Falling back by duplicating the last camera view.",
+                    len(frames),
+                    self.num_cameras,
+                )
+                self._warned_camera_fallback = True
+            frames.extend([frames[-1].copy() for _ in range(self.num_cameras - len(frames))])
+        return frames[: self.num_cameras]
 
     @staticmethod
     def _extract_privileged(info: dict) -> dict[str, float]:
@@ -133,12 +227,15 @@ class ManiSkillRollout:
         success = False
 
         for _step in range(self.max_steps):
-            rgb = self._render_image()
+            rgbs = self._get_camera_images(obs)
             from PIL import Image as PILImage
 
-            pil = PILImage.fromarray(rgb).resize((self.image_size, self.image_size), PILImage.BILINEAR)
-            img_np = np.array(pil, dtype=np.uint8)
-            img_t = torch.from_numpy(img_np).permute(2, 0, 1)
+            cam_tensors = []
+            for rgb in rgbs:
+                pil = PILImage.fromarray(rgb).resize((self.image_size, self.image_size), PILImage.BILINEAR)
+                img_np = np.array(pil, dtype=np.uint8)
+                cam_tensors.append(torch.from_numpy(img_np).permute(2, 0, 1))
+            img_t = torch.stack(cam_tensors, dim=0)
             state = self._flatten_obs(obs)
             state_t = torch.from_numpy(state)
 

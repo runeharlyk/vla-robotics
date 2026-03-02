@@ -58,6 +58,8 @@ class FewDemoDataset(Dataset):
         for ep in episodes:
             T = ep["actions"].shape[0]
             img = ep["images"][:T]
+            if img.ndim == 4:
+                img = img.unsqueeze(1)
             st = ep["states"][:T]
             act = ep["actions"][:T]
             self.images.append(img)
