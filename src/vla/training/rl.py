@@ -85,10 +85,11 @@ def train_rl(
     """Online RL fine-tuning of a pre-trained policy."""
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
 
-    from vla.models.smolvla import smolvla
+    from vla.models import load_policy
 
-    policy, model_id, _ = smolvla(checkpoint, device)
-    policy.train()
+    loaded = load_policy("smolvla", checkpoint, device)
+    policy = loaded.policy
+    policy.eval()
 
     sim = simulator.lower()
     factory_kwargs: dict = {}
@@ -109,7 +110,7 @@ def train_rl(
         save_path = str(MODELS_DIR / f"{label}.pt")
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
 
-    optimizer = torch.optim.AdamW(
+    optimizer = torch.optim.AdamW(  # noqa: F841 — used once PPO/SRPO loss is wired
         [p for p in policy.parameters() if p.requires_grad],
         lr=lr,
     )

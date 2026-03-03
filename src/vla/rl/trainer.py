@@ -421,12 +421,9 @@ def train_srpo(
         if demo_trajectories:
             demo_images = []
             for dt in demo_trajectories:
-                imgs = dt.images[: dt.length]
-                if imgs.dtype == torch.uint8:
-                    imgs = imgs.float() / 255.0
-                else:
-                    imgs = imgs.float()
-                demo_images.append(imgs)
+                    imgs = dt.images[: dt.length]
+                    imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
+                    demo_images.append(imgs)
             reward_model.add_demo_trajectories(demo_images)
 
     rollout_engine = ManiSkillRollout(
@@ -481,7 +478,7 @@ def train_srpo(
         total_surrogate = 0.0
         total_kl = 0.0
 
-        for ppo_epoch in range(config.ppo_epochs):
+        for _ppo_epoch in range(config.ppo_epochs):
             epoch_loss_sum = 0.0
             for i, traj in enumerate(trajectories):
                 adv_i = advantages[i]

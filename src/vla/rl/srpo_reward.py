@@ -118,10 +118,7 @@ class WorldProgressReward:
     def _encode_trajectory(self, traj: Trajectory) -> torch.Tensor:
         """Encode a trajectory's images into a trajectory-level embedding."""
         imgs = traj.images[: traj.length]
-        if imgs.dtype == torch.uint8:
-            imgs = imgs.float() / 255.0
-        else:
-            imgs = imgs.float()
+        imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
         return self.encoder.encode_trajectory(imgs, self.cfg.subsample_every)
 
     def _activation(self, x: torch.Tensor) -> torch.Tensor:
@@ -159,7 +156,7 @@ class WorldProgressReward:
         failed_distances: list[torch.Tensor] = []
         failed_indices: list[int] = []
 
-        for i, (traj, emb) in enumerate(zip(trajectories, traj_embeddings)):
+        for i, (traj, emb) in enumerate(zip(trajectories, traj_embeddings, strict=True)):
             if traj.success:
                 rewards.append(1.0)
             else:

@@ -75,7 +75,8 @@ def export_images_from_suite(
 
     episode_set = set(episode_ids) if episode_ids is not None else None
     print(
-        f"  Streaming dataset: {repo_id}  (max_episodes={max_episodes}, episode_ids={episode_ids}, max_frames={max_frames})"
+        f"  Streaming dataset: {repo_id}  "
+        f"(max_episodes={max_episodes}, episode_ids={episode_ids}, max_frames={max_frames})"
     )
     ds_iter = load_dataset(repo_id, split="train", streaming=True)
 

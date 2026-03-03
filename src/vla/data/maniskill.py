@@ -26,7 +26,19 @@ class ManiSkillDataset(Dataset):
         self._action_dim = action_dim
 
         if self._path.suffix == ".pt":
-            self._samples = torch.load(self._path, weights_only=False)
+            raw = torch.load(self._path, weights_only=False)
+            if isinstance(raw, dict) and "episodes" in raw:
+                self._samples = raw["episodes"]
+                self._metadata = raw.get("metadata", {})
+                if not instruction and "instruction" in self._metadata:
+                    self._instruction = self._metadata["instruction"]
+                if "action_dim" in self._metadata:
+                    self._action_dim = self._metadata["action_dim"]
+            elif isinstance(raw, list):
+                self._samples = raw
+                self._metadata = {}
+            else:
+                raise ValueError("Unexpected .pt format: expected list or dict with 'episodes' key")
         elif self._path.suffix in (".h5", ".hdf5"):
             self._samples = self._load_hdf5(self._path)
         else:

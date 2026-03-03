@@ -116,10 +116,7 @@ def grad_cam_llm_layers(model, pil_image, task_description, target_word, device=
     gradients = {}
 
     def _extract_hidden(output):
-        if isinstance(output, tuple):
-            t = output[0]
-        else:
-            t = output
+        t = output[0] if isinstance(output, tuple) else output
         if t.dim() == 2:
             t = t.unsqueeze(0)
         return t

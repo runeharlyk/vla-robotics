@@ -21,11 +21,10 @@ import h5py
 import numpy as np
 import torch
 import typer
-from PIL import Image
-from tqdm import tqdm
-
 from mani_skill.trajectory import utils as trajectory_utils
 from mani_skill.utils import common, io_utils
+from PIL import Image
+from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
@@ -258,10 +257,7 @@ def collect_episode_with_actions(
 ) -> tuple[np.ndarray, np.ndarray]:
     images = []
     states = []
-    if initial_obs is not None:
-        obs = initial_obs
-    else:
-        obs = env.unwrapped.get_obs(unflattened=True)
+    obs = initial_obs if initial_obs is not None else env.unwrapped.get_obs(unflattened=True)
     if hasattr(obs, "keys"):
         obs = common.index_dict_array(obs, 0, inplace=False)
     T = len(actions)

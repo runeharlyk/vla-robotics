@@ -7,10 +7,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import gymnasium as gym
+import mani_skill.envs  # noqa: F401 – registers envs
 import numpy as np
 import torch
-
-import mani_skill.envs  # noqa: F401 – registers envs
 
 logger = logging.getLogger(__name__)
 

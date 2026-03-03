@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset, Subset
 
+from vla.data.dataset import FewDemoDataset
 from vla.data.libero import LiberoDataset, load_libero_all, load_libero_suite
 from vla.data.maniskill import ManiSkillDataset, load_maniskill_dataset
 
@@ -79,6 +80,7 @@ def make_dataloader(
 
 
 __all__ = [
+    "FewDemoDataset",
     "LiberoDataset",
     "ManiSkillDataset",
     "load_dataset",

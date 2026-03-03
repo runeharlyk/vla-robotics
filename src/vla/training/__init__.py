@@ -1,1 +1,1 @@
-from vla.training.lr_scheduler import CosineDecayWithWarmup
+from vla.training.lr_scheduler import CosineDecayWithWarmup as CosineDecayWithWarmup

@@ -11,8 +11,8 @@ import logging
 from pathlib import Path
 
 import typer
-import wandb
 
+import wandb
 from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.rollout import Trajectory

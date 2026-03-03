@@ -11,8 +11,8 @@ from pathlib import Path
 
 import torch
 import typer
-import wandb
 
+import wandb
 from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.trainer import SFTConfig, train_sft

@@ -267,9 +267,6 @@ def create_job(
     print(script)
     print("--- end ---")
     print(f"\nSubmit with:  bsub < {script_path}")
-def list_envs(ctx: Context) -> None:
-    """List available ManiSkill environments."""
-    ctx.run(f"uv run python src/{PROJECT_NAME}/visualizer.py list-envs", echo=True, pty=not WINDOWS)
 
 
 @task
@@ -322,8 +319,8 @@ def evaluate_policy(
     env: str = "PickCube-v1",
 ) -> None:
     """Evaluate a saved policy checkpoint."""
-    ctx.run(
-        f"uv run python scripts/evaluate.py --checkpoint-dir {checkpoint_dir} --num-episodes {num_episodes} --env {env}",
-        echo=True,
-        pty=not WINDOWS,
+    cmd = (
+        f"uv run python scripts/evaluate.py "
+        f"--checkpoint-dir {checkpoint_dir} --num-episodes {num_episodes} --env {env}"
     )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
