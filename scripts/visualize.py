@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import numpy as np
@@ -47,7 +46,7 @@ def _output_frames(
     frames: list[np.ndarray],
     default_path: Path,
     title: str,
-    output: Optional[str],
+    output: str | None,
     save: bool,
     speed: float,
 ) -> None:
@@ -87,7 +86,7 @@ def maniskill(
     seed: int = typer.Option(0, "--seed"),
     speed: float = typer.Option(1.0, "--speed"),
     save: bool = typer.Option(False, "--save"),
-    output: Optional[str] = typer.Option(None, "--output", "-o"),
+    output: str | None = typer.Option(None, "--output", "-o"),
 ) -> None:
     import gymnasium as gym
     import mani_skill  # noqa: F401
@@ -137,7 +136,7 @@ def libero(
     seed: int = typer.Option(0, "--seed"),
     speed: float = typer.Option(1.0, "--speed"),
     save: bool = typer.Option(False, "--save"),
-    output: Optional[str] = typer.Option(None, "--output", "-o"),
+    output: str | None = typer.Option(None, "--output", "-o"),
 ) -> None:
     from lerobot.envs.libero import LiberoEnv, _get_suite
 
@@ -228,12 +227,12 @@ def _load_smolvla(checkpoint: str, device, image_key: str = "observation.images.
 def smolvla(
     checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
     suite: str = typer.Option("long", "--suite", "-s"),
-    tasks: Optional[str] = typer.Option(None, "--tasks", "-t"),
+    tasks: str | None = typer.Option(None, "--tasks", "-t"),
     episodes: int = typer.Option(1, "--episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
     seed: int = typer.Option(0, "--seed"),
     fps: int = typer.Option(30, "--fps"),
-    output_dir: Optional[str] = typer.Option(None, "--output-dir", "-o"),
+    output_dir: str | None = typer.Option(None, "--output-dir", "-o"),
 ) -> None:
     import torch
     from lerobot.envs.libero import LiberoEnv, _get_suite
@@ -376,14 +375,14 @@ def _maniskill_obs_to_batch(
 @app.command(name="smolvla-maniskill")
 def smolvla_maniskill(
     checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
-    env_id: Optional[str] = typer.Option(None, "--env", "-e"),
-    instruction: Optional[str] = typer.Option(None, "--instruction", "-i"),
+    env_id: str | None = typer.Option(None, "--env", "-e"),
+    instruction: str | None = typer.Option(None, "--instruction", "-i"),
     steps: int = typer.Option(200, "--steps", "-s"),
     episodes: int = typer.Option(1, "--episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
     seed: int = typer.Option(0, "--seed"),
     fps: int = typer.Option(30, "--fps"),
-    output: Optional[str] = typer.Option(None, "--output", "-o"),
+    output: str | None = typer.Option(None, "--output", "-o"),
 ) -> None:
     import gymnasium as gym
     import mani_skill  # noqa: F401
@@ -466,7 +465,7 @@ def smolvla_maniskill(
 
 @app.command(name="list")
 def list_tasks(
-    benchmark: Optional[str] = typer.Option(None, "--benchmark", "-b"),
+    benchmark: str | None = typer.Option(None, "--benchmark", "-b"),
 ) -> None:
     show_maniskill = benchmark is None or benchmark.lower() == "maniskill"
     show_libero = benchmark is None or benchmark.lower() == "libero"
@@ -511,7 +510,7 @@ def _list_maniskill_tasks() -> None:
     for e in envs:
         typer.echo(f"  {e}")
     typer.echo(f"  Total: {len(envs)}")
-    typer.echo(f"  Run:   uv run python scripts/visualize.py maniskill -e <ENV_ID>")
+    typer.echo("  Run:   uv run python scripts/visualize.py maniskill -e <ENV_ID>")
 
 
 def _list_libero_tasks() -> None:
@@ -535,7 +534,7 @@ def _list_libero_tasks() -> None:
         except Exception as exc:
             typer.echo(f"\n  Suite: {short_name} — unavailable ({exc})")
 
-    typer.echo(f"\n  Run:   uv run python scripts/visualize.py libero -s <SUITE> -t <TASK_ID>")
+    typer.echo("\n  Run:   uv run python scripts/visualize.py libero -s <SUITE> -t <TASK_ID>")
 
 
 if __name__ == "__main__":

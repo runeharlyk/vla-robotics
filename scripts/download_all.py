@@ -36,7 +36,7 @@ def main():
 
             # ✅ Already downloaded → treat as success
             if env_dir.exists():
-                msg = f"Already downloaded, skipping\n"
+                msg = "Already downloaded, skipping\n"
                 print(msg, end="")
                 log.write(msg)
                 continue
@@ -56,7 +56,7 @@ def main():
             )
 
             if result.returncode != 0:
-                msg = f"No demos available or download failed\n"
+                msg = "No demos available or download failed\n"
                 print(msg, end="")
                 log.write(msg)
 

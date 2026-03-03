@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 import torch
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
@@ -14,9 +12,9 @@ class LiberoDataset(Dataset):
         image_key: str = "observation.images.image",
         action_key: str = "action",
         state_key: str = "observation.state",
-        delta_timestamps: Optional[dict[str, list[float]]] = None,
-        episodes: Optional[list[int]] = None,
-        revision: Optional[str] = "main",
+        delta_timestamps: dict[str, list[float]] | None = None,
+        episodes: list[int] | None = None,
+        revision: str | None = "main",
     ):
         from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
@@ -82,17 +80,17 @@ class LiberoDataset(Dataset):
 
 def load_libero_suite(
     suite: str,
-    delta_timestamps: Optional[dict[str, list[float]]] = None,
-    episodes: Optional[list[int]] = None,
+    delta_timestamps: dict[str, list[float]] | None = None,
+    episodes: list[int] | None = None,
 ) -> LiberoDataset:
     repo_id = LIBERO_SUITES.get(suite.lower(), suite)
     return LiberoDataset(repo_id, delta_timestamps=delta_timestamps, episodes=episodes)
 
 
 def load_libero_all(
-    suites: Optional[list[str]] = None,
-    delta_timestamps: Optional[dict[str, list[float]]] = None,
-    episodes: Optional[list[int]] = None,
+    suites: list[str] | None = None,
+    delta_timestamps: dict[str, list[float]] | None = None,
+    episodes: list[int] | None = None,
 ) -> ConcatDataset:
     if suites is None:
         suites = list(LIBERO_SUITES.keys())

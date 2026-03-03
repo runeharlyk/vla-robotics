@@ -15,28 +15,6 @@ def test(ctx: Context) -> None:
 
 
 @task
-def docker_build(ctx: Context, progress: str = "plain") -> None:
-    """Build docker images."""
-    ctx.run(
-        f"docker build -t train:latest . -f dockerfiles/train.dockerfile --progress={progress}",
-        echo=True,
-        pty=not WINDOWS,
-    )
-
-
-@task
-def build_docs(ctx: Context) -> None:
-    """Build documentation."""
-    ctx.run("uv run mkdocs build --config-file docs/mkdocs.yaml --site-dir build", echo=True, pty=not WINDOWS)
-
-
-@task
-def serve_docs(ctx: Context) -> None:
-    """Serve documentation."""
-    ctx.run("uv run mkdocs serve --config-file docs/mkdocs.yaml", echo=True, pty=not WINDOWS)
-
-
-@task
 def download_libero(ctx: Context, suite: str = "all") -> None:
     """Download LIBERO datasets from HuggingFace via LeRobot."""
     ctx.run(f"uv run python scripts/download_libero.py --suite {suite}", echo=True, pty=not WINDOWS)
@@ -142,6 +120,7 @@ def visualize_smolvla(
 def list_tasks(ctx: Context, benchmark: str = "") -> None:
     bench_flag = f"--benchmark {benchmark}" if benchmark else ""
     ctx.run(f"uv run python scripts/visualize.py list {bench_flag}", echo=True, pty=not WINDOWS)
+
 
 @task
 def export_images(

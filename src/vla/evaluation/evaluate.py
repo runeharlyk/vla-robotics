@@ -1,16 +1,14 @@
-from typing import Optional
-
 import einops
 import torch
 import typer
-from vla.models.octo import octo
-import wandb
 from lerobot.envs.libero import LiberoEnv, _get_suite
 from lerobot.policies.factory import make_pre_post_processors
 from lerobot.processor.env_processor import LiberoProcessorStep
 from tqdm import tqdm
 
+import wandb
 from vla.constants import SUITE_MAP, resolve_suites
+from vla.models.octo import octo
 from vla.models.smolvla import smolvla
 
 app = typer.Typer(no_args_is_help=True)
@@ -60,7 +58,7 @@ def evaluate(
     suite: str = typer.Option("all", "--suite", "-s"),
     num_episodes: int = typer.Option(20, "--num-episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
-    wandb_project: Optional[str] = typer.Option(None, "--wandb-project"),
+    wandb_project: str | None = typer.Option(None, "--wandb-project"),
     compile_model: bool = typer.Option(False, "--compile/--no-compile"),
 ) -> None:
     suites = resolve_suites(suite)

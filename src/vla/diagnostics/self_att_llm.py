@@ -1,14 +1,15 @@
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
-from transformers import AutoProcessor
 from collections import Counter
-from scipy.ndimage import gaussian_filter
 
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from PIL import Image
+from scipy.ndimage import gaussian_filter
+from transformers import AutoProcessor
+
+from vla.constants import PROJECT_ROOT
 from vla.models.smolvla import smolvla
 from vla.utils import get_device, seed_everything
-from vla.constants import PROJECT_ROOT
 
 
 def _find_token_indices(tokens, target_word):
@@ -59,6 +60,7 @@ def get_multi_layer_attention(model, pil_image, task_description, device="cuda",
     def get_forward_hook(layer_idx):
         def hook(module, input, output):
             attention_maps[layer_idx] = output[1].detach().cpu()
+
         return hook
 
     hook_handles = []
@@ -410,21 +412,21 @@ if __name__ == "__main__":
 
     print(f"Loading model from checkpoint: {checkpoint} on device: {device}")
     model, model_id, action_dim = smolvla(checkpoint, device)
-    
+
     # Load Image
-    img_path = "data/images/libero/spatial/ep0000_task_0/frame0000.png" 
+    img_path = "data/images/libero/spatial/ep0000_task_0/frame0000.png"
     image = Image.open(img_path).convert("RGB")
-    
+
     # Load Full Task Description
     task_path = "data/images/libero/spatial/ep0000_pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate/task.txt"
-    with open(task_path, "r") as f:
+    with open(task_path) as f:
         task_description = f.read().strip()
 
     print(f"Task: {task_description}")
-    
+
     # Pick a specific word to track (e.g., "bowl" or "box")
-    target_word = "box" 
-    
+    target_word = "box"
+
     # Run the multi-layer diagnostic
     attention_maps_dict, model_inputs, layer_indices, processor = get_multi_layer_attention(
         model, image, task_description, device

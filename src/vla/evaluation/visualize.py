@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import typer
 
-from vla.constants import SUITE_MAP, VIDEOS_DIR
+from vla.constants import SUITE_MAP
 
 
 def _save_video(frames: list, path: Path, fps: int = 30) -> None:
@@ -38,7 +37,7 @@ def main(
     episodes: int = typer.Option(1, "--episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
     output_dir: str = typer.Option("videos", "--output-dir", "-o"),
-    tasks: Optional[str] = typer.Option(None, "--tasks", "-t"),
+    tasks: str | None = typer.Option(None, "--tasks", "-t"),
     fps: int = typer.Option(30, "--fps"),
     seed: int = typer.Option(0, "--seed"),
 ) -> None:

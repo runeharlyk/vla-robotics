@@ -1,14 +1,12 @@
 import time
 from pathlib import Path
-from typing import Optional
 
 import torch
 import typer
-import wandb
 from tqdm import tqdm
 
-
-from vla.constants import ACTION_DIM, LIBERO_SUITES, MODELS_DIR, resolve_suites
+import wandb
+from vla.constants import ACTION_DIM, MODELS_DIR, resolve_suites
 from vla.data.dataset import load_libero_all, load_libero_suite, make_dataloader, split_dataset
 from vla.models.custom_vla import CustomVLA
 from vla.training.lr_scheduler import CosineDecayWithWarmup
@@ -75,7 +73,7 @@ def train(
     warmup_steps: int = typer.Option(1000, "--warmup-steps"),
     decay_steps: int = typer.Option(40000, "--decay-steps"),
     device: str = typer.Option("cuda", "--device", "-d"),
-    save_path: Optional[str] = typer.Option(None, "--save"),
+    save_path: str | None = typer.Option(None, "--save"),
     vision_model: str = typer.Option("google/siglip-base-patch16-256", "--vision-model"),
     language_model: str = typer.Option("sentence-transformers/all-MiniLM-L6-v2", "--language-model"),
     d_model: int = typer.Option(512, "--d-model"),
@@ -89,7 +87,7 @@ def train(
     gradient_clip: float = typer.Option(1.0, "--grad-clip"),
     weight_decay: float = typer.Option(0.01, "--weight-decay"),
     wandb_project: str = typer.Option("vla-custom-libero", "--wandb-project"),
-    wandb_name: Optional[str] = typer.Option(None, "--wandb-name"),
+    wandb_name: str | None = typer.Option(None, "--wandb-name"),
     val_split: float = typer.Option(0.1, "--val-split"),
     val_every: int = typer.Option(500, "--val-every"),
     patience: int = typer.Option(0, "--patience"),

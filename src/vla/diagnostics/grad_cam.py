@@ -1,13 +1,15 @@
-import torch
-import numpy as np
+from collections import Counter
+
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from PIL import Image
 from transformers import AutoProcessor
-from collections import Counter
+
+from vla.constants import PROJECT_ROOT
+from vla.diagnostics.self_att_llm import _add_contour, _find_token_indices, _normalize, _smooth_and_resize
 from vla.models.smolvla import smolvla
 from vla.utils import get_device, seed_everything
-from vla.constants import PROJECT_ROOT
-from vla.diagnostics.self_att_llm import _find_token_indices, _normalize, _smooth_and_resize, _add_contour
 
 
 def grad_cam_vision_encoder(model, pil_image, task_description, target_word, device="cuda", layer_idx=-1):
@@ -125,11 +127,13 @@ def grad_cam_llm_layers(model, pil_image, task_description, target_word, device=
     def make_fwd_hook(idx):
         def hook(module, input, output):
             activations[idx] = _extract_hidden(output).detach()
+
         return hook
 
     def make_bwd_hook(idx):
         def hook(module, grad_input, grad_output):
             gradients[idx] = _extract_hidden(grad_output).detach()
+
         return hook
 
     handles = []
@@ -318,7 +322,7 @@ def occlusion_sensitivity(model, pil_image, task_description, target_word, devic
     w, h = pil_image.size
     cell_w, cell_h = w // grid_n, h // grid_n
 
-    print(f"  Baseline forward pass ...")
+    print("  Baseline forward pass ...")
     baseline = _get_logit(pil_image)
     print(f"  Baseline logit = {baseline:.4f}")
 
@@ -435,8 +439,7 @@ def _prepare_model_inputs(model, pil_image, task_description, device):
     return hf_vlm, processor, inputs
 
 
-def contrastive_grad_cam(model, pil_image, task_description,
-                         target_word, foil_word, device="cuda", layer_idx=-1):
+def contrastive_grad_cam(model, pil_image, task_description, target_word, foil_word, device="cuda", layer_idx=-1):
     """
     Contrastive Grad-CAM: backprop from (logit_target − logit_foil).
     Highlights regions uniquely important for target_word *versus* foil_word,
@@ -472,8 +475,10 @@ def contrastive_grad_cam(model, pil_image, task_description,
     tgt_logit = logits[0, tgt_idx, :].mean(dim=0).max()
     foil_logit = logits[0, foil_idx, :].mean(dim=0).max()
     contrastive_score = tgt_logit - foil_logit
-    print(f"  Contrastive: logit({target_word})={tgt_logit.item():.2f}  "
-          f"logit({foil_word})={foil_logit.item():.2f}  Δ={contrastive_score.item():.2f}")
+    print(
+        f"  Contrastive: logit({target_word})={tgt_logit.item():.2f}  "
+        f"logit({foil_word})={foil_logit.item():.2f}  Δ={contrastive_score.item():.2f}"
+    )
     contrastive_score.backward(retain_graph=False)
 
     h1.remove()
@@ -488,7 +493,7 @@ def contrastive_grad_cam(model, pil_image, task_description,
     cam = torch.relu(cam).detach().cpu().numpy()
     cam_global = cam[0]
     gs = int(np.sqrt(cam_global.shape[0]))
-    grid = cam_global[:gs * gs].reshape(gs, gs)
+    grid = cam_global[: gs * gs].reshape(gs, gs)
     return _normalize(grid)
 
 
@@ -522,8 +527,7 @@ def input_gradient_saliency(model, pil_image, task_description, target_word, dev
     return _normalize(saliency)
 
 
-def smoothgrad_saliency(model, pil_image, task_description, target_word,
-                        device="cuda", n_samples=20, noise_std=0.15):
+def smoothgrad_saliency(model, pil_image, task_description, target_word, device="cuda", n_samples=20, noise_std=0.15):
     """
     SmoothGrad: average pixel saliency over n_samples noisy copies.
     Dramatically reduces gradient noise and produces cleaner maps.
@@ -561,8 +565,7 @@ def smoothgrad_saliency(model, pil_image, task_description, target_word,
     return _normalize(avg.numpy())
 
 
-def visualize_contrastive_grid(model, pil_image, description, word_pairs,
-                               device="cuda", sigma=1.5, cmap="inferno"):
+def visualize_contrastive_grid(model, pil_image, description, word_pairs, device="cuda", sigma=1.5, cmap="inferno"):
     """
     Contrastive Grad-CAM for multiple (target, foil) pairs.
     word_pairs: list of (target, foil) tuples.
@@ -596,8 +599,9 @@ def visualize_contrastive_grid(model, pil_image, description, word_pairs,
     plt.show()
 
 
-def visualize_saliency_comparison(model, pil_image, description, words,
-                                  device="cuda", n_smooth=20, sigma=1.0, cmap="inferno"):
+def visualize_saliency_comparison(
+    model, pil_image, description, words, device="cuda", n_smooth=20, sigma=1.0, cmap="inferno"
+):
     """
     Side-by-side: Input×Gradient vs SmoothGrad vs Grad-CAM for each word.
     """
@@ -617,7 +621,7 @@ def visualize_saliency_comparison(model, pil_image, description, words,
         axes[ri, 0].axis("off")
 
         print(f'\n--- "{word}" ---')
-        print(f"  Input Gradient ...")
+        print("  Input Gradient ...")
         ig = input_gradient_saliency(model, pil_image, description, word, device)
         ig_smooth = _smooth_and_resize(ig, img_size, sigma=sigma)
         axes[ri, 1].imshow(pil_image)
@@ -635,7 +639,7 @@ def visualize_saliency_comparison(model, pil_image, description, words,
         axes[ri, 2].set_title("SmoothGrad", fontsize=11)
         axes[ri, 2].axis("off")
 
-        print(f"  Grad-CAM ...")
+        print("  Grad-CAM ...")
         gc, _, _ = grad_cam_vision_encoder(model, pil_image, description, word, device)
         gc_smooth = _smooth_and_resize(gc, img_size, sigma=1.5)
         axes[ri, 3].imshow(pil_image)
@@ -673,8 +677,7 @@ def visualize_grad_cam(cam_grid, pil_image, title="Grad-CAM", sigma=1.5, cmap="i
     plt.show()
 
 
-def visualize_grad_cam_multi_layer(cam_grids_dict, pil_image, layer_indices, target_word,
-                                   sigma=1.5, cmap="inferno"):
+def visualize_grad_cam_multi_layer(cam_grids_dict, pil_image, layer_indices, target_word, sigma=1.5, cmap="inferno"):
     """
     Grad-CAM heatmaps across multiple LLM layers in a grid layout.
     """
@@ -754,8 +757,7 @@ def visualize_multi_word_grad_cam(model, pil_image, description, words, device="
     plt.show()
 
 
-def visualize_comparison(attention_grid, gradcam_grid, pil_image, target_word,
-                         sigma=1.5, cmap="inferno"):
+def visualize_comparison(attention_grid, gradcam_grid, pil_image, target_word, sigma=1.5, cmap="inferno"):
     """
     Side-by-side comparison: attention-based vs Grad-CAM saliency.
     """

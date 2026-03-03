@@ -44,6 +44,7 @@ IMAGE_KEY = "observation.images.image"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _sanitize(name: str) -> str:
     """Replace non-alphanumeric characters with underscores for safe dir names."""
     return "".join(c if c.isalnum() or c in "-_" else "_" for c in name).strip("_")
@@ -52,6 +53,7 @@ def _sanitize(name: str) -> str:
 # ---------------------------------------------------------------------------
 # Core export function
 # ---------------------------------------------------------------------------
+
 
 def export_images_from_suite(
     repo_id: str,
@@ -186,6 +188,7 @@ def export_images_from_suite(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def export_libero(
     suites: list[str] | None = None,
