@@ -1,0 +1,129 @@
+from __future__ import annotations
+
+from typing import Any
+
+import einops
+import numpy as np
+import torch
+from lerobot.envs.libero import LiberoEnv as _LeRobotLiberoEnv
+from lerobot.envs.libero import _get_suite
+from lerobot.processor.env_processor import LiberoProcessorStep
+
+_PROC = LiberoProcessorStep()
+
+
+class LiberoEnv:
+    """Wraps LeRobot's LiberoEnv to satisfy the :class:`SimEnv` protocol."""
+
+    def __init__(
+        self,
+        suite_name: str,
+        task_id: int,
+        obs_type: str = "pixels_agent_pos",
+        state_dim: int = 8,
+    ):
+        self._suite = _get_suite(suite_name)
+        self._env = _LeRobotLiberoEnv(
+            task_suite=self._suite,
+            task_id=task_id,
+            task_suite_name=suite_name,
+            obs_type=obs_type,
+        )
+        self._state_dim = state_dim
+
+    @property
+    def task_description(self) -> str:
+        return self._env.task_description
+
+    @property
+    def max_episode_steps(self) -> int:
+        return self._env._max_episode_steps
+
+    def reset(self, seed: int = 0) -> tuple[dict, dict]:
+        return self._env.reset(seed=seed)
+
+    def step(self, action: np.ndarray) -> tuple[dict, float, bool, bool, dict]:
+        return self._env.step(action)
+
+    def close(self) -> None:
+        self._env.close()
+
+    def obs_to_batch(
+        self,
+        raw_obs: dict,
+        device: torch.device | None = None,
+    ) -> dict:
+        batch: dict = {}
+
+        if "pixels" in raw_obs and isinstance(raw_obs["pixels"], dict):
+            for cam_key, img_np in raw_obs["pixels"].items():
+                img = torch.from_numpy(img_np)
+                if img.ndim == 3:
+                    img = img.unsqueeze(0)
+                img = einops.rearrange(img, "b h w c -> b c h w").contiguous()
+                img = img.float() / 255.0
+                img = torch.flip(img, dims=[2, 3])
+                if device is not None:
+                    img = img.to(device, non_blocking=True)
+                batch[f"observation.images.{cam_key}"] = img
+
+        if "robot_state" in raw_obs:
+            rs = raw_obs["robot_state"]
+            eef_pos = torch.from_numpy(rs["eef"]["pos"]).float().unsqueeze(0)
+            eef_quat = torch.from_numpy(rs["eef"]["quat"]).float().unsqueeze(0)
+            gripper_qpos = torch.from_numpy(rs["gripper"]["qpos"]).float().unsqueeze(0)
+            eef_axisangle = _PROC._quat2axisangle(eef_quat)
+            state = torch.cat((eef_pos, eef_axisangle, gripper_qpos), dim=-1)
+            if self._state_dim < state.shape[-1]:
+                state = state[..., : self._state_dim]
+            if device is not None:
+                state = state.to(device, non_blocking=True)
+            batch["observation.state"] = state
+
+        batch["task"] = [self.task_description]
+        return batch
+
+    def get_frame(self, raw_obs: dict) -> np.ndarray:
+        if "pixels" not in raw_obs or not isinstance(raw_obs["pixels"], dict):
+            return np.zeros((256, 256, 3), dtype=np.uint8)
+        cams = list(raw_obs["pixels"].values())
+        flipped = [np.flip(c, axis=(0, 1)).copy() for c in cams]
+        if len(flipped) == 1:
+            return flipped[0]
+        return np.concatenate(flipped, axis=1)
+
+    def is_success(self, info: dict) -> bool:
+        return info.get("is_success", False)
+
+
+class LiberoEnvFactory:
+    """Creates :class:`LiberoEnv` instances for each task in a LIBERO suite."""
+
+    SUITE_MAP: dict[str, str] = {
+        "spatial": "libero_spatial",
+        "object": "libero_object",
+        "goal": "libero_goal",
+        "long": "libero_10",
+    }
+
+    def __init__(self, suite: str, state_dim: int = 8):
+        self._suite_key = suite.lower()
+        self._libero_name = self.SUITE_MAP.get(self._suite_key, f"libero_{self._suite_key}")
+        self._benchmark = _get_suite(self._libero_name)
+        self._state_dim = state_dim
+
+    @property
+    def num_tasks(self) -> int:
+        return len(self._benchmark.tasks)
+
+    @property
+    def suite_name(self) -> str:
+        return self._suite_key
+
+    def __call__(self, task_id: int, **kwargs: Any) -> LiberoEnv:
+        return LiberoEnv(
+            suite_name=self._libero_name,
+            task_id=task_id,
+            state_dim=self._state_dim,
+            **kwargs,
+        )

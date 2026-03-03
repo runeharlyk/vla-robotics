@@ -1,5 +1,6 @@
 action: train-smolvla
 
+simulator: libero
 model_id: lerobot/smolvla_base
 suite: all
 steps: 20000

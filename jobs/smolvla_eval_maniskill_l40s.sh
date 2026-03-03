@@ -19,7 +19,7 @@ uv run python -m vla evaluate \
     --model smolvla \
     --checkpoint models/smolvla_train_libero_all_a100.pt \
     --simulator maniskill \
-    --suite PegInsertionSide-v1 \
+    --env-id PegInsertionSide-v1 \
     --num-episodes 20 \
     --device cuda \
     --compile \

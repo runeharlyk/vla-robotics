@@ -2,6 +2,7 @@ action: eval-libero
 
 model: smolvla
 checkpoint: HuggingFaceVLA/smolvla_libero
+simulator: libero
 suite: all
 num_episodes: 20
 wandb_project: vla-smolvla-libero

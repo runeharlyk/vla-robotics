@@ -6,8 +6,8 @@ import typer
 from tqdm import tqdm
 
 import wandb
-from vla.constants import ACTION_DIM, MODELS_DIR, resolve_suites
-from vla.data.dataset import load_libero_all, load_libero_suite, make_dataloader, split_dataset
+from vla.constants import ACTION_DIM, MODELS_DIR
+from vla.data import load_dataset, make_dataloader, split_dataset
 from vla.models.custom_vla import CustomVLA
 from vla.training.lr_scheduler import CosineDecayWithWarmup
 
@@ -65,7 +65,11 @@ def _run_validation(model, val_loader, chunk_size, action_dim, device, use_amp=F
 
 @app.command()
 def train(
+    simulator: str = typer.Option("libero", "--simulator"),
     suite: str = typer.Option("all", "--suite", "-s"),
+    data_path: str | None = typer.Option(None, "--data-path"),
+    instruction: str = typer.Option("", "--instruction"),
+    action_dim: int = typer.Option(ACTION_DIM, "--action-dim"),
     steps: int = typer.Option(30000, "--steps"),
     batch_size: int = typer.Option(64, "--batch-size", "-b"),
     lr: float = typer.Option(3e-4, "--lr"),
@@ -86,7 +90,7 @@ def train(
     flow_steps: int = typer.Option(10, "--flow-steps"),
     gradient_clip: float = typer.Option(1.0, "--grad-clip"),
     weight_decay: float = typer.Option(0.01, "--weight-decay"),
-    wandb_project: str = typer.Option("vla-custom-libero", "--wandb-project"),
+    wandb_project: str = typer.Option("vla-custom", "--wandb-project"),
     wandb_name: str | None = typer.Option(None, "--wandb-name"),
     val_split: float = typer.Option(0.1, "--val-split"),
     val_every: int = typer.Option(500, "--val-every"),
@@ -96,15 +100,17 @@ def train(
     grad_accum_steps: int = typer.Option(1, "--grad-accum"),
     log_every: int = typer.Option(50, "--log-every"),
 ) -> None:
-    suite_names = resolve_suites(suite)
-    action_dim = ACTION_DIM
-    suite_label = suite_names[0] if len(suite_names) == 1 else f"{len(suite_names)}_suites"
+    sim = simulator.lower()
+    label = f"{sim}_{suite}" if sim == "libero" else f"{sim}"
 
-    print(f"Loading LIBERO data for suites: {suite_names}")
-    if len(suite_names) == 1:
-        full_dataset = load_libero_suite(suite_names[0])
-    else:
-        full_dataset = load_libero_all(suite_names)
+    print(f"Loading {sim} data ...")
+    full_dataset = load_dataset(
+        simulator=sim,
+        suite=suite,
+        data_path=data_path,
+        instruction=instruction,
+        action_dim=action_dim,
+    )
 
     train_dataset, val_dataset = split_dataset(full_dataset, val_ratio=val_split)
     print(f"Split: {len(train_dataset)} train, {len(val_dataset)} val samples")
@@ -150,11 +156,11 @@ def train(
     effective_batch_size = batch_size * grad_accum_steps
 
     if save_path is None:
-        save_path = str(MODELS_DIR / f"custom_vla_libero_{suite_label}.pt")
+        save_path = str(MODELS_DIR / f"custom_vla_{label}.pt")
 
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"\nTraining Custom VLA on LIBERO-{suite_label}")
+    print(f"\nTraining Custom VLA on {label}")
     print(f"  Steps: {steps}, Batch: {batch_size} (eff: {effective_batch_size})")
     print(f"  LR: {lr} -> {decay_lr}, Chunk: {chunk_size}, Flow steps: {flow_steps}")
     print(f"  Vision: {vision_model} (frozen={freeze_vision})")
@@ -163,9 +169,10 @@ def train(
 
     wandb.init(
         project=wandb_project,
-        name=wandb_name or f"custom-vla-libero-{suite_label}",
+        name=wandb_name or f"custom-vla-{label}",
         config={
-            "suites": suite_names,
+            "simulator": sim,
+            "suite": suite,
             "steps": steps,
             "batch_size": batch_size,
             "effective_batch_size": effective_batch_size,
@@ -268,7 +275,8 @@ def train(
                             "config": {
                                 "model_kwargs": model.get_model_kwargs(),
                                 "action_dim": action_dim,
-                                "suites": suite_names,
+                                "simulator": sim,
+                                "suite": suite,
                             },
                         },
                         save_path,
@@ -294,7 +302,8 @@ def train(
                 "config": {
                     "model_kwargs": model.get_model_kwargs(),
                     "action_dim": action_dim,
-                    "suites": suite_names,
+                    "simulator": sim,
+                    "suite": suite,
                 },
             },
             save_path,

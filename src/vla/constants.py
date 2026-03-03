@@ -6,6 +6,8 @@ VIDEOS_DIR = PROJECT_ROOT / "videos"
 
 ACTION_DIM = 7
 
+SIMULATORS = ("libero", "maniskill")
+
 LIBERO_SUITES = {
     "spatial": "lerobot/libero_spatial_image",
     "object": "lerobot/libero_object_image",
@@ -18,6 +20,29 @@ SUITE_MAP = {
     "object": "libero_object",
     "goal": "libero_goal",
     "long": "libero_10",
+}
+
+MANISKILL_TASKS: dict[str, dict] = {
+    "PegInsertionSide-v1": {
+        "instruction": "insert the peg into the hole",
+        "action_dim": 8,
+        "max_episode_steps": 100,
+    },
+    "PickCube-v1": {
+        "instruction": "pick up the cube",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+    },
+    "StackCube-v1": {
+        "instruction": "stack the red cube on top of the green cube",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+    },
+    "PushCube-v1": {
+        "instruction": "push the cube to the target",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+    },
 }
 
 

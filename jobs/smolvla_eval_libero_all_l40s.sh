@@ -22,6 +22,7 @@ printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero;
 uv run python -m vla evaluate \
     --model smolvla \
     --checkpoint HuggingFaceVLA/smolvla_libero \
+    --simulator libero \
     --suite all \
     --num-episodes 20 \
     --device cuda \

@@ -22,10 +22,24 @@ train-smolvla: |
 
 train-custom: |
   uv run python -m vla train \
+      --simulator {simulator} \
       --suite {suite} \
       --steps {steps} \
       --batch-size {batch_size} \
       --lr {lr} \
+      --device cuda \
+      --save models/{job_name}.pt \
+      --wandb-project {wandb_project}
+
+train-rl: |
+  uv run python -m vla train-rl \
+      --checkpoint {checkpoint} \
+      --simulator {simulator} \
+      --suite {suite} \
+      --num-iterations {num_iterations} \
+      --trajectories-per-iter {trajectories_per_iter} \
+      --lr {lr} \
+      --max-steps {max_steps} \
       --device cuda \
       --save models/{job_name}.pt \
       --wandb-project {wandb_project}
@@ -38,6 +52,7 @@ eval-libero: |
   uv run python -m vla evaluate \
       --model {model} \
       --checkpoint {checkpoint} \
+      --simulator libero \
       --suite {suite} \
       --num-episodes {num_episodes} \
       --device cuda \
@@ -49,7 +64,7 @@ eval-maniskill: |
       --model {model} \
       --checkpoint {checkpoint} \
       --simulator maniskill \
-      --suite {suite} \
+      --env-id {env_id} \
       --num-episodes {num_episodes} \
       --device cuda \
       --compile \

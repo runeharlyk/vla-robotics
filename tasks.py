@@ -97,6 +97,7 @@ def finetune_smolvla(
 @task
 def train_custom(
     ctx: Context,
+    simulator: str = "libero",
     suite: str = "all",
     steps: int = 30000,
     batch_size: int = 64,
@@ -104,11 +105,11 @@ def train_custom(
     device: str = "cuda",
     amp: bool = False,
 ) -> None:
-    """Train custom VLA on LIBERO demonstrations."""
+    """SFT training of custom VLA on demonstration data."""
     amp_flag = "--amp" if amp else "--no-amp"
     cmd = (
         f"uv run python -m vla train "
-        f"--suite {suite} --steps {steps} --batch-size {batch_size} "
+        f"--simulator {simulator} --suite {suite} --steps {steps} --batch-size {batch_size} "
         f"--lr {lr} --device {device} {amp_flag}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)
@@ -119,14 +120,17 @@ def evaluate(
     ctx: Context,
     model: str = "smolvla",
     checkpoint: str = "HuggingFaceVLA/smolvla_libero",
+    simulator: str = "libero",
     suite: str = "all",
+    env_id: str = "",
     num_episodes: int = 20,
     device: str = "cuda",
 ) -> None:
+    env_flag = f"--env-id {env_id}" if env_id else ""
     cmd = (
         f"uv run python -m vla evaluate "
-        f"--model {model} --checkpoint {checkpoint} --suite {suite} "
-        f"--num-episodes {num_episodes} --device {device}"
+        f"--model {model} --checkpoint {checkpoint} --simulator {simulator} "
+        f"--suite {suite} {env_flag} --num-episodes {num_episodes} --device {device}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)
 

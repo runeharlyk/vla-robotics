@@ -34,16 +34,13 @@ dependencies = [
     "transformers>=4.40.0",
     "sentence-transformers>=3.0.0",
     "seaborn>=0.13.2",
+    "pin>=3.0.0; sys_platform == 'linux'",
+    "robosuite==1.4.0; sys_platform == 'linux'",
+    "libero>=0.1.0; sys_platform == 'linux'",
 ]
 
 [project.scripts]
 vla = "vla.__main__:app"
-
-[project.optional-dependencies]
-sim = [
-    "robosuite==1.4.0",
-    "libero>=0.1.0",
-]
 
 [dependency-groups]
 dev = [

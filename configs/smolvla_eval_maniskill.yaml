@@ -2,6 +2,7 @@ action: eval-maniskill
 
 model: smolvla
 checkpoint: models/smolvla_train_libero_all_a100.pt
-suite: PegInsertionSide-v1
+simulator: maniskill
+env_id: PegInsertionSide-v1
 num_episodes: 20
 wandb_project: vla-smolvla-maniskill

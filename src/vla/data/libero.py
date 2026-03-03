@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
+from torch.utils.data import ConcatDataset, Dataset
 
 from vla.constants import ACTION_DIM, LIBERO_SUITES
 
@@ -97,35 +97,3 @@ def load_libero_all(
 
     datasets = [load_libero_suite(s, delta_timestamps=delta_timestamps, episodes=episodes) for s in suites]
     return ConcatDataset(datasets)
-
-
-def split_dataset(
-    dataset: Dataset,
-    val_ratio: float = 0.1,
-    seed: int = 42,
-) -> tuple[Subset, Subset]:
-    n = len(dataset)
-    rng = np.random.RandomState(seed)
-    indices = rng.permutation(n).tolist()
-    n_val = max(1, int(n * val_ratio))
-    return Subset(dataset, indices[n_val:]), Subset(dataset, indices[:n_val])
-
-
-def make_dataloader(
-    dataset: Dataset,
-    batch_size: int = 64,
-    shuffle: bool = True,
-    num_workers: int = 4,
-    prefetch_factor: int = 4,
-    drop_last: bool = True,
-) -> DataLoader:
-    return DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        pin_memory=True,
-        persistent_workers=num_workers > 0,
-        prefetch_factor=prefetch_factor if num_workers > 0 else None,
-        drop_last=drop_last,
-    )
