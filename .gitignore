@@ -180,3 +180,5 @@ models/
 videos/
 logs/
 wandb/
+data/preprocessed/*.pt
+models/*.pt
