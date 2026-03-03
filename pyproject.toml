@@ -36,6 +36,9 @@ dependencies = [
     "seaborn>=0.13.2",
 ]
 
+[project.scripts]
+vla = "vla.__main__:app"
+
 [project.optional-dependencies]
 sim = [
     "robosuite==1.4.0",
@@ -48,7 +51,7 @@ dev = [
     "invoke==2.2.1",
     "pre-commit==4.5.1",
     "pytest==9.0.2",
-    "ruff==0.15.0",
+    "ruff==0.15.4",
     "mypy==1.19.1",
     "mkdocs-material==9.7.1",
     "mkdocstrings-python==2.0.2",
@@ -93,6 +96,7 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 
 [tool.coverage.run]
+source = ["src/vla"]
 omit = ["tests/*"]
 
 [tool.uv]

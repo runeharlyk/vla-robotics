@@ -1,0 +1,11 @@
+a100:
+  queue: gpua100
+  walltime: "24:00"
+  cores: 8
+  mem: 8GB
+
+l40s:
+  queue: gpul40s
+  walltime: "06:00"
+  cores: 4
+  mem: 4GB
