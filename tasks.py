@@ -136,45 +136,57 @@ def evaluate(
 
 
 @task
-def visualize_libero(
+def visualize(
     ctx: Context,
-    suite: str = "long",
-    task_id: int = 0,
-    steps: int = 300,
-    seed: int = 0,
-    save: bool = False,
-) -> None:
-    save_flag = "--save" if save else "--no-save"
-    ctx.run(
-        f"uv run python scripts/visualize.py libero --suite {suite} --task {task_id} --steps {steps} --seed {seed} {save_flag}",
-        echo=True,
-        pty=not WINDOWS,
-    )
-
-
-@task
-def visualize_smolvla(
-    ctx: Context,
+    model: str = "smolvla",
     checkpoint: str = "HuggingFaceVLA/smolvla_libero",
+    simulator: str = "libero",
     suite: str = "long",
+    env_id: str = "",
     tasks: str = "",
     episodes: int = 1,
     device: str = "cuda",
+    output_dir: str = "videos",
+    fps: int = 30,
+    seed: int = 0,
 ) -> None:
+    """Record policy rollout videos via `vla visualize`."""
+    env_flag = f"--env-id {env_id}" if env_id else ""
     tasks_flag = f"--tasks {tasks}" if tasks else ""
-    ctx.run(
-        f"uv run python scripts/visualize.py smolvla "
-        f"--checkpoint {checkpoint} --suite {suite} {tasks_flag} "
-        f"--episodes {episodes} --device {device}",
-        echo=True,
-        pty=not WINDOWS,
+    cmd = (
+        f"uv run python -m vla visualize "
+        f"--model {model} --checkpoint {checkpoint} --simulator {simulator} "
+        f"--suite {suite} {env_flag} {tasks_flag} --episodes {episodes} "
+        f"--device {device} --output-dir {output_dir} --fps {fps} --seed {seed}"
     )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 
 @task
-def list_tasks(ctx: Context, benchmark: str = "") -> None:
-    bench_flag = f"--benchmark {benchmark}" if benchmark else ""
-    ctx.run(f"uv run python scripts/visualize.py list {bench_flag}", echo=True, pty=not WINDOWS)
+def playback_demos(
+    ctx: Context,
+    simulator: str = "libero",
+    suite: str = "long",
+    env_id: str = "",
+    data_path: str = "",
+    mode: str = "replay",
+    episodes: str = "0",
+    output_dir: str = "videos/playback",
+    fps: int = 30,
+    seed: int = 0,
+    instruction: str = "",
+) -> None:
+    """Playback recorded demonstrations via `vla playback`."""
+    env_flag = f"--env-id {env_id}" if env_id else ""
+    data_flag = f"--data-path {data_path}" if data_path else ""
+    instr_flag = f"--instruction \"{instruction}\"" if instruction else ""
+    cmd = (
+        f"uv run python -m vla playback "
+        f"--simulator {simulator} --suite {suite} {env_flag} {data_flag} "
+        f"--mode {mode} --episodes {episodes} --output-dir {output_dir} "
+        f"--fps {fps} --seed {seed} {instr_flag}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 
 @task
