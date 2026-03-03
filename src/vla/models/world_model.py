@@ -33,8 +33,7 @@ class WorldModelEncoder(ABC):
     """Abstract interface for a frozen trajectory encoder."""
 
     @abstractmethod
-    def embed_dim(self) -> int:
-        ...
+    def embed_dim(self) -> int: ...
 
     @abstractmethod
     def encode_frames(self, images: torch.Tensor) -> torch.Tensor:

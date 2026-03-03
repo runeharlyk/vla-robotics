@@ -59,7 +59,7 @@ def main(
             sft_save = str(PROJECT_ROOT / "checkpoints" / "sft" / tag)
             sft_best = str(Path(sft_save) / "best")
 
-            log.info(f"\n{'='*60}\n  SFT  {tag}\n{'='*60}")
+            log.info(f"\n{'=' * 60}\n  SFT  {tag}\n{'=' * 60}")
             rc = _run(
                 [
                     sys.executable,
@@ -104,7 +104,7 @@ def main(
                 continue
 
             for mode, rl_cfg in [("sparse_rl", sparse_cfg), ("srpo", srpo_cfg)]:
-                log.info(f"\n{'='*60}\n  {mode.upper()}  {tag}\n{'='*60}")
+                log.info(f"\n{'=' * 60}\n  {mode.upper()}  {tag}\n{'=' * 60}")
                 cmd = [
                     sys.executable,
                     str(PROJECT_ROOT / "scripts" / "train_srpo.py"),

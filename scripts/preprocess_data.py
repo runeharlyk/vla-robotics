@@ -8,11 +8,13 @@ Usage:
     uv run python scripts/preprocess_data.py
     uv run python scripts/preprocess_data.py --skill PickCube-v1 --max-episodes 100
 """
+
 import math
 import multiprocessing
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
 import gymnasium as gym
 import h5py
@@ -37,22 +39,26 @@ _warned_render_fallback = False
 def get_task_instruction(env_id: str) -> str:
     """Extract a task instruction from the ManiSkill environment docstring.
 
+    Reads the class docstring via the gymnasium registry without instantiating
+    the environment, avoiding SAPIEN/PhysX resource conflicts with worker processes.
+
     Falls back to a generic instruction if the docstring does not contain
     a ``**Task Description:**`` section.
     """
     import re
 
     try:
-        env = gym.make(
-            env_id,
-            num_envs=1,
-            obs_mode="state",
-            render_mode="rgb_array",
-            sim_backend="physx_cpu",
-            render_backend="cpu",
-        )
-        doc = type(env.unwrapped).__doc__ or ""
-        env.close()
+        spec = gym.spec(env_id)
+        entry_point = spec.entry_point
+        if isinstance(entry_point, str):
+            module_path, class_name = entry_point.rsplit(":", 1)
+            import importlib
+
+            module = importlib.import_module(module_path)
+            cls = getattr(module, class_name)
+        else:
+            cls = entry_point
+        doc = cls.__doc__ or ""
     except Exception:
         return DEFAULT_INSTRUCTION
 
@@ -277,6 +283,27 @@ def collect_episode_with_actions(
     return np.stack(images, axis=0), np.stack(states, axis=0)
 
 
+_worker_env_cache: dict[str, Any] = {}
+
+
+def _get_worker_env(env_id: str, obs_mode: str, control_mode: str) -> tuple[Any, Any]:
+    """Return a cached (env, base) pair for the current worker process."""
+    key = f"{env_id}:{obs_mode}:{control_mode}"
+    if key not in _worker_env_cache:
+        env = gym.make(
+            env_id,
+            num_envs=1,
+            obs_mode=obs_mode,
+            control_mode=control_mode,
+            render_mode="rgb_array",
+            sim_backend="physx_cpu",
+            render_backend="cpu",
+        )
+        env.reset()
+        _worker_env_cache[key] = (env, env.unwrapped)
+    return _worker_env_cache[key]
+
+
 def _replay_episode_chunk(
     episode_infos: list[tuple[dict, str]],
     env_id: str,
@@ -290,9 +317,8 @@ def _replay_episode_chunk(
 ) -> list[dict]:
     """Worker: replay a chunk of episodes in a separate process.
 
-    Each worker creates its own single-env ManiSkill instance, opens the HDF5
-    file independently, and processes its assigned episodes via env-state replay
-    (falling back to action replay on failure).
+    Each worker process lazily creates a single ManiSkill env instance
+    (cached across calls) and opens the HDF5 file per invocation.
 
     Args:
         episode_infos: List of ``(ep_meta, traj_id)`` for episodes to process.
@@ -313,17 +339,7 @@ def _replay_episode_chunk(
         for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
             os.environ[var] = t
 
-    env = gym.make(
-        env_id,
-        num_envs=1,
-        obs_mode=obs_mode,
-        control_mode=control_mode,
-        render_mode="rgb_array",
-        sim_backend="physx_cpu",
-        render_backend="cpu",
-    )
-    base = env.unwrapped
-    env.reset()
+    env, base = _get_worker_env(env_id, obs_mode, control_mode)
     results: list[dict] = []
 
     with h5py.File(h5_path, "r") as f:
@@ -377,7 +393,6 @@ def _replay_episode_chunk(
                 }
             )
 
-    env.close()
     return results
 
 
@@ -411,7 +426,7 @@ def main(
     if max_episodes is not None:
         episodes_meta = episodes_meta[:max_episodes]
 
-    typer.echo(f"Replaying {len(episodes_meta)} episodes from {h5_path} " f"(num_workers={num_workers})")
+    typer.echo(f"Replaying {len(episodes_meta)} episodes from {h5_path} (num_workers={num_workers})")
 
     # Build state key map using a disposable single-env probe
     state_key_map: dict[str, str] = {}
@@ -455,30 +470,21 @@ def main(
     task_instruction = get_task_instruction(env_id)
     typer.echo(f"Task instruction: {task_instruction!r}")
 
-    # Split episodes into chunks for parallel workers
+    # Split episodes into small sub-chunks so that the progress bar ticks
+    # frequently even when processing many episodes.  Each sub-chunk is
+    # submitted as a separate Future; the ProcessPoolExecutor limits the
+    # concurrency to ``effective_workers``.
     effective_workers = min(num_workers, len(valid))
-    chunk_size = math.ceil(len(valid) / effective_workers)
-    chunks = [valid[i : i + chunk_size] for i in range(0, len(valid), chunk_size)]
+    sub_chunk_size = max(1, min(10, math.ceil(len(valid) / effective_workers)))
+    sub_chunks = [valid[i : i + sub_chunk_size] for i in range(0, len(valid), sub_chunk_size)]
 
-    typer.echo(f"Dispatching {len(valid)} episodes across {len(chunks)} workers")
+    typer.echo(f"Dispatching {len(valid)} episodes in {len(sub_chunks)} sub-chunks across {effective_workers} workers")
 
     threads_per_worker = max(1, (os.cpu_count() or 1) // effective_workers)
     episodes_out: list[dict] = []
 
-    if effective_workers == 1:
-        # Single-worker: run directly in the main process (no IPC overhead)
-        chunk_results = _replay_episode_chunk(
-            chunks[0],
-            env_id,
-            control_mode,
-            obs_mode,
-            h5_path_str,
-            state_key_map,
-            image_size,
-            num_cameras,
-            threads_per_worker,
-        )
-        for ep_data in tqdm(chunk_results, desc="Episodes"):
+    def _convert_results(chunk_results: list[dict]) -> None:
+        for ep_data in chunk_results:
             episodes_out.append(
                 {
                     "images": torch.from_numpy(ep_data["images"]).permute(0, 1, 4, 2, 3),
@@ -487,18 +493,37 @@ def main(
                     "instruction": task_instruction,
                 }
             )
+
+    if effective_workers == 1:
+        # Single-worker: run directly in the main process (no IPC overhead)
+        pbar = tqdm(total=len(valid), desc="Episodes")
+        for sub_chunk in sub_chunks:
+            chunk_results = _replay_episode_chunk(
+                sub_chunk,
+                env_id,
+                control_mode,
+                obs_mode,
+                h5_path_str,
+                state_key_map,
+                image_size,
+                num_cameras,
+                threads_per_worker,
+            )
+            _convert_results(chunk_results)
+            pbar.update(len(sub_chunk))
+        pbar.close()
     else:
         # Multi-worker: each process creates its own env + HDF5 handle
         mp_context = multiprocessing.get_context("spawn")
-        futures_map: dict[object, int] = {}
+        futures_map: dict[object, list] = {}
         with ProcessPoolExecutor(
             max_workers=effective_workers,
             mp_context=mp_context,
         ) as executor:
-            for idx, chunk in enumerate(chunks):
+            for sub_chunk in sub_chunks:
                 future = executor.submit(
                     _replay_episode_chunk,
-                    chunk,
+                    sub_chunk,
                     env_id,
                     control_mode,
                     obs_mode,
@@ -508,27 +533,18 @@ def main(
                     num_cameras,
                     threads_per_worker,
                 )
-                futures_map[future] = idx
+                futures_map[future] = sub_chunk
 
-            for future in tqdm(
-                as_completed(futures_map),
-                total=len(futures_map),
-                desc="Workers",
-            ):
+            pbar = tqdm(total=len(valid), desc="Episodes")
+            for future in as_completed(futures_map):
                 chunk_results = future.result()
-                for ep_data in chunk_results:
-                    episodes_out.append(
-                        {
-                            "images": torch.from_numpy(ep_data["images"]).permute(0, 1, 4, 2, 3),
-                            "states": torch.from_numpy(ep_data["states"]),
-                            "actions": torch.from_numpy(ep_data["actions"]),
-                            "instruction": task_instruction,
-                        }
-                    )
+                _convert_results(chunk_results)
+                pbar.update(len(futures_map[future]))
+            pbar.close()
 
     if not episodes_out:
         typer.echo(
-            "No episodes were processed. Check that trajectory keys exist " "(traj_0, traj_1, ...).",
+            "No episodes were processed. Check that trajectory keys exist (traj_0, traj_1, ...).",
             err=True,
         )
         raise typer.Exit(1)
@@ -549,6 +565,7 @@ def main(
                 "image_size": image_size,
                 "num_cameras": num_cameras,
                 "instruction": task_instruction,
+                "control_mode": control_mode,
             },
         },
         out_path,

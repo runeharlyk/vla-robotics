@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import torch
 import typer
 import wandb
 
@@ -20,16 +21,13 @@ from vla.utils import get_device, seed_everything
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA = PROJECT_ROOT / "data" / "preprocessed" / "pickcube.pt"
 
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
 def main(
-    data_path: Path = typer.Option(
-        DEFAULT_DATA, "--data", "-d", path_type=Path),
+    data_path: Path = typer.Option(DEFAULT_DATA, "--data", "-d", path_type=Path),
     num_demos: int = typer.Option(10, "--num-demos", "-n"),
-    checkpoint: str = typer.Option(
-        "HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
+    checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
     lr: float = typer.Option(1e-4, "--lr"),
     batch_size: int = typer.Option(32, "--batch-size"),
     micro_batch_size: int = typer.Option(4, "--micro-batch-size"),
@@ -49,9 +47,12 @@ def main(
     seed_everything(seed)
     device = get_device()
 
+    if device.type == "cuda":
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cuda.matmul.allow_tf32 = True
+
     dataset = FewDemoDataset(data_path, num_demos=num_demos, seed=seed)
-    logging.info(
-        f"Loaded {dataset.num_episodes} episodes ({len(dataset)} timesteps) from {data_path}")
+    logging.info(f"Loaded {dataset.num_episodes} episodes ({len(dataset)} timesteps) from {data_path}")
 
     policy = SmolVLAPolicy(
         checkpoint=checkpoint,
@@ -72,8 +73,7 @@ def main(
         eval_every=eval_every,
         eval_episodes=eval_episodes,
         max_steps=max_steps,
-        save_dir=str(PROJECT_ROOT / "checkpoints" / "sft" /
-                     f"demos{num_demos}_seed{seed}"),
+        save_dir=str(PROJECT_ROOT / "checkpoints" / "sft" / f"demos{num_demos}_seed{seed}"),
         env_id=env_id,
         seed=seed,
     )

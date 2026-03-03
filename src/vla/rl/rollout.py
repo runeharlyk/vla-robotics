@@ -52,7 +52,7 @@ class ManiSkillRollout:
         max_steps: int = 200,
         image_size: int = 256,
         obs_mode: str = "rgb+state",
-        control_mode: str = "pd_joint_pos",
+        control_mode: str = "pd_joint_delta_pos",
         sim_backend: str = "physx_cpu",
         num_cameras: int = 2,
     ) -> None:

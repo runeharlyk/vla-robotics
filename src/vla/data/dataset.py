@@ -68,13 +68,17 @@ class FewDemoDataset(Dataset):
             self.episode_boundaries.append((offset, offset + T))
             offset += T
 
-        self.images_cat = torch.cat(self.images, dim=0).float()
+        # Keep images as uint8 to avoid 4× memory blow-up from float32.
+        # Conversion to float happens lazily in __getitem__.
+        self.images_cat = torch.cat(self.images, dim=0)
         self.states_cat = torch.cat(self.states, dim=0).float()
         self.actions_cat = torch.cat(self.actions, dim=0).float()
+        del self.images, self.states, self.actions
 
         self.num_episodes = len(episodes)
         self.action_dim = int(self.metadata["action_dim"])
         self.state_dim = int(self.metadata["state_dim"])
+        self.control_mode: str = self.metadata.get("control_mode", "pd_joint_delta_pos")
 
         self.norm_stats = NormStats(
             action_mean=self.actions_cat.mean(dim=0),
@@ -88,7 +92,7 @@ class FewDemoDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor | str]:
         return {
-            "image": self.images_cat[idx],
+            "image": self.images_cat[idx].float(),
             "state": self.states_cat[idx],
             "action": self.actions_cat[idx],
             "instruction": self.instruction,

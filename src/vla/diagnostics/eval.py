@@ -32,6 +32,7 @@ def evaluate(
     max_steps: int = 200,
     seed: int = 0,
     image_size: int = 256,
+    control_mode: str = "pd_joint_delta_pos",
 ) -> EvalMetrics:
     """Evaluate a policy in ManiSkill and return aggregated metrics.
 
@@ -43,6 +44,7 @@ def evaluate(
         max_steps: Maximum steps per episode.
         seed: Base random seed.
         image_size: Rendered image resolution.
+        control_mode: Robot control mode (must match the training data).
 
     Returns:
         :class:`EvalMetrics` with success rate, rewards, and episode lengths.
@@ -52,6 +54,7 @@ def evaluate(
         num_envs=1,
         max_steps=max_steps,
         image_size=image_size,
+        control_mode=control_mode,
     )
 
     trajectories: list[Trajectory] = []

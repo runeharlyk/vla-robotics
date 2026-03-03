@@ -24,11 +24,12 @@ def main(
     checkpoint_dir: Path = typer.Option(..., "--checkpoint-dir", "-d", path_type=Path),
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
     action_dim: int = typer.Option(8, "--action-dim"),
-    env_id: str = typer.Option("PickCube-v1", "--env"),
+    env_id: str = typer.Option("PegInsertionSide-v1", "--env"),
     num_episodes: int = typer.Option(100, "--num-episodes", "-n"),
     max_steps: int = typer.Option(200, "--max-steps"),
     seed: int = typer.Option(0, "--seed"),
     instruction: str = typer.Option(PICK_CUBE_INSTRUCTION, "--instruction"),
+    control_mode: str = typer.Option("pd_joint_delta_pos", "--control-mode"),
 ) -> None:
     """Evaluate a saved policy and print metrics."""
     seed_everything(seed)
@@ -45,6 +46,7 @@ def main(
         num_episodes=num_episodes,
         max_steps=max_steps,
         seed=seed,
+        control_mode=control_mode,
     )
     print_metrics(metrics, tag=str(checkpoint_dir))
 

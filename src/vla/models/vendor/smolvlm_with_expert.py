@@ -97,9 +97,9 @@ class SmolVLMWithExpertModel(nn.Module):
         lm_expert_config.intermediate_size = get_intermediate_size(int(hidden_size * expert_width_multiplier))
         lm_expert_config.num_hidden_layers = self.num_vlm_layers
         if num_expert_layers > 0:
-            assert (
-                len(self.get_vlm_model().text_model.layers) % num_expert_layers == 0
-            ), f"Number of layers in the VLM {len(self.get_vlm_model().text_model.layers)} are not multiple of num_expert_layers {num_expert_layers}"
+            assert len(self.get_vlm_model().text_model.layers) % num_expert_layers == 0, (
+                f"Number of layers in the VLM {len(self.get_vlm_model().text_model.layers)} are not multiple of num_expert_layers {num_expert_layers}"
+            )
             lm_expert_config.num_hidden_layers = num_expert_layers
         self.lm_expert = AutoModel.from_config(lm_expert_config)
 
@@ -282,9 +282,9 @@ class SmolVLMWithExpertModel(nn.Module):
         attention_interface = self.get_attention_interface()
 
         att_outputs = []
-        assert len(inputs_embeds) == 2 or (
-            use_cache and past_key_values is not None and not fill_kv_cache
-        ), f"Both len(inputs_embeds) == {len(inputs_embeds)} and past_key_values is {past_key_values}"
+        assert len(inputs_embeds) == 2 or (use_cache and past_key_values is not None and not fill_kv_cache), (
+            f"Both len(inputs_embeds) == {len(inputs_embeds)} and past_key_values is {past_key_values}"
+        )
 
         if len(inputs_embeds) == 2 and not past_key_values:
             # Prefix attention

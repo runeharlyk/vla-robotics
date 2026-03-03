@@ -175,7 +175,15 @@ def train_sft(
 
     micro_bs = min(config.micro_batch_size, config.batch_size)
     grad_accum_steps = max(config.batch_size // micro_bs, 1)
-    dataloader = DataLoader(dataset, batch_size=micro_bs, shuffle=True, drop_last=False)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=micro_bs,
+        shuffle=True,
+        drop_last=False,
+        pin_memory=policy.device.type == "cuda",
+        num_workers=2,
+        prefetch_factor=2,
+    )
     micro_batches_per_epoch = max(len(dataloader), 1)
     optimizer_steps_per_epoch = max(micro_batches_per_epoch // grad_accum_steps, 1)
     total_optimizer_steps = config.num_epochs * optimizer_steps_per_epoch
@@ -203,6 +211,7 @@ def train_sft(
     scheduler = LambdaLR(optimizer, lr_lambda)
 
     instruction = dataset.instruction
+    control_mode = dataset.control_mode
     save_path = Path(config.save_dir)
     best_success = -1.0
     global_step = 0
@@ -217,7 +226,8 @@ def train_sft(
             images = batch["image"].to(policy.device)
             target_actions = batch["action"].to(policy.device)
             states = batch["state"].to(policy.device)
-            out = policy(images, instruction, target_actions, states=states)
+            with torch.autocast(device_type=policy.device.type, dtype=policy.dtype):
+                out = policy(images, instruction, target_actions, states=states)
             loss = out["loss"] / grad_accum_steps
             loss.backward()
 
@@ -256,6 +266,7 @@ def train_sft(
                 num_episodes=config.eval_episodes,
                 max_steps=config.max_steps,
                 seed=config.seed + 10000,
+                control_mode=control_mode,
             )
             print_metrics(metrics, tag=f"SFT epoch {epoch}")
             if wandb_run is not None:
@@ -436,7 +447,7 @@ def train_srpo(
             seed=config.seed + iteration * 1000,
         )
         num_successes = sum(1 for t in trajectories if t.success)
-        logger.info(f"Iter {iteration}: collected {len(trajectories)} trajs, " f"{num_successes} successes")
+        logger.info(f"Iter {iteration}: collected {len(trajectories)} trajs, {num_successes} successes")
 
         # ── 2. Compute trajectory-level rewards g_i ─────────────────────
         if config.mode == "srpo" and reward_model is not None:
@@ -554,8 +565,7 @@ def train_srpo(
             f"{config.mode}/iteration": iteration,
         }
         logger.info(
-            f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  "
-            f"successes={num_successes}  g_mean={g_mean:.4f}"
+            f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  successes={num_successes}  g_mean={g_mean:.4f}"
         )
         if wandb_run is not None:
             wandb_run.log(log_data)
