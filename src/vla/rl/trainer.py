@@ -9,6 +9,9 @@ Implements the full SRPO algorithm (Section 3.3 of the paper):
        - Recompute per-step FM losses under θ → importance ratio
        - Clipped surrogate loss + KL regularisation against π_ref.
   6. Update θ_old ← θ, add any new successes to reference set.
+
+The rollout engine is **simulator-agnostic**: pass in any object that
+implements :class:`~vla.rl.rollout.RolloutEngine` (ManiSkill or LIBERO).
 """
 
 from __future__ import annotations
@@ -24,7 +27,7 @@ import torch
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
-from vla.rl.rollout import ManiSkillRollout, Trajectory
+from vla.rl.rollout import ManiSkillRollout, RolloutEngine, Trajectory
 from vla.rl.srpo_reward import SRPORewardConfig, WorldProgressReward
 
 logger = logging.getLogger(__name__)
@@ -57,6 +60,40 @@ class SRPOConfig:
     num_fm_noise_samples: int = 4
     gamma: float = 0.99
     reward_scale: float = 1.0
+    simulator: str = "maniskill"
+    suite: str = "spatial"
+    task_id: int = 0
+    state_dim: int = 0
+    num_rollout_envs: int = 1
+
+
+# ---------------------------------------------------------------------------
+# Rollout engine factory
+# ---------------------------------------------------------------------------
+
+def build_rollout_engine(config: SRPOConfig) -> RolloutEngine:
+    """Create a rollout engine from the config's simulator setting."""
+    sim = config.simulator.lower()
+
+    if sim == "maniskill":
+        return ManiSkillRollout(
+            env_id=config.env_id,
+            num_envs=config.num_rollout_envs,
+            max_steps=config.max_steps,
+        )
+
+    if sim == "libero":
+        from vla.rl.libero_rollout import LiberoRollout
+
+        return LiberoRollout(
+            suite_name=config.suite,
+            task_id=config.task_id,
+            num_envs=config.num_rollout_envs,
+            max_steps=config.max_steps,
+            state_dim=config.state_dim,
+        )
+
+    raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +173,7 @@ def train_srpo(
     instruction: str,
     demo_trajectories: list[Trajectory] | None = None,
     wandb_run: Any | None = None,
+    rollout_engine: RolloutEngine | None = None,
 ) -> SmolVLAPolicy:
     """Run SRPO training on top of an SFT-initialised policy.
 
@@ -155,6 +193,8 @@ def train_srpo(
         demo_trajectories: Optional list of demo trajectories to seed the
             reference set.  Their images are used for world-model encoding.
         wandb_run: Optional wandb run for logging.
+        rollout_engine: Pre-built rollout engine.  When ``None`` one is
+            created from ``config`` via :func:`build_rollout_engine`.
 
     Returns:
         The RL-tuned policy.
@@ -195,11 +235,11 @@ def train_srpo(
                     demo_images.append(imgs)
             reward_model.add_demo_trajectories(demo_images)
 
-    rollout_engine = ManiSkillRollout(
-        env_id=config.env_id,
-        num_envs=1,
-        max_steps=config.max_steps,
-    )
+    if rollout_engine is None:
+        rollout_engine = build_rollout_engine(config)
+
+    use_vectorized = config.num_rollout_envs > 1
+
     save_path = Path(config.save_dir)
     best_success = -1.0
 
@@ -217,6 +257,7 @@ def train_srpo(
             instruction=instruction,
             num_trajectories=config.trajectories_per_iter,
             seed=config.seed + iteration * 1000,
+            policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
         )
         num_successes = sum(1 for t in trajectories if t.success)
         logger.info(f"Iter {iteration}: collected {len(trajectories)} trajs, {num_successes} successes")
@@ -346,11 +387,12 @@ def train_srpo(
             metrics = evaluate_smolvla(
                 policy,
                 instruction=instruction,
-                simulator="maniskill",
+                simulator=config.simulator,
                 env_id=config.env_id,
                 num_episodes=config.eval_episodes,
                 max_steps=config.max_steps,
                 seed=config.seed + 20000,
+                suite=config.suite,
             )
             print_metrics(metrics, tag=f"{config.mode} iter {iteration}")
             if wandb_run is not None:

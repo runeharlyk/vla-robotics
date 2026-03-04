@@ -1,8 +1,18 @@
 """SRPO / sparse-RL training on top of an SFT-initialised SmolVLA policy.
 
+Supports both ManiSkill and LIBERO simulators with vectorised rollouts.
+
 Usage:
-    uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/peginsertionside_v1_demos10_seed42/best
+    # ManiSkill (default, vectorised with 16 parallel envs):
+    uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/best --num-rollout-envs 16
+
+    # LIBERO (subprocess-vectorised):
+    uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/best --simulator libero --suite spatial --num-rollout-envs 8
+
+    # Sparse RL ablation:
     uv run python scripts/train_srpo.py --sft-checkpoint ... --mode sparse_rl
+
+    # SRPO with demo seeding:
     uv run python scripts/train_srpo.py --sft-checkpoint ... --data data/preprocessed/peginsertionside.pt --mode srpo
 """
 
@@ -48,6 +58,10 @@ def main(
     ),
     num_demos: int = typer.Option(5, "--num-demos", "-n"),
     mode: str = typer.Option("srpo", "--mode", "-m", help="srpo or sparse_rl"),
+    simulator: str = typer.Option("maniskill", "--simulator", help="maniskill or libero"),
+    suite: str = typer.Option("spatial", "--suite", help="LIBERO suite (spatial, object, goal, long)"),
+    task_id: int = typer.Option(0, "--task-id", help="LIBERO task index within the suite"),
+    num_rollout_envs: int = typer.Option(1, "--num-rollout-envs", help="Parallel envs for vectorised rollouts"),
     lr: float = typer.Option(1e-5, "--lr"),
     num_iterations: int = typer.Option(100, "--iterations"),
     trajectories_per_iter: int = typer.Option(16, "--trajs-per-iter"),
@@ -72,6 +86,9 @@ def main(
 
     ``env_id``, ``instruction``, and ``control_mode`` are loaded from the
     SFT checkpoint's saved metadata unless explicitly overridden via CLI.
+
+    Use ``--num-rollout-envs N`` to enable vectorised parallel rollouts
+    (recommended: set equal to ``--trajs-per-iter`` for full parallelism).
     """
     seed_everything(seed)
     device = get_device()
@@ -89,7 +106,6 @@ def main(
     env_meta = policy.load_checkpoint(sft_checkpoint)
     logging.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
 
-    # Resolve settings: CLI > checkpoint metadata > dataset metadata > default
     resolved_env_id = env_id or env_meta.get("env_id") or dataset.metadata.get("env_id", "PickCube-v1")
     resolved_instruction = (
         instruction
@@ -99,11 +115,13 @@ def main(
     resolved_max_steps = max_steps or 200
 
     logging.info(
-        "RL training: mode=%s  env_id=%s  instruction=%r  max_steps=%d",
+        "RL training: mode=%s  simulator=%s  env_id=%s  instruction=%r  max_steps=%d  num_rollout_envs=%d",
         mode,
+        simulator,
         resolved_env_id,
         resolved_instruction,
         resolved_max_steps,
+        num_rollout_envs,
     )
 
     # ── Build demo trajectories for SRPO reward seeding ──────────────────
@@ -134,6 +152,11 @@ def main(
         subsample_every=subsample_every,
         dbscan_eps=dbscan_eps,
         dbscan_min_samples=dbscan_min_samples,
+        simulator=simulator,
+        suite=suite,
+        task_id=task_id,
+        state_dim=dataset.state_dim,
+        num_rollout_envs=num_rollout_envs,
     )
 
     run = None
@@ -159,6 +182,9 @@ def main(
                 "env_id": resolved_env_id,
                 "world_model": world_model,
                 "num_demos": num_demos,
+                "simulator": simulator,
+                "suite": suite,
+                "num_rollout_envs": num_rollout_envs,
             },
         )
 
