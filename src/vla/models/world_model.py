@@ -22,7 +22,7 @@ import logging
 from abc import ABC, abstractmethod
 
 import torch
-from transformers import AutoImageProcessor, AutoModel, AutoVideoProcessor
+from transformers import AutoImageProcessor, AutoModel
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,7 @@ class VJEPA2Encoder(WorldModelEncoder):
             self._embed_dim = self.model.config.hidden_size
 
             try:
+                from transformers import AutoVideoProcessor
                 self.processor = AutoVideoProcessor.from_pretrained(model_id)
                 self._is_video_processor = True
                 logger.info("V-JEPA 2 loaded with AutoVideoProcessor – embed_dim=%d", self._embed_dim)

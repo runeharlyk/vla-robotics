@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+cd "$LSB_SUBCWD"
 exec 2>&1
 
 export HF_HOME=/work3/s234814/.cache/huggingface

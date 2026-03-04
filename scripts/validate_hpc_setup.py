@@ -6,8 +6,8 @@ functional.
 
 Usage (on HPC, after sourcing _env.sh):
     # Download models to HF cache first (login node, no GPU needed):
-    huggingface-cli download facebook/dinov2-large
-    huggingface-cli download Sylvest/vjepa2-vit-g
+    uv run huggingface-cli download facebook/dinov2-large
+    uv run huggingface-cli download Sylvest/vjepa2-vit-g
 
     # Then validate on a GPU node:
     uv run python scripts/validate_hpc_setup.py
@@ -57,11 +57,6 @@ def check_imports() -> None:
     try:
         import transformers
         _ok(f"transformers {transformers.__version__}")
-        major, minor = (int(x) for x in transformers.__version__.split(".")[:2])
-        if (major, minor) < (4, 52):
-            _fail(f"transformers >= 4.52.0 required for V-JEPA 2, got {transformers.__version__}")
-        else:
-            _ok("transformers version sufficient for V-JEPA 2")
     except Exception as e:
         _fail("import transformers", e)
 
@@ -154,7 +149,7 @@ def check_vjepa2() -> None:
 
         if encoder._fallback is not None:
             _fail(f"V-JEPA 2 fell back to DINOv2 after {elapsed:.1f}s — checkpoint not available?")
-            print("       Try: huggingface-cli download Sylvest/vjepa2-vit-g")
+            print("       Try: uv run huggingface-cli download Sylvest/vjepa2-vit-g")
             return
 
         proc_type = "video" if encoder._is_video_processor else "image"
@@ -183,7 +178,7 @@ def check_hf_cache() -> None:
             for m in models:
                 print(f"       {m.replace('models--', '').replace('--', '/')}")
         else:
-            _fail("Hub cache exists but no models found. Run huggingface-cli download first.")
+            _fail("Hub cache exists but no models found. Run uv run huggingface-cli download first.")
     else:
         _fail(f"Hub directory not found: {hub_dir}")
 
@@ -192,11 +187,11 @@ def check_hf_cache() -> None:
     if dinov2_cached:
         _ok("DINOv2 checkpoint cached")
     else:
-        _fail("DINOv2 not cached — run: huggingface-cli download facebook/dinov2-large")
+        _fail("DINOv2 not cached — run: uv run huggingface-cli download facebook/dinov2-large")
     if vjepa2_cached:
         _ok("V-JEPA 2 checkpoint cached")
     else:
-        _fail("V-JEPA 2 not cached — run: huggingface-cli download Sylvest/vjepa2-vit-g")
+        _fail("V-JEPA 2 not cached — run: uv run huggingface-cli download Sylvest/vjepa2-vit-g")
 
 
 def main(
