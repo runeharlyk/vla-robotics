@@ -69,8 +69,10 @@ def _libero_worker(
                 pipe.send(None)
                 break
     except Exception:
+        import traceback
+
         logger.exception("LIBERO worker crashed")
-        pipe.send(None)
+        pipe.send(RuntimeError(f"LIBERO worker crashed:\n{traceback.format_exc()}"))
 
 
 def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
@@ -161,6 +163,9 @@ class LiberoVecEnv:
         for pipe, seed in zip(self._pipes, seeds, strict=True):
             pipe.send((_CMD_RESET, seed))
         results = [pipe.recv() for pipe in self._pipes]
+        for r in results:
+            if isinstance(r, Exception):
+                raise r
         obs_list = [r[0] for r in results]
         return obs_list
 
@@ -170,7 +175,10 @@ class LiberoVecEnv:
 
         obs_list, rewards, terminateds, truncateds, infos = [], [], [], [], []
         for pipe in self._pipes:
-            obs, reward, terminated, truncated, info = pipe.recv()
+            result = pipe.recv()
+            if isinstance(result, Exception):
+                raise result
+            obs, reward, terminated, truncated, info = result
             obs_list.append(obs)
             rewards.append(float(reward))
             terminateds.append(bool(terminated))

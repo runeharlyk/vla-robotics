@@ -50,7 +50,7 @@ def _discover_data(data_path: Path | None) -> Path:
 
 
 def main(
-    sft_checkpoint: Path = typer.Option(..., "--sft-checkpoint", "-s", path_type=Path),
+    sft_checkpoint: Path = typer.Option(None, "--sft-checkpoint", "-s", path_type=Path),
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
     data_path: Path = typer.Option(
         None, "--data", "-d", path_type=Path, help="Preprocessed .pt file (for demo seeding)"
@@ -93,18 +93,30 @@ def main(
     seed_everything(seed)
     device = get_device()
 
+    # ── Resolve action_dim: LIBERO always uses 7, ManiSkill uses 8 ───────
+    from vla.constants import ACTION_DIM, MANISKILL_TASKS
+
     # ── Load SFT policy and its saved metadata ───────────────────────────
     pt_path = _discover_data(data_path)
     dataset = FewDemoDataset(pt_path, num_demos=num_demos, seed=seed)
 
+    if simulator == "libero":
+        resolved_action_dim = ACTION_DIM  # 7
+    else:
+        resolved_action_dim = dataset.action_dim
+
     policy = SmolVLAPolicy(
         checkpoint=checkpoint,
-        action_dim=dataset.action_dim,
+        action_dim=resolved_action_dim,
         state_dim=dataset.state_dim,
         device=str(device),
     )
-    env_meta = policy.load_checkpoint(sft_checkpoint)
-    logging.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
+    env_meta: dict = {}
+    if sft_checkpoint is not None:
+        env_meta = policy.load_checkpoint(sft_checkpoint)
+        logging.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
+    else:
+        logging.info("No SFT checkpoint provided – using pretrained %s weights directly", checkpoint)
 
     resolved_env_id = env_id or env_meta.get("env_id") or dataset.metadata.get("env_id", "PickCube-v1")
     resolved_instruction = (

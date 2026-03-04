@@ -2,11 +2,11 @@
 
 # ---------------- LSF directives ----------------
 #BSUB -J sft_libero_all_l40s
-#BSUB -q gpua100
+#BSUB -q gpul40s
 #BSUB -W 24:00
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
-#BSUB -R "rusage[mem=6GB]"
+#BSUB -R "rusage[mem=4GB]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -u s234814@dtu.dk
 #BSUB -B
