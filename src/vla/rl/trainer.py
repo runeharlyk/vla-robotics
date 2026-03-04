@@ -148,6 +148,7 @@ def _compute_fm_loss_batched(
     """
     T = traj.length
     all_losses: list[torch.Tensor] = []
+    use_amp = policy.device.type == "cuda" if hasattr(policy.device, "type") else str(policy.device).startswith("cuda")
 
     for start in range(0, T, batch_size):
         end = min(start + batch_size, T)
@@ -170,16 +171,17 @@ def _compute_fm_loss_batched(
         noise = fixed_noise[start:end].to(policy.device, dtype=policy.dtype)
         time = fixed_time[start:end].to(policy.device, dtype=policy.dtype)
 
-        losses = policy.model.forward(
-            img_list,
-            mask_list,
-            tokens,
-            tmasks,
-            state,
-            action_padded,
-            noise=noise,
-            time=time,
-        )
+        with torch.amp.autocast("cuda", enabled=use_amp):
+            losses = policy.model.forward(
+                img_list,
+                mask_list,
+                tokens,
+                tmasks,
+                state,
+                action_padded,
+                noise=noise,
+                time=time,
+            )
         per_step = losses[:, :, : policy.max_action_dim].mean(dim=(1, 2))
         all_losses.append(per_step)
 
@@ -235,6 +237,8 @@ def train_srpo(
     ref_policy.eval()
     for p in ref_policy.parameters():
         p.requires_grad_(False)
+    # Keep ref_policy on CPU to save GPU memory; transfer batches as needed.
+    ref_policy = ref_policy.cpu()
 
     world_encoder: WorldModelEncoder | None = None
     reward_model: WorldProgressReward | None = None
@@ -325,6 +329,8 @@ def train_srpo(
                 )
                 old_losses_per_traj.append(old_loss.detach())
 
+                # Move ref_policy to GPU only for its forward pass, then back
+                ref_policy.to(policy.device)
                 ref_loss = _compute_fm_loss_batched(
                     ref_policy,
                     traj,
@@ -334,6 +340,8 @@ def train_srpo(
                     batch_size=B,
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
+                ref_policy.cpu()
+                torch.cuda.empty_cache()
 
         # ── 5. PPO epochs (batched forward, gradient accumulation) ──────
         policy.train()
