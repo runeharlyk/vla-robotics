@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "vla-robotics"
 version = "0.1.0"
-description = "VLA Robotics -- LIBERO benchmarking with SmolVLA and custom VLA models"
+description = "VLA Robotics -- SmolVLA fine-tuning and evaluation on LIBERO & ManiSkill"
 authors = [
   { name = "Rune Harlyk", email = "s234814@dtu.dk" }
 ]

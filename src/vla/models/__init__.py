@@ -63,14 +63,9 @@ class _SmolVLAAdapter:
 
 
 def load_policy(model: str, checkpoint: str, device: str) -> LoadedPolicy:
-    loaders = {
-        "smolvla": _load_smolvla,
-        "custom": _load_custom_vla,
-    }
-    loader = loaders.get(model.lower())
-    if loader is None:
-        raise ValueError(f"Unknown model {model!r}. Available: {sorted(loaders)}")
-    return loader(checkpoint, device)
+    if model.lower() != "smolvla":
+        raise ValueError(f"Unknown model {model!r}. Available: smolvla")
+    return _load_smolvla(checkpoint, device)
 
 
 def _load_smolvla(checkpoint: str, device: str) -> LoadedPolicy:
@@ -100,42 +95,6 @@ def _load_smolvla(checkpoint: str, device: str) -> LoadedPolicy:
         policy=adapter,
         preprocessor=_identity_pre,
         postprocessor=_identity_post,
-        state_dim=state_dim,
-        action_dim=action_dim,
-    )
-
-
-def _load_custom_vla(checkpoint: str, device: str) -> LoadedPolicy:
-    from vla.models.custom_vla import CustomVLA
-
-    device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
-    ckpt = torch.load(checkpoint, map_location=device_obj, weights_only=False)
-
-    config = ckpt["config"]
-    model_kwargs = config["model_kwargs"]
-    action_dim = config.get("action_dim", model_kwargs.get("action_dim", 7))
-
-    model = CustomVLA(**model_kwargs)
-    model.load_state_dict(ckpt["model_state_dict"])
-    dtype = torch.bfloat16 if device_obj.type == "cuda" else torch.float32
-    model = model.to(device_obj, dtype=dtype)
-
-    state_dim = action_dim
-
-    def preprocessor(batch: dict) -> dict:
-        image_key = next((k for k in batch if k.startswith("observation.images.")), None)
-        images = batch[image_key] if image_key else torch.zeros(1, 3, 256, 256, device=device_obj)
-        state = batch.get("observation.state", torch.zeros(1, action_dim, device=device_obj))
-        instruction = batch.get("task", [""])
-        return {"images": images, "state": state, "instruction": instruction}
-
-    def postprocessor(action: torch.Tensor) -> torch.Tensor:
-        return action
-
-    return LoadedPolicy(
-        policy=model,
-        preprocessor=preprocessor,
-        postprocessor=postprocessor,
         state_dim=state_dim,
         action_dim=action_dim,
     )

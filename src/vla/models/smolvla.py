@@ -478,18 +478,30 @@ class SmolVLAPolicy(nn.Module):
             return str(Path(checkpoint) / "model.safetensors")
         return hf_hub_download(checkpoint, "model.safetensors")
 
-    def _tokenize(self, instruction: str, batch_size: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
+    def _tokenize(self, instruction: str | list[str], batch_size: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
         tok_max = self.ckpt_config.get("tokenizer_max_length", 48)
-        text = instruction if instruction.endswith("\n") else instruction + "\n"
-        encoded = self.processor.tokenizer(
-            text,
-            padding="max_length",
-            max_length=tok_max,
-            truncation=True,
-            return_tensors="pt",
-        )
-        tokens = encoded["input_ids"].to(self.device).expand(batch_size, -1)
-        masks = encoded["attention_mask"].to(self.device).bool().expand(batch_size, -1)
+        if isinstance(instruction, str):
+            text = instruction if instruction.endswith("\n") else instruction + "\n"
+            encoded = self.processor.tokenizer(
+                text,
+                padding="max_length",
+                max_length=tok_max,
+                truncation=True,
+                return_tensors="pt",
+            )
+            tokens = encoded["input_ids"].to(self.device).expand(batch_size, -1)
+            masks = encoded["attention_mask"].to(self.device).bool().expand(batch_size, -1)
+        else:
+            texts = [t if t.endswith("\n") else t + "\n" for t in instruction]
+            encoded = self.processor.tokenizer(
+                texts,
+                padding="max_length",
+                max_length=tok_max,
+                truncation=True,
+                return_tensors="pt",
+            )
+            tokens = encoded["input_ids"].to(self.device)
+            masks = encoded["attention_mask"].to(self.device).bool()
         return tokens, masks
 
     def _prepare_images(self, images: torch.Tensor) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
@@ -592,7 +604,7 @@ class SmolVLAPolicy(nn.Module):
     def forward(
         self,
         images: torch.Tensor,
-        instruction: str,
+        instruction: str | list[str],
         target_actions: torch.Tensor,
         states: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
@@ -600,7 +612,8 @@ class SmolVLAPolicy(nn.Module):
 
         Args:
             images: (B, C, H, W) image batch in [0, 1].
-            instruction: Shared language instruction.
+            instruction: Shared language instruction string, or per-sample
+                list of length B for multi-task training.
             target_actions: (B, action_dim) ground-truth actions (unnormalized).
             states: Optional (B, state_dim) proprioceptive state.
 
@@ -641,8 +654,14 @@ class SmolVLAPolicy(nn.Module):
             embs, _, _ = self.model.embed_prefix(img_list, mask_list, tokens, tmasks, s)
             return embs[0, -1].float()
 
-    def save_checkpoint(self, path: str | Path) -> None:
-        """Save full model weights and normalization statistics."""
+    def save_checkpoint(self, path: str | Path, **extra_metadata: Any) -> None:
+        """Save full model weights, normalization statistics, and optional metadata.
+
+        Any additional keyword arguments are persisted under an ``"env_metadata"``
+        key so that downstream evaluate / visualize scripts can auto-configure
+        ``env_id``, ``instruction``, ``control_mode``, etc. without requiring
+        the user to re-specify them.
+        """
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
         torch.save(
@@ -656,12 +675,14 @@ class SmolVLAPolicy(nn.Module):
                 "action_std": self.action_std.detach().cpu(),
                 "state_mean": self.state_mean.detach().cpu(),
                 "state_std": self.state_std.detach().cpu(),
+                "env_metadata": extra_metadata,
             },
             path / "policy.pt",
         )
 
-    def load_checkpoint(self, path: str | Path) -> None:
-        """Load model weights and normalization statistics from a previously saved checkpoint."""
+    def load_checkpoint(self, path: str | Path) -> dict[str, Any]:
+        """Load model weights and normalization statistics from a previously saved checkpoint.
+        """
         path = Path(path)
         data = torch.load(path / "policy.pt", map_location=self.device, weights_only=False)
         self.model.load_state_dict(data["model_state_dict"])
@@ -685,3 +706,4 @@ class SmolVLAPolicy(nn.Module):
                 self.register_buffer("state_std", torch.ones_like(sstd), persistent=True)
             self.state_mean.copy_(sm)
             self.state_std.copy_(sstd)
+        return data.get("env_metadata", {})

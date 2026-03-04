@@ -72,47 +72,10 @@ def download_libero(ctx: Context, suite: str = "all") -> None:
 
 
 @task
-def finetune_smolvla(
-    ctx: Context,
-    config: str = "",
-    suite: str = "all",
-    steps: int = 20000,
-    batch_size: int = 64,
-    device: str = "cuda",
-) -> None:
-    if config:
-        cmd = f"uv run lerobot_train --config_path {config}"
-    else:
-        cmd = (
-            f"uv run lerobot_train "
-            f"--dataset.repo_id=lerobot/libero_10_image "
-            f"--policy.type=smolvla "
-            f"--steps={steps} "
-            f"--batch_size={batch_size} "
-            f"--device={device}"
-        )
-    ctx.run(cmd, echo=True, pty=not WINDOWS)
+def download_libero_data(ctx: Context, suite: str = "all") -> None:
+    """Pre-download Libero data from HuggingFace (cached by LeRobot)."""
+    ctx.run(f"uv run python scripts/download_libero.py --suite {suite}", echo=True, pty=not WINDOWS)
 
-
-@task
-def train_custom(
-    ctx: Context,
-    simulator: str = "libero",
-    suite: str = "all",
-    steps: int = 30000,
-    batch_size: int = 64,
-    lr: float = 3e-4,
-    device: str = "cuda",
-    amp: bool = False,
-) -> None:
-    """SFT training of custom VLA on demonstration data."""
-    amp_flag = "--amp" if amp else "--no-amp"
-    cmd = (
-        f"uv run python -m vla train "
-        f"--simulator {simulator} --suite {suite} --steps {steps} --batch-size {batch_size} "
-        f"--lr {lr} --device {device} {amp_flag}"
-    )
-    ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 
 @task
@@ -270,11 +233,50 @@ def create_job(
 
 
 @task
-def train_sft(ctx: Context, num_demos: int = 10, seed: int = 42, no_wandb: bool = False) -> None:
-    """Run SFT (behavior cloning) training from few demonstrations."""
+def preprocess(
+    ctx: Context,
+    skill: str = "PegInsertionSide-v1",
+    raw_dir: str = "data/raw",
+    out_dir: str = "data/preprocessed",
+    num_cameras: int = 2,
+    image_size: int = 256,
+    max_traj: int = 0,
+) -> None:
+    """Preprocess ManiSkill raw demos into a VLA-ready .pt file."""
+    max_flag = f"--max-traj {max_traj}" if max_traj > 0 else ""
+    cmd = (
+        f"uv run python scripts/preprocess_data.py "
+        f"--skill {skill} --raw-dir {raw_dir} --out-dir {out_dir} "
+        f"--num-cameras {num_cameras} --image-size {image_size} {max_flag}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
+def train_sft(
+    ctx: Context,
+    num_demos: int = 10,
+    seed: int = 42,
+    data: str = "",
+    libero_suite: str = "",
+    simulator: str = "",
+    eval_suite: str = "all",
+    resume: str = "",
+    no_wandb: bool = False,
+) -> None:
+    """Run SmolVLA SFT (behavior cloning) training.
+
+    Data from --data (.pt files) or --libero-suite (HF direct).
+    """
     wandb_flag = "--no-wandb" if no_wandb else "--wandb"
+    data_flag = f"--data {data}" if data else ""
+    libero_flag = f"--libero-suite {libero_suite}" if libero_suite else ""
+    sim_flag = f"--simulator {simulator}" if simulator else ""
+    resume_flag = f"--resume {resume}" if resume else ""
     ctx.run(
-        f"uv run python scripts/train_sft.py --num-demos {num_demos} --seed {seed} {wandb_flag}",
+        f"uv run python scripts/train_sft.py {data_flag} {libero_flag} "
+        f"--num-demos {num_demos} --seed {seed} "
+        f"{sim_flag} --eval-suite {eval_suite} {resume_flag} {wandb_flag}",
         echo=True,
         pty=not WINDOWS,
     )
@@ -316,11 +318,15 @@ def evaluate_policy(
     ctx: Context,
     checkpoint_dir: str = "checkpoints/sft/demos10_seed42/best",
     num_episodes: int = 100,
-    env: str = "PickCube-v1",
+    env: str = "",
+    simulator: str = "maniskill",
+    suite: str = "all",
 ) -> None:
-    """Evaluate a saved policy checkpoint."""
+    """Evaluate a saved policy checkpoint (env_id auto-read from checkpoint metadata)."""
+    env_flag = f"--env {env}" if env else ""
     cmd = (
         f"uv run python scripts/evaluate.py "
-        f"--checkpoint-dir {checkpoint_dir} --num-episodes {num_episodes} --env {env}"
+        f"--checkpoint-dir {checkpoint_dir} --num-episodes {num_episodes} "
+        f"--simulator {simulator} --suite {suite} {env_flag}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)

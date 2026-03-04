@@ -119,3 +119,93 @@ class FewDemoDataset(Dataset):
                 )
             )
         return trajs
+
+
+class ConcatFewDemoDataset(Dataset):
+    """Combines multiple preprocessed ``.pt`` files into a single dataset.
+
+    All source files must share the same ``action_dim`` and ``state_dim``
+    (i.e. same robot / control mode).  Instructions may differ across
+    files, enabling multi-task training.
+
+    Args:
+        pt_paths: Paths to preprocessed ``.pt`` files.
+        num_demos: Per-file cap on episodes (``None`` = use all).
+        seed: Random seed for episode subsampling.
+    """
+
+    def __init__(self, pt_paths: list[str | Path], num_demos: int | None = None, seed: int = 42) -> None:
+        if not pt_paths:
+            raise ValueError("pt_paths must contain at least one path")
+
+        subs = [FewDemoDataset(p, num_demos=num_demos, seed=seed) for p in pt_paths]
+
+        action_dims = {d.action_dim for d in subs}
+        state_dims = {d.state_dim for d in subs}
+        if len(action_dims) > 1:
+            raise ValueError(f"Cannot combine datasets with different action_dim: {action_dims}")
+        if len(state_dims) > 1:
+            raise ValueError(f"Cannot combine datasets with different state_dim: {state_dims}")
+
+        self.action_dim: int = subs[0].action_dim
+        self.state_dim: int = subs[0].state_dim
+        self.num_episodes: int = sum(d.num_episodes for d in subs)
+
+        self.images_cat = torch.cat([d.images_cat for d in subs])
+        self.states_cat = torch.cat([d.states_cat for d in subs])
+        self.actions_cat = torch.cat([d.actions_cat for d in subs])
+
+        self._instructions: list[str] = []
+        for d in subs:
+            self._instructions.extend([d.instruction] * len(d))
+
+        unique_instrs = list(dict.fromkeys(d.instruction for d in subs))
+        self.instruction: str = unique_instrs[0]
+
+        self.norm_stats = NormStats(
+            action_mean=self.actions_cat.mean(dim=0),
+            action_std=self.actions_cat.std(dim=0).clamp(min=1e-8),
+            state_mean=self.states_cat.mean(dim=0),
+            state_std=self.states_cat.std(dim=0).clamp(min=1e-8),
+        )
+
+        self.metadata: dict = subs[0].metadata.copy()
+        if len(unique_instrs) > 1:
+            self.metadata["instructions"] = unique_instrs
+        self.control_mode: str = subs[0].control_mode
+
+        self._episodes: list[dict] = []
+        for d in subs:
+            self._episodes.extend(d._episodes)
+
+    def __len__(self) -> int:
+        return self.images_cat.shape[0]
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor | str]:
+        return {
+            "image": self.images_cat[idx].float(),
+            "state": self.states_cat[idx],
+            "action": self.actions_cat[idx],
+            "instruction": self._instructions[idx],
+        }
+
+    @property
+    def image_size(self) -> int:
+        return int(self.images_cat.shape[-1])
+
+    def episodes_as_trajectories(self) -> list[Trajectory]:
+        trajs: list[Trajectory] = []
+        for ep in self._episodes:
+            T = ep["actions"].shape[0]
+            trajs.append(
+                Trajectory(
+                    images=ep["images"][:T],
+                    states=ep["states"][:T],
+                    actions=ep["actions"][:T],
+                    rewards=torch.ones(T),
+                    dones=torch.zeros(T),
+                    success=True,
+                    length=T,
+                )
+            )
+        return trajs

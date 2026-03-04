@@ -1,49 +1,89 @@
-train-smolvla: |
-  uv run lerobot-train \
-      --dataset.repo_id=HuggingFaceVLA/libero \
-      --policy.type=smolvla \
-      --policy.pretrained_path={model_id} \
-      --policy.load_vlm_weights=true \
-      --policy.push_to_hub=false \
-      --policy.device=cuda \
-      --policy.optimizer_lr={lr} \
-      --env.type=libero \
-      --env.task=libero_10 \
-      --steps={steps} \
-      --batch_size={batch_size} \
-      --eval_freq=5000 \
-      --eval.n_episodes=10 \
-      --eval.batch_size=1 \
-      --output_dir=outputs/{job_name} \
-      --save_checkpoint=true \
-      --save_freq=5000 \
-      --wandb.enable=true \
-      --wandb.project={wandb_project}
+# ── Preprocessing raw ManiSkill demos → .pt ────────────────────────────
+preprocess: |
+  uv run python scripts/preprocess_data.py \
+      --skill {skill} \
+      --raw-dir {raw_dir} \
+      --out-dir {out_dir} \
+      --num-cameras {num_cameras} \
+      --image-size {image_size}
 
-train-custom: |
-  uv run python -m vla train \
-      --simulator {simulator} \
-      --suite {suite} \
-      --steps {steps} \
-      --batch-size {batch_size} \
-      --lr {lr} \
-      --device cuda \
-      --save models/{job_name}.pt \
-      --wandb-project {wandb_project}
 
-train-rl: |
-  uv run python -m vla train-rl \
+# ── SFT on preprocessed .pt data (ManiSkill / any sim eval) ───────────
+train-sft: |
+  uv run python scripts/train_sft.py \
+      --data {data} \
+      --env {env_id} \
+      --num-demos {num_demos} \
+      --seed {seed} \
       --checkpoint {checkpoint} \
+      --lr {lr} \
+      --batch-size {batch_size} \
+      --micro-batch-size {micro_batch_size} \
+      --epochs {num_epochs} \
+      --warmup-steps {warmup_steps} \
+      --decay-steps {decay_steps} \
+      --decay-lr {decay_lr} \
+      --grad-clip-norm {grad_clip_norm} \
+      --eval-every {eval_every} \
+      --eval-episodes {eval_episodes} \
+      --max-steps {max_steps} \
+      --simulator {simulator} \
+      --eval-suite {eval_suite} \
+      --wandb
+
+# ── SFT on Libero data loaded directly from HuggingFace ───────────────
+train-sft-libero: |
+  uv run python scripts/train_sft.py \
+      --libero-suite {libero_suite} \
+      --env {env_id} \
+      --num-demos {num_demos} \
+      --seed {seed} \
+      --checkpoint {checkpoint} \
+      --lr {lr} \
+      --batch-size {batch_size} \
+      --micro-batch-size {micro_batch_size} \
+      --epochs {num_epochs} \
+      --warmup-steps {warmup_steps} \
+      --decay-steps {decay_steps} \
+      --decay-lr {decay_lr} \
+      --grad-clip-norm {grad_clip_norm} \
+      --eval-every {eval_every} \
+      --eval-episodes {eval_episodes} \
+      --max-steps {max_steps} \
+      --simulator {simulator} \
+      --eval-suite {eval_suite} \
+      --wandb
+
+# ── SRPO / sparse-RL from an SFT checkpoint ───────────────────────────
+train-srpo: |
+  uv run python scripts/train_srpo.py \
+      --sft-checkpoint {sft_checkpoint} \
+      --data {data} \
+      --mode {mode} \
+      --num-demos {num_demos} \
+      --seed {seed} \
+      --lr {lr} \
+      --iterations {num_iterations} \
+      --trajs-per-iter {trajectories_per_iter} \
+      --ppo-epochs {ppo_epochs} \
+      --clip-epsilon {clip_epsilon} \
+      --kl-coeff {kl_coeff} \
+      --eval-every {eval_every} \
+      --eval-episodes {eval_episodes} \
+      --max-steps {max_steps} \
+      --world-model {world_model} \
+      --wandb
+
+# ── Evaluate a saved checkpoint (sim-agnostic) ────────────────────────
+eval-policy: |
+  uv run python scripts/evaluate.py \
+      --checkpoint-dir {checkpoint_dir} \
       --simulator {simulator} \
       --suite {suite} \
-      --num-iterations {num_iterations} \
-      --trajectories-per-iter {trajectories_per_iter} \
-      --lr {lr} \
-      --max-steps {max_steps} \
-      --device cuda \
-      --save models/{job_name}.pt \
-      --wandb-project {wandb_project}
+      --num-episodes {num_episodes} \
+      --seed {seed}
 
+# ── Evaluate via vla CLI in Libero ─────────────────────────────────────
 eval-libero: |
   export LIBERO_PATH=/work3/s234814/libero
   mkdir -p "$LIBERO_PATH"
@@ -59,6 +99,7 @@ eval-libero: |
       --compile \
       --wandb-project {wandb_project}
 
+# ── Evaluate via vla CLI in ManiSkill ──────────────────────────────────
 eval-maniskill: |
   uv run python -m vla evaluate \
       --model {model} \

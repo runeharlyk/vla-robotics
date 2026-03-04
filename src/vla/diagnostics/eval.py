@@ -1,13 +1,20 @@
-"""Evaluation utilities for ManiSkill VLA policies."""
+"""Simulator-agnostic evaluation utilities for VLA policies.
+
+Supports both ManiSkill and Libero (and any future simulator implementing
+the :class:`~vla.envs.base.SimEnv` protocol) through the
+:class:`~vla.envs.base.SimEnvFactory` abstraction.
+"""
 
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 
-from vla.rl.rollout import ManiSkillRollout, Trajectory
+from vla.envs import SimEnvFactory, make_env_factory
 
 logger = logging.getLogger(__name__)
 
@@ -25,72 +32,141 @@ class EvalMetrics:
 
 
 def evaluate(
-    policy_fn: callable,
+    policy_fn: Callable[[dict], np.ndarray | torch.Tensor],
+    env_factory: SimEnvFactory,
+    num_episodes: int = 100,
+    seed: int = 0,
+    device: torch.device | str = "cpu",
+) -> EvalMetrics:
+    """Evaluate a policy across all tasks exposed by *env_factory*.
+
+    Args:
+        policy_fn: ``(batch_dict) -> action``  where *batch_dict* comes from
+            :meth:`SimEnv.obs_to_batch` and *action* is a numpy array or
+            tensor of shape ``(action_dim,)`` or ``(1, action_dim)``.
+        env_factory: Factory that creates simulator environments.
+        num_episodes: Episodes per task.
+        seed: Base random seed.
+        device: Device used by ``obs_to_batch``.
+
+    Returns:
+        Aggregated :class:`EvalMetrics`.
+    """
+    if isinstance(device, str):
+        device = torch.device(device)
+
+    total_successes = 0
+    total_rewards: list[float] = []
+    total_lengths: list[int] = []
+
+    for task_id in range(env_factory.num_tasks):
+        env = env_factory(task_id)
+        max_steps = env.max_episode_steps
+
+        for ep in range(num_episodes):
+            raw_obs, info = env.reset(seed=seed + task_id * num_episodes + ep)
+            ep_reward = 0.0
+            ep_len = 0
+            success = False
+
+            for _step in range(max_steps):
+                batch = env.obs_to_batch(raw_obs, device=device)
+                action = policy_fn(batch)
+
+                if isinstance(action, torch.Tensor):
+                    action_np = action.detach().cpu().numpy()
+                else:
+                    action_np = np.asarray(action, dtype=np.float32)
+                action_np = action_np.flatten()
+
+                raw_obs, reward, terminated, truncated, info = env.step(action_np)
+                ep_reward += float(reward)
+                ep_len += 1
+
+                if env.is_success(info):
+                    success = True
+                    break
+                if terminated or truncated:
+                    break
+
+            if success:
+                total_successes += 1
+            total_rewards.append(ep_reward)
+            total_lengths.append(ep_len)
+
+        env.close()
+
+    n = max(len(total_lengths), 1)
+    lengths_sorted = sorted(total_lengths)
+    mid = len(lengths_sorted) // 2
+    if len(lengths_sorted) % 2 == 0 and len(lengths_sorted) >= 2:
+        median_len = (lengths_sorted[mid - 1] + lengths_sorted[mid]) / 2.0
+    else:
+        median_len = float(lengths_sorted[mid]) if lengths_sorted else 0.0
+
+    total_ep = env_factory.num_tasks * num_episodes
+    return EvalMetrics(
+        success_rate=total_successes / max(total_ep, 1),
+        mean_reward=sum(total_rewards) / n,
+        mean_episode_length=sum(total_lengths) / n,
+        median_episode_length=median_len,
+        num_episodes=total_ep,
+        successes=total_successes,
+    )
+
+
+def evaluate_smolvla(
+    policy,
     instruction: str,
+    simulator: str = "maniskill",
     env_id: str = "PickCube-v1",
     num_episodes: int = 100,
     max_steps: int = 200,
     seed: int = 0,
-    image_size: int = 256,
     control_mode: str = "pd_joint_delta_pos",
+    suite: str = "all",
+    image_size: int = 256,
 ) -> EvalMetrics:
-    """Evaluate a policy in ManiSkill and return aggregated metrics.
+    """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
 
-    Args:
-        policy_fn: Callable ``(image_tensor, instruction, state_tensor) -> action_tensor``.
-        instruction: Language instruction for the task.
-        env_id: ManiSkill environment id.
-        num_episodes: Number of evaluation episodes.
-        max_steps: Maximum steps per episode.
-        seed: Base random seed.
-        image_size: Rendered image resolution.
-        control_mode: Robot control mode (must match the training data).
-
-    Returns:
-        :class:`EvalMetrics` with success rate, rewards, and episode lengths.
+    Builds a :class:`SimEnvFactory` from the provided parameters and wraps
+    ``policy.predict_action`` into the batch-dict interface expected by
+    :func:`evaluate`.
     """
-    rollout = ManiSkillRollout(
-        env_id=env_id,
-        num_envs=1,
-        max_steps=max_steps,
-        image_size=image_size,
-        control_mode=control_mode,
-    )
-
-    trajectories: list[Trajectory] = []
-    for i in range(num_episodes):
-        traj = rollout.collect_trajectory(policy_fn, instruction, seed=seed + i)
-        trajectories.append(traj)
-
-    rollout.close()
-
-    successes = sum(1 for t in trajectories if t.success)
-    total_rewards = [t.rewards.sum().item() for t in trajectories]
-    lengths = [t.length for t in trajectories]
-    lengths_sorted = sorted(lengths)
-    mid = len(lengths_sorted) // 2
-    if len(lengths_sorted) % 2 == 0:
-        median_len = (lengths_sorted[mid - 1] + lengths_sorted[mid]) / 2.0
+    factory_kwargs: dict = {}
+    sim = simulator.lower()
+    if sim == "maniskill":
+        factory_kwargs.update(
+            env_id=env_id,
+            instruction=instruction,
+            max_episode_steps=max_steps,
+            image_size=image_size,
+            control_mode=control_mode,
+        )
+    elif sim == "libero":
+        factory_kwargs.update(suite=suite, state_dim=policy.state_dim)
     else:
-        median_len = float(lengths_sorted[mid])
+        raise ValueError(f"Unknown simulator {simulator!r}")
 
-    all_actions = torch.cat([t.actions[: t.length] for t in trajectories], dim=0)
-    logger.info(
-        "Action diagnostics: mean=%s  std=%s  min=%.3f  max=%.3f",
-        all_actions.mean(dim=0).tolist(),
-        all_actions.std(dim=0).tolist(),
-        all_actions.min().item(),
-        all_actions.max().item(),
-    )
+    env_factory = make_env_factory(sim, **factory_kwargs)
+    device = policy.device
 
-    return EvalMetrics(
-        success_rate=successes / max(num_episodes, 1),
-        mean_reward=sum(total_rewards) / max(num_episodes, 1),
-        mean_episode_length=sum(lengths) / max(num_episodes, 1),
-        median_episode_length=median_len,
-        num_episodes=num_episodes,
-        successes=successes,
-    )
+    def _policy_fn(batch: dict) -> torch.Tensor:
+        image_key = next((k for k in batch if k.startswith("observation.images.")), None)
+        if image_key is None:
+            raise ValueError(f"No observation.images.* in batch. Keys: {list(batch.keys())}")
+        image = batch[image_key]
+        if image.ndim in (4, 5):
+            image = image[0]
+        state = batch.get("observation.state")
+        if state is not None and state.ndim == 2:
+            state = state[0]
+        task = batch.get("task", instruction)
+        if isinstance(task, (list, tuple)):
+            task = task[0]
+        return policy.predict_action(image, task, state)
+
+    return evaluate(_policy_fn, env_factory, num_episodes=num_episodes, seed=seed, device=device)
 
 
 def print_metrics(metrics: EvalMetrics, tag: str = "") -> None:

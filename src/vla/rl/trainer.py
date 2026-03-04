@@ -1,12 +1,6 @@
-"""Training loops for SFT (behaviour cloning) and SRPO reinforcement learning.
+"""SRPO reinforcement-learning training loop.
 
-SFT (``train_sft``) mirrors the LeRobot training recipe for SmolVLA fine-tuning:
-  - AdamW with betas=(0.9, 0.95), weight_decay=1e-10
-  - Cosine decay LR scheduler with linear warmup
-  - Gradient clipping at max_norm=10
-  - MEAN_STD action/state normalisation
-
-SRPO (``train_srpo``) implements the full paper algorithm (Section 3.3):
+Implements the full SRPO algorithm (Section 3.3 of the paper):
   1. Collect M trajectories with π_θ_old.
   2. Compute world-progress trajectory rewards g_i via the world model.
   3. Compute trajectory-level advantages  = (g_i − μ_g) / σ_g.
@@ -21,85 +15,19 @@ from __future__ import annotations
 
 import copy
 import logging
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import torch
-from torch.optim.lr_scheduler import LambdaLR
-from torch.utils.data import DataLoader
 
-from vla.data.dataset import FewDemoDataset
-from vla.diagnostics.eval import evaluate, print_metrics
+from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.rollout import ManiSkillRollout, Trajectory
 from vla.rl.srpo_reward import SRPORewardConfig, WorldProgressReward
 
 logger = logging.getLogger(__name__)
-
-
-def _cosine_decay_with_warmup_schedule(
-    warmup_steps: int,
-    decay_steps: int,
-    peak_lr: float,
-    decay_lr: float,
-    total_steps: int,
-) -> callable:
-    """Return a lambda for :class:`LambdaLR` implementing cosine decay with linear warmup.
-
-    If ``total_steps < decay_steps`` both warmup and decay durations are
-    scaled proportionally (matching the LeRobot auto-scale behaviour).
-
-    Args:
-        warmup_steps: Number of linear warmup steps (before scaling).
-        decay_steps: Number of cosine decay steps (before scaling).
-        peak_lr: The learning rate at the end of warmup.
-        decay_lr: The minimum learning rate after decay.
-        total_steps: Actual number of optimiser steps for the run.
-
-    Returns:
-        A multiplier function ``step -> lr_multiplier`` for :class:`LambdaLR`.
-    """
-    if decay_steps > total_steps:
-        warmup_steps = int(warmup_steps * total_steps / decay_steps)
-        decay_steps = total_steps
-
-    def _lr_lambda(current_step: int) -> float:
-        if current_step < warmup_steps:
-            return (current_step + 1) / (warmup_steps + 1)
-        progress = min((current_step - warmup_steps) / max(decay_steps - warmup_steps, 1), 1.0)
-        cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
-        lr = decay_lr + (peak_lr - decay_lr) * cosine
-        return lr / peak_lr
-
-    return _lr_lambda
-
-
-@dataclass
-class SFTConfig:
-    """Hyperparameters for supervised fine-tuning (behaviour cloning).
-
-    Defaults match the LeRobot SmolVLA fine-tuning recipe.
-    """
-
-    lr: float = 1e-4
-    betas: tuple[float, float] = (0.9, 0.95)
-    weight_decay: float = 1e-10
-    grad_clip_norm: float = 10.0
-    warmup_steps: int = 1_000
-    decay_steps: int = 30_000
-    decay_lr: float = 2.5e-6
-    batch_size: int = 64
-    micro_batch_size: int = 4
-    num_epochs: int = 50
-    eval_every: int = 5
-    eval_episodes: int = 50
-    max_steps: int = 200
-    save_dir: str = "checkpoints/sft"
-    env_id: str = "PickCube-v1"
-    seed: int = 42
 
 
 @dataclass
@@ -131,161 +59,9 @@ class SRPOConfig:
     reward_scale: float = 1.0
 
 
-def train_sft(
-    policy: SmolVLAPolicy,
-    dataset: FewDemoDataset,
-    config: SFTConfig,
-    wandb_run: Any | None = None,
-) -> SmolVLAPolicy:
-    """Run supervised fine-tuning (behaviour cloning) on a few-demo dataset.
-
-    Follows the LeRobot SmolVLA training recipe:
-      - AdamW with betas=(0.9, 0.95), weight_decay=1e-10
-      - Cosine decay LR with linear warmup (auto-scaled to total steps)
-      - Gradient clipping at ``config.grad_clip_norm``
-
-    Args:
-        policy: SmolVLA policy to fine-tune.
-        dataset: Few-demo dataset.
-        config: SFT hyperparameters.
-        wandb_run: Optional wandb run for logging.
-
-    Returns:
-        The fine-tuned policy.
-    """
-    policy.set_normalization(
-        dataset.norm_stats.action_mean,
-        dataset.norm_stats.action_std,
-        dataset.norm_stats.state_mean,
-        dataset.norm_stats.state_std,
-    )
-    logger.info(
-        "Action stats: mean=%s  std=%s",
-        dataset.norm_stats.action_mean.tolist(),
-        dataset.norm_stats.action_std.tolist(),
-    )
-
-    trainable = [p for p in policy.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(
-        trainable,
-        lr=config.lr,
-        betas=config.betas,
-        weight_decay=config.weight_decay,
-    )
-
-    micro_bs = min(config.micro_batch_size, config.batch_size)
-    grad_accum_steps = max(config.batch_size // micro_bs, 1)
-    dataloader = DataLoader(
-        dataset,
-        batch_size=micro_bs,
-        shuffle=True,
-        drop_last=False,
-        pin_memory=policy.device.type == "cuda",
-        num_workers=2,
-        prefetch_factor=2,
-    )
-    micro_batches_per_epoch = max(len(dataloader), 1)
-    optimizer_steps_per_epoch = max(micro_batches_per_epoch // grad_accum_steps, 1)
-    total_optimizer_steps = config.num_epochs * optimizer_steps_per_epoch
-    logger.info(
-        "Training for %d epochs × %d optimizer steps = %d total  "
-        "(micro_bs=%d, grad_accum=%d, effective_bs=%d, lr=%.2e, warmup=%d, decay=%d)",
-        config.num_epochs,
-        optimizer_steps_per_epoch,
-        total_optimizer_steps,
-        micro_bs,
-        grad_accum_steps,
-        micro_bs * grad_accum_steps,
-        config.lr,
-        config.warmup_steps,
-        config.decay_steps,
-    )
-
-    lr_lambda = _cosine_decay_with_warmup_schedule(
-        warmup_steps=config.warmup_steps,
-        decay_steps=config.decay_steps,
-        peak_lr=config.lr,
-        decay_lr=config.decay_lr,
-        total_steps=total_optimizer_steps,
-    )
-    scheduler = LambdaLR(optimizer, lr_lambda)
-
-    instruction = dataset.instruction
-    control_mode = dataset.control_mode
-    save_path = Path(config.save_dir)
-    best_success = -1.0
-    global_step = 0
-
-    for epoch in range(1, config.num_epochs + 1):
-        policy.train()
-        epoch_loss = 0.0
-        num_micro_batches = 0
-        optimizer.zero_grad()
-
-        for batch in dataloader:
-            images = batch["image"].to(policy.device)
-            target_actions = batch["action"].to(policy.device)
-            states = batch["state"].to(policy.device)
-            with torch.autocast(device_type=policy.device.type, dtype=policy.dtype):
-                out = policy(images, instruction, target_actions, states=states)
-            loss = out["loss"] / grad_accum_steps
-            loss.backward()
-
-            epoch_loss += out["loss"].item()
-            num_micro_batches += 1
-
-            if num_micro_batches % grad_accum_steps == 0:
-                if config.grad_clip_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.grad_clip_norm)
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
-                global_step += 1
-
-        if num_micro_batches % grad_accum_steps != 0:
-            if config.grad_clip_norm > 0:
-                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.grad_clip_norm)
-            optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad()
-            global_step += 1
-
-        avg_loss = epoch_loss / max(num_micro_batches, 1)
-        current_lr = scheduler.get_last_lr()[0]
-        logger.info(
-            f"SFT epoch {epoch}/{config.num_epochs}  loss={avg_loss:.6f}  lr={current_lr:.2e}  step={global_step}"
-        )
-        if wandb_run is not None:
-            wandb_run.log({"sft/loss": avg_loss, "sft/lr": current_lr, "sft/epoch": epoch, "sft/step": global_step})
-
-        if epoch % config.eval_every == 0 or epoch == config.num_epochs:
-            metrics = evaluate(
-                policy_fn=policy.predict_action,
-                instruction=instruction,
-                env_id=config.env_id,
-                num_episodes=config.eval_episodes,
-                max_steps=config.max_steps,
-                seed=config.seed + 10000,
-                control_mode=control_mode,
-            )
-            print_metrics(metrics, tag=f"SFT epoch {epoch}")
-            if wandb_run is not None:
-                wandb_run.log(
-                    {
-                        "sft/success_rate": metrics.success_rate,
-                        "sft/mean_reward": metrics.mean_reward,
-                        "sft/mean_ep_len": metrics.mean_episode_length,
-                        "sft/epoch": epoch,
-                    }
-                )
-            if metrics.success_rate > best_success:
-                best_success = metrics.success_rate
-                policy.save_checkpoint(save_path / "best")
-                logger.info(f"New best SFT checkpoint: {best_success:.2%}")
-
-    policy.save_checkpoint(save_path / "last")
-    return policy
-
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _compute_fm_loss_per_step(
     policy: SmolVLAPolicy,
@@ -299,13 +75,6 @@ def _compute_fm_loss_per_step(
     Uses pre-sampled noise/time so that the same random quantities are
     used under both θ_old and θ_new for valid importance-ratio estimation.
     Multiple noise/time samples are averaged for variance reduction.
-
-    Args:
-        policy: The current policy (either θ or θ_old).
-        traj: Trajectory whose actions we evaluate.
-        instruction: Language instruction.
-        fixed_noise: Pre-sampled noise, one tensor per timestep.
-        fixed_time: Pre-sampled time, one tensor per timestep.
 
     Returns:
         ``(T,)`` mean FM loss per timestep.
@@ -344,11 +113,7 @@ def _sample_fixed_noise_time(
     traj: Trajectory,
     policy: SmolVLAPolicy,
 ) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
-    """Pre-sample noise and time tensors for each timestep in a trajectory.
-
-    Returns:
-        Tuple of (noise_list, time_list) – each is a list of T tensors.
-    """
+    """Pre-sample noise and time tensors for each timestep in a trajectory."""
     T = traj.length
     noise_list = []
     time_list = []
@@ -360,6 +125,10 @@ def _sample_fixed_noise_time(
         time_list.append(t)
     return noise_list, time_list
 
+
+# ---------------------------------------------------------------------------
+# Main training loop
+# ---------------------------------------------------------------------------
 
 def train_srpo(
     policy: SmolVLAPolicy,
@@ -433,6 +202,12 @@ def train_srpo(
     )
     save_path = Path(config.save_dir)
     best_success = -1.0
+
+    _save_meta = dict(
+        env_id=config.env_id,
+        instruction=instruction,
+        control_mode="pd_joint_delta_pos",
+    )
 
     for iteration in range(1, config.num_iterations + 1):
         # ── 1. Collect trajectories with current policy ─────────────────
@@ -568,9 +343,10 @@ def train_srpo(
             wandb_run.log(log_data)
 
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
-            metrics = evaluate(
-                policy_fn=policy.predict_action,
+            metrics = evaluate_smolvla(
+                policy,
                 instruction=instruction,
+                simulator="maniskill",
                 env_id=config.env_id,
                 num_episodes=config.eval_episodes,
                 max_steps=config.max_steps,
@@ -588,9 +364,9 @@ def train_srpo(
                 )
             if metrics.success_rate > best_success:
                 best_success = metrics.success_rate
-                policy.save_checkpoint(save_path / "best")
+                policy.save_checkpoint(save_path / "best", **_save_meta)
                 logger.info(f"New best {config.mode} checkpoint: {best_success:.2%}")
 
-    policy.save_checkpoint(save_path / "last")
+    policy.save_checkpoint(save_path / "last", **_save_meta)
     rollout_engine.close()
     return policy

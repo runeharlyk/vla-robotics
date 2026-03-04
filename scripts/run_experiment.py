@@ -46,7 +46,6 @@ def main(
     checkpoint = cfg["checkpoint"]
     env_id = cfg["env_id"]
     instruction = cfg["instruction"]
-    action_dim = cfg["action_dim"]
     sft_cfg = cfg["sft"]
     srpo_cfg = cfg["srpo"]
     sparse_cfg = cfg["sparse_rl"]
@@ -116,8 +115,6 @@ def main(
                     data_path,
                     "--num-demos",
                     str(n_demos),
-                    "--action-dim",
-                    str(action_dim),
                     "--mode",
                     mode,
                     "--lr",
