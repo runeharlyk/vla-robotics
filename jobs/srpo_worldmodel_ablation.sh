@@ -15,7 +15,7 @@
 # -------------------------------------------------
 . jobs/_env.sh
 
-SFT_CKPT="${1:-checkpoints/sft/best}"
+SFT_CKPT="${1:-$VLA_WORK3/checkpoints/sft/best}"
 SIMULATOR="${2:-libero}"
 SUITE="${3:-spatial}"
 TASK_ID="${4:-0}"

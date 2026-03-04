@@ -49,22 +49,27 @@ class TestSplitDataset:
 def _make_fake_pt(path: Path, num_episodes: int = 3, T: int = 5, action_dim: int = 8, instruction: str = "pick up"):
     episodes = []
     for _ in range(num_episodes):
-        episodes.append({
-            "images": torch.randint(0, 255, (T, 2, 3, 64, 64), dtype=torch.uint8),
-            "states": torch.randn(T, 14),
-            "actions": torch.randn(T, action_dim),
-        })
-    torch.save({
-        "metadata": {
-            "env_id": "PickCube-v1",
-            "instruction": instruction,
-            "action_dim": action_dim,
-            "state_dim": 14,
-            "image_size": 64,
-            "control_mode": "pd_joint_delta_pos",
+        episodes.append(
+            {
+                "images": torch.randint(0, 255, (T, 2, 3, 64, 64), dtype=torch.uint8),
+                "states": torch.randn(T, 14),
+                "actions": torch.randn(T, action_dim),
+            }
+        )
+    torch.save(
+        {
+            "metadata": {
+                "env_id": "PickCube-v1",
+                "instruction": instruction,
+                "action_dim": action_dim,
+                "state_dim": 14,
+                "image_size": 64,
+                "control_mode": "pd_joint_delta_pos",
+            },
+            "episodes": episodes,
         },
-        "episodes": episodes,
-    }, path)
+        path,
+    )
 
 
 class TestFewDemoDataset:

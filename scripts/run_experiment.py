@@ -20,9 +20,12 @@ from pathlib import Path
 import typer
 import yaml
 
+from vla.constants import CHECKPOINTS_DIR, WORK_DIR
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
 
@@ -35,14 +38,16 @@ def _run(cmd: list[str]) -> int:
 
 
 def main(
-    config_path: Path = typer.Option(PROJECT_ROOT / "configs" / "srpo_pickcube.yaml", "--config", "-c", path_type=Path),
+    config_path: Path = typer.Option(
+        PROJECT_ROOT / "configs" / "srpo_pickcube.yaml", "--config", "-c", path_type=Path),
     no_wandb: bool = typer.Option(False, "--no-wandb"),
 ) -> None:
     """Run the full experiment matrix from a YAML config."""
     cfg = yaml.safe_load(config_path.read_text())
     demo_counts: list[int] = cfg["demo_counts"]
     seeds: list[int] = cfg["seeds"]
-    data_path = str(PROJECT_ROOT / cfg["data_path"])
+    data_path = cfg["data_path"] if Path(
+        cfg["data_path"]).is_absolute() else str(WORK_DIR / cfg["data_path"])
     checkpoint = cfg["checkpoint"]
     env_id = cfg["env_id"]
     instruction = cfg["instruction"]
@@ -55,7 +60,7 @@ def main(
     for n_demos in demo_counts:
         for seed in seeds:
             tag = f"demos{n_demos}_seed{seed}"
-            sft_save = str(PROJECT_ROOT / "checkpoints" / "sft" / tag)
+            sft_save = str(CHECKPOINTS_DIR / "sft" / tag)
             sft_best = str(Path(sft_save) / "best")
 
             log.info(f"\n{'=' * 60}\n  SFT  {tag}\n{'=' * 60}")

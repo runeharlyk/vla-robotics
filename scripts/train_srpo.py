@@ -26,14 +26,13 @@ import typer
 import wandb
 from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
+from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.rl.rollout import Trajectory
 from vla.rl.trainer import SRPOConfig, train_srpo
 from vla.utils import get_device, seed_everything
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PREPROCESSED_DIR = PROJECT_ROOT / "data" / "preprocessed"
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(message)s")
 
 
 def _discover_data(data_path: Path | None) -> Path:
@@ -145,7 +144,7 @@ def main(
         eval_every=eval_every,
         eval_episodes=eval_episodes,
         max_steps=resolved_max_steps,
-        save_dir=str(PROJECT_ROOT / "checkpoints" / mode / f"{task_tag}_seed{seed}"),
+        save_dir=str(CHECKPOINTS_DIR / mode / f"{task_tag}_seed{seed}"),
         env_id=resolved_env_id,
         seed=seed,
         mode=mode,

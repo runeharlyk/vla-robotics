@@ -26,9 +26,7 @@ from mani_skill.utils import common, io_utils
 from PIL import Image
 from tqdm import tqdm
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-RAW_DIR = PROJECT_ROOT / "data" / "raw"
-PREPROCESSED_DIR = PROJECT_ROOT / "data" / "preprocessed"
+from vla.constants import PREPROCESSED_DIR, RAW_DIR
 DEFAULT_SKILL = "PickCube-v1"
 DEFAULT_INSTRUCTION = "complete the manipulation task"
 _warned_camera_fallback = False

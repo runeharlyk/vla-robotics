@@ -1,6 +1,6 @@
 action: train-sft
 
-data: data/preprocessed/pickcube.pt
+data: /work3/s234814/vla-robotics/data/preprocessed/pickcube.pt
 env_id: PickCube-v1
 checkpoint: HuggingFaceVLA/smolvla_libero
 num_demos: 10

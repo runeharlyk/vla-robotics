@@ -30,7 +30,7 @@ from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.rollout import ManiSkillRollout, RolloutEngine, Trajectory
-from vla.rl.srpo_reward import ClusterDiagnostics, SRPORewardConfig, WorldProgressReward
+from vla.rl.srpo_reward import SRPORewardConfig, WorldProgressReward
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ class SRPOConfig:
 # Rollout engine factory
 # ---------------------------------------------------------------------------
 
+
 def build_rollout_engine(config: SRPOConfig) -> RolloutEngine:
     """Create a rollout engine from the config's simulator setting."""
     sim = config.simulator.lower()
@@ -102,6 +103,7 @@ def build_rollout_engine(config: SRPOConfig) -> RolloutEngine:
 # ---------------------------------------------------------------------------
 # Batched FM-loss helpers
 # ---------------------------------------------------------------------------
+
 
 def _sample_fixed_noise_time(
     traj: Trajectory,
@@ -161,9 +163,7 @@ def _compute_fm_loss_batched(
         state_raw = traj.states[start:end] if traj.states is not None else None
         state = policy._prepare_state_input(state_raw, batch_size=B)
 
-        normalized_action = policy._normalize_action(
-            actions.to(policy.device, dtype=policy.dtype)
-        )
+        normalized_action = policy._normalize_action(actions.to(policy.device, dtype=policy.dtype))
         action_padded = policy._prepare_action(normalized_action)
         action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
 
@@ -171,8 +171,14 @@ def _compute_fm_loss_batched(
         time = fixed_time[start:end].to(policy.device, dtype=policy.dtype)
 
         losses = policy.model.forward(
-            img_list, mask_list, tokens, tmasks, state, action_padded,
-            noise=noise, time=time,
+            img_list,
+            mask_list,
+            tokens,
+            tmasks,
+            state,
+            action_padded,
+            noise=noise,
+            time=time,
         )
         per_step = losses[:, :, : policy.max_action_dim].mean(dim=(1, 2))
         all_losses.append(per_step)
@@ -183,6 +189,7 @@ def _compute_fm_loss_batched(
 # ---------------------------------------------------------------------------
 # Main training loop
 # ---------------------------------------------------------------------------
+
 
 def train_srpo(
     policy: SmolVLAPolicy,
@@ -247,9 +254,9 @@ def train_srpo(
         if demo_trajectories:
             demo_images = []
             for dt in demo_trajectories:
-                    imgs = dt.images[: dt.length]
-                    imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
-                    demo_images.append(imgs)
+                imgs = dt.images[: dt.length]
+                imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
+                demo_images.append(imgs)
             reward_model.add_demo_trajectories(demo_images)
 
     if rollout_engine is None:
@@ -309,12 +316,22 @@ def train_srpo(
                 fixed_time_per_traj.append(time)
 
                 old_loss = _compute_fm_loss_batched(
-                    policy, traj, instruction, noise, time, batch_size=B,
+                    policy,
+                    traj,
+                    instruction,
+                    noise,
+                    time,
+                    batch_size=B,
                 )
                 old_losses_per_traj.append(old_loss.detach())
 
                 ref_loss = _compute_fm_loss_batched(
-                    ref_policy, traj, instruction, noise, time, batch_size=B,
+                    ref_policy,
+                    traj,
+                    instruction,
+                    noise,
+                    time,
+                    batch_size=B,
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
 
@@ -337,7 +354,12 @@ def train_srpo(
                 time = fixed_time_per_traj[i]
 
                 new_losses_t = _compute_fm_loss_batched(
-                    policy, traj, instruction, noise, time, batch_size=B,
+                    policy,
+                    traj,
+                    instruction,
+                    noise,
+                    time,
+                    batch_size=B,
                 )
 
                 log_ratios = old_losses_t - new_losses_t
@@ -346,11 +368,14 @@ def train_srpo(
                 adv_t = torch.full_like(ratios, adv_i)
 
                 surr1 = ratios * adv_t
-                surr2 = torch.clamp(
-                    ratios,
-                    1.0 - config.clip_epsilon,
-                    1.0 + config.clip_epsilon,
-                ) * adv_t
+                surr2 = (
+                    torch.clamp(
+                        ratios,
+                        1.0 - config.clip_epsilon,
+                        1.0 + config.clip_epsilon,
+                    )
+                    * adv_t
+                )
                 clip_loss = -torch.min(surr1, surr2).mean()
 
                 kl_approx = (ref_losses_t - new_losses_t.detach()).mean()

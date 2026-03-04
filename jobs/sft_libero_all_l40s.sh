@@ -21,7 +21,7 @@ uv run lerobot-train \
     --policy.push_to_hub=false \
     --dataset.repo_id=lerobot/libero \
     --dataset.use_imagenet_stats=false \
-    --output_dir=outputs/train/smolvla_libero_all \
+    --output_dir=$VLA_WORK3/outputs/train/smolvla_libero_all \
     --job_name=sft_libero_all_l40s \
     --batch_size=64 \
     --steps=100000 \

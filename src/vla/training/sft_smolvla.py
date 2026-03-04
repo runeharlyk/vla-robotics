@@ -33,6 +33,7 @@ TRAINING_STATE_FILE = "training_state.pt"
 # LR schedule
 # ---------------------------------------------------------------------------
 
+
 def _cosine_decay_with_warmup_schedule(
     warmup_steps: int,
     decay_steps: int,
@@ -112,6 +113,7 @@ def _load_training_state(
 # Config
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SFTConfig:
     """Hyperparameters for supervised fine-tuning (behaviour cloning).
@@ -144,6 +146,7 @@ class SFTConfig:
 # ---------------------------------------------------------------------------
 # Training loop
 # ---------------------------------------------------------------------------
+
 
 def train_sft(
     policy: SmolVLAPolicy,

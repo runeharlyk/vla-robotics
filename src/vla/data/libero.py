@@ -169,7 +169,11 @@ class LiberoSFTDataset(Dataset):
 
         logger.info(
             "LiberoSFTDataset(%s): %d episodes, %d timesteps, action_dim=%d, state_dim=%d",
-            suite, self.num_episodes, len(self._ds), self.action_dim, self.state_dim,
+            suite,
+            self.num_episodes,
+            len(self._ds),
+            self.action_dim,
+            self.state_dim,
         )
 
     def __len__(self) -> int:

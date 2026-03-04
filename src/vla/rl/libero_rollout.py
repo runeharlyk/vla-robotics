@@ -80,16 +80,14 @@ def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
         Dict with ``images`` (list of ``(H, W, 3)`` uint8) and
         ``state`` (``(state_dim,)`` float32).
     """
-    from PIL import Image as PILImage
     from lerobot.processor.env_processor import LiberoProcessorStep
+    from PIL import Image as PILImage
 
     images: list[np.ndarray] = []
     if "pixels" in raw_obs and isinstance(raw_obs["pixels"], dict):
         for img_np in raw_obs["pixels"].values():
             flipped = np.flip(img_np, axis=(0, 1)).copy()
-            pil = PILImage.fromarray(flipped).resize(
-                (image_size, image_size), PILImage.BILINEAR
-            )
+            pil = PILImage.fromarray(flipped).resize((image_size, image_size), PILImage.BILINEAR)
             images.append(np.array(pil, dtype=np.uint8))
 
     state = np.zeros(state_dim, dtype=np.float32)
@@ -97,9 +95,7 @@ def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
         rs = raw_obs["robot_state"]
         proc = LiberoProcessorStep()
         eef_pos = np.asarray(rs["eef"]["pos"], dtype=np.float32).flatten()
-        eef_quat = torch.from_numpy(
-            np.asarray(rs["eef"]["quat"], dtype=np.float32)
-        ).float().unsqueeze(0)
+        eef_quat = torch.from_numpy(np.asarray(rs["eef"]["quat"], dtype=np.float32)).float().unsqueeze(0)
         eef_aa = proc._quat2axisangle(eef_quat).squeeze(0).numpy()
         gripper = np.asarray(rs["gripper"]["qpos"], dtype=np.float32).flatten()
         raw_state = np.concatenate([eef_pos, eef_aa, gripper])
@@ -162,14 +158,14 @@ class LiberoVecEnv:
         self.task_description: str = self._pipes[0].recv()
 
     def reset(self, seeds: list[int | None]) -> list[dict]:
-        for pipe, seed in zip(self._pipes, seeds):
+        for pipe, seed in zip(self._pipes, seeds, strict=True):
             pipe.send((_CMD_RESET, seed))
         results = [pipe.recv() for pipe in self._pipes]
         obs_list = [r[0] for r in results]
         return obs_list
 
     def step(self, actions: np.ndarray) -> tuple[list[dict], list[float], list[bool], list[bool], list[dict]]:
-        for pipe, action in zip(self._pipes, actions):
+        for pipe, action in zip(self._pipes, actions, strict=True):
             pipe.send((_CMD_STEP, action))
 
         obs_list, rewards, terminateds, truncateds, infos = [], [], [], [], []
@@ -259,9 +255,7 @@ class LiberoRollout:
     def task_description(self) -> str:
         return self.vec_env.task_description
 
-    def _obs_to_tensors(
-        self, packed_obs: dict
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def _obs_to_tensors(self, packed_obs: dict) -> tuple[torch.Tensor, torch.Tensor]:
         """Convert a packed obs dict into image and state tensors.
 
         Returns:
@@ -270,11 +264,13 @@ class LiberoRollout:
         """
         cam_tensors = []
         for img_np in packed_obs["images"]:
-            cam_tensors.append(
-                torch.from_numpy(img_np).permute(2, 0, 1)
-            )
+            cam_tensors.append(torch.from_numpy(img_np).permute(2, 0, 1))
         while len(cam_tensors) < self.num_cameras:
-            cam_tensors.append(cam_tensors[-1].clone() if cam_tensors else torch.zeros(3, self.image_size, self.image_size, dtype=torch.uint8))
+            cam_tensors.append(
+                cam_tensors[-1].clone()
+                if cam_tensors
+                else torch.zeros(3, self.image_size, self.image_size, dtype=torch.uint8)
+            )
         cam_tensors = cam_tensors[: self.num_cameras]
 
         images = torch.stack(cam_tensors, dim=0)
@@ -304,9 +300,7 @@ class LiberoRollout:
         """
         task_instr = self.vec_env.task_description
         if self.num_envs > 1 and policy_batch_fn is not None:
-            return self._collect_vectorized(
-                policy_batch_fn, task_instr, num_trajectories, seed
-            )
+            return self._collect_vectorized(policy_batch_fn, task_instr, num_trajectories, seed)
         return self._collect_sequential(policy_fn, task_instr, num_trajectories, seed)
 
     def _collect_sequential(
@@ -319,9 +313,7 @@ class LiberoRollout:
             trajectories.append(traj)
         return trajectories
 
-    def _collect_single(
-        self, policy_fn: Any, instruction: str, seed: int | None
-    ) -> Trajectory:
+    def _collect_single(self, policy_fn: Any, instruction: str, seed: int | None) -> Trajectory:
         obs_list = self.vec_env.reset([seed])
         obs = obs_list[0]
 
@@ -340,9 +332,7 @@ class LiberoRollout:
             states.append(state_t)
             actions_list.append(torch.from_numpy(action_np.copy()))
 
-            obs_list, rewards, terminateds, truncateds, infos = self.vec_env.step(
-                action_np[np.newaxis]
-            )
+            obs_list, rewards, terminateds, truncateds, infos = self.vec_env.step(action_np[np.newaxis])
             obs = obs_list[0]
 
             rewards_list.append(torch.tensor(rewards[0]))
@@ -380,9 +370,7 @@ class LiberoRollout:
         while remaining > 0:
             active_n = min(N, remaining)
             wave_seed = (seed + wave_idx * N) if seed is not None else None
-            wave_trajs = self._collect_wave(
-                policy_batch_fn, instruction, active_n, wave_seed
-            )
+            wave_trajs = self._collect_wave(policy_batch_fn, instruction, active_n, wave_seed)
             all_trajectories.extend(wave_trajs)
             remaining -= len(wave_trajs)
             wave_idx += 1
@@ -447,9 +435,7 @@ class LiberoRollout:
             for idx, env_i in enumerate(active_indices):
                 img_bufs[env_i].append(images_batch[env_i])
                 state_bufs[env_i].append(states_batch[env_i])
-                action_bufs[env_i].append(
-                    torch.from_numpy(active_actions_np[idx].copy())
-                )
+                action_bufs[env_i].append(torch.from_numpy(active_actions_np[idx].copy()))
 
             obs_list, rewards, terminateds, truncateds, infos = self.vec_env.step(actions_np)
 

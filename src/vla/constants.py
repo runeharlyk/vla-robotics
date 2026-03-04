@@ -1,8 +1,19 @@
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-MODELS_DIR = PROJECT_ROOT / "models"
-VIDEOS_DIR = PROJECT_ROOT / "videos"
+
+# On HPC, VLA_WORK3 points to /work3/s234814/vla-robotics (fast scratch).
+# Locally it falls back to the git checkout directory.
+WORK_DIR = Path(os.environ.get("VLA_WORK3", str(PROJECT_ROOT)))
+
+DATA_DIR = WORK_DIR / "data"
+PREPROCESSED_DIR = DATA_DIR / "preprocessed"
+RAW_DIR = DATA_DIR / "raw"
+CHECKPOINTS_DIR = WORK_DIR / "checkpoints"
+MODELS_DIR = WORK_DIR / "models"
+VIDEOS_DIR = WORK_DIR / "videos"
+OUTPUTS_DIR = WORK_DIR / "outputs"
 
 ACTION_DIM = 7
 

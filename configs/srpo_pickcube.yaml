@@ -3,7 +3,7 @@ checkpoint: "HuggingFaceVLA/smolvla_libero"
 instruction: "pick up the red cube and move it to the green goal"
 action_dim: 8
 image_size: 256
-data_path: "data/preprocessed/pickcube.pt"
+data_path: "/work3/s234814/vla-robotics/data/preprocessed/pickcube.pt"
 
 demo_counts: [5]
 seeds: [42, 123, 456]
@@ -36,7 +36,7 @@ srpo:
   eval_every: 10
   eval_episodes: 50
   max_steps: 200
-  world_model_type: "dinov2"   # "dinov2" or "vjepa2"
+  world_model_type: "dinov2" # "dinov2" or "vjepa2"
   subsample_every: 5
   dbscan_eps: 0.5
   dbscan_min_samples: 2

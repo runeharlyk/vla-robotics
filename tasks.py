@@ -2,7 +2,6 @@ import os
 import sys
 from pathlib import Path
 
-import yaml
 from invoke import Context, task
 
 WINDOWS = os.name == "nt"
@@ -168,6 +167,8 @@ def export_images(
 
 
 def _load_yaml(path: Path) -> dict:
+    import yaml  # lazy import – not available in the bare `uvx invoke` env
+
     with open(path) as f:
         return yaml.safe_load(f)
 

@@ -14,7 +14,7 @@ the cold-start bootstrapping problem.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import torch
 from sklearn.cluster import DBSCAN
