@@ -4,7 +4,7 @@
 #BSUB -J srpo_wm_ablation
 #BSUB -q gpua100
 #BSUB -W 24:00
-#BSUB -n 8
+#BSUB -n 4
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=8GB]"
 #BSUB -gpu "num=1:mode=exclusive_process"
