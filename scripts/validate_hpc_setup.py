@@ -7,7 +7,7 @@ functional.
 Usage (on HPC, after sourcing _env.sh):
     # Download models to HF cache first (login node, no GPU needed):
     uv run huggingface-cli download facebook/dinov2-large
-    uv run huggingface-cli download Sylvest/vjepa2-vit-g
+    uv run huggingface-cli download facebook/vjepa2-vitg-fpc64-384-ssv2
 
     # Then validate on a GPU node:
     uv run python scripts/validate_hpc_setup.py
@@ -81,7 +81,9 @@ def check_cuda() -> None:
         _ok(f"CUDA available — {torch.cuda.device_count()} GPU(s)")
         for i in range(torch.cuda.device_count()):
             name = torch.cuda.get_device_name(i)
-            mem = torch.cuda.get_device_properties(i).total_mem / 1e9
+            props = torch.cuda.get_device_properties(i)
+            mem = getattr(props, "total_memory", None) or getattr(props, "total_mem", 0)
+            mem = mem / 1e9
             _ok(f"  GPU {i}: {name} ({mem:.1f} GB)")
     else:
         _fail("CUDA not available — world-model encoding requires GPU")
@@ -127,7 +129,7 @@ def check_dinov2() -> None:
         encoder = DINOv2Encoder(device=device)
         _ok(f"DINOv2 loaded in {time.time() - t0:.1f}s — embed_dim={encoder.embed_dim()}")
 
-        dummy = torch.randn(2, 3, 224, 224)
+        dummy = torch.rand(2, 3, 224, 224)
         embs = encoder.encode_frames(dummy)
         _ok(f"Forward pass: input (2,3,224,224) → output {tuple(embs.shape)}")
     except Exception as e:
@@ -139,25 +141,26 @@ def check_vjepa2() -> None:
     import torch
 
     try:
-        from vla.models.world_model import VJEPA2Encoder, VJEPA2_MODEL_ID
+        from vla.models.world_model import VJEPA2Encoder, VJEPA2_MODEL_ID, VJEPA2_SRPO_RAW_ID
 
-        print(f"  Model ID: {VJEPA2_MODEL_ID}")
+        print(f"  Primary model ID : {VJEPA2_MODEL_ID}")
+        print(f"  Fallback raw ID  : {VJEPA2_SRPO_RAW_ID}")
+
         t0 = time.time()
         device = "cuda" if torch.cuda.is_available() else "cpu"
         encoder = VJEPA2Encoder(device=device)
         elapsed = time.time() - t0
 
         if encoder._fallback is not None:
-            _fail(f"V-JEPA 2 fell back to DINOv2 after {elapsed:.1f}s — checkpoint not available?")
-            print("       Try: uv run huggingface-cli download Sylvest/vjepa2-vit-g")
+            _fail(f"V-JEPA 2 fell back to DINOv2 after {elapsed:.1f}s — no checkpoint loadable")
+            print(f"       Try: uv run huggingface-cli download {VJEPA2_MODEL_ID}")
             return
 
-        proc_type = "video" if encoder._is_video_processor else "image"
-        _ok(f"V-JEPA 2 loaded in {elapsed:.1f}s — embed_dim={encoder.embed_dim()}, processor={proc_type}")
+        _ok(f"V-JEPA 2 loaded in {elapsed:.1f}s — embed_dim={encoder.embed_dim()}, backend={encoder._backend}")
 
-        dummy_traj = torch.randn(20, 3, 384, 384)
+        dummy_traj = torch.rand(20, 3, 224, 224)
         emb = encoder.encode_trajectory(dummy_traj, subsample_every=5)
-        _ok(f"encode_trajectory: (20,3,384,384) → {tuple(emb.shape)}")
+        _ok(f"encode_trajectory: (20,3,224,224) → {tuple(emb.shape)}")
     except Exception as e:
         _fail("V-JEPA 2 load/forward", e)
 
@@ -191,7 +194,7 @@ def check_hf_cache() -> None:
     if vjepa2_cached:
         _ok("V-JEPA 2 checkpoint cached")
     else:
-        _fail("V-JEPA 2 not cached — run: uv run huggingface-cli download Sylvest/vjepa2-vit-g")
+        _fail("V-JEPA 2 not cached — run: uv run huggingface-cli download facebook/vjepa2-vitg-fpc64-384-ssv2")
 
 
 def main(
