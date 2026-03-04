@@ -58,6 +58,9 @@ train-sft-libero: |
 train-srpo: |
   uv run python scripts/train_srpo.py \
       --sft-checkpoint {sft_checkpoint} \
+      --simulator {simulator} \
+      --suite {suite} \
+      --task-id {task_id} \
       --data {data} \
       --mode {mode} \
       --num-demos {num_demos} \
@@ -65,6 +68,8 @@ train-srpo: |
       --lr {lr} \
       --iterations {num_iterations} \
       --trajs-per-iter {trajectories_per_iter} \
+      --num-rollout-envs {num_rollout_envs} \
+      --fm-batch-size {fm_batch_size} \
       --ppo-epochs {ppo_epochs} \
       --clip-epsilon {clip_epsilon} \
       --kl-coeff {kl_coeff} \
@@ -77,14 +82,18 @@ train-srpo: |
 # ── SFT via native LeRobot training pipeline ─────────────────────────
 train-lerobot: |
   uv run lerobot-train \
-      --policy.path={policy_path} \
+      --policy.type=smolvla \
+      --policy.pretrained_path={policy_path} \
+      --policy.push_to_hub=false \
       --dataset.repo_id={dataset_repo_id} \
+      --dataset.use_imagenet_stats=false \
       --output_dir={output_dir} \
       --job_name={job_name} \
       --batch_size={batch_size} \
       --steps={steps} \
       --policy.device=cuda \
-      --policy.dtype=bfloat16 \
+      --policy.use_amp=true \
+      --resume={resume} \
       --wandb.enable=true
 
 # ── Evaluate a saved checkpoint (sim-agnostic) ────────────────────────

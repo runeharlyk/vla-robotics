@@ -16,12 +16,16 @@
 . jobs/_env.sh
 
 uv run lerobot-train \
-    --policy.path=lerobot/smolvla_base \
+    --policy.type=smolvla \
+    --policy.pretrained_path=lerobot/smolvla_base \
+    --policy.push_to_hub=false \
     --dataset.repo_id=lerobot/libero \
+    --dataset.use_imagenet_stats=false \
     --output_dir=outputs/train/smolvla_libero_all \
     --job_name=sft_libero_all_a100 \
     --batch_size=64 \
     --steps=100000 \
     --policy.device=cuda \
-    --policy.dtype=bfloat16 \
+    --policy.use_amp=true \
+    --resume=true \
     --wandb.enable=true

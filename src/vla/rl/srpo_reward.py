@@ -194,7 +194,7 @@ class WorldProgressReward:
         if failed_distances:
             d_all = torch.stack(failed_distances)
             d_mean = d_all.mean()
-            d_std = d_all.std().clamp(min=self.cfg.eps)
+            d_std = d_all.std(correction=0).clamp(min=self.cfg.eps)
             normalised = (d_all - d_mean) / d_std
             activated = self._activation(normalised)
             for idx, fi in enumerate(failed_indices):
