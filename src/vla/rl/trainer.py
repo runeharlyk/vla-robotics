@@ -4,10 +4,12 @@ Implements the full SRPO algorithm (Section 3.3 of the paper):
   1. Collect M trajectories with π_θ_old.
   2. Compute world-progress trajectory rewards g_i via the world model.
   3. Compute trajectory-level advantages  = (g_i − μ_g) / σ_g.
-  4. Cache per-step flow-matching losses under θ_old (fixed noise/time).
+  4. Cache per-step flow-matching losses under θ_old **and** π_ref
+     (batched, computed once).
   5. For each PPO-epoch:
-       - Recompute per-step FM losses under θ → importance ratio
-       - Clipped surrogate loss + KL regularisation against π_ref.
+       - Recompute per-step FM losses under θ (mini-batched)
+       - Clipped surrogate loss + KL regularisation against π_ref
+       - Accumulate gradients across trajectories, step once per epoch.
   6. Update θ_old ← θ, add any new successes to reference set.
 
 The rollout engine is **simulator-agnostic**: pass in any object that
@@ -28,7 +30,7 @@ from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.rollout import ManiSkillRollout, RolloutEngine, Trajectory
-from vla.rl.srpo_reward import SRPORewardConfig, WorldProgressReward
+from vla.rl.srpo_reward import ClusterDiagnostics, SRPORewardConfig, WorldProgressReward
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,7 @@ class SRPOConfig:
     task_id: int = 0
     state_dim: int = 0
     num_rollout_envs: int = 1
+    fm_batch_size: int = 32
 
 
 # ---------------------------------------------------------------------------
@@ -97,70 +100,84 @@ def build_rollout_engine(config: SRPOConfig) -> RolloutEngine:
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Batched FM-loss helpers
 # ---------------------------------------------------------------------------
-
-def _compute_fm_loss_per_step(
-    policy: SmolVLAPolicy,
-    traj: Trajectory,
-    instruction: str,
-    fixed_noise: list[torch.Tensor],
-    fixed_time: list[torch.Tensor],
-) -> torch.Tensor:
-    """Compute per-timestep flow-matching loss for a trajectory.
-
-    Uses pre-sampled noise/time so that the same random quantities are
-    used under both θ_old and θ_new for valid importance-ratio estimation.
-    Multiple noise/time samples are averaged for variance reduction.
-
-    Returns:
-        ``(T,)`` mean FM loss per timestep.
-    """
-    T = traj.length
-    step_losses = []
-    for t in range(T):
-        img = traj.images[t].unsqueeze(0).to(policy.device)
-        action = traj.actions[t].unsqueeze(0).to(policy.device)
-
-        imgs_f = policy._to_float01(img).to(policy.device, dtype=policy.dtype)
-        img_list, mask_list = policy._prepare_images(imgs_f)
-        tokens, tmasks = policy._tokenize(instruction, batch_size=1)
-        state_raw = traj.states[t].unsqueeze(0) if traj.states is not None else None
-        state = policy._prepare_state_input(state_raw, batch_size=1)
-        normalized_action = policy._normalize_action(action.to(policy.device, dtype=policy.dtype))
-        action_padded = policy._prepare_action(normalized_action)
-        action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
-
-        losses_per_sample = policy.model.forward(
-            img_list,
-            mask_list,
-            tokens,
-            tmasks,
-            state,
-            action_padded,
-            noise=fixed_noise[t].to(policy.device, dtype=policy.dtype),
-            time=fixed_time[t].to(policy.device, dtype=policy.dtype),
-        )
-        step_losses.append(losses_per_sample[:, :, : policy.max_action_dim].mean().detach())
-
-    return torch.stack(step_losses)
-
 
 def _sample_fixed_noise_time(
     traj: Trajectory,
     policy: SmolVLAPolicy,
-) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
-    """Pre-sample noise and time tensors for each timestep in a trajectory."""
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Pre-sample noise and time tensors for an entire trajectory.
+
+    Returns:
+        noise: ``(T, chunk_size, max_action_dim)``
+        time:  ``(T,)``
+    """
     T = traj.length
-    noise_list = []
-    time_list = []
-    for _ in range(T):
-        n = torch.randn(1, policy.chunk_size, policy.max_action_dim)
-        beta = torch.distributions.Beta(1.5, 1.0)
-        t = beta.sample((1,)) * 0.999 + 0.001
-        noise_list.append(n)
-        time_list.append(t)
-    return noise_list, time_list
+    noise = torch.randn(T, policy.chunk_size, policy.max_action_dim)
+    beta = torch.distributions.Beta(1.5, 1.0)
+    time = beta.sample((T,)) * 0.999 + 0.001
+    return noise, time
+
+
+def _compute_fm_loss_batched(
+    policy: SmolVLAPolicy,
+    traj: Trajectory,
+    instruction: str,
+    fixed_noise: torch.Tensor,
+    fixed_time: torch.Tensor,
+    batch_size: int = 32,
+) -> torch.Tensor:
+    """Compute per-timestep FM loss in mini-batches.
+
+    Packs ``batch_size`` timesteps into a single forward pass through the
+    VLA model, giving a near-linear speedup over the naive per-step loop.
+
+    Args:
+        policy: SmolVLA policy (θ, θ_old, or π_ref).
+        traj: Trajectory whose steps are batched.
+        instruction: Language instruction (shared across all steps).
+        fixed_noise: ``(T, chunk_size, max_action_dim)`` pre-sampled noise.
+        fixed_time:  ``(T,)`` pre-sampled time values.
+        batch_size: Number of timesteps per forward pass.
+
+    Returns:
+        ``(T,)`` per-step mean FM loss.
+    """
+    T = traj.length
+    all_losses: list[torch.Tensor] = []
+
+    for start in range(0, T, batch_size):
+        end = min(start + batch_size, T)
+        B = end - start
+
+        imgs = traj.images[start:end].to(policy.device)
+        actions = traj.actions[start:end].to(policy.device)
+
+        imgs_f = policy._to_float01(imgs).to(policy.device, dtype=policy.dtype)
+        img_list, mask_list = policy._prepare_images(imgs_f)
+        tokens, tmasks = policy._tokenize(instruction, batch_size=B)
+
+        state_raw = traj.states[start:end] if traj.states is not None else None
+        state = policy._prepare_state_input(state_raw, batch_size=B)
+
+        normalized_action = policy._normalize_action(
+            actions.to(policy.device, dtype=policy.dtype)
+        )
+        action_padded = policy._prepare_action(normalized_action)
+        action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
+
+        noise = fixed_noise[start:end].to(policy.device, dtype=policy.dtype)
+        time = fixed_time[start:end].to(policy.device, dtype=policy.dtype)
+
+        losses = policy.model.forward(
+            img_list, mask_list, tokens, tmasks, state, action_padded,
+            noise=noise, time=time,
+        )
+        per_step = losses[:, :, : policy.max_action_dim].mean(dim=(1, 2))
+        all_losses.append(per_step)
+
+    return torch.cat(all_losses)
 
 
 # ---------------------------------------------------------------------------
@@ -239,6 +256,7 @@ def train_srpo(
         rollout_engine = build_rollout_engine(config)
 
     use_vectorized = config.num_rollout_envs > 1
+    B = config.fm_batch_size
 
     save_path = Path(config.save_dir)
     best_success = -1.0
@@ -265,9 +283,11 @@ def train_srpo(
         # ── 2. Compute trajectory-level rewards g_i ─────────────────────
         if config.mode == "srpo" and reward_model is not None:
             g_values = reward_model.compute_trajectory_rewards(trajectories)
+            cluster_diag = reward_model.get_diagnostics()
             reward_model.add_successful_trajectories([t for t in trajectories if t.success])
         else:
             g_values = [1.0 if t.success else 0.0 for t in trajectories]
+            cluster_diag = None
 
         # ── 3. Compute trajectory-level advantages  ──────────────────
         g_tensor = torch.tensor(g_values, dtype=torch.float32)
@@ -275,64 +295,50 @@ def train_srpo(
         g_std = g_tensor.std().clamp(min=1e-8)
         advantages = ((g_tensor - g_mean) / g_std).tolist()
 
-        # ── 4. Cache per-step FM loss under θ_old (+ sample fixed noise/time)
+        # ── 4. Cache FM losses under θ_old AND π_ref (computed once) ────
         policy.eval()
+        fixed_noise_per_traj: list[torch.Tensor] = []
+        fixed_time_per_traj: list[torch.Tensor] = []
         old_losses_per_traj: list[torch.Tensor] = []
-        fixed_noise_per_traj: list[list[torch.Tensor]] = []
-        fixed_time_per_traj: list[list[torch.Tensor]] = []
+        ref_losses_per_traj: list[torch.Tensor] = []
 
         with torch.no_grad():
             for traj in trajectories:
-                noise_list, time_list = _sample_fixed_noise_time(traj, policy)
-                fixed_noise_per_traj.append(noise_list)
-                fixed_time_per_traj.append(time_list)
-                old_loss = _compute_fm_loss_per_step(policy, traj, instruction, noise_list, time_list)
-                old_losses_per_traj.append(old_loss)
+                noise, time = _sample_fixed_noise_time(traj, policy)
+                fixed_noise_per_traj.append(noise)
+                fixed_time_per_traj.append(time)
 
-        # ── 5. PPO epochs ───────────────────────────────────────────────
+                old_loss = _compute_fm_loss_batched(
+                    policy, traj, instruction, noise, time, batch_size=B,
+                )
+                old_losses_per_traj.append(old_loss.detach())
+
+                ref_loss = _compute_fm_loss_batched(
+                    ref_policy, traj, instruction, noise, time, batch_size=B,
+                )
+                ref_losses_per_traj.append(ref_loss.detach())
+
+        # ── 5. PPO epochs (batched forward, gradient accumulation) ──────
         policy.train()
         total_surrogate = 0.0
         total_kl = 0.0
+        M = len(trajectories)
 
         for _ppo_epoch in range(config.ppo_epochs):
-            epoch_loss_sum = 0.0
+            optimizer.zero_grad()
+            epoch_clip_loss = 0.0
+            epoch_kl = 0.0
+
             for i, traj in enumerate(trajectories):
                 adv_i = advantages[i]
-                old_losses = old_losses_per_traj[i]
-                noise_list = fixed_noise_per_traj[i]
-                time_list = fixed_time_per_traj[i]
+                old_losses_t = old_losses_per_traj[i].to(policy.device)
+                ref_losses_t = ref_losses_per_traj[i].to(policy.device)
+                noise = fixed_noise_per_traj[i]
+                time = fixed_time_per_traj[i]
 
-                new_step_losses = []
-                for t in range(traj.length):
-                    img = traj.images[t].unsqueeze(0).to(policy.device)
-                    action = traj.actions[t].unsqueeze(0).to(policy.device)
-
-                    imgs_f = policy._to_float01(img).to(policy.device, dtype=policy.dtype)
-                    img_list, mask_list = policy._prepare_images(imgs_f)
-                    tokens, tmasks = policy._tokenize(instruction, batch_size=1)
-                    state_raw = traj.states[t].unsqueeze(0) if traj.states is not None else None
-                    state = policy._prepare_state_input(state_raw, batch_size=1)
-                    normalized_action = policy._normalize_action(action.to(policy.device, dtype=policy.dtype))
-                    action_padded = policy._prepare_action(normalized_action)
-                    action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
-
-                    fm_loss = policy.model.forward(
-                        img_list,
-                        mask_list,
-                        tokens,
-                        tmasks,
-                        state,
-                        action_padded,
-                        noise=noise_list[t].to(policy.device, dtype=policy.dtype),
-                        time=time_list[t].to(policy.device, dtype=policy.dtype),
-                    )
-                    new_step_losses.append(fm_loss[:, :, : policy.max_action_dim].mean())
-
-                if not new_step_losses:
-                    continue
-
-                new_losses_t = torch.stack(new_step_losses)
-                old_losses_t = old_losses.to(policy.device)
+                new_losses_t = _compute_fm_loss_batched(
+                    policy, traj, instruction, noise, time, batch_size=B,
+                )
 
                 log_ratios = old_losses_t - new_losses_t
                 ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
@@ -340,33 +346,34 @@ def train_srpo(
                 adv_t = torch.full_like(ratios, adv_i)
 
                 surr1 = ratios * adv_t
-                surr2 = torch.clamp(ratios, 1.0 - config.clip_epsilon, 1.0 + config.clip_epsilon) * adv_t
+                surr2 = torch.clamp(
+                    ratios,
+                    1.0 - config.clip_epsilon,
+                    1.0 + config.clip_epsilon,
+                ) * adv_t
                 clip_loss = -torch.min(surr1, surr2).mean()
 
-                with torch.no_grad():
-                    ref_losses = _compute_fm_loss_per_step(ref_policy, traj, instruction, noise_list, time_list).to(
-                        policy.device
-                    )
-                kl_approx = (ref_losses - new_losses_t.detach()).mean()
+                kl_approx = (ref_losses_t - new_losses_t.detach()).mean()
                 kl_penalty = config.kl_coeff * kl_approx
 
-                loss = clip_loss + kl_penalty
+                traj_loss = (clip_loss + kl_penalty) / M
+                traj_loss.backward()
 
-                optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-                optimizer.step()
+                epoch_clip_loss += clip_loss.item()
+                epoch_kl += kl_penalty.item()
 
-                epoch_loss_sum += clip_loss.item()
-                total_kl += kl_penalty.item()
+            torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+            optimizer.step()
 
-            total_surrogate += epoch_loss_sum
+            total_surrogate += epoch_clip_loss
+            total_kl += epoch_kl
 
-        avg_surr = total_surrogate / max(config.ppo_epochs * len(trajectories), 1)
-        avg_kl = total_kl / max(config.ppo_epochs * len(trajectories), 1)
+        avg_surr = total_surrogate / max(config.ppo_epochs * M, 1)
+        avg_kl = total_kl / max(config.ppo_epochs * M, 1)
 
-        # ── 6. Update θ_old for next iteration's ratio computation ──────
+        # ── 6. Cleanup cached tensors ───────────────────────────────────
         old_losses_per_traj.clear()
+        ref_losses_per_traj.clear()
         fixed_noise_per_traj.clear()
         fixed_time_per_traj.clear()
 
@@ -377,9 +384,19 @@ def train_srpo(
             f"{config.mode}/mean_g": g_mean.item(),
             f"{config.mode}/iteration": iteration,
         }
+        if cluster_diag is not None:
+            log_data.update(cluster_diag.as_dict(prefix=f"{config.mode}/cluster"))
         logger.info(
             f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  successes={num_successes}  g_mean={g_mean:.4f}"
         )
+        if cluster_diag is not None:
+            logger.info(
+                f"  clusters={cluster_diag.num_clusters}  refs={cluster_diag.num_references}"
+                f"  intra={cluster_diag.mean_intra_cluster_dist:.4f}"
+                f"  inter={cluster_diag.mean_inter_cluster_dist:.4f}"
+                f"  silhouette_ratio={cluster_diag.silhouette_ratio:.4f}"
+                f"  reward=[{cluster_diag.reward_min:.3f}, {cluster_diag.reward_max:.3f}]"
+            )
         if wandb_run is not None:
             wandb_run.log(log_data)
 

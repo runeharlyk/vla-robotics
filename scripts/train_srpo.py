@@ -62,6 +62,7 @@ def main(
     suite: str = typer.Option("spatial", "--suite", help="LIBERO suite (spatial, object, goal, long)"),
     task_id: int = typer.Option(0, "--task-id", help="LIBERO task index within the suite"),
     num_rollout_envs: int = typer.Option(1, "--num-rollout-envs", help="Parallel envs for vectorised rollouts"),
+    fm_batch_size: int = typer.Option(32, "--fm-batch-size", help="Timesteps per FM forward pass in PPO"),
     lr: float = typer.Option(1e-5, "--lr"),
     num_iterations: int = typer.Option(100, "--iterations"),
     trajectories_per_iter: int = typer.Option(16, "--trajs-per-iter"),
@@ -157,6 +158,7 @@ def main(
         task_id=task_id,
         state_dim=dataset.state_dim,
         num_rollout_envs=num_rollout_envs,
+        fm_batch_size=fm_batch_size,
     )
 
     run = None
@@ -185,6 +187,7 @@ def main(
                 "simulator": simulator,
                 "suite": suite,
                 "num_rollout_envs": num_rollout_envs,
+                "fm_batch_size": fm_batch_size,
             },
         )
 

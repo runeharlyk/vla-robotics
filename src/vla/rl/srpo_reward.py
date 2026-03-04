@@ -14,7 +14,7 @@ the cold-start bootstrapping problem.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import torch
 from sklearn.cluster import DBSCAN
@@ -36,6 +36,27 @@ class SRPORewardConfig:
     eps: float = 1e-8
 
 
+@dataclass
+class ClusterDiagnostics:
+    """Snapshot of cluster quality metrics for encoder comparison."""
+
+    num_references: int = 0
+    num_clusters: int = 0
+    num_noise_points: int = 0
+    mean_intra_cluster_dist: float = 0.0
+    mean_inter_cluster_dist: float = 0.0
+    silhouette_ratio: float = 0.0
+    mean_failed_distance: float = 0.0
+    std_failed_distance: float = 0.0
+    reward_mean: float = 0.0
+    reward_std: float = 0.0
+    reward_min: float = 0.0
+    reward_max: float = 0.0
+
+    def as_dict(self, prefix: str = "cluster") -> dict[str, float]:
+        return {f"{prefix}/{k}": v for k, v in self.__dict__.items()}
+
+
 class WorldProgressReward:
     """Computes SRPO-style progress rewards using world-model embeddings.
 
@@ -49,6 +70,8 @@ class WorldProgressReward:
         self.cfg = config or SRPORewardConfig()
         self.reference_embeddings: list[torch.Tensor] = []
         self.cluster_centers: torch.Tensor | None = None
+        self._last_labels: list[int] | None = None
+        self._last_diagnostics: ClusterDiagnostics | None = None
 
     def add_demo_trajectories(self, demo_images: list[torch.Tensor]) -> None:
         """Encode demonstration trajectory images and add to the reference set.
@@ -90,6 +113,7 @@ class WorldProgressReward:
         """Run DBSCAN on the current reference embeddings to update cluster centres."""
         if len(self.reference_embeddings) < self.cfg.dbscan_min_samples:
             self.cluster_centers = torch.stack(self.reference_embeddings, dim=0)
+            self._last_labels = [0] * len(self.reference_embeddings)
             logger.info("Too few references for DBSCAN (%d); using all as centres.", len(self.reference_embeddings))
             return
 
@@ -97,6 +121,7 @@ class WorldProgressReward:
         X = ref_matrix.cpu().numpy()
         db = DBSCAN(eps=self.cfg.dbscan_eps, min_samples=self.cfg.dbscan_min_samples).fit(X)
         labels = db.labels_
+        self._last_labels = labels.tolist()
         unique_labels = set(labels)
         unique_labels.discard(-1)
 
@@ -175,7 +200,65 @@ class WorldProgressReward:
             for idx, fi in enumerate(failed_indices):
                 rewards[fi] = activated[idx].item()
 
+        self._last_diagnostics = self._build_diagnostics(rewards, failed_distances)
         return rewards
+
+    def _build_diagnostics(
+        self,
+        rewards: list[float],
+        failed_distances: list[torch.Tensor],
+    ) -> ClusterDiagnostics:
+        diag = ClusterDiagnostics(
+            num_references=len(self.reference_embeddings),
+            num_clusters=self.cluster_centers.shape[0] if self.cluster_centers is not None else 0,
+        )
+
+        if self._last_labels is not None:
+            diag.num_noise_points = sum(1 for lb in self._last_labels if lb == -1)
+
+        if len(self.reference_embeddings) >= 2 and self._last_labels is not None:
+            ref_matrix = torch.stack(self.reference_embeddings, dim=0)
+            labels_t = torch.tensor(self._last_labels)
+            unique = set(self._last_labels)
+            unique.discard(-1)
+
+            intra_dists: list[float] = []
+            for lb in sorted(unique):
+                mask = labels_t == lb
+                members = ref_matrix[mask]
+                if members.shape[0] < 2:
+                    continue
+                pw = torch.cdist(members.unsqueeze(0), members.unsqueeze(0)).squeeze(0)
+                n = members.shape[0]
+                intra_dists.append(pw.sum().item() / max(n * (n - 1), 1))
+            if intra_dists:
+                diag.mean_intra_cluster_dist = sum(intra_dists) / len(intra_dists)
+
+            if self.cluster_centers is not None and self.cluster_centers.shape[0] >= 2:
+                cc = self.cluster_centers
+                pw_cc = torch.cdist(cc.unsqueeze(0), cc.unsqueeze(0)).squeeze(0)
+                n_c = cc.shape[0]
+                diag.mean_inter_cluster_dist = pw_cc.sum().item() / max(n_c * (n_c - 1), 1)
+
+            if diag.mean_intra_cluster_dist > 0:
+                diag.silhouette_ratio = diag.mean_inter_cluster_dist / diag.mean_intra_cluster_dist
+
+        if failed_distances:
+            d_all = torch.stack(failed_distances)
+            diag.mean_failed_distance = d_all.mean().item()
+            diag.std_failed_distance = d_all.std().item() if len(failed_distances) > 1 else 0.0
+
+        r_t = torch.tensor(rewards)
+        diag.reward_mean = r_t.mean().item()
+        diag.reward_std = r_t.std().item() if len(rewards) > 1 else 0.0
+        diag.reward_min = r_t.min().item()
+        diag.reward_max = r_t.max().item()
+
+        return diag
+
+    def get_diagnostics(self) -> ClusterDiagnostics | None:
+        """Return the diagnostics from the most recent ``compute_trajectory_rewards`` call."""
+        return self._last_diagnostics
 
 
 def compute_returns(rewards: torch.Tensor, gamma: float = 0.99) -> torch.Tensor:
