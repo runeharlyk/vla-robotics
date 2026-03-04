@@ -74,6 +74,19 @@ train-srpo: |
       --world-model {world_model} \
       --wandb
 
+# ── SFT via native LeRobot training pipeline ─────────────────────────
+train-lerobot: |
+  uv run lerobot-train \
+      --policy.path={policy_path} \
+      --dataset.repo_id={dataset_repo_id} \
+      --output_dir={output_dir} \
+      --job_name={job_name} \
+      --batch_size={batch_size} \
+      --steps={steps} \
+      --policy.device=cuda \
+      --policy.dtype=bfloat16 \
+      --wandb.enable=true
+
 # ── Evaluate a saved checkpoint (sim-agnostic) ────────────────────────
 eval-policy: |
   uv run python scripts/evaluate.py \
