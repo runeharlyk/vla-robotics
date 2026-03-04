@@ -13,7 +13,7 @@
 #BSUB -N
 #BSUB -oo logs/sft_libero_all_a100/%J.out
 # -------------------------------------------------
-. "$LSB_SUBCWD/jobs/_env.sh"
+. jobs/_env.sh
 
 uv run lerobot-train \
     --policy.path=lerobot/smolvla_base \

@@ -13,7 +13,7 @@
 #BSUB -N
 #BSUB -oo logs/smolvla_eval_maniskill_l40s/%J.out
 # -------------------------------------------------
-. "$LSB_SUBCWD/jobs/_env.sh"
+. jobs/_env.sh
 
 uv run python -m vla evaluate \
     --model smolvla \
