@@ -197,10 +197,64 @@ def check_hf_cache() -> None:
         _fail("V-JEPA 2 not cached — run: uv run huggingface-cli download facebook/vjepa2-vitg-fpc64-384-ssv2")
 
 
+def check_pinocchio() -> None:
+    _section("7. Pinocchio (pd_ee_delta_pose)")
+    try:
+        import pinocchio  # noqa: F401
+
+        _ok("pinocchio installed — pd_ee_delta_pose available")
+    except ImportError:
+        _fail("pinocchio not installed — ManiSkill will fall back to pd_joint_delta_pos")
+
+
+def check_maniskill() -> None:
+    _section("8. ManiSkill")
+    try:
+        import mani_skill.envs  # noqa: F401
+
+        _ok("mani_skill.envs importable")
+    except Exception as e:
+        _fail("import mani_skill.envs", e)
+
+
+def check_sft_checkpoint(path: str) -> None:
+    _section("9. SFT checkpoint")
+    from pathlib import Path
+
+    p = Path(path)
+    if p.exists():
+        files = list(p.iterdir()) if p.is_dir() else [p]
+        _ok(f"Found at {p} ({len(files)} file(s))")
+    else:
+        _fail(f"Not found: {p}")
+
+
+def check_preprocessed_data(data_dir: str) -> None:
+    _section("10. Preprocessed data")
+    from pathlib import Path
+
+    d = Path(data_dir)
+    if not d.exists():
+        _fail(f"Directory not found: {d}")
+        return
+    pt_files = sorted(d.glob("*.pt"))
+    if pt_files:
+        _ok(f"{len(pt_files)} .pt file(s) in {d}:")
+        for f in pt_files:
+            size_mb = f.stat().st_size / 1e6
+            print(f"       {f.name}  ({size_mb:.1f} MB)")
+    else:
+        _fail(f"No .pt files in {d}. Run preprocess_data.py first.")
+
+
 def main(
     world_model: str = typer.Option("dinov2", "--world-model", "-w", help="dinov2, vjepa2, or all"),
+    sft_checkpoint: str = typer.Option("", "--sft-checkpoint", "-s", help="Path to SFT checkpoint dir"),
+    data_dir: str = typer.Option("", "--data-dir", "-d", help="Path to preprocessed .pt directory"),
 ) -> None:
     """Validate HPC environment for SRPO training."""
+    import os
+
     check_imports()
     check_cuda()
     check_srpo_pipeline()
@@ -211,6 +265,20 @@ def main(
         check_dinov2()
     if wm in ("vjepa2", "all"):
         check_vjepa2()
+
+    check_pinocchio()
+    check_maniskill()
+
+    work3 = os.environ.get("VLA_WORK3", "")
+    if sft_checkpoint:
+        check_sft_checkpoint(sft_checkpoint)
+    elif work3:
+        check_sft_checkpoint(os.path.join(work3, "checkpoints", "sft", "best"))
+
+    if data_dir:
+        check_preprocessed_data(data_dir)
+    elif work3:
+        check_preprocessed_data(os.path.join(work3, "data", "preprocessed"))
 
     _section("Summary")
     total = CHECKS_PASSED + CHECKS_FAILED
