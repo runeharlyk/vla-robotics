@@ -214,6 +214,77 @@ class LiberoSFTDataset(Dataset):
     def image_size(self) -> int:
         return int(self.metadata["image_size"])
 
+    def episodes_as_trajectories(self, task_id: int | None = None) -> list:
+        """Convert stored LeRobot episodes to :class:`Trajectory` objects for SRPO seeding.
+
+        Args:
+            task_id: If given, only return episodes whose ``task_index`` matches.
+                     Each LIBERO suite has 10 tasks (indices 0-9).
+        """
+        from vla.rl.rollout import Trajectory
+
+        ep_index = self._ds.episode_data_index
+        num_episodes = len(ep_index["from"])
+        trajs: list[Trajectory] = []
+
+        for ep in range(num_episodes):
+            start = ep_index["from"][ep].item()
+            end = ep_index["to"][ep].item()
+
+            if task_id is not None:
+                first_sample = self._ds[start]
+                ti = first_sample.get("task_index", 0)
+                if isinstance(ti, torch.Tensor):
+                    ti = ti.item()
+                if int(ti) != task_id:
+                    continue
+
+            images_list: list[torch.Tensor] = []
+            states_list: list[torch.Tensor] = []
+            actions_list: list[torch.Tensor] = []
+
+            for i in range(start, end):
+                sample = self._ds[i]
+
+                img = sample["observation.images.image"]
+                if isinstance(img, np.ndarray):
+                    img = torch.from_numpy(img)
+                if img.ndim == 4:
+                    img = img.squeeze(0)
+                images_list.append(img)
+
+                state = sample.get("observation.state", torch.zeros(max(self.state_dim, 1)))
+                if isinstance(state, np.ndarray):
+                    state = torch.from_numpy(state)
+                if state.ndim > 1:
+                    state = state.squeeze(0)
+                states_list.append(state)
+
+                action = sample["action"]
+                if isinstance(action, np.ndarray):
+                    action = torch.from_numpy(action)
+                if action.ndim > 1:
+                    action = action.squeeze(0)
+                actions_list.append(action)
+
+            T = len(actions_list)
+            trajs.append(
+                Trajectory(
+                    images=torch.stack(images_list),
+                    states=torch.stack(states_list).float(),
+                    actions=torch.stack(actions_list).float(),
+                    rewards=torch.ones(T),
+                    dones=torch.zeros(T),
+                    success=True,
+                    length=T,
+                )
+            )
+
+        logger.info(
+            "Built %d demo trajectories from LeRobot (task_id=%s)", len(trajs), task_id
+        )
+        return trajs
+
 
 def load_libero_suite(
     suite: str,

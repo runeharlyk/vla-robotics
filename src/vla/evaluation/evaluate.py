@@ -38,24 +38,40 @@ def evaluate(
     preprocessor = loaded.preprocessor
     postprocessor = loaded.postprocessor
 
-    env_factory = _make_factory(simulator, suite=suite, env_id=env_id, state_dim=loaded.state_dim)
+    if simulator.lower() == "libero" and suite.lower() == "all":
+        from vla.constants import resolve_suites
+        libero_suites = [s for s in resolve_suites("all") if s != "long"]
+        factories = [
+            _make_factory(simulator, suite=s, env_id=env_id, state_dim=loaded.state_dim)
+            for s in libero_suites
+        ]
+        suite_label = "all (object, spatial, goal)"
+    else:
+        factories = [_make_factory(
+            simulator, suite=suite, env_id=env_id, state_dim=loaded.state_dim)]
+        suite_label = factories[0].suite_name
 
-    print(f"  Model: {model}, Action dim: {loaded.action_dim}, State dim: {loaded.state_dim}")
-    print(f"  Simulator: {simulator}, Suite/Task: {env_factory.suite_name}")
+    print(
+        f"  Model: {model}, Action dim: {loaded.action_dim}, State dim: {loaded.state_dim}")
+    print(f"  Simulator: {simulator}, Suite/Task: {suite_label}")
     print(f"  Device: {device_obj}")
 
     if wandb_project:
-        wandb.init(project=wandb_project, name=f"eval-{model}", config={"checkpoint": checkpoint})
+        wandb.init(project=wandb_project,
+                   name=f"eval-{model}", config={"checkpoint": checkpoint})
 
     try:
-        results = _run_eval(
-            policy,
-            preprocessor,
-            postprocessor,
-            env_factory,
-            num_episodes,
-            device_obj,
-        )
+        results = {}
+        for env_factory in factories:
+            suite_results = _run_eval(
+                policy,
+                preprocessor,
+                postprocessor,
+                env_factory,
+                num_episodes,
+                device_obj,
+            )
+            results.update(suite_results)
         _print_results(results, model)
     finally:
         if wandb_project and wandb.run is not None:
@@ -76,7 +92,8 @@ def _make_factory(
         kwargs["state_dim"] = state_dim
     elif sim == "maniskill":
         if not env_id:
-            raise typer.BadParameter("--env-id is required for ManiSkill evaluation")
+            raise typer.BadParameter(
+                "--env-id is required for ManiSkill evaluation")
         from vla.constants import MANISKILL_TASKS
 
         task_meta = MANISKILL_TASKS.get(env_id, {})
@@ -99,7 +116,8 @@ def _run_eval(
     all_results: dict[str, dict[str, float]] = {}
     use_amp = device.type == "cuda"
 
-    task_bar = tqdm(range(env_factory.num_tasks), desc="Tasks", unit="task", position=0)
+    task_bar = tqdm(range(env_factory.num_tasks),
+                    desc="Tasks", unit="task", position=0)
     for task_id in task_bar:
         env = env_factory(task_id)
 
@@ -108,7 +126,8 @@ def _run_eval(
         task_bar.set_description(f"Task {task_id}: {task_desc}")
 
         successes = 0
-        ep_bar = tqdm(range(num_episodes), desc="  Episodes", unit="ep", position=1, leave=False)
+        ep_bar = tqdm(range(num_episodes), desc="  Episodes",
+                      unit="ep", position=1, leave=False)
         for ep in ep_bar:
             obs_raw, info = env.reset(seed=ep)
             policy.reset()
@@ -126,7 +145,8 @@ def _run_eval(
                 if action_np.ndim == 2:
                     action_np = action_np[0]
 
-                obs_raw, reward, terminated, truncated, info = env.step(action_np)
+                obs_raw, reward, terminated, truncated, info = env.step(
+                    action_np)
 
                 if env.is_success(info):
                     episode_success = True
@@ -144,7 +164,8 @@ def _run_eval(
         task_results = all_results.setdefault(env_factory.suite_name, {})
         task_results[task_desc] = sr
         task_bar.set_postfix(last_sr=f"{sr * 100:.0f}%")
-        tqdm.write(f"  Task {task_id}: {sr * 100:.1f}% ({successes}/{num_episodes}) - {task_desc}")
+        tqdm.write(
+            f"  Task {task_id}: {sr * 100:.1f}% ({successes}/{num_episodes}) - {task_desc}")
     task_bar.close()
 
     if wandb.run is not None:

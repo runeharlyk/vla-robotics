@@ -79,6 +79,63 @@ train-srpo: |
       --world-model {world_model} \
       --wandb
 
+# ── SRPO / sparse-RL on Libero (sets up LIBERO_PATH first) ────────────
+train-srpo-libero: |
+  export LIBERO_PATH=/work3/s234814/libero
+  mkdir -p "$LIBERO_PATH"
+  printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
+
+  uv run python scripts/train_srpo.py \
+      --sft-checkpoint {sft_checkpoint} \
+      --simulator libero \
+      --suite {suite} \
+      --task-id {task_id} \
+      --data {data} \
+      --mode {mode} \
+      --num-demos {num_demos} \
+      --seed {seed} \
+      --lr {lr} \
+      --iterations {num_iterations} \
+      --trajs-per-iter {trajectories_per_iter} \
+      --num-rollout-envs {num_rollout_envs} \
+      --fm-batch-size {fm_batch_size} \
+      --ppo-epochs {ppo_epochs} \
+      --clip-epsilon {clip_epsilon} \
+      --kl-coeff {kl_coeff} \
+      --eval-every {eval_every} \
+      --eval-episodes {eval_episodes} \
+      --max-steps {max_steps} \
+      --world-model {world_model} \
+      --wandb
+
+# ── SRPO on Libero with demos from HuggingFace (no .pt / no SFT ckpt) ─
+train-srpo-libero-hf: |
+  export LIBERO_PATH=/work3/s234814/libero
+  mkdir -p "$LIBERO_PATH"
+  printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
+
+  uv run python scripts/train_srpo.py \
+      --simulator libero \
+      --suite {suite} \
+      --task-id {task_id} \
+      --libero-suite {libero_suite} \
+      --mode {mode} \
+      --num-demos {num_demos} \
+      --seed {seed} \
+      --lr {lr} \
+      --iterations {num_iterations} \
+      --trajs-per-iter {trajectories_per_iter} \
+      --num-rollout-envs {num_rollout_envs} \
+      --fm-batch-size {fm_batch_size} \
+      --ppo-epochs {ppo_epochs} \
+      --clip-epsilon {clip_epsilon} \
+      --kl-coeff {kl_coeff} \
+      --eval-every {eval_every} \
+      --eval-episodes {eval_episodes} \
+      --max-steps {max_steps} \
+      --world-model {world_model} \
+      --wandb
+
 # ── SFT via native LeRobot training pipeline ─────────────────────────
 train-lerobot: |
   uv run lerobot-train \
@@ -106,6 +163,8 @@ eval-policy: |
       --seed {seed}
 
 # ── Evaluate via vla CLI in Libero ─────────────────────────────────────
+# Parity with lerobot-eval: suite all = libero_object, libero_spatial, libero_goal;
+# num_episodes = eval.n_episodes; we run batch_size 1 (sequential).
 eval-libero: |
   export LIBERO_PATH=/work3/s234814/libero
   mkdir -p "$LIBERO_PATH"

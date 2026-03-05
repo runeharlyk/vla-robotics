@@ -15,6 +15,9 @@ Usage:
     # SRPO with demo seeding:
     uv run python scripts/train_srpo.py --sft-checkpoint ... --data data/preprocessed/peginsertionside.pt --mode srpo
 
+    # SRPO on LIBERO loading demos directly from HuggingFace (no .pt needed):
+    uv run python scripts/train_srpo.py --simulator libero --suite spatial --task-id 0 --libero-suite spatial --mode srpo
+
     # Multi-task SRPO across an entire LIBERO suite:
     uv run python scripts/train_srpo.py --sft-checkpoint ... --simulator libero --suite spatial --multitask --data-dir data/preprocessed/spatial --mode srpo
 """
@@ -60,6 +63,9 @@ def main(
     data_dir: Path = typer.Option(
         None, "--data-dir", path_type=Path, help="Directory of .pt files (one per task) for multi-task SRPO"
     ),
+    libero_suite: str = typer.Option(
+        None, "--libero-suite", help="Load demos from HuggingFace LeRobot dataset instead of .pt (e.g. spatial)"
+    ),
     num_demos: int = typer.Option(5, "--num-demos", "-n"),
     mode: str = typer.Option("srpo", "--mode", "-m", help="srpo or sparse_rl"),
     simulator: str = typer.Option("maniskill", "--simulator", help="maniskill or libero"),
@@ -67,7 +73,9 @@ def main(
     task_id: int = typer.Option(0, "--task-id", help="LIBERO task index within the suite"),
     multitask: bool = typer.Option(False, "--multitask/--single-task", help="Enable multi-task SRPO training"),
     trajs_per_task: int = typer.Option(4, "--trajs-per-task", help="Trajectories per task per iteration (multi-task)"),
-    num_rollout_envs: int = typer.Option(1, "--num-rollout-envs", help="Parallel envs per task for vectorised rollouts"),
+    num_rollout_envs: int = typer.Option(
+        1, "--num-rollout-envs", help="Parallel envs per task for vectorised rollouts"
+    ),
     fm_batch_size: int = typer.Option(32, "--fm-batch-size", help="Timesteps per FM forward pass in PPO"),
     lr: float = typer.Option(1e-5, "--lr"),
     num_iterations: int = typer.Option(100, "--iterations"),
@@ -140,14 +148,16 @@ def main(
         )
         return
 
-    # ── Single-task path (unchanged) ─────────────────────────────────────
-    pt_path = _discover_data(data_path)
-    dataset = FewDemoDataset(pt_path, num_demos=num_demos, seed=seed)
+    # ── Single-task path ────────────────────────────────────────────────
+    if libero_suite is not None:
+        from vla.data.libero import LiberoSFTDataset
 
-    if simulator == "libero":
-        resolved_action_dim = ACTION_DIM  # 7
+        dataset = LiberoSFTDataset(suite=libero_suite, num_demos=num_demos, seed=seed)
+        resolved_action_dim = ACTION_DIM
     else:
-        resolved_action_dim = dataset.action_dim
+        pt_path = _discover_data(data_path)
+        dataset = FewDemoDataset(pt_path, num_demos=num_demos, seed=seed)
+        resolved_action_dim = ACTION_DIM if simulator == "libero" else dataset.action_dim
 
     policy = SmolVLAPolicy(
         checkpoint=checkpoint,
@@ -181,7 +191,10 @@ def main(
 
     demo_trajectories: list[Trajectory] | None = None
     if mode == "srpo":
-        demo_trajectories = dataset.episodes_as_trajectories()
+        if libero_suite is not None:
+            demo_trajectories = dataset.episodes_as_trajectories(task_id=task_id)
+        else:
+            demo_trajectories = dataset.episodes_as_trajectories()
         logging.info("Built %d demo trajectories for reference seeding", len(demo_trajectories))
 
     task_tag = resolved_env_id.lower().replace("-", "_")
