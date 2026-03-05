@@ -88,6 +88,10 @@ class WorldProgressReward:
     def add_successful_trajectories(self, trajectories: list[Trajectory]) -> None:
         """Encode and add newly successful rollout trajectories to the reference set.
 
+        Prefer :meth:`add_successful_embeddings` when embeddings have already
+        been computed (e.g. from :meth:`compute_trajectory_rewards`) to avoid
+        redundant encoder forward passes.
+
         Args:
             trajectories: List of successful :class:`Trajectory` objects.
         """
@@ -108,6 +112,25 @@ class WorldProgressReward:
                 "Added %d in-batch successes to reference set (total=%d)", added, len(self.reference_embeddings)
             )
             self._refit_clusters()
+
+    def add_successful_embeddings(self, embeddings: list[torch.Tensor]) -> None:
+        """Add pre-computed embeddings of successful trajectories to the reference set.
+
+        This avoids re-encoding trajectories that were already encoded
+        during :meth:`compute_trajectory_rewards`.
+
+        Args:
+            embeddings: List of ``(D,)`` trajectory embeddings.
+        """
+        if not embeddings:
+            return
+        self.reference_embeddings.extend(embeddings)
+        logger.info(
+            "Added %d in-batch successes to reference set (total=%d)",
+            len(embeddings),
+            len(self.reference_embeddings),
+        )
+        self._refit_clusters()
 
     def _refit_clusters(self) -> None:
         """Run DBSCAN on the current reference embeddings to update cluster centres."""
@@ -155,7 +178,7 @@ class WorldProgressReward:
     def compute_trajectory_rewards(
         self,
         trajectories: list[Trajectory],
-    ) -> list[float]:
+    ) -> tuple[list[float], list[torch.Tensor]]:
         """Compute per-trajectory SRPO rewards g_i.
 
         Following Section 3.2 of the paper:
@@ -166,10 +189,16 @@ class WorldProgressReward:
             trajectories: Batch of trajectories from the current iteration.
 
         Returns:
-            List of scalar rewards, one per trajectory.
+            Tuple of (rewards, embeddings) where rewards is a list of scalar
+            rewards and embeddings is the list of trajectory-level embeddings
+            (one per trajectory), allowing the caller to pass successful
+            embeddings to :meth:`add_successful_embeddings` without
+            re-encoding.
         """
         if self.cluster_centers is None or len(self.cluster_centers) == 0:
-            return [1.0 if t.success else 0.0 for t in trajectories]
+            traj_embeddings = [self._encode_trajectory(t) for t in trajectories]
+            rewards = [1.0 if t.success else 0.0 for t in trajectories]
+            return rewards, traj_embeddings
 
         traj_embeddings = []
         for traj in trajectories:
@@ -201,7 +230,7 @@ class WorldProgressReward:
                 rewards[fi] = activated[idx].item()
 
         self._last_diagnostics = self._build_diagnostics(rewards, failed_distances)
-        return rewards
+        return rewards, traj_embeddings
 
     def _build_diagnostics(
         self,

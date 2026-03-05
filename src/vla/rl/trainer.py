@@ -293,9 +293,10 @@ def train_srpo(
 
         # ── 2. Compute trajectory-level rewards g_i ─────────────────────
         if config.mode == "srpo" and reward_model is not None:
-            g_values = reward_model.compute_trajectory_rewards(trajectories)
+            g_values, traj_embs = reward_model.compute_trajectory_rewards(trajectories)
             cluster_diag = reward_model.get_diagnostics()
-            reward_model.add_successful_trajectories([t for t in trajectories if t.success])
+            success_embs = [traj_embs[i] for i, t in enumerate(trajectories) if t.success]
+            reward_model.add_successful_embeddings(success_embs)
         else:
             g_values = [1.0 if t.success else 0.0 for t in trajectories]
             cluster_diag = None
