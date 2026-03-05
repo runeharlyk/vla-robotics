@@ -108,6 +108,5 @@ omit = ["tests/*"]
 [tool.uv]
 build-backend.module-name = "vla"
 override-dependencies = [
-    "gymnasium==0.29.1",
-    "mani-skill==3.0.0b22"
+  "gymnasium>=1.1.1,<2.0.0",
 ]
