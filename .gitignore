@@ -106,3 +106,4 @@ models/
 videos/
 logs/
 wandb/
+outputs/
