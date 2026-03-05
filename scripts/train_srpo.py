@@ -29,10 +29,9 @@ from vla.models.smolvla import SmolVLAPolicy
 from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.rl.rollout import Trajectory
 from vla.rl.trainer import SRPOConfig, train_srpo
-from vla.utils import get_device, seed_everything
+from vla.utils import get_device, run_id, seed_everything
 
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
 def _discover_data(data_path: Path | None) -> Path:
@@ -116,7 +115,7 @@ def main(
         env_meta = policy.load_checkpoint(sft_checkpoint)
         logging.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
     else:
-        logging.info("No SFT checkpoint provided – using pretrained %s weights directly", checkpoint)
+        logging.info("No SFT checkpoint provided - using pretrained %s weights directly", checkpoint)
 
     resolved_env_id = env_id or env_meta.get("env_id") or dataset.metadata.get("env_id", "PickCube-v1")
     resolved_instruction = (
@@ -156,7 +155,7 @@ def main(
         eval_every=eval_every,
         eval_episodes=eval_episodes,
         max_steps=resolved_max_steps,
-        save_dir=str(CHECKPOINTS_DIR / mode / f"{task_tag}_seed{seed}"),
+        save_dir=str(CHECKPOINTS_DIR / mode / f"{task_tag}_seed{seed}_{run_id()}"),
         env_id=resolved_env_id,
         seed=seed,
         mode=mode,

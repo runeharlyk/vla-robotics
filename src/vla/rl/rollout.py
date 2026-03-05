@@ -1,9 +1,9 @@
 """Vectorised rollout engines for collecting trajectories with a VLA policy.
 
 Provides two rollout backends:
-* **ManiSkill** – uses ManiSkill 3's native GPU-vectorised simulation
+* **ManiSkill** - uses ManiSkill 3's native GPU-vectorised simulation
   (``num_envs > 1``) for parallel trajectory collection.
-* **LIBERO** – see :mod:`vla.rl.libero_rollout` for a subprocess-based
+* **LIBERO** - see :mod:`vla.rl.libero_rollout` for a subprocess-based
   vectorised engine following the RLinf pattern.
 
 Both backends share the :class:`Trajectory` dataclass and implement the
@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 import gymnasium as gym
-import mani_skill.envs  # noqa: F401 – registers envs
+import mani_skill.envs  # noqa: F401 - registers envs
 import numpy as np
 import torch
 

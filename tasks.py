@@ -76,7 +76,6 @@ def download_libero_data(ctx: Context, suite: str = "all") -> None:
     ctx.run(f"uv run python scripts/download_libero.py --suite {suite}", echo=True, pty=not WINDOWS)
 
 
-
 @task
 def evaluate(
     ctx: Context,
@@ -141,7 +140,7 @@ def playback_demos(
     """Playback recorded demonstrations via `vla playback`."""
     env_flag = f"--env-id {env_id}" if env_id else ""
     data_flag = f"--data-path {data_path}" if data_path else ""
-    instr_flag = f"--instruction \"{instruction}\"" if instruction else ""
+    instr_flag = f'--instruction "{instruction}"' if instruction else ""
     cmd = (
         f"uv run python -m vla playback "
         f"--simulator {simulator} --suite {suite} {env_flag} {data_flag} "
@@ -167,7 +166,7 @@ def export_images(
 
 
 def _load_yaml(path: Path) -> dict:
-    import yaml  # lazy import – not available in the bare `uvx invoke` env
+    import yaml  # lazy import - not available in the bare `uvx invoke` env
 
     with open(path) as f:
         return yaml.safe_load(f)

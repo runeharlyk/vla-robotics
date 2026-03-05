@@ -84,15 +84,16 @@ class ManiSkillEnv:
         """Normalise ManiSkill obs into a common raw dict."""
         out: dict = {"pixels": {}, "agent_state": None}
 
+        # Some envs use 'image' (rgbd), others use 'sensor_data' (rgb+state).
+        image_dict: dict = {}
         if "image" in obs:
-            if "base_camera" in obs["image"]:
-                out["pixels"]["base_camera"] = self._to_uint8(obs["image"]["base_camera"]["rgb"])
-            if "hand_camera" in obs["image"]:
-                out["pixels"]["hand_camera"] = self._to_uint8(obs["image"]["hand_camera"]["rgb"])
+            image_dict = obs["image"]
+        elif "sensor_data" in obs:
+            image_dict = obs["sensor_data"]
 
-            for k, v in obs["image"].items():
-                if k not in ("base_camera", "hand_camera") and isinstance(v, dict) and "rgb" in v:
-                    out["pixels"][k] = self._to_uint8(v["rgb"])
+        for k, v in image_dict.items():
+            if isinstance(v, dict) and "rgb" in v:
+                out["pixels"][k] = self._to_uint8(v["rgb"])
 
         if "agent" in obs:
             if isinstance(obs["agent"], dict):

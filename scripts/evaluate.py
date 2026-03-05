@@ -23,18 +23,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 def main(
     checkpoint_dir: Path = typer.Option(..., "--checkpoint-dir", "-d", path_type=Path),
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
-    simulator: str = typer.Option(
-        "maniskill", "--simulator", "-s", help="Simulator backend: maniskill or libero"
-    ),
+    simulator: str = typer.Option("maniskill", "--simulator", "-s", help="Simulator backend: maniskill or libero"),
     env_id: str = typer.Option(None, "--env", help="Override env id (default: from checkpoint metadata)"),
     suite: str = typer.Option("all", "--suite", help="Libero suite (spatial/object/goal/long/all)"),
     num_episodes: int = typer.Option(100, "--num-episodes", "-n"),
     max_steps: int = typer.Option(None, "--max-steps", help="Override max steps (default: from metadata)"),
     seed: int = typer.Option(0, "--seed"),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
-    control_mode: str = typer.Option(
-        None, "--control-mode", help="Override control mode (default: from checkpoint)"
-    ),
+    control_mode: str = typer.Option(None, "--control-mode", help="Override control mode (default: from checkpoint)"),
 ) -> None:
     """Evaluate a saved policy and print metrics.
 

@@ -222,7 +222,7 @@ def export_libero_pro(
     Fill in LIBERO_PRO_SUITES at the top of this file once repo IDs are known.
     """
     if not LIBERO_PRO_SUITES:
-        print("[WARN] LIBERO_PRO_SUITES is empty – update the registry at the top of image_export.py.")
+        print("[WARN] LIBERO_PRO_SUITES is empty - update the registry at the top of image_export.py.")
         return
 
     target = suites or list(LIBERO_PRO_SUITES.keys())

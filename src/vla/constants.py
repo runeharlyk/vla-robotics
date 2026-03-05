@@ -34,25 +34,78 @@ SUITE_MAP = {
 }
 
 MANISKILL_TASKS: dict[str, dict] = {
+    # ── Two-camera tasks (base_camera + hand_camera) ─────────────────
     "PegInsertionSide-v1": {
         "instruction": "insert the peg into the hole",
         "action_dim": 8,
         "max_episode_steps": 100,
-    },
-    "PickCube-v1": {
-        "instruction": "pick up the cube",
-        "action_dim": 8,
-        "max_episode_steps": 200,
+        "num_cameras": 2,
     },
     "StackCube-v1": {
         "instruction": "stack the red cube on top of the green cube",
         "action_dim": 8,
         "max_episode_steps": 200,
+        "num_cameras": 2,
+    },
+    "AssemblingKits-v1": {
+        "instruction": "assemble the kit by placing the objects in the correct poses",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 2,
+    },
+    "PickSingleYCB-v1": {
+        "instruction": "pick up the object",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 2,
+    },
+    "PlugCharger-v1": {
+        "instruction": "plug the charger into the receptacle",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 2,
+    },
+    "StackPyramid-v1": {
+        "instruction": "stack the cubes into a pyramid",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 2,
+    },
+    # ── Articulated-object tasks (require PartNet Mobility assets) ──
+    # Download with: python -m mani_skill.utils.download_asset <uid>
+    "OpenCabinetDoor-v1": {  # Fetch robot — cameras: fetch_head, fetch_hand (sensor_data)
+        "instruction": "open the cabinet door",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 2,
+        "requires_assets": True,
+    },
+    "OpenCabinetDrawer-v1": {  # Fetch robot — cameras: fetch_head, fetch_hand (sensor_data)
+        "instruction": "open the cabinet drawer",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 2,
+        "requires_assets": True,
+    },
+    "TurnFaucet-v1": {  # Panda robot — cameras: base_camera, hand_camera (sensor_data)
+        "instruction": "turn on the faucet",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 2,
+        "requires_assets": True,
+    },
+    # ── One-camera tasks (base_camera only) ──────────────────────────
+    "PickCube-v1": {
+        "instruction": "pick up the cube",
+        "action_dim": 8,
+        "max_episode_steps": 200,
+        "num_cameras": 1,
     },
     "PushCube-v1": {
         "instruction": "push the cube to the target",
         "action_dim": 8,
         "max_episode_steps": 200,
+        "num_cameras": 1,
     },
 }
 

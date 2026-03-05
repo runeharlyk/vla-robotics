@@ -31,10 +31,9 @@ from vla.data.dataset import ConcatFewDemoDataset, FewDemoDataset
 from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.models.smolvla import SmolVLAPolicy
 from vla.training.sft_smolvla import SFTConfig, train_sft
-from vla.utils import get_device, seed_everything
+from vla.utils import get_device, run_id, seed_everything
 
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
 def _discover_pt(data_paths: list[Path] | None) -> list[Path]:
@@ -183,8 +182,7 @@ def main(
 
     task_tag = resolved_env_id.lower().replace("-", "_")
     demos_tag = f"demos{num_demos}" if num_demos is not None else "all"
-    save_dir = str(CHECKPOINTS_DIR / "sft" /
-                   f"{task_tag}_{demos_tag}_seed{seed}")
+    save_dir = str(CHECKPOINTS_DIR / "sft" / f"{task_tag}_{demos_tag}_seed{seed}_{run_id()}")
 
     config = SFTConfig(
         lr=lr,

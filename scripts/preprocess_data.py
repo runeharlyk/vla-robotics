@@ -27,6 +27,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from vla.constants import PREPROCESSED_DIR, RAW_DIR
+
 DEFAULT_SKILL = "PickCube-v1"
 DEFAULT_INSTRUCTION = "complete the manipulation task"
 _warned_camera_fallback = False
