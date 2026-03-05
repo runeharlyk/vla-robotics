@@ -40,6 +40,7 @@ class Trajectory:
     success: bool
     privileged_states: list[dict[str, float]] = field(default_factory=list)
     length: int = 0
+    task_id: str = ""
 
 
 @runtime_checkable

@@ -14,6 +14,7 @@ the cold-start bootstrapping problem.
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from dataclasses import dataclass
 
 import torch
@@ -288,6 +289,71 @@ class WorldProgressReward:
     def get_diagnostics(self) -> ClusterDiagnostics | None:
         """Return the diagnostics from the most recent ``compute_trajectory_rewards`` call."""
         return self._last_diagnostics
+
+
+class MultiTaskWorldProgressReward:
+    """Per-task SRPO reward models sharing a single frozen encoder.
+
+    Maintains a separate :class:`WorldProgressReward` instance for each
+    task so that reference embeddings, DBSCAN clusters, and reward
+    normalisation are all task-isolated.
+
+    Args:
+        encoder: A frozen :class:`WorldModelEncoder` (shared across tasks).
+        config: Reward model hyperparameters (shared across tasks).
+    """
+
+    def __init__(self, encoder: WorldModelEncoder, config: SRPORewardConfig | None = None) -> None:
+        self.encoder = encoder
+        self.cfg = config or SRPORewardConfig()
+        self._per_task: dict[str, WorldProgressReward] = {}
+
+    def _get_or_create(self, task_id: str) -> WorldProgressReward:
+        if task_id not in self._per_task:
+            self._per_task[task_id] = WorldProgressReward(self.encoder, self.cfg)
+        return self._per_task[task_id]
+
+    @property
+    def task_ids(self) -> list[str]:
+        return list(self._per_task.keys())
+
+    def add_demo_trajectories(self, task_id: str, demo_images: list[torch.Tensor]) -> None:
+        self._get_or_create(task_id).add_demo_trajectories(demo_images)
+
+    def add_successful_embeddings(self, task_id: str, embeddings: list[torch.Tensor]) -> None:
+        self._get_or_create(task_id).add_successful_embeddings(embeddings)
+
+    def compute_trajectory_rewards(
+        self,
+        trajectories: list[Trajectory],
+    ) -> tuple[list[float], list[torch.Tensor]]:
+        """Compute rewards with per-task clustering and normalisation.
+
+        Trajectories are grouped by ``task_id``, each group is scored
+        against its own task's cluster centres, and failed-distance
+        z-scoring is computed within each task independently.
+
+        Returns:
+            Tuple of (rewards, embeddings) aligned with the input order.
+        """
+        rewards = [0.0] * len(trajectories)
+        embeddings: list[torch.Tensor | None] = [None] * len(trajectories)
+
+        by_task: dict[str, list[int]] = defaultdict(list)
+        for i, t in enumerate(trajectories):
+            by_task[t.task_id].append(i)
+
+        for tid, indices in by_task.items():
+            task_trajs = [trajectories[i] for i in indices]
+            task_rewards, task_embs = self._get_or_create(tid).compute_trajectory_rewards(task_trajs)
+            for j, idx in enumerate(indices):
+                rewards[idx] = task_rewards[j]
+                embeddings[idx] = task_embs[j]
+
+        return rewards, embeddings  # type: ignore[return-value]
+
+    def get_diagnostics(self) -> dict[str, ClusterDiagnostics | None]:
+        return {tid: rm.get_diagnostics() for tid, rm in self._per_task.items()}
 
 
 def compute_returns(rewards: torch.Tensor, gamma: float = 0.99) -> torch.Tensor:
