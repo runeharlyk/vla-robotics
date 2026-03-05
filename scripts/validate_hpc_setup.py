@@ -49,6 +49,7 @@ def check_imports() -> None:
     _section("1. Core imports")
     try:
         import torch
+
         _ok(f"torch {torch.__version__}")
     except Exception as e:
         _fail("import torch", e)
@@ -56,18 +57,21 @@ def check_imports() -> None:
 
     try:
         import transformers
+
         _ok(f"transformers {transformers.__version__}")
     except Exception as e:
         _fail("import transformers", e)
 
     try:
         import sklearn  # noqa: F401
+
         _ok("scikit-learn available (DBSCAN)")
     except Exception as e:
         _fail("import sklearn", e)
 
     try:
         import wandb  # noqa: F401
+
         _ok("wandb available")
     except Exception as e:
         _fail("import wandb", e)
@@ -93,24 +97,28 @@ def check_srpo_pipeline() -> None:
     _section("3. SRPO pipeline imports")
     try:
         from vla.models.world_model import DINOv2Encoder, VJEPA2Encoder, build_world_model  # noqa: F401
+
         _ok("vla.models.world_model")
     except Exception as e:
         _fail("vla.models.world_model", e)
 
     try:
         from vla.rl.srpo_reward import WorldProgressReward, ClusterDiagnostics  # noqa: F401
+
         _ok("vla.rl.srpo_reward (with ClusterDiagnostics)")
     except Exception as e:
         _fail("vla.rl.srpo_reward", e)
 
     try:
         from vla.rl.trainer import train_srpo, SRPOConfig  # noqa: F401
+
         _ok("vla.rl.trainer")
     except Exception as e:
         _fail("vla.rl.trainer", e)
 
     try:
         from vla.models.smolvla import SmolVLAPolicy  # noqa: F401
+
         _ok("vla.models.smolvla")
     except Exception as e:
         _fail("vla.models.smolvla", e)

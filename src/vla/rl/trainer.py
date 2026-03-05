@@ -564,7 +564,9 @@ def train_srpo_multitask(
     engines: dict[str, RolloutEngine] = {}
     for spec in task_specs:
         engines[spec.task_id] = _build_task_rollout_engine(
-            config, spec, num_envs=config.num_rollout_envs,
+            config,
+            spec,
+            num_envs=config.num_rollout_envs,
         )
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
@@ -670,13 +672,23 @@ def train_srpo_multitask(
                 fixed_time_per_traj.append(time)
 
                 old_loss = _compute_fm_loss_batched(
-                    policy, traj, instr, noise, time, batch_size=B,
+                    policy,
+                    traj,
+                    instr,
+                    noise,
+                    time,
+                    batch_size=B,
                 )
                 old_losses_per_traj.append(old_loss.detach())
 
                 ref_policy.to(policy.device)
                 ref_loss = _compute_fm_loss_batched(
-                    ref_policy, traj, instr, noise, time, batch_size=B,
+                    ref_policy,
+                    traj,
+                    instr,
+                    noise,
+                    time,
+                    batch_size=B,
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
                 ref_policy.cpu()
@@ -702,7 +714,12 @@ def train_srpo_multitask(
                 time = fixed_time_per_traj[i]
 
                 new_losses_t = _compute_fm_loss_batched(
-                    policy, traj, instr, noise, time, batch_size=B,
+                    policy,
+                    traj,
+                    instr,
+                    noise,
+                    time,
+                    batch_size=B,
                 )
 
                 log_ratios = old_losses_t - new_losses_t
@@ -759,15 +776,9 @@ def train_srpo_multitask(
                 if diag is not None:
                     log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
 
-        logger.info(
-            f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  "
-            f"successes={total_successes}/{M}"
-        )
+        logger.info(f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  successes={total_successes}/{M}")
         for tid in per_task_successes:
-            logger.info(
-                f"  [{tid}] successes={per_task_successes[tid]}  "
-                f"g_mean={per_task_g_mean.get(tid, 0.0):.4f}"
-            )
+            logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
         if wandb_run is not None:
             wandb_run.log(log_data)
 

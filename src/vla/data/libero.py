@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -10,6 +12,112 @@ from vla.constants import ACTION_DIM, LIBERO_SUITES
 from vla.data.dataset import NormStats
 
 logger = logging.getLogger(__name__)
+
+
+def _load_libero_v2_from_hf(
+    repo_id: str,
+    num_demos: int | None,
+    seed: int,
+) -> tuple[object, dict[int, str], dict, int]:
+    """Load a LIBERO v2.0 dataset from HuggingFace, bypassing LeRobotDataset.
+
+    The official ``lerobot/libero_*_image`` repos are v2.0 format which is
+    incompatible with LeRobot >= 0.4 (expects v3.0).  This loader downloads
+    the metadata files directly and uses ``datasets.load_dataset`` to read the
+    per-episode parquet files.
+    """
+    from datasets import load_dataset
+    from huggingface_hub import hf_hub_download
+
+    def _dl(path: str) -> Path:
+        return Path(hf_hub_download(repo_id, path, repo_type="dataset"))
+
+    with open(_dl("meta/info.json")) as f:
+        json.load(f)
+    with open(_dl("meta/stats.json")) as f:
+        stats_raw = json.load(f)
+    task_map: dict[int, str] = {}
+    with open(_dl("meta/tasks.jsonl")) as f:
+        for line in f:
+            entry = json.loads(line)
+            task_map[int(entry["task_index"])] = entry["task"]
+
+    episodes_meta: list[dict] = []
+    with open(_dl("meta/episodes.jsonl")) as f:
+        for line in f:
+            episodes_meta.append(json.loads(line))
+
+    total_eps = len(episodes_meta)
+    if num_demos is not None and num_demos < total_eps:
+        gen = torch.Generator().manual_seed(seed)
+        indices = torch.randperm(total_eps, generator=gen)[:num_demos].tolist()
+        episodes_meta = [episodes_meta[i] for i in sorted(indices)]
+
+    ep_indices = [e["episode_index"] for e in episodes_meta]
+    data_files = [f"data/chunk-000/episode_{i:06d}.parquet" for i in ep_indices]
+    ds = load_dataset(repo_id, data_files=data_files, split="train")
+
+    def _cast_stats(key: str) -> tuple[torch.Tensor, torch.Tensor]:
+        s = stats_raw.get(key, {})
+        mean = np.array(s.get("mean", [0.0])).flatten()
+        std = np.array(s.get("std", [1.0])).flatten()
+        return (
+            torch.tensor(mean, dtype=torch.float32),
+            torch.tensor(std, dtype=torch.float32).clamp(min=1e-8),
+        )
+
+    act_mean, act_std = _cast_stats("action")
+    st_mean, st_std = _cast_stats("observation.state")
+    if st_mean.numel() == 0:
+        st_mean = torch.zeros(1)
+        st_std = torch.ones(1)
+
+    stats = {
+        "action": {"mean": act_mean, "std": act_std},
+        "observation.state": {"mean": st_mean, "std": st_std},
+    }
+
+    episode_data_index = {"from": [], "to": []}
+    offset = 0
+    for ep in episodes_meta:
+        length = ep["length"]
+        episode_data_index["from"].append(offset)
+        episode_data_index["to"].append(offset + length)
+        offset += length
+
+    class _Wrapped:
+        """Thin wrapper giving a dict-of-tensors interface over a HF Dataset."""
+
+        def __init__(self, hf_ds, ep_index, tm):
+            self._ds = hf_ds
+            self.episode_data_index = {
+                "from": torch.tensor(ep_index["from"]),
+                "to": torch.tensor(ep_index["to"]),
+            }
+            self._task_map = tm
+
+        def __len__(self):
+            return len(self._ds)
+
+        def __getitem__(self, idx):
+            row = self._ds[idx]
+            out: dict = {}
+            for k, v in row.items():
+                if v is None:
+                    out[k] = None
+                elif isinstance(v, (list, tuple)):
+                    out[k] = torch.tensor(v, dtype=torch.float32)
+                elif isinstance(v, np.ndarray):
+                    out[k] = torch.from_numpy(v)
+                elif hasattr(v, "convert"):
+                    arr = np.array(v.convert("RGB")).transpose(2, 0, 1)
+                    out[k] = torch.from_numpy(arr).float() / 255.0
+                else:
+                    out[k] = v
+            return out
+
+    wrapped = _Wrapped(ds, episode_data_index, task_map)
+    return wrapped, task_map, stats, len(episodes_meta)
 
 
 class LiberoDataset(Dataset):
@@ -102,46 +210,24 @@ class LiberoSFTDataset(Dataset):
     """
 
     def __init__(self, suite: str, num_demos: int | None = None, seed: int = 42) -> None:
-        from lerobot.datasets.lerobot_dataset import LeRobotDataset
-
         repo_id = LIBERO_SUITES.get(suite.lower())
         if not repo_id:
             raise ValueError(f"Unknown Libero suite {suite!r}. Available: {list(LIBERO_SUITES)}")
 
-        episodes = None
-        total_eps = LeRobotDataset(repo_id).meta.total_episodes
-        if num_demos is not None and num_demos < total_eps:
-            gen = torch.Generator().manual_seed(seed)
-            indices = torch.randperm(total_eps, generator=gen)[:num_demos].tolist()
-            episodes = sorted(indices)
-
-        self._ds = LeRobotDataset(repo_id, episodes=episodes)
-
-        self._task_map: dict[int, str] = {}
-        if hasattr(self._ds, "meta") and hasattr(self._ds.meta, "tasks"):
-            self._task_map = self._ds.meta.tasks
-        elif hasattr(self._ds, "tasks"):
-            self._task_map = self._ds.tasks
-
-        stats = self._ds.meta.stats
-
-        act_mean = stats["action"]["mean"].float()
-        act_std = stats["action"]["std"].float().clamp(min=1e-8)
+        self._ds, self._task_map, stats_dict, num_eps = _load_libero_v2_from_hf(
+            repo_id, num_demos, seed
+        )
+        act_mean = stats_dict["action"]["mean"]
+        act_std = stats_dict["action"]["std"]
+        st_mean = stats_dict["observation.state"]["mean"]
+        st_std = stats_dict["observation.state"]["std"]
         if act_mean.ndim > 1:
             act_mean = act_mean.squeeze()
             act_std = act_std.squeeze()
-
-        if "observation.state" in stats:
-            st_mean = stats["observation.state"]["mean"].float()
-            st_std = stats["observation.state"]["std"].float().clamp(min=1e-8)
-            if st_mean.ndim > 1:
-                st_mean = st_mean.squeeze()
-                st_std = st_std.squeeze()
-            self.state_dim: int = int(st_mean.shape[0])
-        else:
-            st_mean = torch.zeros(1)
-            st_std = torch.ones(1)
-            self.state_dim = 0
+        if st_mean.ndim > 1:
+            st_mean = st_mean.squeeze()
+            st_std = st_std.squeeze()
+        self.state_dim: int = int(st_mean.shape[0]) if st_mean.numel() > 0 else 0
 
         self.norm_stats = NormStats(
             action_mean=act_mean,
@@ -151,7 +237,7 @@ class LiberoSFTDataset(Dataset):
         )
 
         self.action_dim: int = int(act_mean.shape[0])
-        self.num_episodes: int = len(episodes) if episodes else total_eps
+        self.num_episodes: int = num_eps
         self.instruction: str = next(iter(self._task_map.values()), "complete the manipulation task")
         self.control_mode: str = "libero_default"
 
