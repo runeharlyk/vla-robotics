@@ -7,6 +7,7 @@
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=8GB]"
+#BSUB -R "select[gpu80gb]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -u s234814@dtu.dk
 #BSUB -B
@@ -27,11 +28,11 @@ uv run python scripts/train_srpo.py \
     --mode srpo \
     --num-demos 50 \
     --seed 42 \
-    --lr 1e-05 \
+    --lr 5e-06 \
     --iterations 200 \
     --trajs-per-iter 8 \
     --num-rollout-envs 4 \
-    --fm-batch-size 32 \
+    --fm-batch-size 16 \
     --ppo-epochs 4 \
     --clip-epsilon 0.2 \
     --kl-coeff 0.01 \
@@ -39,4 +40,5 @@ uv run python scripts/train_srpo.py \
     --eval-episodes 10 \
     --max-steps 200 \
     --world-model vjepa2 \
+    --dbscan-eps 60 \
     --wandb

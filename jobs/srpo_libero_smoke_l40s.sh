@@ -27,7 +27,7 @@ uv run python scripts/train_srpo.py \
     --mode srpo \
     --num-demos 50 \
     --seed 42 \
-    --lr 1e-05 \
+    --lr 5e-06 \
     --iterations 200 \
     --trajs-per-iter 8 \
     --num-rollout-envs 4 \
@@ -39,5 +39,6 @@ uv run python scripts/train_srpo.py \
     --eval-episodes 10 \
     --max-steps 200 \
     --world-model vjepa2 \
+    --dbscan-eps 60 \
     --gradient-checkpointing \
     --wandb
