@@ -40,15 +40,21 @@ def _libero_worker(
     obs_type: str,
     state_dim: int,
     image_size: int,
+    camera_name: str | None = None,
 ) -> None:
     """Worker process: creates one LIBERO env and responds to commands."""
     from vla.envs.libero import LiberoEnv
+
+    kwargs: dict = {}
+    if camera_name is not None:
+        kwargs["camera_name"] = camera_name
 
     env = LiberoEnv(
         suite_name=suite_name,
         task_id=task_id,
         obs_type=obs_type,
         state_dim=state_dim,
+        **kwargs,
     )
     task_desc = env.task_description
     img_size = image_size
@@ -137,6 +143,7 @@ class LiberoVecEnv:
         obs_type: str = "pixels_agent_pos",
         state_dim: int = 8,
         image_size: int = 256,
+        camera_name: str | None = None,
     ) -> None:
         self.num_envs = num_envs
         self.image_size = image_size
@@ -148,7 +155,7 @@ class LiberoVecEnv:
             parent_conn, child_conn = ctx.Pipe()
             p = ctx.Process(
                 target=_libero_worker,
-                args=(child_conn, suite_name, task_id, obs_type, state_dim, image_size),
+                args=(child_conn, suite_name, task_id, obs_type, state_dim, image_size, camera_name),
                 daemon=True,
             )
             p.start()
@@ -240,6 +247,7 @@ class LiberoRollout:
         obs_type: str = "pixels_agent_pos",
         state_dim: int = 8,
         num_cameras: int = 2,
+        camera_name: str | None = None,
     ) -> None:
         resolved = self.SUITE_MAP.get(suite_name.lower(), suite_name)
         self.suite_name = resolved
@@ -250,6 +258,8 @@ class LiberoRollout:
         self.num_cameras = max(1, num_cameras)
         self.state_dim = state_dim
 
+        from vla.envs.libero import LIBERO_CAMERAS
+
         self.vec_env = LiberoVecEnv(
             suite_name=resolved,
             task_id=task_id,
@@ -257,6 +267,7 @@ class LiberoRollout:
             obs_type=obs_type,
             state_dim=state_dim,
             image_size=image_size,
+            camera_name=camera_name or LIBERO_CAMERAS,
         )
 
     @property

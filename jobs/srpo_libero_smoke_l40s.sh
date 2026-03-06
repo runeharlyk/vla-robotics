@@ -37,7 +37,7 @@ uv run python scripts/train_srpo.py \
     --kl-coeff 0.01 \
     --eval-every 20 \
     --eval-episodes 10 \
-    --max-steps 200 \
+    --max-steps 280 \
     --world-model vjepa2 \
     --dbscan-eps 60 \
     --gradient-checkpointing \

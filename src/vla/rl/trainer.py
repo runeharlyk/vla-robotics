@@ -55,7 +55,7 @@ class SRPOConfig:
     kl_coeff: float = 0.01
     eval_every: int = 10
     eval_episodes: int = 50
-    max_steps: int = 200
+    max_steps: int = 280
     save_dir: str = "checkpoints/srpo"
     env_id: str = "PickCube-v1"
     seed: int = 42
@@ -502,6 +502,7 @@ def train_srpo(
                 max_steps=config.max_steps,
                 seed=config.seed + 20000,
                 suite=config.suite,
+                task_id=config.task_id if config.simulator == "libero" else None,
             )
             print_metrics(metrics, tag=f"{config.mode} iter {iteration}")
             if wandb_run is not None:

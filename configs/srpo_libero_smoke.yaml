@@ -17,6 +17,6 @@ kl_coeff: 0.01
 dbscan_eps: 60
 eval_every: 20
 eval_episodes: 10
-max_steps: 200
+max_steps: 280
 world_model: vjepa2
 gradient_checkpointing: true

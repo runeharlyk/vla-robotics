@@ -38,6 +38,6 @@ uv run python scripts/train_srpo.py \
     --kl-coeff 0.01 \
     --eval-every 10 \
     --eval-episodes 50 \
-    --max-steps 200 \
+    --max-steps 280 \
     --world-model dinov2 \
     --wandb

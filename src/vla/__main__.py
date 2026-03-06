@@ -49,6 +49,7 @@ def evaluate(
     num_episodes: int = typer.Option(20, "--num-episodes", "-n"),
     device: str = typer.Option("cuda", "--device", "-d"),
     wandb_project: str | None = typer.Option(None, "--wandb-project"),
+    compile_model: bool = typer.Option(False, "--compile/--no-compile"),
 ) -> None:
     """Evaluate SmolVLA on a simulator."""
     mod = importlib.import_module("vla.evaluation.evaluate")
@@ -61,6 +62,7 @@ def evaluate(
         num_episodes=num_episodes,
         device=device,
         wandb_project=wandb_project,
+        compile_model=compile_model,
     )
 
 

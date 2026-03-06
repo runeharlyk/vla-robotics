@@ -121,11 +121,12 @@ def evaluate_smolvla(
     simulator: str = "maniskill",
     env_id: str = "PickCube-v1",
     num_episodes: int = 100,
-    max_steps: int = 200,
+    max_steps: int = 280,
     seed: int = 0,
     control_mode: str = "pd_joint_delta_pos",
     suite: str = "all",
     image_size: int = 256,
+    task_id: int | None = None,
 ) -> EvalMetrics:
     """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
 
@@ -145,6 +146,8 @@ def evaluate_smolvla(
         )
     elif sim == "libero":
         factory_kwargs.update(suite=suite, state_dim=policy.state_dim)
+        if task_id is not None:
+            factory_kwargs["task_id"] = task_id
     else:
         raise ValueError(f"Unknown simulator {simulator!r}")
 

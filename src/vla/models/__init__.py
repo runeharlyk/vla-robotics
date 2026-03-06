@@ -80,8 +80,15 @@ def _load_smolvla(checkpoint: str, device: str) -> LoadedPolicy:
         policy.load_checkpoint(p)
     else:
         policy = SmolVLAPolicy(checkpoint=checkpoint, device=device)
-        action_dim = policy.action_dim
-        state_dim = policy.state_dim
+        ckpt_cfg = policy.ckpt_config
+        output_features = ckpt_cfg.get("output_features", {})
+        action_shape = output_features.get("action", {}).get("shape")
+        action_dim = action_shape[0] if action_shape else policy.action_dim
+        input_features = ckpt_cfg.get("input_features", {})
+        state_shape = input_features.get("observation.state", {}).get("shape")
+        state_dim = state_shape[0] if state_shape else policy.state_dim
+        policy.action_dim = action_dim
+        policy.state_dim = state_dim
 
     adapter = _SmolVLAAdapter(policy)
 

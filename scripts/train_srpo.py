@@ -30,9 +30,9 @@ from pathlib import Path
 import typer
 
 import wandb
+from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
-from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.rl.rollout import Trajectory
 from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo, train_srpo_multitask
 from vla.utils import get_device, run_id, seed_everything
@@ -116,7 +116,7 @@ def main(
 
     from vla.constants import ACTION_DIM
 
-    resolved_max_steps = max_steps or 200
+    resolved_max_steps = max_steps or 280
 
     if multitask:
         _run_multitask(
