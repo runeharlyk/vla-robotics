@@ -4,13 +4,11 @@ Provides a unified interface for encoding trajectory frames into latent
 embeddings used by the SRPO world-progress reward model.  Two backends are
 supported:
 
-* **DINOv2** (default) - ``facebook/dinov2-large`` (ViT-L, 1024-dim).
-  Well-tested, available out-of-the-box via ``transformers``.
+* **DINOv2** - ``facebook/dinov2-large`` (ViT-L, 1024-dim).
 * **V-JEPA 2** - ``facebook/vjepa2-vitg-fpc64-384-ssv2`` (ViT-G, 1536-dim).
   The world model used in the SRPO paper.  Loaded via ``transformers``
-  native V-JEPA 2 support.  Falls back to loading
-  ``Sylvest/vjepa2-vit-g`` raw checkpoint via ``timm``, and ultimately
-  to DINOv2 if all attempts fail.
+  native V-JEPA 2 support (``transformers >= 4.52``), with a fallback to
+  loading ``Sylvest/vjepa2-vit-g`` as a raw checkpoint via ``timm``.
 
 Both models are kept **frozen** (no gradient) and run in fp16 for
 efficiency.  Frame subsampling is applied to reduce compute when encoding
@@ -194,7 +192,8 @@ class VJEPA2Encoder(WorldModelEncoder):
     2. Raw ``.pt`` checkpoint from ``Sylvest/vjepa2-vit-g`` loaded into a
        ``timm`` ViT-G model.  This is the checkpoint format used by the
        original SRPO codebase (siiRL).
-    3. Falls back to :class:`DINOv2Encoder` if all attempts fail.
+
+    Raises ``RuntimeError`` if all loading attempts fail.
 
     When loaded via ``transformers``, :meth:`encode_trajectory` passes the
     subsampled frames as a single video clip ``(B, C, T, H, W)`` so V-JEPA
@@ -219,7 +218,6 @@ class VJEPA2Encoder(WorldModelEncoder):
         self.device = torch.device(device)
         self.dtype = dtype
         self.batch_size = batch_size
-        self._fallback: DINOv2Encoder | None = None
         self._backend: str = "none"
 
         if self._try_automodel(model_id):
@@ -229,12 +227,10 @@ class VJEPA2Encoder(WorldModelEncoder):
         if model_id != VJEPA2_SRPO_RAW_ID and self._try_raw_checkpoint(VJEPA2_SRPO_RAW_ID):
             return
 
-        logger.warning(
-            "All V-JEPA 2 loading attempts failed. Falling back to DINOv2.")
-        self._fallback = DINOv2Encoder(
-            device=device, dtype=dtype, batch_size=32)
-        self._embed_dim = self._fallback.embed_dim()
-        self._backend = "dinov2_fallback"
+        raise RuntimeError(
+            f"All V-JEPA 2 loading attempts failed for {model_id!r}. "
+            "Ensure transformers >= 4.52 is installed or the raw checkpoint is accessible."
+        )
 
     def _try_automodel(self, model_id: str) -> bool:
         try:
@@ -340,9 +336,6 @@ class VJEPA2Encoder(WorldModelEncoder):
 
     @torch.no_grad()
     def encode_frames(self, images: torch.Tensor) -> torch.Tensor:
-        if self._fallback is not None:
-            return self._fallback.encode_frames(images)
-
         B = images.shape[0]
         all_embs = []
         for start in range(0, B, self.batch_size):
@@ -385,9 +378,6 @@ class VJEPA2Encoder(WorldModelEncoder):
         Returns:
             ``(D,)`` trajectory embedding.
         """
-        if self._fallback is not None:
-            return self._fallback.encode_trajectory(images, subsample_every)
-
         indices = list(range(0, images.shape[0], subsample_every))
         frames = images[indices]
         if frames.ndim == 5:
@@ -428,9 +418,6 @@ class VJEPA2Encoder(WorldModelEncoder):
         Returns:
             ``(N, D)`` tensor of trajectory embeddings.
         """
-        if self._fallback is not None:
-            return self._fallback.encode_trajectories(trajectories_images, subsample_every)
-
         if self._backend != "transformers":
             # timm backend: use the base-class mega-batch strategy
             return super().encode_trajectories(trajectories_images, subsample_every)
