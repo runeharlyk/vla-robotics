@@ -34,6 +34,7 @@ class SRPORewardConfig:
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2
     activation: str = "sigmoid"
+    alpha: float = 0.8
     eps: float = 1e-8
 
 
@@ -184,7 +185,7 @@ class WorldProgressReward:
 
         Following Section 3.2 of the paper:
         - Successful trajectories: g_i = 1.0
-        - Failed trajectories: g_i = φ((d_i - d̄) / σ_d)
+        - Failed trajectories: g_i = α · φ((d_i - d̄) / σ_d)  (α=0.8 by default)
 
         Args:
             trajectories: Batch of trajectories from the current iteration.
@@ -226,7 +227,7 @@ class WorldProgressReward:
             d_mean = d_all.mean()
             d_std = d_all.std(correction=0).clamp(min=self.cfg.eps)
             normalised = (d_all - d_mean) / d_std
-            activated = self._activation(normalised)
+            activated = self._activation(normalised) * self.cfg.alpha
             for idx, fi in enumerate(failed_indices):
                 rewards[fi] = activated[idx].item()
 
