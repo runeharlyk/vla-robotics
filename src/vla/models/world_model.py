@@ -38,6 +38,15 @@ class WorldModelEncoder(ABC):
     @abstractmethod
     def embed_dim(self) -> int: ...
 
+    def offload(self) -> None:
+        if hasattr(self, "model") and self.model is not None:
+            self.model.cpu()
+            torch.cuda.empty_cache()
+
+    def reload(self, device: torch.device | str) -> None:
+        if hasattr(self, "model") and self.model is not None:
+            self.model.to(device)
+
     @abstractmethod
     def encode_frames(self, images: torch.Tensor) -> torch.Tensor:
         """Encode a batch of images into embeddings.

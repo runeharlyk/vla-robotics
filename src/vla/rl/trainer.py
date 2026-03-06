@@ -73,6 +73,7 @@ class SRPOConfig:
     state_dim: int = 0
     num_rollout_envs: int = 1
     fm_batch_size: int = 32
+    gradient_checkpointing: bool = False
 
 
 @dataclass
@@ -275,6 +276,9 @@ def train_srpo(
     Returns:
         The RL-tuned policy.
     """
+    if config.gradient_checkpointing:
+        policy.enable_gradient_checkpointing()
+
     trainable = [p for p in policy.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(
         trainable,
@@ -342,6 +346,9 @@ def train_srpo(
         logger.info(f"Iter {iteration}: collected {len(trajectories)} trajs, {num_successes} successes")
 
         # ── 2. Compute trajectory-level rewards g_i ─────────────────────
+        if world_encoder is not None:
+            world_encoder.reload(policy.device)
+
         if config.mode == "srpo" and reward_model is not None:
             g_values, traj_embs = reward_model.compute_trajectory_rewards(trajectories)
             cluster_diag = reward_model.get_diagnostics()
@@ -350,6 +357,9 @@ def train_srpo(
         else:
             g_values = [1.0 if t.success else 0.0 for t in trajectories]
             cluster_diag = None
+
+        if world_encoder is not None:
+            world_encoder.offload()
 
         # ── 3. Compute trajectory-level advantages  ──────────────────
         g_tensor = torch.tensor(g_values, dtype=torch.float32)
@@ -546,6 +556,9 @@ def train_srpo_multitask(
     Returns:
         The RL-tuned policy.
     """
+    if config.gradient_checkpointing:
+        policy.enable_gradient_checkpointing()
+
     trainable = [p for p in policy.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(
         trainable,
@@ -628,6 +641,9 @@ def train_srpo_multitask(
         )
 
         # ── 2. Per-task rewards g_i ──────────────────────────────────────
+        if world_encoder is not None:
+            world_encoder.reload(policy.device)
+
         if config.mode == "srpo" and reward_model is not None:
             g_values, traj_embs = reward_model.compute_trajectory_rewards(all_trajectories)
             all_diags = reward_model.get_diagnostics()
@@ -640,6 +656,9 @@ def train_srpo_multitask(
         else:
             g_values = [1.0 if t.success else 0.0 for t in all_trajectories]
             all_diags = None
+
+        if world_encoder is not None:
+            world_encoder.offload()
 
         # ── 3. Per-task advantage normalisation ──────────────────────────
         advantages = [0.0] * len(all_trajectories)

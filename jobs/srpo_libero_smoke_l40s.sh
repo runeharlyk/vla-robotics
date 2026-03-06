@@ -31,7 +31,7 @@ uv run python scripts/train_srpo.py \
     --iterations 200 \
     --trajs-per-iter 8 \
     --num-rollout-envs 4 \
-    --fm-batch-size 32 \
+    --fm-batch-size 8 \
     --ppo-epochs 4 \
     --clip-epsilon 0.2 \
     --kl-coeff 0.01 \
@@ -39,4 +39,5 @@ uv run python scripts/train_srpo.py \
     --eval-episodes 10 \
     --max-steps 200 \
     --world-model vjepa2 \
+    --gradient-checkpointing \
     --wandb

@@ -16,6 +16,7 @@ export MUJOCO_GL=egl
 export PYOPENGL_PLATFORM=egl
 export EGL_DEVICE_ID=0
 export PYTHONUNBUFFERED=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT" \
        "$VLA_WORK3/data" "$VLA_WORK3/checkpoints" "$VLA_WORK3/outputs" "$VLA_WORK3/models" \

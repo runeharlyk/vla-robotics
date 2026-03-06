@@ -91,6 +91,11 @@ def main(
     seed: int = typer.Option(42, "--seed"),
     env_id: str = typer.Option(None, "--env", help="Override env id (default: from checkpoint metadata)"),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
+    gradient_checkpointing: bool = typer.Option(
+        False,
+        "--gradient-checkpointing/--no-gradient-checkpointing",
+        help="Enable gradient checkpointing to reduce VRAM",
+    ),
     world_model: str = typer.Option("dinov2", "--world-model", help="dinov2 or vjepa2"),
     subsample_every: int = typer.Option(5, "--subsample-every"),
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
@@ -111,7 +116,7 @@ def main(
     seed_everything(seed)
     device = get_device()
 
-    from vla.constants import ACTION_DIM, MANISKILL_TASKS
+    from vla.constants import ACTION_DIM
 
     resolved_max_steps = max_steps or 200
 
@@ -127,6 +132,7 @@ def main(
             trajs_per_task=trajs_per_task,
             num_rollout_envs=num_rollout_envs,
             fm_batch_size=fm_batch_size,
+            gradient_checkpointing=gradient_checkpointing,
             lr=lr,
             num_iterations=num_iterations,
             trajectories_per_iter=trajectories_per_iter,
@@ -225,6 +231,7 @@ def main(
         state_dim=dataset.state_dim,
         num_rollout_envs=num_rollout_envs,
         fm_batch_size=fm_batch_size,
+        gradient_checkpointing=gradient_checkpointing,
     )
 
     run = None
@@ -280,6 +287,7 @@ def _run_multitask(
     trajs_per_task: int,
     num_rollout_envs: int,
     fm_batch_size: int,
+    gradient_checkpointing: bool,
     lr: float,
     num_iterations: int,
     trajectories_per_iter: int,
@@ -380,6 +388,7 @@ def _run_multitask(
         state_dim=datasets[0].state_dim,
         num_rollout_envs=num_rollout_envs,
         fm_batch_size=fm_batch_size,
+        gradient_checkpointing=gradient_checkpointing,
     )
 
     run = None

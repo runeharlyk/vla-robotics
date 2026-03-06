@@ -398,11 +398,16 @@ class SmolVLAPolicy(nn.Module):
             logging.warning("Unexpected keys when loading SmolVLA checkpoint: %s", unexpected[:10])
 
         self.model.to(device=self.device, dtype=self.dtype)
+        self._gradient_checkpointing = False
 
         self.register_buffer("action_mean", torch.zeros(action_dim), persistent=True)
         self.register_buffer("action_std", torch.ones(action_dim), persistent=True)
         self.register_buffer("state_mean", torch.zeros(max(state_dim, 1)), persistent=True)
         self.register_buffer("state_std", torch.ones(max(state_dim, 1)), persistent=True)
+
+    def enable_gradient_checkpointing(self, enable: bool = True) -> None:
+        self._gradient_checkpointing = enable
+        self.model.vlm_with_expert.enable_gradient_checkpointing(enable)
 
     def set_normalization(
         self,

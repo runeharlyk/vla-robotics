@@ -15,7 +15,9 @@
 import copy
 
 import torch
+import torch.nn.functional as F
 from torch import nn
+from torch.utils.checkpoint import checkpoint as torch_checkpoint
 from transformers import (
     AutoConfig,
     AutoModel,
@@ -32,7 +34,6 @@ def apply_rope(x, positions, max_wavelength=10_000):
     d_half = x.shape[-1] // 2
     device = x.device
     dtype = x.dtype
-    x = x.to(torch.float32)
 
     freq_exponents = (2.0 / x.shape[-1]) * torch.arange(d_half, dtype=torch.float32, device=device)
     timescale = max_wavelength**freq_exponents
@@ -40,15 +41,11 @@ def apply_rope(x, positions, max_wavelength=10_000):
 
     radians = radians[..., None, :]
 
-    sin = torch.sin(radians)  # .to(dtype=dtype)
-    cos = torch.cos(radians)  # .to(dtype=dtype)
+    sin = torch.sin(radians).to(dtype=dtype)
+    cos = torch.cos(radians).to(dtype=dtype)
 
-    x1, x2 = x.split(d_half, dim=-1)
-    res = torch.empty_like(x)
-    res[..., :d_half] = x1 * cos - x2 * sin
-    res[..., d_half:] = x2 * cos + x1 * sin
-
-    return res.to(dtype)
+    x1, x2 = x.to(dtype).split(d_half, dim=-1)
+    return torch.cat([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1)
 
 
 def get_intermediate_size(hidden_dim, ffn_dim_multiplier=4, multiple_of=256):
@@ -130,7 +127,12 @@ class SmolVLMWithExpertModel(nn.Module):
         self.train_expert_only = train_expert_only
         self.attention_mode = attention_mode
         self.expert_hidden_size = lm_expert_config.hidden_size
+        self._gradient_checkpointing = False
+        self._use_sdpa = hasattr(F, "scaled_dot_product_attention")
         self.set_requires_grad()
+
+    def enable_gradient_checkpointing(self, enable: bool = True):
+        self._gradient_checkpointing = enable
 
     def get_vlm_model(self):
         return self.vlm.model
@@ -381,6 +383,81 @@ class SmolVLMWithExpertModel(nn.Module):
         # att_output = att_output.to(dtype=models[i].dtype)
         return att_outputs, past_key_values
 
+    def _forward_one_layer(
+        self,
+        model_layers,
+        inputs_embeds,
+        layer_idx,
+        position_ids,
+        attention_mask,
+        batch_size,
+        head_dim,
+        use_cache,
+        fill_kv_cache,
+        past_key_values,
+    ):
+        if (
+            fill_kv_cache
+            or "cross" not in self.attention_mode
+            or (self.self_attn_every_n_layers > 0 and layer_idx % self.self_attn_every_n_layers == 0)
+        ):
+            att_outputs, past_key_values = self.forward_attn_layer(
+                model_layers,
+                inputs_embeds,
+                layer_idx,
+                position_ids,
+                attention_mask,
+                batch_size,
+                head_dim,
+                use_cache=use_cache,
+                fill_kv_cache=fill_kv_cache,
+                past_key_values=past_key_values,
+            )
+        else:
+            att_outputs, past_key_values = self.forward_cross_attn_layer(
+                model_layers,
+                inputs_embeds,
+                layer_idx,
+                position_ids,
+                attention_mask,
+                batch_size,
+                head_dim,
+                use_cache=use_cache,
+                fill_kv_cache=fill_kv_cache,
+                past_key_values=past_key_values,
+            )
+        outputs_embeds = []
+        start = 0
+        for i, hidden_states in enumerate(inputs_embeds):
+            layer = model_layers[i][layer_idx]
+            att_output = att_outputs[i] if i < len(att_outputs) else att_outputs[0]
+            if hidden_states is not None:
+                if layer is None:
+                    outputs_embeds.append(hidden_states)
+                    continue
+                end = start + hidden_states.shape[1]
+
+                if att_output.dtype != layer.self_attn.o_proj.weight.dtype:
+                    att_output = att_output.to(layer.self_attn.o_proj.weight.dtype)
+                att_out = att_output[:, start:end]
+                out_emb = layer.self_attn.o_proj(att_out)
+
+                out_emb += hidden_states
+                after_first_residual = out_emb.clone()
+
+                out_emb = layer.post_attention_layernorm(out_emb)
+                out_emb = layer.mlp(out_emb)
+
+                out_emb += after_first_residual
+
+                outputs_embeds.append(out_emb)
+
+                start = end if len(att_outputs) == 1 else 0
+            else:
+                outputs_embeds.append(None)
+
+        return outputs_embeds, past_key_values
+
     def get_model_layers(self, models: list) -> list:
         vlm_layers = []
         expert_layers = []
@@ -418,12 +495,9 @@ class SmolVLMWithExpertModel(nn.Module):
         num_layers = self.num_vlm_layers
         head_dim = self.vlm.config.text_config.head_dim
         for layer_idx in range(num_layers):
-            if (
-                fill_kv_cache
-                or "cross" not in self.attention_mode
-                or (self.self_attn_every_n_layers > 0 and layer_idx % self.self_attn_every_n_layers == 0)
-            ):
-                att_outputs, past_key_values = self.forward_attn_layer(
+            if self._gradient_checkpointing and self.training:
+                inputs_embeds, past_key_values = torch_checkpoint(
+                    self._forward_one_layer,
                     model_layers,
                     inputs_embeds,
                     layer_idx,
@@ -431,12 +505,13 @@ class SmolVLMWithExpertModel(nn.Module):
                     attention_mask,
                     batch_size,
                     head_dim,
-                    use_cache=use_cache,
-                    fill_kv_cache=fill_kv_cache,
-                    past_key_values=past_key_values,
+                    use_cache,
+                    fill_kv_cache,
+                    past_key_values,
+                    use_reentrant=False,
                 )
             else:
-                att_outputs, past_key_values = self.forward_cross_attn_layer(
+                inputs_embeds, past_key_values = self._forward_one_layer(
                     model_layers,
                     inputs_embeds,
                     layer_idx,
@@ -444,41 +519,10 @@ class SmolVLMWithExpertModel(nn.Module):
                     attention_mask,
                     batch_size,
                     head_dim,
-                    use_cache=use_cache,
-                    fill_kv_cache=fill_kv_cache,
-                    past_key_values=past_key_values,
+                    use_cache,
+                    fill_kv_cache,
+                    past_key_values,
                 )
-            outputs_embeds = []
-            start = 0
-            for i, hidden_states in enumerate(inputs_embeds):
-                layer = model_layers[i][layer_idx]
-                att_output = att_outputs[i] if i < len(att_outputs) else att_outputs[0]  # in case of self_attn
-                if hidden_states is not None:
-                    if layer is None:
-                        outputs_embeds.append(hidden_states)
-                        continue
-                    end = start + hidden_states.shape[1]
-
-                    if att_output.dtype != layer.self_attn.o_proj.weight.dtype:
-                        att_output = att_output.to(layer.self_attn.o_proj.weight.dtype)
-                    att_out = att_output[:, start:end]
-                    out_emb = layer.self_attn.o_proj(att_out)
-
-                    out_emb += hidden_states
-                    after_first_residual = out_emb.clone()
-
-                    out_emb = layer.post_attention_layernorm(out_emb)
-                    out_emb = layer.mlp(out_emb)
-
-                    out_emb += after_first_residual
-
-                    outputs_embeds.append(out_emb)
-
-                    start = end if len(att_outputs) == 1 else 0
-                else:
-                    outputs_embeds.append(None)
-
-            inputs_embeds = outputs_embeds
 
         # final norm
         outputs_embeds = []
@@ -491,8 +535,50 @@ class SmolVLMWithExpertModel(nn.Module):
         return outputs_embeds, past_key_values
 
     def get_attention_interface(self):
-        attention_interface = self.eager_attention_forward
-        return attention_interface
+        if self._use_sdpa:
+            return self.sdpa_attention_forward
+        return self.eager_attention_forward
+
+    def sdpa_attention_forward(self, attention_mask, batch_size, head_dim, query_states, key_states, value_states):
+        num_att_heads = self.num_attention_heads
+        num_key_value_heads = self.num_key_value_heads
+        num_key_value_groups = num_att_heads // num_key_value_heads
+
+        sequence_length = key_states.shape[1]
+
+        key_states = key_states[:, :, :, None, :].expand(
+            batch_size, sequence_length, num_key_value_heads, num_key_value_groups, head_dim
+        )
+        key_states = key_states.reshape(
+            batch_size, sequence_length, num_att_heads, head_dim
+        )
+
+        value_states = value_states[:, :, :, None, :].expand(
+            batch_size, sequence_length, num_key_value_heads, num_key_value_groups, head_dim
+        )
+        value_states = value_states.reshape(
+            batch_size, sequence_length, num_att_heads, head_dim
+        )
+
+        query_states = query_states.transpose(1, 2)
+        key_states = key_states.transpose(1, 2)
+        value_states = value_states.transpose(1, 2)
+
+        attn_mask = torch.where(
+            attention_mask[:, None, :, :],
+            torch.zeros((), dtype=query_states.dtype, device=query_states.device),
+            torch.tensor(float("-inf"), dtype=query_states.dtype, device=query_states.device),
+        )
+
+        att_output = F.scaled_dot_product_attention(
+            query_states, key_states, value_states,
+            attn_mask=attn_mask,
+            is_causal=False,
+        )
+
+        att_output = att_output.transpose(1, 2)
+        att_output = att_output.reshape(batch_size, -1, num_att_heads * head_dim)
+        return att_output
 
     def eager_attention_forward(self, attention_mask, batch_size, head_dim, query_states, key_states, value_states):
         num_att_heads = self.num_attention_heads
