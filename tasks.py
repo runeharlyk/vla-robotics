@@ -200,7 +200,7 @@ def _generate_job_script(config_path: str, gpu: str) -> tuple[str, str]:
     job_name = f"{config_stem}_{gpu}"
 
     header = LSF_HEADER.format(job_name=job_name, **profile)
-    env_source = '. "$LSB_SUBCWD/jobs/_env.sh"\n'
+    env_source = ". jobs/_env.sh\n"
 
     placeholders = {**config, "job_name": job_name}
     body = template.format_map(placeholders)
