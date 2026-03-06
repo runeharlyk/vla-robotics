@@ -76,6 +76,9 @@ def main(
     num_rollout_envs: int = typer.Option(
         1, "--num-rollout-envs", help="Parallel envs per task for vectorised rollouts"
     ),
+    num_eval_envs: int = typer.Option(
+        0, "--num-eval-envs", help="Parallel envs for vectorised eval (0 = same as num-rollout-envs)"
+    ),
     fm_batch_size: int = typer.Option(32, "--fm-batch-size", help="Timesteps per FM forward pass in PPO"),
     lr: float = typer.Option(1e-5, "--lr"),
     num_iterations: int = typer.Option(100, "--iterations"),
@@ -117,6 +120,7 @@ def main(
     from vla.constants import ACTION_DIM
 
     resolved_max_steps = max_steps or 280
+    resolved_eval_envs = num_eval_envs if num_eval_envs > 0 else num_rollout_envs
 
     if multitask:
         _run_multitask(
@@ -129,6 +133,7 @@ def main(
             suite=suite,
             trajs_per_task=trajs_per_task,
             num_rollout_envs=num_rollout_envs,
+            num_eval_envs=resolved_eval_envs,
             fm_batch_size=fm_batch_size,
             gradient_checkpointing=gradient_checkpointing,
             lr=lr,
@@ -224,6 +229,7 @@ def main(
         task_id=task_id,
         state_dim=dataset.state_dim,
         num_rollout_envs=num_rollout_envs,
+        num_eval_envs=resolved_eval_envs,
         fm_batch_size=fm_batch_size,
         gradient_checkpointing=gradient_checkpointing,
     )
@@ -278,6 +284,7 @@ def _run_multitask(
     suite: str,
     trajs_per_task: int,
     num_rollout_envs: int,
+    num_eval_envs: int,
     fm_batch_size: int,
     gradient_checkpointing: bool,
     lr: float,
@@ -375,6 +382,7 @@ def _run_multitask(
         suite=suite,
         state_dim=datasets[0].state_dim,
         num_rollout_envs=num_rollout_envs,
+        num_eval_envs=num_eval_envs,
         fm_batch_size=fm_batch_size,
         gradient_checkpointing=gradient_checkpointing,
     )

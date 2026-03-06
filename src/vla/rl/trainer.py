@@ -70,6 +70,7 @@ class SRPOConfig:
     task_id: int = 0
     state_dim: int = 0
     num_rollout_envs: int = 1
+    num_eval_envs: int = 1
     fm_batch_size: int = 32
     gradient_checkpointing: bool = False
 
@@ -503,6 +504,7 @@ def train_srpo(
                 seed=config.seed + 20000,
                 suite=config.suite,
                 task_id=config.task_id if config.simulator == "libero" else None,
+                num_eval_envs=config.num_eval_envs,
             )
             print_metrics(metrics, tag=f"{config.mode} iter {iteration}")
             if wandb_run is not None:
@@ -811,6 +813,7 @@ def train_srpo_multitask(
                     max_steps=config.max_steps,
                     seed=config.seed + 20000,
                     suite=config.suite,
+                    num_eval_envs=config.num_eval_envs,
                 )
                 print_metrics(metrics, tag=f"{config.mode} iter {iteration} (suite={config.suite})")
                 if wandb_run is not None:

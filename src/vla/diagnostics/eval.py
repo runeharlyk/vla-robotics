@@ -3,6 +3,10 @@
 Supports both ManiSkill and Libero (and any future simulator implementing
 the :class:`~vla.envs.base.SimEnv` protocol) through the
 :class:`~vla.envs.base.SimEnvFactory` abstraction.
+
+LIBERO evaluation can be vectorized across multiple subprocess environments
+for significantly faster wall-clock time (see ``num_eval_envs`` in
+:func:`evaluate_smolvla`).
 """
 
 from __future__ import annotations
@@ -115,6 +119,138 @@ def evaluate(
     )
 
 
+def _evaluate_libero_vectorized(
+    policy,
+    suite: str,
+    task_id: int,
+    num_episodes: int,
+    num_envs: int,
+    seed: int,
+    state_dim: int,
+    image_size: int = 256,
+) -> EvalMetrics:
+    from vla.envs.libero import LIBERO_CAMERAS, LiberoEnvFactory
+    from vla.rl.libero_rollout import LiberoVecEnv
+
+    factory = LiberoEnvFactory(suite=suite, state_dim=state_dim, task_id=task_id)
+    suite_name = factory._libero_name
+    resolved_task_id = task_id if task_id is not None else 0
+
+    vec_env = LiberoVecEnv(
+        suite_name=suite_name,
+        task_id=resolved_task_id,
+        num_envs=num_envs,
+        state_dim=state_dim,
+        image_size=image_size,
+        camera_name=LIBERO_CAMERAS,
+    )
+
+    max_steps = 280
+    num_cameras = 2
+    instruction = vec_env.task_description
+
+    total_successes = 0
+    total_rewards: list[float] = []
+    total_lengths: list[int] = []
+
+    remaining = num_episodes
+    ep_seed = seed
+
+    try:
+        while remaining > 0:
+            wave_n = min(num_envs, remaining)
+            seeds = [ep_seed + i for i in range(num_envs)]
+            obs_list = vec_env.reset(seeds)
+            ep_seed += num_envs
+
+            reward_accum = [0.0] * num_envs
+            length_accum = [0] * num_envs
+            success_flags = [False] * num_envs
+            env_done = [i >= wave_n for i in range(num_envs)]
+
+            for _step in range(max_steps):
+                if all(env_done):
+                    break
+
+                all_imgs = []
+                all_states = []
+                for i in range(num_envs):
+                    cam_tensors = []
+                    for img_np in obs_list[i]["images"]:
+                        cam_tensors.append(torch.from_numpy(img_np).permute(2, 0, 1))
+                    while len(cam_tensors) < num_cameras:
+                        cam_tensors.append(
+                            cam_tensors[-1].clone()
+                            if cam_tensors
+                            else torch.zeros(3, image_size, image_size, dtype=torch.uint8)
+                        )
+                    cam_tensors = cam_tensors[:num_cameras]
+                    all_imgs.append(torch.stack(cam_tensors, dim=0))
+                    all_states.append(torch.from_numpy(obs_list[i]["state"]))
+
+                images_batch = torch.stack(all_imgs, dim=0)
+                states_batch = torch.stack(all_states, dim=0)
+
+                active_indices = [i for i in range(num_envs) if not env_done[i]]
+                if not active_indices:
+                    break
+
+                active_imgs = images_batch[active_indices]
+                active_states = states_batch[active_indices]
+
+                with torch.no_grad():
+                    active_actions = policy.predict_action_batch(active_imgs, instruction, active_states)
+
+                if isinstance(active_actions, torch.Tensor):
+                    active_actions_np = active_actions.detach().cpu().numpy()
+                else:
+                    active_actions_np = np.asarray(active_actions, dtype=np.float32)
+                if active_actions_np.ndim == 1:
+                    active_actions_np = active_actions_np[np.newaxis]
+
+                action_dim = active_actions_np.shape[-1]
+                actions_np = np.zeros((num_envs, action_dim), dtype=np.float32)
+                for idx, env_i in enumerate(active_indices):
+                    actions_np[env_i] = active_actions_np[idx]
+
+                obs_list, rewards, terminateds, truncateds, infos = vec_env.step(actions_np)
+
+                for env_i in active_indices:
+                    reward_accum[env_i] += rewards[env_i]
+                    length_accum[env_i] += 1
+                    if infos[env_i].get("is_success", False):
+                        success_flags[env_i] = True
+                    if terminateds[env_i] or truncateds[env_i] or success_flags[env_i]:
+                        env_done[env_i] = True
+
+            for i in range(wave_n):
+                if success_flags[i]:
+                    total_successes += 1
+                total_rewards.append(reward_accum[i])
+                total_lengths.append(length_accum[i])
+
+            remaining -= wave_n
+    finally:
+        vec_env.close()
+
+    n = max(len(total_lengths), 1)
+    lengths_sorted = sorted(total_lengths)
+    mid = len(lengths_sorted) // 2
+    if len(lengths_sorted) % 2 == 0 and len(lengths_sorted) >= 2:
+        median_len = (lengths_sorted[mid - 1] + lengths_sorted[mid]) / 2.0
+    else:
+        median_len = float(lengths_sorted[mid]) if lengths_sorted else 0.0
+
+    return EvalMetrics(
+        success_rate=total_successes / max(num_episodes, 1),
+        mean_reward=sum(total_rewards) / n,
+        mean_episode_length=sum(total_lengths) / n,
+        median_episode_length=median_len,
+        num_episodes=num_episodes,
+        successes=total_successes,
+    )
+
+
 def evaluate_smolvla(
     policy,
     instruction: str,
@@ -127,6 +263,7 @@ def evaluate_smolvla(
     suite: str = "all",
     image_size: int = 256,
     task_id: int | None = None,
+    num_eval_envs: int = 1,
 ) -> EvalMetrics:
     """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
 
@@ -134,8 +271,27 @@ def evaluate_smolvla(
     ``policy.predict_action`` into the batch-dict interface expected by
     :func:`evaluate`.
     """
-    factory_kwargs: dict = {}
     sim = simulator.lower()
+
+    if sim == "libero" and num_eval_envs > 1 and task_id is not None:
+        logger.info(
+            "Vectorized LIBERO eval: %d envs, %d episodes, task_id=%d",
+            num_eval_envs,
+            num_episodes,
+            task_id,
+        )
+        return _evaluate_libero_vectorized(
+            policy,
+            suite=suite,
+            task_id=task_id,
+            num_episodes=num_episodes,
+            num_envs=num_eval_envs,
+            seed=seed,
+            state_dim=policy.state_dim,
+            image_size=image_size,
+        )
+
+    factory_kwargs: dict = {}
     if sim == "maniskill":
         factory_kwargs.update(
             env_id=env_id,
