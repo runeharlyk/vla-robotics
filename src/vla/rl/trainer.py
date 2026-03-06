@@ -65,8 +65,6 @@ class SRPOConfig:
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2
     num_fm_noise_samples: int = 4
-    gamma: float = 0.99
-    reward_scale: float = 1.0
     simulator: str = "maniskill"
     suite: str = "spatial"
     task_id: int = 0
