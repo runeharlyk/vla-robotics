@@ -172,6 +172,12 @@ def main(
         state_dim=dataset.state_dim,
         device=str(device),
     )
+    policy.set_normalization(
+        dataset.norm_stats.action_mean,
+        dataset.norm_stats.action_std,
+        dataset.norm_stats.state_mean,
+        dataset.norm_stats.state_std,
+    )
     env_meta: dict = {}
     if sft_checkpoint is not None:
         env_meta = policy.load_checkpoint(sft_checkpoint)
@@ -344,6 +350,12 @@ def _run_multitask(
         action_dim=resolved_action_dim,
         state_dim=datasets[0].state_dim,
         device=str(device),
+    )
+    policy.set_normalization(
+        datasets[0].norm_stats.action_mean,
+        datasets[0].norm_stats.action_std,
+        datasets[0].norm_stats.state_mean,
+        datasets[0].norm_stats.state_std,
     )
     if sft_checkpoint is not None:
         env_meta = policy.load_checkpoint(sft_checkpoint)
