@@ -41,4 +41,5 @@ uv run python scripts/train_srpo.py \
     --max-steps 280 \
     --world-model vjepa2 \
     --dbscan-eps 60 \
+    --gradient-checkpointing \
     --wandb

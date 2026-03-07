@@ -455,6 +455,10 @@ def train_srpo(
                 epoch_clip_loss += clip_loss.item()
                 epoch_kl += kl_penalty.item()
 
+                del new_losses_t, log_ratios, ratios, surr1, surr2, clip_loss, traj_loss
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
             torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
             optimizer.step()
 
@@ -765,6 +769,10 @@ def train_srpo_multitask(
 
                 epoch_clip_loss += clip_loss.item()
                 epoch_kl += kl_penalty.item()
+
+                del new_losses_t, log_ratios, ratios, surr1, surr2, clip_loss, traj_loss
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
             torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
             optimizer.step()

@@ -18,6 +18,7 @@ def _load_libero_v2_from_hf(
     repo_id: str,
     num_demos: int | None,
     seed: int,
+    task_id: int | None = None,
 ) -> tuple[object, dict[int, str], dict, int]:
     """Load a LIBERO v2.0 dataset from HuggingFace, bypassing LeRobotDataset.
 
@@ -46,6 +47,18 @@ def _load_libero_v2_from_hf(
     with open(_dl("meta/episodes.jsonl")) as f:
         for line in f:
             episodes_meta.append(json.loads(line))
+
+    if task_id is not None:
+        task_name = task_map.get(task_id, "")
+        filtered = []
+        for e in episodes_meta:
+            ep_task = e.get("task_index")
+            if ep_task is not None and int(ep_task) == task_id:
+                filtered.append(e)
+            elif task_name and task_name in e.get("tasks", []):
+                filtered.append(e)
+        if filtered:
+            episodes_meta = filtered
 
     total_eps = len(episodes_meta)
     if num_demos is not None and num_demos < total_eps:
@@ -209,13 +222,13 @@ class LiberoSFTDataset(Dataset):
         seed: Random seed for episode subsampling.
     """
 
-    def __init__(self, suite: str, num_demos: int | None = None, seed: int = 42) -> None:
+    def __init__(self, suite: str, num_demos: int | None = None, seed: int = 42, task_id: int | None = None) -> None:
         repo_id = LIBERO_SUITES.get(suite.lower())
         if not repo_id:
             raise ValueError(f"Unknown Libero suite {suite!r}. Available: {list(LIBERO_SUITES)}")
 
         self._ds, self._task_map, stats_dict, num_eps = _load_libero_v2_from_hf(
-            repo_id, num_demos, seed
+            repo_id, num_demos, seed, task_id=task_id
         )
         act_mean = stats_dict["action"]["mean"]
         act_std = stats_dict["action"]["std"]

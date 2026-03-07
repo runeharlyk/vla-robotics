@@ -159,7 +159,7 @@ def main(
     if libero_suite is not None:
         from vla.data.libero import LiberoSFTDataset
 
-        dataset = LiberoSFTDataset(suite=libero_suite, num_demos=num_demos, seed=seed)
+        dataset = LiberoSFTDataset(suite=libero_suite, num_demos=num_demos, seed=seed, task_id=task_id)
         resolved_action_dim = ACTION_DIM
     else:
         pt_path = _discover_data(data_path)
