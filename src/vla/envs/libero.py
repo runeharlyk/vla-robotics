@@ -11,6 +11,8 @@ from lerobot.processor.env_processor import LiberoProcessorStep
 
 _PROC = LiberoProcessorStep()
 
+LIBERO_CAMERAS = "agentview_image,robot0_eye_in_hand_image"
+
 
 class LiberoEnv:
     """Wraps LeRobot's LiberoEnv to satisfy the :class:`SimEnv` protocol."""
@@ -21,6 +23,7 @@ class LiberoEnv:
         task_id: int,
         obs_type: str = "pixels_agent_pos",
         state_dim: int = 8,
+        camera_name: str = LIBERO_CAMERAS,
     ):
         self._suite = _get_suite(suite_name)
         self._env = _LeRobotLiberoEnv(
@@ -28,6 +31,7 @@ class LiberoEnv:
             task_id=task_id,
             task_suite_name=suite_name,
             obs_type=obs_type,
+            camera_name=camera_name,
         )
         self._state_dim = state_dim
 
@@ -106,14 +110,17 @@ class LiberoEnvFactory:
         "long": "libero_10",
     }
 
-    def __init__(self, suite: str, state_dim: int = 8):
+    def __init__(self, suite: str, state_dim: int = 8, task_id: int | None = None):
         self._suite_key = suite.lower()
         self._libero_name = self.SUITE_MAP.get(self._suite_key, f"libero_{self._suite_key}")
         self._benchmark = _get_suite(self._libero_name)
         self._state_dim = state_dim
+        self._single_task_id = task_id
 
     @property
     def num_tasks(self) -> int:
+        if self._single_task_id is not None:
+            return 1
         return len(self._benchmark.tasks)
 
     @property
@@ -121,9 +128,12 @@ class LiberoEnvFactory:
         return self._suite_key
 
     def __call__(self, task_id: int, **kwargs: Any) -> LiberoEnv:
+        resolved_id = task_id
+        if self._single_task_id is not None:
+            resolved_id = self._single_task_id
         return LiberoEnv(
             suite_name=self._libero_name,
-            task_id=task_id,
+            task_id=resolved_id,
             state_dim=self._state_dim,
             **kwargs,
         )

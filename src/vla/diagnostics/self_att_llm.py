@@ -98,10 +98,7 @@ def _extract_image_attention_grid(attn_map, token_indices, image_token_indices, 
     attn = attn_map.squeeze(0)  # [heads, seq, seq]
 
     word_attn = attn[:, token_indices, :]  # [heads, n_tokens, seq]
-    if aggregate == "mean":
-        word_attn = word_attn.mean(dim=1)  # [heads, seq]
-    else:
-        word_attn = word_attn.max(dim=1).values
+    word_attn = word_attn.mean(dim=1) if aggregate == "mean" else word_attn.max(dim=1).values
 
     image_attn = word_attn[:, image_token_indices]  # [heads, n_image_tokens]
 
@@ -342,9 +339,7 @@ def _is_natural_word(token_str):
     cleaned = token_str.replace("▁", "").replace("Ġ", "").replace("##", "").strip()
     if not cleaned:
         return False
-    if re.fullmatch(r"[\W_]+", cleaned):
-        return False
-    return True
+    return not re.fullmatch(r"[\W_]+", cleaned)
 
 
 def visualize_token_attention_summary(attention_maps_dict, inputs, pil_image, processor, layer_idx):
@@ -418,7 +413,10 @@ if __name__ == "__main__":
     image = Image.open(img_path).convert("RGB")
 
     # Load Full Task Description
-    task_path = "data/images/libero/spatial/ep0000_pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate/task.txt"
+    task_path = (
+        "data/images/libero/spatial/"
+        "ep0000_pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate/task.txt"
+    )
     with open(task_path) as f:
         task_description = f.read().strip()
 

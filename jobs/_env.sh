@@ -2,8 +2,9 @@
 set -e
 
 cd "$LSB_SUBCWD"
-
 exec 2>&1
+
+export VLA_WORK3=/work3/s234814/vla-robotics
 
 export HF_HOME=/work3/s234814/.cache/huggingface
 export WANDB_DIR=/work3/s234814/.cache/wandb
@@ -15,11 +16,14 @@ export MUJOCO_GL=egl
 export PYOPENGL_PLATFORM=egl
 export EGL_DEVICE_ID=0
 export PYTHONUNBUFFERED=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT" logs
+mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT" \
+       "$VLA_WORK3/data" "$VLA_WORK3/checkpoints" "$VLA_WORK3/outputs" "$VLA_WORK3/models" \
+       "logs/$LSB_JOBNAME"
 
 module load cuda/12.2
 
 nvidia-smi
 
-uv sync --extra sim
+uv sync

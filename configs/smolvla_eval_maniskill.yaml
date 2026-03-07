@@ -1,7 +1,7 @@
 action: eval-maniskill
 
 model: smolvla
-checkpoint: models/smolvla_train_libero_all_a100.pt
+checkpoint: /work3/s234814/vla-robotics/models/smolvla_train_libero_all_a100.pt
 simulator: maniskill
 env_id: PegInsertionSide-v1
 num_episodes: 20

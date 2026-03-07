@@ -7,7 +7,8 @@ def get_action_cross_attention(model, image_tensor, text_input):
 
     Goal: Generate a heatmap to show the VLM's visual focus on the raw image pixels when processing the text input.
 
-    Output: A Python function that hooks into the final cross-attention block of the vision encoder and outputs the attention weights.
+    Output: A Python function that hooks into the final cross-attention block of the vision encoder
+    and outputs the attention weights.
     """
     attention_maps = []
 

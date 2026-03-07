@@ -1,0 +1,7 @@
+action: train-lerobot
+
+policy_path: lerobot/smolvla_base
+dataset_repo_id: lerobot/libero
+output_dir: /work3/s234814/vla-robotics/outputs/train/smolvla_libero_all
+batch_size: 64
+steps: 100000

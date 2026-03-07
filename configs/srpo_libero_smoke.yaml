@@ -1,0 +1,22 @@
+action: train-srpo-libero-hf
+
+libero_suite: spatial
+suite: spatial
+task_id: 0
+mode: srpo
+num_demos: 50
+seed: 42
+lr: 5.0e-6
+num_iterations: 200
+trajectories_per_iter: 8
+num_rollout_envs: 4
+fm_batch_size: 8
+ppo_epochs: 4
+clip_epsilon: 0.2
+kl_coeff: 0.01
+dbscan_eps: 60
+eval_every: 20
+eval_episodes: 10
+max_steps: 280
+world_model: vjepa2
+gradient_checkpointing: true

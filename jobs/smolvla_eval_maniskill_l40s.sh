@@ -13,11 +13,11 @@
 #BSUB -N
 #BSUB -oo logs/smolvla_eval_maniskill_l40s/%J.out
 # -------------------------------------------------
-. "$LSB_SUBCWD/jobs/_env.sh"
+. jobs/_env.sh
 
 uv run python -m vla evaluate \
     --model smolvla \
-    --checkpoint models/smolvla_train_libero_all_a100.pt \
+    --checkpoint $VLA_WORK3/models/smolvla_train_libero_all_a100.pt \
     --simulator maniskill \
     --env-id PegInsertionSide-v1 \
     --num-episodes 20 \

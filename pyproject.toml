@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "vla-robotics"
 version = "0.1.0"
-description = "VLA Robotics -- LIBERO benchmarking with SmolVLA and custom VLA models"
+description = "VLA Robotics -- SmolVLA fine-tuning and evaluation on LIBERO & ManiSkill"
 authors = [
   { name = "Rune Harlyk", email = "s234814@dtu.dk" }
 ]
@@ -37,6 +37,9 @@ dependencies = [
     "pin>=3.0.0; sys_platform == 'linux'",
     "robosuite==1.4.0; sys_platform == 'linux'",
     "libero>=0.1.0; sys_platform == 'linux'",
+    "pyyaml>=6.0",
+    "num2words>=0.5.14",
+    "scikit-learn>=1.8.0",
 ]
 
 [project.scripts]
@@ -82,6 +85,12 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# typer.Option() in function defaults is the canonical Typer pattern
+"scripts/*.py" = ["B008"]
+"src/vla/evaluation/*.py" = ["B008"]
+"src/vla/training/*.py" = ["B008"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
@@ -99,6 +108,5 @@ omit = ["tests/*"]
 [tool.uv]
 build-backend.module-name = "vla"
 override-dependencies = [
-    "gymnasium==0.29.1",
-    "mani-skill==3.0.0b22"
+  "gymnasium>=1.1.1,<2.0.0",
 ]

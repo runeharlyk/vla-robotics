@@ -13,7 +13,7 @@
 #BSUB -N
 #BSUB -oo logs/smolvla_eval_libero_all_l40s/%J.out
 # -------------------------------------------------
-. "$LSB_SUBCWD/jobs/_env.sh"
+. jobs/_env.sh
 
 export LIBERO_PATH=/work3/s234814/libero
 mkdir -p "$LIBERO_PATH"

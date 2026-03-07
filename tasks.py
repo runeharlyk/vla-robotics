@@ -2,7 +2,6 @@ import os
 import sys
 from pathlib import Path
 
-import yaml
 from invoke import Context, task
 
 WINDOWS = os.name == "nt"
@@ -72,47 +71,9 @@ def download_libero(ctx: Context, suite: str = "all") -> None:
 
 
 @task
-def finetune_smolvla(
-    ctx: Context,
-    config: str = "",
-    suite: str = "all",
-    steps: int = 20000,
-    batch_size: int = 64,
-    device: str = "cuda",
-) -> None:
-    if config:
-        cmd = f"uv run lerobot_train --config_path {config}"
-    else:
-        cmd = (
-            f"uv run lerobot_train "
-            f"--dataset.repo_id=lerobot/libero_10_image "
-            f"--policy.type=smolvla "
-            f"--steps={steps} "
-            f"--batch_size={batch_size} "
-            f"--device={device}"
-        )
-    ctx.run(cmd, echo=True, pty=not WINDOWS)
-
-
-@task
-def train_custom(
-    ctx: Context,
-    simulator: str = "libero",
-    suite: str = "all",
-    steps: int = 30000,
-    batch_size: int = 64,
-    lr: float = 3e-4,
-    device: str = "cuda",
-    amp: bool = False,
-) -> None:
-    """SFT training of custom VLA on demonstration data."""
-    amp_flag = "--amp" if amp else "--no-amp"
-    cmd = (
-        f"uv run python -m vla train "
-        f"--simulator {simulator} --suite {suite} --steps {steps} --batch-size {batch_size} "
-        f"--lr {lr} --device {device} {amp_flag}"
-    )
-    ctx.run(cmd, echo=True, pty=not WINDOWS)
+def download_libero_data(ctx: Context, suite: str = "all") -> None:
+    """Pre-download Libero data from HuggingFace (cached by LeRobot)."""
+    ctx.run(f"uv run python scripts/download_libero.py --suite {suite}", echo=True, pty=not WINDOWS)
 
 
 @task
@@ -179,7 +140,7 @@ def playback_demos(
     """Playback recorded demonstrations via `vla playback`."""
     env_flag = f"--env-id {env_id}" if env_id else ""
     data_flag = f"--data-path {data_path}" if data_path else ""
-    instr_flag = f"--instruction \"{instruction}\"" if instruction else ""
+    instr_flag = f'--instruction "{instruction}"' if instruction else ""
     cmd = (
         f"uv run python -m vla playback "
         f"--simulator {simulator} --suite {suite} {env_flag} {data_flag} "
@@ -205,6 +166,8 @@ def export_images(
 
 
 def _load_yaml(path: Path) -> dict:
+    import yaml  # lazy import - not available in the bare `uvx invoke` env
+
     with open(path) as f:
         return yaml.safe_load(f)
 
@@ -237,7 +200,7 @@ def _generate_job_script(config_path: str, gpu: str) -> tuple[str, str]:
     job_name = f"{config_stem}_{gpu}"
 
     header = LSF_HEADER.format(job_name=job_name, **profile)
-    env_source = '. "$LSB_SUBCWD/jobs/_env.sh"\n'
+    env_source = ". jobs/_env.sh\n"
 
     placeholders = {**config, "job_name": job_name}
     body = template.format_map(placeholders)
@@ -267,3 +230,103 @@ def create_job(
     print(script)
     print("--- end ---")
     print(f"\nSubmit with:  bsub < {script_path}")
+
+
+@task
+def preprocess(
+    ctx: Context,
+    skill: str = "PegInsertionSide-v1",
+    raw_dir: str = "data/raw",
+    out_dir: str = "data/preprocessed",
+    num_cameras: int = 2,
+    image_size: int = 256,
+    max_traj: int = 0,
+) -> None:
+    """Preprocess ManiSkill raw demos into a VLA-ready .pt file."""
+    max_flag = f"--max-traj {max_traj}" if max_traj > 0 else ""
+    cmd = (
+        f"uv run python scripts/preprocess_data.py "
+        f"--skill {skill} --raw-dir {raw_dir} --out-dir {out_dir} "
+        f"--num-cameras {num_cameras} --image-size {image_size} {max_flag}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
+def train_sft(
+    ctx: Context,
+    num_demos: int = 10,
+    seed: int = 42,
+    data: str = "",
+    libero_suite: str = "",
+    simulator: str = "",
+    eval_suite: str = "all",
+    resume: str = "",
+    no_wandb: bool = False,
+) -> None:
+    """Run SmolVLA SFT (behavior cloning) training.
+
+    Data from --data (.pt files) or --libero-suite (HF direct).
+    """
+    wandb_flag = "--no-wandb" if no_wandb else "--wandb"
+    data_flag = f"--data {data}" if data else ""
+    libero_flag = f"--libero-suite {libero_suite}" if libero_suite else ""
+    sim_flag = f"--simulator {simulator}" if simulator else ""
+    resume_flag = f"--resume {resume}" if resume else ""
+    ctx.run(
+        f"uv run python scripts/train_sft.py {data_flag} {libero_flag} "
+        f"--num-demos {num_demos} --seed {seed} "
+        f"{sim_flag} --eval-suite {eval_suite} {resume_flag} {wandb_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def train_srpo(
+    ctx: Context,
+    sft_checkpoint: str = "checkpoints/sft/demos5_seed42/best",
+    mode: str = "srpo",
+    num_demos: int = 5,
+    seed: int = 42,
+    world_model: str = "dinov2",
+    no_wandb: bool = False,
+) -> None:
+    """Run SRPO or sparse-RL training from an SFT checkpoint."""
+    wandb_flag = "--no-wandb" if no_wandb else "--wandb"
+    ctx.run(
+        f"uv run python scripts/train_srpo.py --sft-checkpoint {sft_checkpoint} --mode {mode} "
+        f"--num-demos {num_demos} --seed {seed} --world-model {world_model} {wandb_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def run_experiment(ctx: Context, config: str = "configs/srpo_pickcube.yaml", no_wandb: bool = False) -> None:
+    """Run the full SRPO validation experiment matrix."""
+    wandb_flag = "--no-wandb" if no_wandb else ""
+    ctx.run(
+        f"uv run python scripts/run_experiment.py --config {config} {wandb_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
+
+
+@task
+def evaluate_policy(
+    ctx: Context,
+    checkpoint_dir: str = "checkpoints/sft/demos10_seed42/best",
+    num_episodes: int = 100,
+    env: str = "",
+    simulator: str = "maniskill",
+    suite: str = "all",
+) -> None:
+    """Evaluate a saved policy checkpoint (env_id auto-read from checkpoint metadata)."""
+    env_flag = f"--env {env}" if env else ""
+    cmd = (
+        f"uv run python scripts/evaluate.py "
+        f"--checkpoint-dir {checkpoint_dir} --num-episodes {num_episodes} "
+        f"--simulator {simulator} --suite {suite} {env_flag}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)

@@ -1,0 +1,25 @@
+action: train-sft
+
+data: /work3/s234814/vla-robotics/data/preprocessed/pickcube.pt
+env_id: PickCube-v1
+checkpoint: HuggingFaceVLA/smolvla_libero
+num_demos: 10
+seed: 42
+
+lr: 1.0e-4
+batch_size: 64
+micro_batch_size: 4
+num_epochs: 50
+warmup_steps: 1000
+decay_steps: 30000
+decay_lr: 2.5e-6
+grad_clip_norm: 10.0
+
+eval_every: 5
+eval_episodes: 50
+max_steps: 200
+
+simulator: maniskill
+eval_suite: all
+
+wandb_project: srpo-smolvla
