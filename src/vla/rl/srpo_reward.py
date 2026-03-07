@@ -81,9 +81,9 @@ class WorldProgressReward:
         Args:
             demo_images: List of ``(T_i, C, H, W)`` image tensors (one per demo).
         """
-        for imgs in demo_images:
-            emb = self.encoder.encode_trajectory(imgs, self.cfg.subsample_every)
-            self.reference_embeddings.append(emb)
+        if demo_images:
+            embs = self.encoder.encode_trajectories(demo_images, self.cfg.subsample_every)
+            self.reference_embeddings.extend(embs.unbind(0))
         logger.info("Reference set seeded with %d demo trajectories", len(demo_images))
         self._refit_clusters()
 
@@ -165,11 +165,15 @@ class WorldProgressReward:
         self.cluster_centers = torch.stack(centres, dim=0)
         logger.info("DBSCAN fitted: %d clusters from %d references", len(centres), len(self.reference_embeddings))
 
-    def _encode_trajectory(self, traj: Trajectory) -> torch.Tensor:
-        """Encode a trajectory's images into a trajectory-level embedding."""
-        imgs = traj.images[: traj.length]
-        imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
-        return self.encoder.encode_trajectory(imgs, self.cfg.subsample_every)
+    def _encode_trajectories_batched(self, trajectories: list[Trajectory]) -> list[torch.Tensor]:
+        """Encode all trajectories in a single batched pass."""
+        all_imgs = []
+        for traj in trajectories:
+            imgs = traj.images[: traj.length]
+            imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
+            all_imgs.append(imgs)
+        embs = self.encoder.encode_trajectories(all_imgs, self.cfg.subsample_every)
+        return list(embs.unbind(0))
 
     def _activation(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the activation function φ(·) mapping to (0, 1)."""
@@ -198,14 +202,11 @@ class WorldProgressReward:
             re-encoding.
         """
         if self.cluster_centers is None or len(self.cluster_centers) == 0:
-            traj_embeddings = [self._encode_trajectory(t) for t in trajectories]
+            traj_embeddings = self._encode_trajectories_batched(trajectories)
             rewards = [1.0 if t.success else 0.0 for t in trajectories]
             return rewards, traj_embeddings
 
-        traj_embeddings = []
-        for traj in trajectories:
-            emb = self._encode_trajectory(traj)
-            traj_embeddings.append(emb)
+        traj_embeddings = self._encode_trajectories_batched(trajectories)
 
         centres = self.cluster_centers.to(traj_embeddings[0].device)
         rewards: list[float] = []

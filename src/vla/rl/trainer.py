@@ -238,6 +238,34 @@ def _compute_fm_loss_batched(
     return torch.cat(all_losses)
 
 
+def _merge_trajectory_data(
+    trajectories: list[Trajectory],
+    noise_list: list[torch.Tensor],
+    time_list: list[torch.Tensor],
+) -> tuple[Trajectory, torch.Tensor, torch.Tensor, list[int]]:
+    """Concatenate trajectory data for mega-batched FM-loss computation.
+
+    Returns a virtual merged ``Trajectory``, merged noise/time tensors,
+    and the per-trajectory lengths needed to split results back.
+    """
+    lengths = [t.length for t in trajectories]
+    has_states = trajectories[0].states is not None
+    merged = Trajectory(
+        images=torch.cat([t.images[: t.length] for t in trajectories]),
+        actions=torch.cat([t.actions[: t.length] for t in trajectories]),
+        states=(
+            torch.cat([t.states[: t.length] for t in trajectories])
+            if has_states
+            else trajectories[0].states
+        ),
+        rewards=torch.zeros(1),
+        dones=torch.zeros(1),
+        success=False,
+        length=sum(lengths),
+    )
+    return merged, torch.cat(noise_list), torch.cat(time_list), lengths
+
+
 # ---------------------------------------------------------------------------
 # Main training loop
 # ---------------------------------------------------------------------------
@@ -290,8 +318,6 @@ def train_srpo(
     ref_policy.eval()
     for p in ref_policy.parameters():
         p.requires_grad_(False)
-    # Keep ref_policy on CPU to save GPU memory; transfer batches as needed.
-    ref_policy = ref_policy.cpu()
 
     world_encoder: WorldModelEncoder | None = None
     reward_model: WorldProgressReward | None = None
@@ -370,38 +396,28 @@ def train_srpo(
         policy.eval()
         fixed_noise_per_traj: list[torch.Tensor] = []
         fixed_time_per_traj: list[torch.Tensor] = []
-        old_losses_per_traj: list[torch.Tensor] = []
-        ref_losses_per_traj: list[torch.Tensor] = []
+
+        for traj in trajectories:
+            noise, time = _sample_fixed_noise_time(traj, policy)
+            fixed_noise_per_traj.append(noise)
+            fixed_time_per_traj.append(time)
+
+        merged_traj, merged_noise, merged_time, traj_lengths = _merge_trajectory_data(
+            trajectories, fixed_noise_per_traj, fixed_time_per_traj,
+        )
 
         with torch.no_grad():
-            for traj in trajectories:
-                noise, time = _sample_fixed_noise_time(traj, policy)
-                fixed_noise_per_traj.append(noise)
-                fixed_time_per_traj.append(time)
+            all_old = _compute_fm_loss_batched(
+                policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
+            )
+            old_losses_per_traj = list(torch.split(all_old.detach(), traj_lengths))
 
-                old_loss = _compute_fm_loss_batched(
-                    policy,
-                    traj,
-                    instruction,
-                    noise,
-                    time,
-                    batch_size=B,
-                )
-                old_losses_per_traj.append(old_loss.detach())
+            all_ref = _compute_fm_loss_batched(
+                ref_policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
+            )
+            ref_losses_per_traj = list(torch.split(all_ref.detach(), traj_lengths))
 
-                # Move ref_policy to GPU only for its forward pass, then back
-                ref_policy.to(policy.device)
-                ref_loss = _compute_fm_loss_batched(
-                    ref_policy,
-                    traj,
-                    instruction,
-                    noise,
-                    time,
-                    batch_size=B,
-                )
-                ref_losses_per_traj.append(ref_loss.detach())
-                ref_policy.cpu()
-                torch.cuda.empty_cache()
+        del merged_traj
 
         # ── 5. PPO epochs (batched forward, gradient accumulation) ──────
         policy.train()
@@ -416,8 +432,8 @@ def train_srpo(
 
             for i, traj in enumerate(trajectories):
                 adv_i = advantages[i]
-                old_losses_t = old_losses_per_traj[i].to(policy.device)
-                ref_losses_t = ref_losses_per_traj[i].to(policy.device)
+                old_losses_t = old_losses_per_traj[i]
+                ref_losses_t = ref_losses_per_traj[i]
                 noise = fixed_noise_per_traj[i]
                 time = fixed_time_per_traj[i]
 
@@ -454,10 +470,6 @@ def train_srpo(
 
                 epoch_clip_loss += clip_loss.item()
                 epoch_kl += kl_penalty.item()
-
-                del new_losses_t, log_ratios, ratios, surr1, surr2, clip_loss, traj_loss
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
 
             torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
             optimizer.step()
@@ -576,7 +588,6 @@ def train_srpo_multitask(
     ref_policy.eval()
     for p in ref_policy.parameters():
         p.requires_grad_(False)
-    ref_policy = ref_policy.cpu()
 
     # ── Per-task rollout engines ─────────────────────────────────────────
     engines: dict[str, RolloutEngine] = {}
@@ -685,38 +696,32 @@ def train_srpo_multitask(
         policy.eval()
         fixed_noise_per_traj: list[torch.Tensor] = []
         fixed_time_per_traj: list[torch.Tensor] = []
+        instrs_per_traj: list[str] = []
+
+        for traj in all_trajectories:
+            noise, time = _sample_fixed_noise_time(traj, policy)
+            fixed_noise_per_traj.append(noise)
+            fixed_time_per_traj.append(time)
+            instrs_per_traj.append(spec_lookup[traj.task_id].instruction)
+
         old_losses_per_traj: list[torch.Tensor] = []
         ref_losses_per_traj: list[torch.Tensor] = []
 
         with torch.no_grad():
-            for traj in all_trajectories:
-                instr = spec_lookup[traj.task_id].instruction
-                noise, time = _sample_fixed_noise_time(traj, policy)
-                fixed_noise_per_traj.append(noise)
-                fixed_time_per_traj.append(time)
-
+            for i, traj in enumerate(all_trajectories):
                 old_loss = _compute_fm_loss_batched(
-                    policy,
-                    traj,
-                    instr,
-                    noise,
-                    time,
+                    policy, traj, instrs_per_traj[i],
+                    fixed_noise_per_traj[i], fixed_time_per_traj[i],
                     batch_size=B,
                 )
                 old_losses_per_traj.append(old_loss.detach())
 
-                ref_policy.to(policy.device)
                 ref_loss = _compute_fm_loss_batched(
-                    ref_policy,
-                    traj,
-                    instr,
-                    noise,
-                    time,
+                    ref_policy, traj, instrs_per_traj[i],
+                    fixed_noise_per_traj[i], fixed_time_per_traj[i],
                     batch_size=B,
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
-                ref_policy.cpu()
-                torch.cuda.empty_cache()
 
         # ── 5. PPO epochs ────────────────────────────────────────────────
         policy.train()
@@ -730,20 +735,15 @@ def train_srpo_multitask(
             epoch_kl = 0.0
 
             for i, traj in enumerate(all_trajectories):
-                instr = spec_lookup[traj.task_id].instruction
                 adv_i = advantages[i]
-                old_losses_t = old_losses_per_traj[i].to(policy.device)
-                ref_losses_t = ref_losses_per_traj[i].to(policy.device)
+                old_losses_t = old_losses_per_traj[i]
+                ref_losses_t = ref_losses_per_traj[i]
                 noise = fixed_noise_per_traj[i]
                 time = fixed_time_per_traj[i]
 
                 new_losses_t = _compute_fm_loss_batched(
-                    policy,
-                    traj,
-                    instr,
-                    noise,
-                    time,
-                    batch_size=B,
+                    policy, traj, instrs_per_traj[i],
+                    noise, time, batch_size=B,
                 )
 
                 log_ratios = old_losses_t - new_losses_t
@@ -769,10 +769,6 @@ def train_srpo_multitask(
 
                 epoch_clip_loss += clip_loss.item()
                 epoch_kl += kl_penalty.item()
-
-                del new_losses_t, log_ratios, ratios, surr1, surr2, clip_loss, traj_loss
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
 
             torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
             optimizer.step()

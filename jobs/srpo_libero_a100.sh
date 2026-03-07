@@ -47,6 +47,7 @@ uv run python scripts/train_srpo.py \
     --trajs-per-iter "$TRAJS" \
     --num-rollout-envs "$ENVS" \
     --dbscan-eps 60 \
-    --fm-batch-size 32 \
+    --fm-batch-size 128 \
+    --gradient-checkpointing \
     --seed "$SEED" \
     --wandb

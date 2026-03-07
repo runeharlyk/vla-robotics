@@ -30,8 +30,8 @@ uv run python scripts/train_srpo.py \
     --lr 5e-06 \
     --iterations 200 \
     --trajs-per-iter 8 \
-    --num-rollout-envs 4 \
-    --fm-batch-size 8 \
+    --num-rollout-envs 8 \
+    --fm-batch-size 64 \
     --ppo-epochs 4 \
     --clip-epsilon 0.2 \
     --kl-coeff 0.01 \
