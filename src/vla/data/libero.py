@@ -350,6 +350,15 @@ class LiberoSFTDataset(Dataset):
                     img = torch.from_numpy(img)
                 if img.ndim == 4:
                     img = img.squeeze(0)
+
+                img2 = sample.get("observation.images.image2")
+                if img2 is not None:
+                    if isinstance(img2, np.ndarray):
+                        img2 = torch.from_numpy(img2)
+                    if img2.ndim == 4:
+                        img2 = img2.squeeze(0)
+                    img = torch.stack([img, img2], dim=0)
+
                 images_list.append(img)
 
                 state = sample.get("observation.state", torch.zeros(max(self.state_dim, 1)))

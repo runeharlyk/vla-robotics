@@ -405,6 +405,54 @@ class SmolVLAPolicy(nn.Module):
         self.register_buffer("state_mean", torch.zeros(max(state_dim, 1)), persistent=True)
         self.register_buffer("state_std", torch.ones(max(state_dim, 1)), persistent=True)
 
+        self._load_checkpoint_norm_stats(checkpoint, action_dim, max(state_dim, 1))
+
+    def _load_checkpoint_norm_stats(self, checkpoint: str, action_dim: int, state_dim: int) -> None:
+        """Load normalization stats from the HuggingFace checkpoint's processor files.
+
+        These are the stats the model was actually trained with, stored in
+        ``policy_postprocessor_step_1_unnormalizer_processor.safetensors``.
+        Falls back silently to identity normalization if the files are absent
+        (e.g. for local-only checkpoints).
+        """
+        files_to_try = [
+            "policy_postprocessor_step_1_unnormalizer_processor.safetensors",
+            "policy_preprocessor_step_5_normalizer_processor.safetensors",
+        ]
+        stats: dict[str, torch.Tensor] = {}
+        for fname in files_to_try:
+            try:
+                if Path(checkpoint).is_dir():
+                    fpath = Path(checkpoint) / fname
+                    if not fpath.exists():
+                        continue
+                    fpath = str(fpath)
+                else:
+                    fpath = hf_hub_download(checkpoint, fname)
+                stats = load_safetensors(fpath, device="cpu")
+                break
+            except Exception:
+                continue
+
+        if not stats:
+            return
+
+        if "action.mean" in stats and "action.std" in stats:
+            am = stats["action.mean"].float()[:action_dim]
+            astd = stats["action.std"].float()[:action_dim]
+            self.action_mean.copy_(am)
+            self.action_std.copy_(astd)
+        if "observation.state.mean" in stats and "observation.state.std" in stats:
+            sm = stats["observation.state.mean"].float()[:state_dim]
+            sstd = stats["observation.state.std"].float()[:state_dim]
+            self.state_mean.copy_(sm)
+            self.state_std.copy_(sstd)
+        logger.info(
+            "Loaded normalization stats from checkpoint: action_mean=%s action_std=%s",
+            self.action_mean.tolist(),
+            self.action_std.tolist(),
+        )
+
     def enable_gradient_checkpointing(self, enable: bool = True) -> None:
         self._gradient_checkpointing = enable
         self.model.vlm_with_expert.enable_gradient_checkpointing(enable)

@@ -311,12 +311,18 @@ def evaluate_smolvla(
     device = policy.device
 
     def _policy_fn(batch: dict) -> torch.Tensor:
-        image_key = next((k for k in batch if k.startswith("observation.images.")), None)
-        if image_key is None:
+        image_keys = sorted(k for k in batch if k.startswith("observation.images."))
+        if not image_keys:
             raise ValueError(f"No observation.images.* in batch. Keys: {list(batch.keys())}")
-        image = batch[image_key]
-        if image.ndim in (4, 5):
-            image = image[0]
+        cam_views = []
+        for k in image_keys:
+            img = batch[k]
+            if img.ndim in (4, 5):
+                img = img[0]
+            if img.ndim == 2:
+                img = img.unsqueeze(0)
+            cam_views.append(img)
+        image = torch.stack(cam_views, dim=0) if len(cam_views) > 1 else cam_views[0]
         state = batch.get("observation.state")
         if state is not None and state.ndim == 2:
             state = state[0]
