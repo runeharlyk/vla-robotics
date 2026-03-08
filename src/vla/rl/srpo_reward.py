@@ -17,8 +17,10 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 from sklearn.cluster import DBSCAN
+from sklearn.neighbors import NearestNeighbors
 
 from vla.models.world_model import WorldModelEncoder
 from vla.rl.rollout import Trajectory
@@ -33,6 +35,8 @@ class SRPORewardConfig:
     subsample_every: int = 5
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2
+    dbscan_auto_eps: bool = True
+    dbscan_percentile: int = 25
     activation: str = "sigmoid"
     alpha: float = 0.8
     eps: float = 1e-8
@@ -144,7 +148,15 @@ class WorldProgressReward:
 
         ref_matrix = torch.stack(self.reference_embeddings, dim=0)
         X = ref_matrix.cpu().numpy()
-        db = DBSCAN(eps=self.cfg.dbscan_eps, min_samples=self.cfg.dbscan_min_samples).fit(X)
+
+        k = self.cfg.dbscan_min_samples
+        if self.cfg.dbscan_auto_eps and len(X) > k:
+            kth_dists = NearestNeighbors(n_neighbors=k).fit(X).kneighbors(X)[0][:, -1]
+            eps = float(np.percentile(kth_dists, self.cfg.dbscan_percentile))
+        else:
+            eps = self.cfg.dbscan_eps
+
+        db = DBSCAN(eps=eps, min_samples=k).fit(X)
         labels = db.labels_
         self._last_labels = labels.tolist()
         unique_labels = set(labels)
@@ -163,7 +175,10 @@ class WorldProgressReward:
             mask = labels == label
             centres.append(ref_matrix[mask].mean(dim=0))
         self.cluster_centers = torch.stack(centres, dim=0)
-        logger.info("DBSCAN fitted: %d clusters from %d references", len(centres), len(self.reference_embeddings))
+        logger.info(
+            "DBSCAN fitted: %d clusters from %d references (eps=%.4f)",
+            len(centres), len(self.reference_embeddings), eps,
+        )
 
     def _encode_trajectories_batched(self, trajectories: list[Trajectory]) -> list[torch.Tensor]:
         """Encode all trajectories in a single batched pass."""
