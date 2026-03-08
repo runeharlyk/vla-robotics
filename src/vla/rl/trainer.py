@@ -462,7 +462,8 @@ def train_srpo(
                 )
                 clip_loss = -torch.min(surr1, surr2).mean()
 
-                kl_approx = (ref_losses_t - new_losses_t.detach()).mean()
+                log_ratio_ref = ref_losses_t - new_losses_t
+                kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
                 kl_penalty = config.kl_coeff * kl_approx
 
                 traj_loss = (clip_loss + kl_penalty) / M
@@ -761,7 +762,8 @@ def train_srpo_multitask(
                 )
                 clip_loss = -torch.min(surr1, surr2).mean()
 
-                kl_approx = (ref_losses_t - new_losses_t.detach()).mean()
+                log_ratio_ref = ref_losses_t - new_losses_t
+                kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
                 kl_penalty = config.kl_coeff * kl_approx
 
                 traj_loss = (clip_loss + kl_penalty) / M
