@@ -392,6 +392,21 @@ def train_srpo(
         g_std = g_tensor.std().clamp(min=1e-8)
         advantages = ((g_tensor - g_mean) / g_std).tolist()
 
+        if g_std < 1e-6:
+            logger.info(
+                f"Iter {iteration}: skipping update — all rewards identical "
+                f"(g={g_mean.item():.4f}, num_successes={num_successes})"
+            )
+            log_data = {
+                f"{config.mode}/skipped_update": 1,
+                f"{config.mode}/batch_successes": num_successes,
+                f"{config.mode}/mean_g": g_mean.item(),
+                f"{config.mode}/iteration": iteration,
+            }
+            if wandb_run is not None:
+                wandb_run.log(log_data)
+            continue
+
         # ── 4. Cache FM losses under θ_old AND π_ref (computed once) ────
         policy.eval()
         fixed_noise_per_traj: list[torch.Tensor] = []
@@ -684,14 +699,24 @@ def train_srpo_multitask(
             by_task_indices[t.task_id].append(i)
 
         per_task_g_mean: dict[str, float] = {}
+        skipped_tasks: list[str] = []
         for tid, indices in by_task_indices.items():
             task_g = torch.tensor([g_values[i] for i in indices], dtype=torch.float32)
             g_mean = task_g.mean()
             g_std = task_g.std().clamp(min=1e-8)
+            per_task_g_mean[tid] = g_mean.item()
+            if g_std < 1e-6:
+                skipped_tasks.append(tid)
+                continue
             task_adv = ((task_g - g_mean) / g_std).tolist()
             for j, idx in enumerate(indices):
                 advantages[idx] = task_adv[j]
-            per_task_g_mean[tid] = g_mean.item()
+
+        if skipped_tasks:
+            logger.info(
+                f"Iter {iteration}: dynamic rejection — skipped {len(skipped_tasks)} tasks "
+                f"with uniform rewards: {skipped_tasks}"
+            )
 
         # ── 4. Cache FM losses under θ_old AND π_ref ────────────────────
         policy.eval()
@@ -792,6 +817,7 @@ def train_srpo_multitask(
             f"{config.mode}/surrogate_loss": avg_surr,
             f"{config.mode}/kl_penalty": avg_kl,
             f"{config.mode}/total_successes": total_successes,
+            f"{config.mode}/skipped_tasks": len(skipped_tasks),
             f"{config.mode}/iteration": iteration,
         }
         for tid, n_succ in per_task_successes.items():
