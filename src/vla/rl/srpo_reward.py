@@ -40,6 +40,8 @@ class SRPORewardConfig:
     activation: str = "sigmoid"
     alpha: float = 0.8
     eps: float = 1e-8
+    max_references: int = 200
+    ref_demo_ratio: float = 0.5
 
 
 @dataclass
@@ -47,6 +49,8 @@ class ClusterDiagnostics:
     """Snapshot of cluster quality metrics for encoder comparison."""
 
     num_references: int = 0
+    num_demo_refs: int = 0
+    num_online_refs: int = 0
     num_clusters: int = 0
     num_noise_points: int = 0
     mean_intra_cluster_dist: float = 0.0
@@ -74,21 +78,37 @@ class WorldProgressReward:
     def __init__(self, encoder: WorldModelEncoder, config: SRPORewardConfig | None = None) -> None:
         self.encoder = encoder
         self.cfg = config or SRPORewardConfig()
-        self.reference_embeddings: list[torch.Tensor] = []
+        self._demo_embeddings: list[torch.Tensor] = []
+        self._online_embeddings: list[torch.Tensor] = []
         self.cluster_centers: torch.Tensor | None = None
         self._last_labels: list[int] | None = None
         self._last_diagnostics: ClusterDiagnostics | None = None
 
+    @property
+    def reference_embeddings(self) -> list[torch.Tensor]:
+        return self._demo_embeddings + self._online_embeddings
+
+    @property
+    def _online_capacity(self) -> int:
+        demo_slots = max(len(self._demo_embeddings), int(self.cfg.max_references * self.cfg.ref_demo_ratio))
+        return max(self.cfg.max_references - demo_slots, 0)
+
     def add_demo_trajectories(self, demo_images: list[torch.Tensor]) -> None:
         """Encode demonstration trajectory images and add to the reference set.
+
+        Demo embeddings are permanent and never evicted.
 
         Args:
             demo_images: List of ``(T_i, C, H, W)`` image tensors (one per demo).
         """
         if demo_images:
             embs = self.encoder.encode_trajectories(demo_images, self.cfg.subsample_every)
-            self.reference_embeddings.extend(embs.unbind(0))
-        logger.info("Reference set seeded with %d demo trajectories", len(demo_images))
+            self._demo_embeddings.extend(embs.unbind(0))
+        logger.info(
+            "Reference set seeded with %d demo trajectories (demo_slots=%d)",
+            len(demo_images),
+            len(self._demo_embeddings),
+        )
         self._refit_clusters()
 
     def add_successful_trajectories(self, trajectories: list[Trajectory]) -> None:
@@ -101,7 +121,7 @@ class WorldProgressReward:
         Args:
             trajectories: List of successful :class:`Trajectory` objects.
         """
-        added = 0
+        new_embs = []
         for traj in trajectories:
             if not traj.success:
                 continue
@@ -110,14 +130,9 @@ class WorldProgressReward:
                 if traj.images.dtype == torch.uint8
                 else traj.images[: traj.length].float()
             )
-            emb = self.encoder.encode_trajectory(imgs, self.cfg.subsample_every)
-            self.reference_embeddings.append(emb)
-            added += 1
-        if added > 0:
-            logger.info(
-                "Added %d in-batch successes to reference set (total=%d)", added, len(self.reference_embeddings)
-            )
-            self._refit_clusters()
+            new_embs.append(self.encoder.encode_trajectory(imgs, self.cfg.subsample_every))
+        if new_embs:
+            self._insert_online(new_embs)
 
     def add_successful_embeddings(self, embeddings: list[torch.Tensor]) -> None:
         """Add pre-computed embeddings of successful trajectories to the reference set.
@@ -130,11 +145,25 @@ class WorldProgressReward:
         """
         if not embeddings:
             return
-        self.reference_embeddings.extend(embeddings)
+        self._insert_online(embeddings)
+
+    def _insert_online(self, embeddings: list[torch.Tensor]) -> None:
+        """Insert online embeddings, evicting oldest when the online slot is full."""
+        self._online_embeddings.extend(embeddings)
+        cap = self._online_capacity
+        if len(self._online_embeddings) > cap:
+            evicted = len(self._online_embeddings) - cap
+            self._online_embeddings = self._online_embeddings[-cap:]
+            logger.info(
+                "Online slot full — evicted %d oldest (kept %d, demo=%d, total=%d)",
+                evicted, cap, len(self._demo_embeddings),
+                len(self._demo_embeddings) + cap,
+            )
         logger.info(
-            "Added %d in-batch successes to reference set (total=%d)",
-            len(embeddings),
-            len(self.reference_embeddings),
+            "Added %d online successes (demo=%d, online=%d, total=%d)",
+            len(embeddings), len(self._demo_embeddings),
+            len(self._online_embeddings),
+            len(self._demo_embeddings) + len(self._online_embeddings),
         )
         self._refit_clusters()
 
@@ -257,6 +286,8 @@ class WorldProgressReward:
     ) -> ClusterDiagnostics:
         diag = ClusterDiagnostics(
             num_references=len(self.reference_embeddings),
+            num_demo_refs=len(self._demo_embeddings),
+            num_online_refs=len(self._online_embeddings),
             num_clusters=self.cluster_centers.shape[0] if self.cluster_centers is not None else 0,
         )
 
