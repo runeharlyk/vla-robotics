@@ -42,6 +42,7 @@ class SRPORewardConfig:
     eps: float = 1e-8
     max_references: int = 200
     ref_demo_ratio: float = 0.5
+    distance_metric: str = "cosine"
 
 
 @dataclass
@@ -225,6 +226,33 @@ class WorldProgressReward:
             return torch.sigmoid(-x)
         return torch.sigmoid(-x)
 
+    def _distances_to_centres(self, emb: torch.Tensor, centres: torch.Tensor) -> torch.Tensor:
+        """Compute distances from a single embedding to all cluster centres.
+
+        Args:
+            emb: ``(D,)`` trajectory embedding.
+            centres: ``(K, D)`` cluster centre embeddings.
+
+        Returns:
+            ``(K,)`` distance tensor — lower means closer to a success cluster.
+        """
+        metric = self.cfg.distance_metric
+        if metric == "cosine":
+            sims = torch.nn.functional.cosine_similarity(
+                centres, emb.unsqueeze(0).expand_as(centres), dim=-1
+            )
+            return 1.0 - sims
+        if metric == "normalized_l2":
+            e = torch.nn.functional.normalize(emb.unsqueeze(0), dim=-1)
+            c = torch.nn.functional.normalize(centres, dim=-1)
+            return torch.norm(c - e, dim=-1)
+        if metric == "l2":
+            return torch.norm(centres - emb.unsqueeze(0), dim=-1)
+        raise ValueError(
+            f"Unknown distance_metric {metric!r}. "
+            "Choose from: 'cosine', 'normalized_l2', 'l2'."
+        )
+
     def compute_trajectory_rewards(
         self,
         trajectories: list[Trajectory],
@@ -261,8 +289,7 @@ class WorldProgressReward:
             if traj.success:
                 rewards.append(1.0)
             else:
-                dists = torch.norm(centres - emb.unsqueeze(0), dim=-1)
-                d_i = dists.min()
+                d_i = self._distances_to_centres(emb, centres).min()
                 failed_distances.append(d_i)
                 failed_indices.append(i)
                 rewards.append(0.0)
