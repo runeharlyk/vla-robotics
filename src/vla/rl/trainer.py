@@ -52,6 +52,7 @@ class SRPOConfig:
     trajectories_per_iter: int = 16
     ppo_epochs: int = 4
     clip_epsilon: float = 0.2
+    clip_epsilon_high: float = 0.2
     kl_coeff: float = 0.01
     eval_every: int = 10
     eval_episodes: int = 50
@@ -471,7 +472,7 @@ def train_srpo(
                     torch.clamp(
                         ratios,
                         1.0 - config.clip_epsilon,
-                        1.0 + config.clip_epsilon,
+                        1.0 + config.clip_epsilon_high,
                     )
                     * adv_t
                 )
@@ -781,7 +782,7 @@ def train_srpo_multitask(
                     torch.clamp(
                         ratios,
                         1.0 - config.clip_epsilon,
-                        1.0 + config.clip_epsilon,
+                        1.0 + config.clip_epsilon_high,
                     )
                     * adv_t
                 )
