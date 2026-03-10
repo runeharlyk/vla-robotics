@@ -2,9 +2,9 @@ action: train-srpo-libero-hf
 
 libero_suite: spatial
 suite: spatial
-task_id: 0
+task_id: 5
 mode: srpo
-num_demos: 50
+num_demos: 1
 seed: 42
 lr: 5.0e-6
 num_iterations: 200

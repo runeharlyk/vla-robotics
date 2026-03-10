@@ -21,11 +21,11 @@ printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero;
 
 uv run python scripts/train_srpo.py \
     --simulator libero \
-    --suite object \
+    --suite spatial \
     --task-id 5 \
-    --libero-suite object \
+    --libero-suite spatial \
     --mode srpo \
-    --num-demos 50 \
+    --num-demos 1 \
     --seed 42 \
     --lr 5e-06 \
     --iterations 200 \
