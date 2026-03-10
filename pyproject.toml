@@ -40,6 +40,7 @@ dependencies = [
     "pyyaml>=6.0",
     "num2words>=0.5.14",
     "scikit-learn>=1.8.0",
+    "h5py>=3.15.1",
 ]
 
 [project.scripts]
