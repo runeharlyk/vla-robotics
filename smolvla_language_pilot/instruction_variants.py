@@ -305,11 +305,13 @@ def main() -> None:
         task_entries = _load_task_instructions(rollout_path)
         print(f"Found {len(task_entries)} task instructions in {rollout_path}")
 
-        for task_entry in task_entries:
+        for i, task_entry in enumerate(task_entries):
             instruction = task_entry["base_instruction"]
             task_index = int(task_entry["task_index"])
 
+            print(f"[{i + 1}/{len(task_entries)}] Generating variants for task_index={task_index}: '{instruction}' …", flush=True)
             result = generate_variants(instruction, llm_bundle)
+            print(f"  Done — {sum(len(v) for v in result.variants.values())} variants generated.", flush=True)
 
             result_rollouts.append(
                 {

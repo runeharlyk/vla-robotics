@@ -1,8 +1,4 @@
 {
-  "metadata": {
-    "llm_model": "Qwen/Qwen2.5-3B-Instruct",
-    "seed": 0
-  },
   "rollouts": [
     {
       "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
@@ -13,24 +9,24 @@
           "pick up the black bowl next to the cookie box and place it on the plate"
         ],
         "politeness": [
-          "would you please pick up the black bowl next to the cookie box and place it on the plate?",
-          "may I ask you to pick up the black bowl next to the cookie box and place it on the plate?",
-          "if you could pick up the black bowl next to the cookie box and place it on the plate?"
+          "please pick up the black bowl next to the cookie box and place it on the plate",
+          "kindly pick up the black bowl next to the cookie box and place it on the plate",
+          "could you pick up the black bowl next to the cookie box and place it on the plate"
         ],
         "sentence_structure": [
-          "place the black bowl next to the cookie box on the plate after picking it up",
-          "please take the black bowl next to the cookie box and put it on the plate",
-          "pick up the black bowl from its location near the cookie box and then place it on the plate"
+          "next to the cookie box, pick up the black bowl and place it on the plate",
+          "the black bowl next to the cookie box, pick it up and place it on the plate",
+          "place on the plate the black bowl next to the cookie box after picking it up"
         ],
         "verb_paraphrase": [
-          "grasp the black bowl next to the cookie box and set it on the plate",
           "grab the black bowl next to the cookie box and place it on the plate",
-          "lift the black bowl next to the cookie box and put it on the plate"
+          "lift the black bowl next to the cookie box and place it on the plate",
+          "take the black bowl next to the cookie box and place it on the plate"
         ],
         "verbosity": [
-          "I kindly ask you to carefully pick up the beautiful black bowl which is sitting right next to the cookie box and gently place it onto the large, gleaming white plate.",
-          "Please ensure that you take the exquisite black bowl, which is conveniently positioned next to the cookie box, and place it delicately on the designated plate.",
-          "Would you be so kind as to gently retrieve the ornate black bowl, which is resting nearby the cookie box, and carefully place it onto the shiny plate?"
+          "for this task, pick up the black bowl next to the cookie box and place it on the plate",
+          "in this task, pick up the black bowl next to the cookie box and place it on the plate",
+          "for me, pick up the black bowl next to the cookie box and place it on the plate"
         ]
       }
     },
@@ -43,24 +39,24 @@
           "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate"
         ],
         "politeness": [
-          "please pick up the black bowl from the top drawer of the wooden cabinet and place it gently on the plate",
-          "could you please pick up the black bowl from the top drawer of the wooden cabinet and place it carefully on the plate?",
-          "would it be alright if you picked up the black bowl from the top drawer of the wooden cabinet and placed it softly on the plate?"
+          "please pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "kindly pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "could you pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate"
         ],
         "sentence_structure": [
-          "place the black bowl on the plate after picking it up from the top drawer of the wooden cabinet",
-          "pick up the black bowl from the top drawer of the wooden cabinet and then place it on the plate",
-          "please take the black bowl from the top drawer of the wooden cabinet and place it on the plate"
+          "in the top drawer of the wooden cabinet, pick up the black bowl and place it on the plate",
+          "the black bowl in the top drawer of the wooden cabinet, pick it up and place it on the plate",
+          "place on the plate the black bowl in the top drawer of the wooden cabinet after picking it up"
         ],
         "verb_paraphrase": [
-          "grab the black bowl from the top drawer of the wooden cabinet and put it on the plate",
-          "fetch the black bowl from the top drawer of the wooden cabinet and set it on the plate",
-          "retrieve the black bowl from the top drawer of the wooden cabinet and place it on the plate"
+          "grab the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "lift the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "take the black bowl in the top drawer of the wooden cabinet and place it on the plate"
         ],
         "verbosity": [
-          "pick up the black bowl from the top drawer of the wooden cabinet and gently place it on the plate so as not to scratch its smooth surface",
-          "ensure that you carefully pick up the black bowl from the top drawer of the wooden cabinet and place it on the plate without disturbing its contents",
-          "take great care when picking up the black bowl from the top drawer of the wooden cabinet and placing it delicately on the plate, avoiding any accidental bumping"
+          "for this task, pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "in this task, pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "for me, pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate"
         ]
       }
     },
@@ -73,24 +69,24 @@
           "pick up the black bowl on the ramekin and place it on the plate"
         ],
         "politeness": [
-          "Could you please pick up the black bowl from the ramekin and place it gently on the plate?",
-          "Would you mind picking up the black bowl from the ramekin and placing it carefully on the plate?",
-          "Please take the black bowl from the ramekin and set it gently on the plate."
+          "please pick up the black bowl on the ramekin and place it on the plate",
+          "kindly pick up the black bowl on the ramekin and place it on the plate",
+          "could you pick up the black bowl on the ramekin and place it on the plate"
         ],
         "sentence_structure": [
-          "Pick up the black bowl on the ramekin and put it gently on the plate.",
-          "To pick up the black bowl from the ramekin and place it carefully on the plate.",
-          "Gently pick up the black bowl from the ramekin and place it on the plate."
+          "on the ramekin, pick up the black bowl and place it on the plate",
+          "the black bowl on the ramekin, pick it up and place it on the plate",
+          "place on the plate the black bowl on the ramekin after picking it up"
         ],
         "verb_paraphrase": [
-          "Retrieve the black bowl from the ramekin and place it on the plate.",
-          "Take the black bowl off the ramekin and put it on the plate.",
-          "Lift the black bowl from the ramekin and position it on the plate."
+          "grab the black bowl on the ramekin and place it on the plate",
+          "lift the black bowl on the ramekin and place it on the plate",
+          "take the black bowl on the ramekin and place it on the plate"
         ],
         "verbosity": [
-          "With utmost care, please pick up the black bowl from the ramekin and carefully place it on the plate.",
-          "Ensure the black bowl is picked up from the ramekin without jarring it and then placed gently on the plate.",
-          "Take the black bowl from the ramekin and place it on the plate with precision and delicacy."
+          "for this task, pick up the black bowl on the ramekin and place it on the plate",
+          "in this task, pick up the black bowl on the ramekin and place it on the plate",
+          "for me, pick up the black bowl on the ramekin and place it on the plate"
         ]
       }
     },
@@ -103,24 +99,24 @@
           "pick up the black bowl on the stove and place it on the plate"
         ],
         "politeness": [
-          "Could you please pick up the black bowl from the stove and place it on the plate?",
-          "Would you kindly pick up the black bowl from the stove and put it on the plate?",
-          "Please take the black bowl from the stove and put it on the plate."
+          "please pick up the black bowl on the stove and place it on the plate",
+          "kindly pick up the black bowl on the stove and place it on the plate",
+          "could you pick up the black bowl on the stove and place it on the plate"
         ],
         "sentence_structure": [
-          "On the stove is the black bowl. Please place it on the plate.",
-          "Pick up the bowl at the stove and then place it on the plate.",
-          "The black bowl is on the stove. Could you put it on the plate?"
+          "on the stove, pick up the black bowl and place it on the plate",
+          "the black bowl on the stove, pick it up and place it on the plate",
+          "place on the plate the black bowl on the stove after picking it up"
         ],
         "verb_paraphrase": [
-          "Retrieve the black bowl from the stove and deposit it on the plate.",
-          "Transport the black bowl from the stove to the plate.",
-          "Take the black bowl off the stove and set it down on the plate."
+          "grab the black bowl on the stove and place it on the plate",
+          "lift the black bowl on the stove and place it on the plate",
+          "take the black bowl on the stove and place it on the plate"
         ],
         "verbosity": [
-          "Gently lift the black bowl from its resting spot on the stove and carefully transfer it onto the plate without disturbing its contents.",
-          "With a gentle hand, grasp the black bowl securely from where it stands on the stove and smoothly guide it towards the plate.",
-          "Tenderly lift the black bowl from its precarious position on the stove and carefully transfer it onto the waiting plate."
+          "for this task, pick up the black bowl on the stove and place it on the plate",
+          "in this task, pick up the black bowl on the stove and place it on the plate",
+          "for me, pick up the black bowl on the stove and place it on the plate"
         ]
       }
     },
@@ -133,24 +129,24 @@
           "pick up the black bowl between the plate and the ramekin and place it on the plate"
         ],
         "politeness": [
-          "Please pick up the black bowl between the plate and the ramekin and place it on the plate.",
-          "Could you please pick up the black bowl between the plate and the ramekin and place it on the plate?",
-          "May I ask you to pick up the black bowl between the plate and the ramekin and place it on the plate?"
+          "please pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "kindly pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "could you pick up the black bowl between the plate and the ramekin and place it on the plate"
         ],
         "sentence_structure": [
-          "Place the black bowl between the plate and the ramekin on the plate after picking it up.",
-          "After picking up the black bowl between the plate and the ramekin, place it on the plate.",
-          "Pick up the black bowl between the plate and the ramekin, then place it on the plate."
+          "between the plate and the ramekin, pick up the black bowl and place it on the plate",
+          "the black bowl between the plate and the ramekin, pick it up and place it on the plate",
+          "place on the plate the black bowl between the plate and the ramekin after picking it up"
         ],
         "verb_paraphrase": [
-          "Retrieve the black bowl between the plate and the ramekin and set it on the plate.",
-          "Fetch the black bowl between the plate and the ramekin and place it on the plate.",
-          "Gather the black bowl between the plate and the ramekin and put it on the plate."
+          "grab the black bowl between the plate and the ramekin and place it on the plate",
+          "lift the black bowl between the plate and the ramekin and place it on the plate",
+          "take the black bowl between the plate and the ramekin and place it on the plate"
         ],
         "verbosity": [
-          "Please carefully retrieve the black bowl located between the plate and the ramekin, and then place it securely on the plate in an organized manner.",
-          "With great care, please fetch the black bowl positioned between the plate and the ramekin, and then skillfully place it on the plate without any mistakes.",
-          "With utmost attention, please carefully retrieve the black bowl situated between the plate and the ramekin, and then methodically place it on the plate with precision."
+          "for this task, pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "in this task, pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "for me, pick up the black bowl between the plate and the ramekin and place it on the plate"
         ]
       }
     }
