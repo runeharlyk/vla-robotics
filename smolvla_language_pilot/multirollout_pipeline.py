@@ -5,9 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from smolvla_language_pilot.language_function import (
+from smolvla_language_pilot.language_class import (
         LanguageRunResult,
-        load_llm_bundle,
         load_policy_bundle,
         run_language_sensitivity_for_rollout,
     )
@@ -24,12 +23,14 @@ class MultiTaskAggregateResult:
 
 
 MANUAL_ROLLOUT_PATHS: list[str] = [
-    "C:\repos\bachelor_project\vla-robotics\smolvla_language_pilot\rollout.h5",
+    "smolvla_language_pilot/rollout.h5",
     "",
     "",
     "",
     "",
 ]
+
+VARIANTS_JSON_PATH = "smolvla_language_pilot/instruction_variants.json"
 
 
 def _get_manual_rollouts(expected_count: int = 5) -> list[str]:
@@ -45,15 +46,12 @@ def _get_manual_rollouts(expected_count: int = 5) -> list[str]:
 def run_multi_task_pipeline(
     checkpoint: str = "lerobot/smolvla_base",
     device: str = "cuda",
-    llm_model: str = "Qwen/Qwen2.5-3B-Instruct",
-    controlled_variants: dict[str, str] | None = None,
-    n_variants: int = 10,
+    variants_json_path: str = VARIANTS_JSON_PATH,
     seed: int = 0,
 ) -> MultiTaskAggregateResult:
     selected_paths = _get_manual_rollouts(expected_count=5)
 
     policy_bundle = load_policy_bundle(checkpoint=checkpoint, device=device)
-    llm_bundle = load_llm_bundle(llm_model=llm_model)
 
     task_results = []
     for idx, rollout_path in enumerate(selected_paths):
@@ -61,9 +59,7 @@ def run_multi_task_pipeline(
         result = run_language_sensitivity_for_rollout(
             rollout_path=rollout_path,
             policy_bundle=policy_bundle,
-            llm_bundle=llm_bundle,
-            controlled_variants=controlled_variants,
-            n_variants=n_variants,
+            variants_json_path=variants_json_path,
             seed=task_seed,
         )
         task_results.append(result)

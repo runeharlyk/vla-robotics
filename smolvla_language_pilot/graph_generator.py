@@ -8,7 +8,6 @@ import torch
 
 from smolvla_language_pilot.language_class import (
         LanguageRunResult,
-        load_llm_bundle,
         load_policy_bundle,
         run_language_sensitivity_for_rollout,
     )
@@ -21,8 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--rollout", default="smolvla_language_pilot/rollout.h5")
     parser.add_argument("--checkpoint", default="lerobot/smolvla_base")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
-    parser.add_argument("--llm-model", default="Qwen/Qwen2.5-3B-Instruct")
-    parser.add_argument("--n-variants", type=int, default=10)
+    parser.add_argument("--variants-json", default="smolvla_language_pilot/instruction_variants.json")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output-dir", default="smolvla_language_pilot/outputs")
     return parser.parse_args()
@@ -124,16 +122,14 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Loading policy and LLM bundles...")
+    print("Loading policy bundle...")
     policy_bundle = load_policy_bundle(checkpoint=args.checkpoint, device=args.device)
-    llm_bundle = load_llm_bundle(llm_model=args.llm_model)
 
     print("Running rollout language sensitivity...")
     result = run_language_sensitivity_for_rollout(
         rollout_path=args.rollout,
         policy_bundle=policy_bundle,
-        llm_bundle=llm_bundle,
-        n_variants=args.n_variants,
+        variants_json_path=args.variants_json,
         seed=args.seed,
     )
 

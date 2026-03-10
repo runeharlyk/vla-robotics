@@ -29,43 +29,59 @@ LLM_MODEL = "Qwen/Qwen2.5-3B-Instruct"
 ROLLOUT_PATH = "smolvla_language_pilot/rollout.h5"
 
 # Number of variants PER variant type
-N_VARIANTS = 10
+N_VARIANTS = 3
 
 CONTROLLED_VARIANTS = {
     "politeness": (
-        "Rewrite the instruction with polite phrasing while keeping the task unchanged. "
-        "You may add 'please', 'kindly', 'could you', 'would you', 'if possible', or 'I'd like you to'. "
-        "Do not change the action, object, location, or task constraints. "
-        "Do not add execution modifiers (e.g., carefully, slowly, gently, precisely)."
+        "Rewrite the instruction using a polite phrasing while keeping the task exactly the same. "
+        "Allowed politeness strategies include: adding 'please' or 'kindly', using a polite request "
+        "such as 'could you' or 'would you', softening with phrases like 'when ready' or 'if possible', "
+        "or using deferential phrasing like 'I'd like you to'. "
+        "Do not change the object, location, action, or task constraints. "
+        "Do not add words like carefully, slowly, gently, precisely, or other modifiers that change execution."
     ),
 
     "sentence_structure": (
-        "Rewrite the instruction with a different sentence structure while keeping the task unchanged. "
-        "You may convert it to a question, front a phrase, reorder constituents, or use an imperative with a clause. "
+        "Rewrite the instruction with a different sentence structure while keeping the task exactly the same. "
+        "Allowed structure changes include: turning it into a question, fronting a phrase, using an imperative "
+        "with a trailing clause, or changing constituent order. "
         "Do not change the action, object, location, or task constraints. "
-        "Do not add politeness"
+        "Do not add politeness unless it is necessary for the grammatical form."
     ),
 
     "verb_paraphrase": (
         "Rewrite the instruction using a different verb or verb phrase with the same meaning. "
-        "Use natural paraphrases (e.g., 'open up', 'pull open', 'slide open'). "
-        "Do not change the action, object, location, or task constraints."
+        "Allowed examples include alternatives such as 'pull open', 'open up', or other natural paraphrases "
+        "that preserve the task. "
+        "Do not change the object, location, or task constraints. "
+        "Do not replace the verb with one that changes the physical action or intent."
     ),
 
     "verbosity": (
-        "Rewrite the instruction with slightly more verbose wording while keeping the task unchanged. "
-        "You may add neutral framing such as 'for this task' or 'your task is to'. "
-        "Do not add new constraints or execution modifiers (e.g., carefully, slowly, gently, firmly, precisely). "
+        "Rewrite the instruction with slightly more verbose wording while keeping the task exactly the same. "
+        "Allowed changes include adding harmless framing phrases such as 'for this task' or 'your task is to'. "
+        "Do not add new semantic constraints or execution modifiers like carefully, slowly, gently, firmly, or precisely. "
         "Do not change the action, object, or location."
     ),
 
     "context": (
-        "Rewrite the instruction by adding neutral context phrases such as "
-        "'in this scene', 'for this task', or 'in this situation'. "
-        "Do not introduce new objects, locations, colors, or attributes. "
-        "Keep the action, object, and location exactly the same."
-    )
+    "Rewrite the instruction by adding neutral task context phrases such as "
+    "'in this scene', 'for this task', or 'in this situation'. "
+    "Do not introduce new locations, objects, colors, or attributes. "
+    "The action, object, and location must remain exactly the same."
+    )   
 }
+
+# ------------------------------------------------
+# SEED LLM
+# ------------------------------------------------
+SEED = 0
+
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
 
 # ------------------------------------------------
 # Load rollout
@@ -189,7 +205,7 @@ def _generate_one(prompt: str):
         input_ids=inputs["input_ids"],
         attention_mask=inputs["attention_mask"],
         max_new_tokens=20,
-        temperature=0,
+        temperature=0.7,
         top_p=0.9,
         do_sample=True,
         pad_token_id=tokenizer.pad_token_id,
