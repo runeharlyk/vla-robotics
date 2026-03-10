@@ -1,99 +1,158 @@
 {
   "metadata": {
     "llm_model": "Qwen/Qwen2.5-3B-Instruct",
-    "seed": 0,
-    "n_variants_per_type": 10,
-    "variant_types": [
-      "politeness",
-      "sentence_structure",
-      "verb_paraphrase",
-      "verbosity"
-    ]
+    "seed": 0
   },
   "rollouts": [
     {
-      "rollout_path": "smolvla_language_pilot/rollout.h5",
-      "base_instruction": "open the middle drawer of the cabinet",
-      "labels": [
-        "politeness_1",
-        "politeness_2",
-        "politeness_3",
-        "politeness_4",
-        "politeness_5",
-        "politeness_6",
-        "politeness_7",
-        "politeness_8",
-        "politeness_9",
-        "politeness_10",
-        "sentence_structure_1",
-        "sentence_structure_2",
-        "sentence_structure_3",
-        "sentence_structure_4",
-        "sentence_structure_5",
-        "sentence_structure_6",
-        "sentence_structure_7",
-        "sentence_structure_8",
-        "sentence_structure_9",
-        "sentence_structure_10",
-        "verb_paraphrase_1",
-        "verb_paraphrase_2",
-        "verb_paraphrase_3",
-        "verb_paraphrase_4",
-        "verb_paraphrase_5",
-        "verb_paraphrase_6",
-        "verb_paraphrase_7",
-        "verb_paraphrase_8",
-        "verbosity_1",
-        "verbosity_2",
-        "verbosity_3",
-        "verbosity_4",
-        "verbosity_5",
-        "verbosity_6",
-        "verbosity_7",
-        "verbosity_8",
-        "verbosity_9",
-        "verbosity_10"
-      ],
-      "variants": [
-        "Could you please open the middle drawer of the cabinet",
-        "Kindly open the middle drawer located in the cabinet",
-        "Would you open the middle drawer inside the cabinet if possible",
-        "Could you do me a favor and open the middle drawer of the cabinet",
-        "If it's convenient, could you please open the middle drawer of the cabinet",
-        "Would you kindly open the middle drawer within the cabinet",
-        "Kindly open the middle drawer of the cabinet, would you",
-        "Could you please open the middle drawer of the cabinet for me",
-        "Would you open the middle drawer of the cabinet, please",
-        "Could you please open the middle drawer which is situated in the cabinet",
-        "The middle drawer of the cabinet needs to be opened",
-        "Open the drawer located in the middle of the cabinet",
-        "To complete the task, open the drawer that is in the middle of the cabinet",
-        "Lift the middle drawer located inside the cabinet and open it",
-        "Slide out the middle drawer from its place in the cabinet for access",
-        "Execute the opening action for the middle drawer found in the cabinet",
-        "Please bring attention to the middle drawer of the cabinet, which requires opening",
-        "Pull the middle drawer out from the cabinet",
-        "Tap the middle drawer of the cabinet to open it",
-        "Open the cabinet's middle drawer",
-        "Slide the middle drawer of the cabinet open",
-        "Open the middle drawer within the cabinet",
-        "Slide the middle drawer out of the cabinet",
-        "Pull the middle drawer of the cabinet apart",
-        "Open the middle drawer which is situated within the cabinet",
-        "Pull open the middle drawer inside the cabinet",
-        "Open up the middle drawer located in the cabinet",
-        "Open up the middle drawer of the kitchen storage cabinet",
-        "For this task, your objective is to access the middle drawer within the cabinet",
-        "Your task involves reaching and opening the drawer located in the middle of the cabinet",
-        "Please aim to uncover the drawer that resides in the middle section of the cabinet",
-        "The objective here is to locate and open the drawer situated in the middle position of the cabinet",
-        "For this action, you need to access the drawer which is placed in the middle of the cabinet",
-        "The goal is to open the drawer that is housed in the middle area of the cabinet",
-        "For this task, locate and open the middle drawer within the cabinet",
-        "Your task is to access the items inside the middle drawer of the cabinet",
-        "The goal is to reveal the contents of the middle drawer in the cabinet",
-        "To accomplish this, please find and open the middle drawer of the cabinet"
-      ]
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 0,
+      "base_instruction": "pick up the black bowl next to the cookie box and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl next to the cookie box and place it on the plate"
+        ],
+        "politeness": [
+          "would you please pick up the black bowl next to the cookie box and place it on the plate?",
+          "may I ask you to pick up the black bowl next to the cookie box and place it on the plate?",
+          "if you could pick up the black bowl next to the cookie box and place it on the plate?"
+        ],
+        "sentence_structure": [
+          "place the black bowl next to the cookie box on the plate after picking it up",
+          "please take the black bowl next to the cookie box and put it on the plate",
+          "pick up the black bowl from its location near the cookie box and then place it on the plate"
+        ],
+        "verb_paraphrase": [
+          "grasp the black bowl next to the cookie box and set it on the plate",
+          "grab the black bowl next to the cookie box and place it on the plate",
+          "lift the black bowl next to the cookie box and put it on the plate"
+        ],
+        "verbosity": [
+          "I kindly ask you to carefully pick up the beautiful black bowl which is sitting right next to the cookie box and gently place it onto the large, gleaming white plate.",
+          "Please ensure that you take the exquisite black bowl, which is conveniently positioned next to the cookie box, and place it delicately on the designated plate.",
+          "Would you be so kind as to gently retrieve the ornate black bowl, which is resting nearby the cookie box, and carefully place it onto the shiny plate?"
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 1,
+      "base_instruction": "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate"
+        ],
+        "politeness": [
+          "please pick up the black bowl from the top drawer of the wooden cabinet and place it gently on the plate",
+          "could you please pick up the black bowl from the top drawer of the wooden cabinet and place it carefully on the plate?",
+          "would it be alright if you picked up the black bowl from the top drawer of the wooden cabinet and placed it softly on the plate?"
+        ],
+        "sentence_structure": [
+          "place the black bowl on the plate after picking it up from the top drawer of the wooden cabinet",
+          "pick up the black bowl from the top drawer of the wooden cabinet and then place it on the plate",
+          "please take the black bowl from the top drawer of the wooden cabinet and place it on the plate"
+        ],
+        "verb_paraphrase": [
+          "grab the black bowl from the top drawer of the wooden cabinet and put it on the plate",
+          "fetch the black bowl from the top drawer of the wooden cabinet and set it on the plate",
+          "retrieve the black bowl from the top drawer of the wooden cabinet and place it on the plate"
+        ],
+        "verbosity": [
+          "pick up the black bowl from the top drawer of the wooden cabinet and gently place it on the plate so as not to scratch its smooth surface",
+          "ensure that you carefully pick up the black bowl from the top drawer of the wooden cabinet and place it on the plate without disturbing its contents",
+          "take great care when picking up the black bowl from the top drawer of the wooden cabinet and placing it delicately on the plate, avoiding any accidental bumping"
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 2,
+      "base_instruction": "pick up the black bowl on the ramekin and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl on the ramekin and place it on the plate"
+        ],
+        "politeness": [
+          "Could you please pick up the black bowl from the ramekin and place it gently on the plate?",
+          "Would you mind picking up the black bowl from the ramekin and placing it carefully on the plate?",
+          "Please take the black bowl from the ramekin and set it gently on the plate."
+        ],
+        "sentence_structure": [
+          "Pick up the black bowl on the ramekin and put it gently on the plate.",
+          "To pick up the black bowl from the ramekin and place it carefully on the plate.",
+          "Gently pick up the black bowl from the ramekin and place it on the plate."
+        ],
+        "verb_paraphrase": [
+          "Retrieve the black bowl from the ramekin and place it on the plate.",
+          "Take the black bowl off the ramekin and put it on the plate.",
+          "Lift the black bowl from the ramekin and position it on the plate."
+        ],
+        "verbosity": [
+          "With utmost care, please pick up the black bowl from the ramekin and carefully place it on the plate.",
+          "Ensure the black bowl is picked up from the ramekin without jarring it and then placed gently on the plate.",
+          "Take the black bowl from the ramekin and place it on the plate with precision and delicacy."
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 3,
+      "base_instruction": "pick up the black bowl on the stove and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl on the stove and place it on the plate"
+        ],
+        "politeness": [
+          "Could you please pick up the black bowl from the stove and place it on the plate?",
+          "Would you kindly pick up the black bowl from the stove and put it on the plate?",
+          "Please take the black bowl from the stove and put it on the plate."
+        ],
+        "sentence_structure": [
+          "On the stove is the black bowl. Please place it on the plate.",
+          "Pick up the bowl at the stove and then place it on the plate.",
+          "The black bowl is on the stove. Could you put it on the plate?"
+        ],
+        "verb_paraphrase": [
+          "Retrieve the black bowl from the stove and deposit it on the plate.",
+          "Transport the black bowl from the stove to the plate.",
+          "Take the black bowl off the stove and set it down on the plate."
+        ],
+        "verbosity": [
+          "Gently lift the black bowl from its resting spot on the stove and carefully transfer it onto the plate without disturbing its contents.",
+          "With a gentle hand, grasp the black bowl securely from where it stands on the stove and smoothly guide it towards the plate.",
+          "Tenderly lift the black bowl from its precarious position on the stove and carefully transfer it onto the waiting plate."
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 4,
+      "base_instruction": "pick up the black bowl between the plate and the ramekin and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl between the plate and the ramekin and place it on the plate"
+        ],
+        "politeness": [
+          "Please pick up the black bowl between the plate and the ramekin and place it on the plate.",
+          "Could you please pick up the black bowl between the plate and the ramekin and place it on the plate?",
+          "May I ask you to pick up the black bowl between the plate and the ramekin and place it on the plate?"
+        ],
+        "sentence_structure": [
+          "Place the black bowl between the plate and the ramekin on the plate after picking it up.",
+          "After picking up the black bowl between the plate and the ramekin, place it on the plate.",
+          "Pick up the black bowl between the plate and the ramekin, then place it on the plate."
+        ],
+        "verb_paraphrase": [
+          "Retrieve the black bowl between the plate and the ramekin and set it on the plate.",
+          "Fetch the black bowl between the plate and the ramekin and place it on the plate.",
+          "Gather the black bowl between the plate and the ramekin and put it on the plate."
+        ],
+        "verbosity": [
+          "Please carefully retrieve the black bowl located between the plate and the ramekin, and then place it securely on the plate in an organized manner.",
+          "With great care, please fetch the black bowl positioned between the plate and the ramekin, and then skillfully place it on the plate without any mistakes.",
+          "With utmost attention, please carefully retrieve the black bowl situated between the plate and the ramekin, and then methodically place it on the plate with precision."
+        ]
+      }
     }
   ]
 }

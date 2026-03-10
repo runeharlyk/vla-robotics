@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import re
-import difflib
 
 import h5py
 import numpy as np
@@ -16,29 +14,184 @@ try:
 except Exception:
     tqdm = None
 
+from dataclasses import dataclass
+from typing import Dict, List
 
-DEFAULT_CONTROLLED_VARIANTS = {
-    "politeness": (
-        "Rewrite the instruction with polite phrasing while keeping the task unchanged. "
-        "You may add 'please', 'kindly', 'could you', 'would you', 'if possible', or 'I'd like you to'. "
-        "Do not change the action, object, location, or constraints. "
-        "Do not add execution modifiers (e.g., carefully, slowly, gently, precisely)."
-    ),
-    "sentence_structure": (
-        "Rewrite the instruction with a different sentence structure while keeping the task unchanged. "
-        "You may reorder constituents or use an imperative with a clause. "
-        "Do not change the action, object, location, or constraints."
-    ),
-    "verb_paraphrase": (
-        "Rewrite the instruction using a different verb or verb phrase with the same meaning. "
-        "Do not change the action target, object, location, or constraints."
-    ),
-    "verbosity": (
-        "Rewrite the instruction with slightly more verbose wording while keeping the task unchanged. "
-        "Begin the sentence with phrases like 'for this task', 'your task is', or 'the goal is'. "
-        "Do not change the action, object, location, or constraints."
-    ),
-}
+
+PROMPT_TEMPLATE = """You generate controlled instruction variations for robotic manipulation tasks.
+
+Your job is to rewrite a base instruction into category-specific variants while preserving the same underlying action and goal.
+
+Base instruction:
+"{instruction}"
+
+Generate variations for these categories:
+
+1. politeness
+Definition:
+- Make the instruction more polite
+- Keep wording as close as possible to the original
+- Do not restructure unless absolutely necessary
+- Do not add extra context
+- Do not change the verb unless required for politeness
+
+2. sentence_structure
+Definition:
+- Change the syntactic structure of the sentence
+- Preserve the same meaning
+- Do not add politeness markers
+- Do not add unnecessary context
+- Do not change the core verb unless needed by the structure
+
+3. verb_paraphrase
+Definition:
+- Replace or minimally modify the action verb with an equivalent alternative
+- Preserve the same meaning
+- Keep sentence structure as close as possible to the original
+- Do not add politeness markers
+- Do not add unnecessary context
+
+4. verbosity
+Definition:
+- Make the instruction longer with unnecessary but meaning-preserving wording
+- Preserve the same action and goal
+- Do not add politeness markers
+- Do not substantially restructure the sentence
+- Do not change the core verb unless unavoidable
+
+5. original
+Definition:
+- Keep the original instruction unchanged
+
+Global rules:
+- The underlying action must remain exactly the same
+- Variants across categories should overlap as little as possible
+- Each variant should belong to only one category
+- Keep edits minimal for the target category
+- Do not introduce new objects, relations, or goals
+- Do not change drawer position, object identity, or cabinet reference
+- All outputs must be natural English
+- Avoid duplicate variants
+- Create exactly 3 variants for each non-original category
+- Create exactly 1 variant for original
+
+Output format:
+Return valid JSON only.
+Use this schema:
+
+{{
+  "instruction": "<base instruction>",
+  "variants": {{
+    "original": [
+      "<original instruction>"
+    ],
+    "politeness": [
+      "<variant 1>",
+      "<variant 2>",
+      "<variant 3>"
+    ],
+    "sentence_structure": [
+      "<variant 1>",
+      "<variant 2>",
+      "<variant 3>"
+    ],
+    "verb_paraphrase": [
+      "<variant 1>",
+      "<variant 2>",
+      "<variant 3>"
+    ],
+    "verbosity": [
+      "<variant 1>",
+      "<variant 2>",
+      "<variant 3>"
+    ]
+  }}
+}}
+"""
+
+
+@dataclass
+class InstructionVariants:
+    instruction: str
+    variants: Dict[str, List[str]]
+
+    def as_dict(self) -> Dict[str, object]:
+        return {
+            "instruction": self.instruction,
+            "variants": self.variants,
+        }
+
+
+def build_prompt(instruction: str) -> str:
+    return PROMPT_TEMPLATE.format(instruction=instruction)
+
+
+def extract_json(text: str) -> Dict[str, object]:
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise ValueError("No JSON object found in model output")
+        return json.loads(text[start:end + 1])
+
+
+def validate_output(data: Dict[str, object]) -> InstructionVariants:
+    required_categories = {
+        "original": 1,
+        "politeness": 3,
+        "sentence_structure": 3,
+        "verb_paraphrase": 3,
+        "verbosity": 3,
+    }
+
+    if "instruction" not in data or "variants" not in data:
+        raise ValueError("Output must contain 'instruction' and 'variants'")
+
+    instruction = data["instruction"]
+    variants = data["variants"]
+
+    if not isinstance(instruction, str):
+        raise ValueError("'instruction' must be a string")
+
+    if not isinstance(variants, dict):
+        raise ValueError("'variants' must be a dictionary")
+
+    for category, expected_count in required_categories.items():
+        if category not in variants:
+            raise ValueError(f"Missing category: {category}")
+        if not isinstance(variants[category], list):
+            raise ValueError(f"Category '{category}' must be a list")
+        if len(variants[category]) != expected_count:
+            raise ValueError(
+                f"Category '{category}' must contain exactly {expected_count} items"
+            )
+        if not all(isinstance(item, str) and item.strip() for item in variants[category]):
+            raise ValueError(f"Category '{category}' contains invalid entries")
+
+    return InstructionVariants(instruction=instruction, variants=variants)
+
+
+def generate_variants(instruction: str, llm_bundle: dict, max_retries: int = 3) -> InstructionVariants:
+    prompt = build_prompt(instruction)
+    last_error: Exception | None = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            raw_output = _generate_one(prompt, llm_bundle["tokenizer"], llm_bundle["llm"])
+            data = extract_json(raw_output)
+            return validate_output(data)
+        except (ValueError, KeyError) as exc:
+            last_error = exc
+            print(f"Attempt {attempt}/{max_retries} failed for '{instruction}': {exc}")
+    raise RuntimeError(
+        f"Failed to generate valid variants for '{instruction}' after {max_retries} attempts"
+    ) from last_error
+
+
+def print_variants(result: InstructionVariants) -> None:
+    print(json.dumps(result.as_dict(), indent=2, ensure_ascii=False))
 
 
 def _set_seed(seed: int) -> None:
@@ -46,126 +199,6 @@ def _set_seed(seed: int) -> None:
     np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-
-
-def _normalize_instruction(text: str) -> str:
-    return " ".join(text.lower().strip().split())
-
-
-def _cleanup_candidate(text: str) -> str:
-
-    text = text.strip().strip('"').strip("'")
-
-    stop_phrases = [
-        "Sure",
-        "Here",
-        "To adhere",
-        "Following",
-        "Task:",
-        "Instruction:",
-        "Rewrite:",
-    ]
-
-    for phrase in stop_phrases:
-        if phrase in text:
-            text = text.split(phrase)[0]
-
-    # cut after first sentence
-    text = re.split(r"[.!?\n]", text)[0]
-
-    # remove bullet markers
-    text = re.sub(r"^[\-\*\•]+\s*", "", text)
-
-    # collapse repeated segments
-    words = text.split()
-    if len(words) > 6 and words[:3] == words[3:6]:
-        words = words[: len(words) // 2]
-
-    return " ".join(words).strip()
-
-
-def _preserves_core_words(text: str, original: str) -> bool:
-    """Ensure core nouns remain unchanged."""
-    text = text.lower()
-    original = original.lower()
-
-    core_words = ["drawer", "cabinet", "middle"]
-
-    return all(word in text for word in core_words)
-
-
-def _too_similar(text: str, seen: set[str]) -> bool:
-    """Reject near duplicates."""
-    for s in seen:
-        if difflib.SequenceMatcher(None, text, s).ratio() > 0.9:
-            return True
-    return False
-
-
-def _is_valid_candidate(text, original, seen, variant_type):
-
-    if not text:
-        return False
-
-    text = text.strip()
-    text_norm = _normalize_instruction(text)
-
-    if text_norm == _normalize_instruction(original):
-        return False
-
-    if text_norm in seen:
-        return False
-
-    # avoid extremely long outputs
-    if len(text.split()) > 18:
-        return False
-
-    lower = text.lower()
-
-    # preserve required nouns
-    required = ["drawer", "cabinet", "middle"]
-    if not all(w in lower for w in required):
-        return False
-
-    # reject execution modifiers
-    forbidden_modifiers = [
-        "carefully",
-        "gently",
-        "slowly",
-        "precisely",
-        "softly"
-    ]
-
-    if any(m in lower for m in forbidden_modifiers):
-        return False
-
-    # reject malformed grammar
-    if "would you could you" in lower:
-        return False
-
-    # enforce correct actions
-    allowed_actions = [
-        "open",
-        "pull",
-        "slide",
-        "draw"
-    ]
-
-    if variant_type == "verb_paraphrase":
-        if not any(lower.startswith(a) for a in allowed_actions):
-            return False
-
-    # politeness check
-    if variant_type == "politeness":
-        if not any(p in lower for p in ["please", "kindly", "could", "would"]):
-            return False
-
-    # verbosity must be longer
-    if variant_type == "verbosity":
-        if len(text.split()) <= len(original.split()):
-            return False
-
-    return True
 
 
 def load_llm_bundle(llm_model: str = "Qwen/Qwen2.5-3B-Instruct") -> dict:
@@ -184,13 +217,18 @@ def load_llm_bundle(llm_model: str = "Qwen/Qwen2.5-3B-Instruct") -> dict:
 
 
 def _generate_one(prompt: str, tokenizer, llm) -> str:
-    inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant that outputs valid JSON only."},
+        {"role": "user", "content": prompt},
+    ]
+    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    inputs = tokenizer(text, return_tensors="pt")
     inputs = {k: v.to(llm.device) for k, v in inputs.items()}
 
     output = llm.generate(
         input_ids=inputs["input_ids"],
         attention_mask=inputs["attention_mask"],
-        max_new_tokens=200,
+        max_new_tokens=512,
         temperature=0.9,
         top_p=0.9,
         do_sample=True,
@@ -202,147 +240,44 @@ def _generate_one(prompt: str, tokenizer, llm) -> str:
     candidate = tokenizer.decode(generated, skip_special_tokens=True)
     return candidate
 
-def generate_llm_variants_batch(instruction: str, rule: str, llm_bundle: dict, n: int) -> str:
 
-    prompt = f"""
-Rewrite the robot instruction in {n} different ways.
-
-Original instruction:
-{instruction}
-
-Rewrite rule:
-{rule}
-
-Strict constraints:
-- Preserve the object "drawer"
-- Preserve the container "cabinet"
-- Preserve the location "middle"
-- Output exactly {n} sentences
-- Each sentence must be different
-- Do not explain anything
-- Avoid repeating the phrase "Please open the middle drawer of the cabinet"
-
-Return the result as a numbered list.
-
-Example format:
-1. ...
-2. ...
-3. ...
-"""
-
-    return _generate_one(prompt, llm_bundle["tokenizer"], llm_bundle["llm"])
-
-
-def parse_numbered_list(text: str):
-
-    variants = []
-
-    for line in text.split("\n"):
-
-        line = line.strip()
-
-        match = re.match(r"^\d+[\.\)]\s*(.+)", line)
-
-        if match:
-            candidate = _cleanup_candidate(match.group(1))
-            variants.append(candidate)
-
-    return variants
-
-
-def generate_llm_variant(instruction: str, rule: str, llm_bundle: dict) -> str:
-    prompt = f"""Rewrite the robot instruction while keeping the meaning exactly the same.
-
-Original instruction:
-{instruction}
-
-Rewrite rule:
-{rule}
-
-Strict constraints:
-- Output exactly ONE sentence
-- Keep the object "drawer"
-- Keep the container "cabinet"
-- Keep the location "middle"
-- Do NOT replace cabinet with cupboard
-- Do NOT replace drawer with compartment
-- Do NOT repeat the sentence
-- Do NOT add explanations
-
-Rewritten instruction:"""
-
-    return _generate_one(prompt, llm_bundle["tokenizer"], llm_bundle["llm"])
-
-
-def generate_instruction_variants(
-    instruction: str,
-    llm_bundle: dict,
-    controlled_variants: dict[str, str] | None = None,
-    n_variants: int = 10,
-    tries_per_variant: int = 5,
-    seed: int = 0,
-) -> tuple[list[str], list[str]]:
-
-    rules = controlled_variants or DEFAULT_CONTROLLED_VARIANTS
-    variants: list[str] = []
-    labels: list[str] = []
-
-    seen_per_type: dict[str, set[str]] = {
-        name: {_normalize_instruction(instruction)}
-        for name in rules
-    }
-
-    for type_index, (variant_name, rule) in enumerate(rules.items()):
-
-        seen = seen_per_type[variant_name]
-
-        if tqdm:
-            print(f"\nGenerating {variant_name} variants")
-
-        attempts = 0
-
-        while len(seen) - 1 < n_variants and attempts < tries_per_variant:
-
-            local_seed = seed + (type_index * 10000) + attempts
-            _set_seed(local_seed)
-
-            batch_output = generate_llm_variants_batch(
-                instruction,
-                rule,
-                llm_bundle,
-                n_variants
-            )
-
-            candidates = parse_numbered_list(batch_output)
-
-            for candidate in candidates:
-
-                if not _is_valid_candidate(candidate, instruction, seen, variant_name):
-                    continue
-
-                seen.add(_normalize_instruction(candidate))
-
-                variants.append(candidate)
-                labels.append(f"{variant_name}_{len(seen)-1}")
-
-                if len(seen) - 1 == n_variants:
-                    break
-
-            attempts += 1
-
-        print(f"{variant_name}: generated {len(seen)-1}/{n_variants}")
-
-    return variants, labels
-
-
-def _load_rollout_instruction(path: str) -> str:
+def _load_task_instructions(path: str) -> list[dict]:
     with h5py.File(path, "r") as f:
-        return f["instruction"][()].decode("utf-8")
+        # Combined LIBERO export format: demonstrations/* with task attrs.
+        if "demonstrations" in f:
+            demos = f["demonstrations"]
+            tasks: dict[int, str] = {}
+            for demo_key in demos.keys():
+                demo = demos[demo_key]
+                if "task_index" not in demo.attrs or "task" not in demo.attrs:
+                    continue
+                task_index = int(demo.attrs["task_index"])
+                task_text = str(demo.attrs["task"])
+                tasks.setdefault(task_index, task_text)
+
+            ordered = []
+            for task_index in sorted(tasks):
+                ordered.append(
+                    {
+                        "task_index": task_index,
+                        "base_instruction": tasks[task_index],
+                    }
+                )
+            if ordered:
+                return ordered
+
+        # Single-rollout format fallback.
+        if "instruction" in f:
+            return [{"task_index": 0, "base_instruction": f["instruction"][()].decode("utf-8")}]
+
+    raise ValueError(
+        f"Could not find task instructions in {path}. Expected 'demonstrations/*' attrs or root 'instruction'."
+    )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate deterministic instruction variants and save to JSON for reuse."
+        description="Generate instruction variants and save to JSON for reuse."
     )
     parser.add_argument(
         "--rollout",
@@ -352,8 +287,7 @@ def parse_args() -> argparse.Namespace:
         help="Rollout path. Repeat this flag exactly once per rollout.",
     )
     parser.add_argument("--output-json", default="smolvla_language_pilot/instruction_variants.json")
-    parser.add_argument("--llm-model", default="Qwen/Qwen2.5-3B-Instruct")
-    parser.add_argument("--n-variants", type=int, default=10)
+    parser.add_argument("--llm-model", default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--seed", type=int, default=0)
     return parser.parse_args()
 
@@ -367,36 +301,31 @@ def main() -> None:
     rollouts = [str(Path(r).as_posix()) for r in args.rollouts]
     result_rollouts: list[dict] = []
 
-    for idx, rollout_path in enumerate(rollouts):
-        instruction = _load_rollout_instruction(rollout_path)
+    for rollout_path in rollouts:
+        task_entries = _load_task_instructions(rollout_path)
+        print(f"Found {len(task_entries)} task instructions in {rollout_path}")
 
-        # Deterministic per rollout while keeping unique streams.
-        variants, labels = generate_instruction_variants(
-            instruction=instruction,
-            llm_bundle=llm_bundle,
-            controlled_variants=DEFAULT_CONTROLLED_VARIANTS,
-            n_variants=args.n_variants,
-            tries_per_variant=5,
-            seed=args.seed + idx,
-        )
+        for task_entry in task_entries:
+            instruction = task_entry["base_instruction"]
+            task_index = int(task_entry["task_index"])
 
-        result_rollouts.append(
-            {
-                "rollout_path": rollout_path,
-                "base_instruction": instruction,
-                "labels": labels,
-                "variants": variants,
-            }
-        )
+            result = generate_variants(instruction, llm_bundle)
 
-        print(f"Generated {len(variants)} variants for {rollout_path}")
+            result_rollouts.append(
+                {
+                    "rollout_path": rollout_path,
+                    "task_index": task_index,
+                    "base_instruction": instruction,
+                    "variants": result.variants,
+                }
+            )
+
+            print(f"Generated variants for task_index={task_index}: {instruction}")
 
     payload = {
         "metadata": {
             "llm_model": args.llm_model,
             "seed": args.seed,
-            "n_variants_per_type": args.n_variants,
-            "variant_types": list(DEFAULT_CONTROLLED_VARIANTS.keys()),
         },
         "rollouts": result_rollouts,
     }
