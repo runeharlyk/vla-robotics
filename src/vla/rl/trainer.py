@@ -19,6 +19,7 @@ implements :class:`~vla.rl.rollout.RolloutEngine` (ManiSkill or LIBERO).
 from __future__ import annotations
 
 import copy
+import json
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
@@ -38,6 +39,18 @@ from vla.rl.srpo_reward import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _to_json_serializable(obj: Any) -> Any:
+    if isinstance(obj, (int, float, str, bool, type(None))):
+        return obj
+    if isinstance(obj, (list, tuple)):
+        return [_to_json_serializable(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _to_json_serializable(v) for k, v in obj.items()}
+    if hasattr(obj, "item"):
+        return obj.item()
+    return obj
 
 
 @dataclass
@@ -350,6 +363,8 @@ def train_srpo(
     B = config.fm_batch_size
 
     save_path = Path(config.save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    metrics_path = save_path / "metrics.jsonl"
     best_success = -1.0
 
     _save_meta = dict(
@@ -406,6 +421,8 @@ def train_srpo(
             }
             if wandb_run is not None:
                 wandb_run.log(log_data)
+            with open(metrics_path, "a") as f:
+                f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
             continue
 
         # ── 4. Cache FM losses under θ_old AND π_ref (computed once) ────
@@ -557,6 +574,9 @@ def train_srpo(
                 policy.save_checkpoint(save_path / "best", **_save_meta)
                 logger.info(f"New best {config.mode} checkpoint: {best_success:.2%}")
 
+        with open(metrics_path, "a") as f:
+            f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
+
     policy.save_checkpoint(save_path / "last", **_save_meta)
     rollout_engine.close()
     return policy
@@ -647,6 +667,8 @@ def train_srpo_multitask(
 
     B = config.fm_batch_size
     save_path = Path(config.save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    metrics_path = save_path / "metrics.jsonl"
     best_success = -1.0
 
     for iteration in range(1, config.num_iterations + 1):
@@ -873,6 +895,8 @@ def train_srpo_multitask(
 
         if wandb_run is not None:
             wandb_run.log(log_data)
+        with open(metrics_path, "a") as f:
+            f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
 
     policy.save_checkpoint(save_path / "last")
     for engine in engines.values():
