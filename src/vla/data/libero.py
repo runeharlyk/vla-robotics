@@ -28,37 +28,154 @@ def _load_libero_v2_from_hf(
     per-episode parquet files.
     """
     from datasets import load_dataset
-    from huggingface_hub import hf_hub_download
+    from huggingface_hub import hf_hub_download, list_repo_files
+    from huggingface_hub.errors import EntryNotFoundError
 
     def _dl(path: str) -> Path:
         return Path(hf_hub_download(repo_id, path, repo_type="dataset"))
+
+    repo_files = set(list_repo_files(repo_id, repo_type="dataset"))
+
+    def _available(candidates: list[str]) -> list[str]:
+        return [p for p in candidates if p in repo_files]
+
+    def _read_jsonl(path: str) -> list[dict]:
+        rows: list[dict] = []
+        with open(_dl(path)) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rows.append(json.loads(line))
+        return rows
+
+    def _first_available_jsonl(candidates: list[str]) -> tuple[list[dict], str]:
+        existing = _available(candidates)
+        if not existing:
+            raise EntryNotFoundError(f"None of the candidate files exist: {candidates}")
+        for p in existing:
+            try:
+                return _read_jsonl(p), p
+            except json.JSONDecodeError:
+                continue
+        raise ValueError(f"Failed to parse any JSONL candidate: {existing}")
+
+    def _read_json(path: str) -> tuple[object, str]:
+        if path not in repo_files:
+            raise EntryNotFoundError(f"{path} not found in {repo_id}")
+        with open(_dl(path)) as f:
+            return json.load(f), path
+
+    def _read_parquet_rows(paths: list[str]) -> list[dict]:
+        ds_meta = load_dataset(repo_id, data_files=paths, split="train")
+        return [dict(ds_meta[i]) for i in range(len(ds_meta))]
 
     with open(_dl("meta/info.json")) as f:
         json.load(f)
     with open(_dl("meta/stats.json")) as f:
         stats_raw = json.load(f)
     task_map: dict[int, str] = {}
-    with open(_dl("meta/tasks.jsonl")) as f:
-        for line in f:
-            entry = json.loads(line)
-            task_map[int(entry["task_index"])] = entry["task"]
+    task_rows: list[dict] = []
+    task_meta_source = ""
+    try:
+        task_rows, task_meta_source = _first_available_jsonl(["meta/tasks.jsonl"])
+    except EntryNotFoundError:
+        for alt in ("meta/tasks.json", "meta/tasks"):
+            try:
+                loaded, source = _read_json(alt)
+                if isinstance(loaded, list):
+                    task_rows = [x for x in loaded if isinstance(x, dict)]
+                    task_meta_source = source
+                    break
+                if isinstance(loaded, dict):
+                    if "tasks" in loaded and isinstance(loaded["tasks"], list):
+                        task_rows = [x for x in loaded["tasks"] if isinstance(x, dict)]
+                        task_meta_source = source
+                        break
+                    tmp: list[dict] = []
+                    for k, v in loaded.items():
+                        if isinstance(v, str):
+                            try:
+                                tmp.append({"task_index": int(k), "task": v})
+                            except Exception:
+                                continue
+                    if tmp:
+                        task_rows = tmp
+                        task_meta_source = source
+                        break
+            except EntryNotFoundError:
+                continue
+    if not task_rows and "meta/tasks.parquet" in repo_files:
+        task_rows = _read_parquet_rows(["meta/tasks.parquet"])
+        task_meta_source = "meta/tasks.parquet"
 
-    episodes_meta: list[dict] = []
-    with open(_dl("meta/episodes.jsonl")) as f:
-        for line in f:
-            episodes_meta.append(json.loads(line))
+    for entry in task_rows:
+        idx = entry.get("task_index", entry.get("task_id", entry.get("id", entry.get("index"))))
+        name = entry.get("task", entry.get("task_name", entry.get("name", entry.get("instruction"))))
+        if idx is None or name is None:
+            continue
+        try:
+            task_map[int(idx)] = str(name)
+        except Exception:
+            continue
+
+    try:
+        episodes_meta, episodes_meta_source = _first_available_jsonl(["meta/episodes.jsonl"])
+    except EntryNotFoundError:
+        episode_parquets = sorted(
+            p for p in repo_files if p.startswith("meta/episodes/") and p.endswith(".parquet")
+        )
+        if not episode_parquets:
+            raise EntryNotFoundError(
+                "No episode metadata found. Expected one of: "
+                "meta/episodes.jsonl or meta/episodes/**/*.parquet"
+            )
+        episodes_meta = _read_parquet_rows(episode_parquets)
+        episodes_meta_source = "meta/episodes/**/*.parquet"
+
+    if not task_map:
+        for e in episodes_meta:
+            ep_task = e.get("task_index")
+            if ep_task is None:
+                continue
+            name = ""
+            tasks = e.get("tasks")
+            if isinstance(tasks, list) and tasks:
+                name = str(tasks[0])
+            elif isinstance(e.get("task"), str):
+                name = str(e["task"])
+            elif isinstance(e.get("task_name"), str):
+                name = str(e["task_name"])
+            if name:
+                try:
+                    task_map[int(ep_task)] = name
+                except Exception:
+                    continue
+        task_meta_source = f"derived_from_{episodes_meta_source}"
+
+    logger.info(
+        "LIBERO metadata source: tasks=%s episodes=%s (repo=%s)",
+        task_meta_source or "unknown",
+        episodes_meta_source,
+        repo_id,
+    )
 
     if task_id is not None:
         task_name = task_map.get(task_id, "")
         filtered = []
         for e in episodes_meta:
             ep_task = e.get("task_index")
-            if ep_task is not None and int(ep_task) == task_id:
-                filtered.append(e)
-            elif task_name and task_name in e.get("tasks", []):
+            if (ep_task is not None and int(ep_task) == task_id) or (task_name and task_name in e.get("tasks", [])):
                 filtered.append(e)
         if filtered:
             episodes_meta = filtered
+        elif task_name:
+            logger.warning(
+                "No episodes matched task_id=%d task_name=%r in %s",
+                task_id,
+                task_name,
+                episodes_meta_source,
+            )
 
     total_eps = len(episodes_meta)
     if num_demos is not None and num_demos < total_eps:
@@ -66,9 +183,36 @@ def _load_libero_v2_from_hf(
         indices = torch.randperm(total_eps, generator=gen)[:num_demos].tolist()
         episodes_meta = [episodes_meta[i] for i in sorted(indices)]
 
-    ep_indices = [e["episode_index"] for e in episodes_meta]
-    data_files = [f"data/chunk-000/episode_{i:06d}.parquet" for i in ep_indices]
-    ds = load_dataset(repo_id, data_files=data_files, split="train")
+    ep_indices = [int(e["episode_index"]) for e in episodes_meta]
+    per_episode_files = sorted(
+        p for p in repo_files if p.startswith("data/chunk-") and "/episode_" in p and p.endswith(".parquet")
+    )
+    chunk_files = sorted(
+        p for p in repo_files if p.startswith("data/chunk-") and "/file-" in p and p.endswith(".parquet")
+    )
+    if per_episode_files:
+        data_files = [f"data/chunk-000/episode_{i:06d}.parquet" for i in ep_indices]
+        ds = load_dataset(repo_id, data_files=data_files, split="train")
+    elif chunk_files:
+        chunk_pairs = {
+            (int(e["data/chunk_index"]), int(e["data/file_index"]))
+            for e in episodes_meta
+            if "data/chunk_index" in e and "data/file_index" in e
+        }
+        candidate_files = [
+            f"data/chunk-{ci:03d}/file-{fi:03d}.parquet"
+            for ci, fi in sorted(chunk_pairs)
+        ]
+        data_files = [p for p in candidate_files if p in repo_files]
+        if not data_files:
+            data_files = chunk_files
+        ds = load_dataset(repo_id, data_files=data_files, split="train")
+        selected = set(ep_indices)
+        ds = ds.filter(lambda row: int(row["episode_index"]) in selected)
+    else:
+        ds = load_dataset(repo_id, split="train")
+        selected = set(ep_indices)
+        ds = ds.filter(lambda row: int(row["episode_index"]) in selected)
 
     def _cast_stats(key: str) -> tuple[torch.Tensor, torch.Tensor]:
         s = stats_raw.get(key, {})
