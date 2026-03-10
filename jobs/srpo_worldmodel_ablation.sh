@@ -36,6 +36,8 @@ for WM in dinov2 vjepa2; do
         --iterations "$ITERS" \
         --trajs-per-iter "$TRAJS" \
         --num-rollout-envs "$ENVS" \
+        --ppo-epochs 1 \
+        --max-steps 280 \
         --fm-batch-size 128 \
         --gradient-checkpointing \
         --seed "$SEED" \

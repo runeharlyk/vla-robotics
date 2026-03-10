@@ -32,7 +32,7 @@ uv run python scripts/train_srpo.py \
     --trajs-per-iter 8 \
     --num-rollout-envs 8 \
     --fm-batch-size 64 \
-    --ppo-epochs 4 \
+    --ppo-epochs 1 \
     --clip-epsilon 0.2 \
     --kl-coeff 0.01 \
     --eval-every 20 \

@@ -34,11 +34,11 @@ uv run python scripts/train_srpo.py \
     --num-rollout-envs 8 \
     --fm-batch-size 128 \
     --gradient-checkpointing \
-    --ppo-epochs 4 \
+    --ppo-epochs 1 \
     --clip-epsilon 0.2 \
     --kl-coeff 0.01 \
     --eval-every 10 \
     --eval-episodes 50 \
     --max-steps 280 \
-    --world-model dinov2 \
+    --world-model vjepa2 \
     --wandb

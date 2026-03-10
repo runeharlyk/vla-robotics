@@ -370,3 +370,32 @@ An alternative reward shaping strategy uses pixel-level world models (e.g., vide
 - Zero-shot generation suffers from poor scene consistency and physically implausible outputs.
 - Task-specific SFT on expert demonstrations could mitigate this but is costly and hard to scale.
 - This approach is considered **inferior** to SRPO's latent world representation paradigm, which requires no video generation and is more cost-effective and generalizable.
+
+---
+
+## Additional Findings from SiiRL Repository
+
+The SiiRL training code and launch scripts reveal several practical implementation details that are not explicit in the paper text:
+
+### Reward Pipeline Details
+
+- The embodied reward manager applies reward at the **terminal valid action token** using `finish_step * action_token_len`.
+- A `reward_coef` scaling term is present in the reward manager path (example script value: `5.0`).
+- Validation verification uses the environment completion signal (`complete`) as success score and reports aggregate success-style metrics.
+
+### Sampling and Filtering Logic
+
+- Embodied training supports prompt-group filtering via `algorithm.filter_groups.enable=True`.
+- Accuracy filtering keeps only prompt groups with mean success in a bounded range (example script values: `0.1 <= acc <= 0.9`).
+- Optional truncation filtering removes groups that hit `max_steps`, based on `finish_step`.
+
+### Policy Optimization Details
+
+- PPO implementation includes **dual-clip logic** with asymmetric clip ranges (`clip_ratio_low`, `clip_ratio_high`) and an extra `clip_ratio_c` term.
+- KL control supports both **fixed** and **adaptive** controllers (`target_kl`, `horizon`).
+- GRPO advantage computation in embodied mode uses a finish-step-derived mask over action tokens.
+
+### Script-Level Defaults Observed
+
+- Common SRPO launch settings include: `ppo_epochs=1`, `grad_clip=1.0`, `clip_ratio_low=0.2`, `clip_ratio_high=0.28`, `num_envs=16`, `max_steps=512`, and rollout sampling with `temperature=1.6`.
+- Critic is disabled in SRPO runs (`critic.use_critic_model=False`) with `adv_estimator=grpo`.
