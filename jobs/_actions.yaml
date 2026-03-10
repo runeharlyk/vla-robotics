@@ -117,8 +117,10 @@ train-srpo-libero-hf: |
   uv run python scripts/train_srpo.py \
       --simulator libero \
       --suite {suite} \
-      --task-id {task_id} \
+      {task_id_flag} \
       --libero-suite {libero_suite} \
+      {multitask_flag} \
+      {trajs_per_task_flag} \
       --mode {mode} \
       --num-demos {num_demos} \
       --seed {seed} \

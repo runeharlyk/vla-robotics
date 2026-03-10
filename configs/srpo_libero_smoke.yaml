@@ -2,7 +2,8 @@ action: train-srpo-libero-hf
 
 libero_suite: spatial
 suite: spatial
-task_id: 5
+multitask_flag: --multitask
+trajs_per_task_flag: --trajs-per-task 4
 mode: srpo
 num_demos: 1
 seed: 42

@@ -7,7 +7,8 @@ Usage:
     uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/best --num-rollout-envs 16
 
     # LIBERO (subprocess-vectorised):
-    uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/best --simulator libero --suite spatial --num-rollout-envs 8
+    uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/best \
+        --simulator libero --suite spatial --num-rollout-envs 8
 
     # Sparse RL ablation:
     uv run python scripts/train_srpo.py --sft-checkpoint ... --mode sparse_rl
@@ -16,10 +17,12 @@ Usage:
     uv run python scripts/train_srpo.py --sft-checkpoint ... --data data/preprocessed/peginsertionside.pt --mode srpo
 
     # SRPO on LIBERO loading demos directly from HuggingFace (no .pt needed):
-    uv run python scripts/train_srpo.py --simulator libero --suite spatial --task-id 0 --libero-suite spatial --mode srpo
+    uv run python scripts/train_srpo.py --simulator libero --suite spatial \
+        --task-id 0 --libero-suite spatial --mode srpo
 
     # Multi-task SRPO across an entire LIBERO suite:
-    uv run python scripts/train_srpo.py --sft-checkpoint ... --simulator libero --suite spatial --multitask --data-dir data/preprocessed/spatial --mode srpo
+    uv run python scripts/train_srpo.py --sft-checkpoint ... --simulator libero \
+        --suite spatial --multitask --libero-suite spatial --mode srpo
 """
 
 from __future__ import annotations
@@ -52,6 +55,88 @@ def _discover_data(data_path: Path | None) -> Path:
         names = ", ".join(p.name for p in pts)
         logging.warning("Multiple .pt files: %s. Using %s.", names, pts[0].name)
     return pts[0]
+
+
+def _load_multitask_data(
+    *,
+    data_dir: Path | None,
+    libero_suite: str | None,
+    num_demos: int,
+    seed: int,
+    simulator: str,
+    suite: str,
+    include_demos: bool,
+) -> tuple[list[TaskSpec], dict[str, list[Trajectory]] | None, int, int]:
+    from vla.constants import ACTION_DIM
+
+    demo_trajectories = {} if include_demos else None
+
+    if simulator == "libero" and libero_suite is not None and data_dir is None:
+        from vla.data.libero import LiberoSFTDataset
+
+        catalog = LiberoSFTDataset(suite=libero_suite, num_demos=1, seed=seed)
+        task_map = {
+            int(task_idx): str(instruction)
+            for task_idx, instruction in sorted(getattr(catalog, "_task_map", {}).items())
+        }
+        if not task_map:
+            raise ValueError(f"No LIBERO tasks found for suite {libero_suite!r}")
+
+        task_specs: list[TaskSpec] = []
+        for task_idx, task_instruction in task_map.items():
+            task_key = f"{suite}_task_{task_idx}"
+            task_specs.append(
+                TaskSpec(
+                    task_id=task_key,
+                    instruction=task_instruction or "complete the manipulation task",
+                    env_id=f"libero_{libero_suite}",
+                    libero_task_idx=task_idx,
+                )
+            )
+            if demo_trajectories is not None:
+                task_dataset = LiberoSFTDataset(
+                    suite=libero_suite,
+                    num_demos=num_demos,
+                    seed=seed,
+                    task_id=task_idx,
+                )
+                trajs = task_dataset.episodes_as_trajectories(task_id=task_idx)
+                for traj in trajs:
+                    traj.task_id = task_key
+                demo_trajectories[task_key] = trajs
+
+        return task_specs, demo_trajectories, catalog.state_dim, ACTION_DIM
+
+    if data_dir is None:
+        data_dir = PREPROCESSED_DIR
+    pt_files = sorted(Path(data_dir).glob("*.pt"))
+    if not pt_files:
+        raise FileNotFoundError(f"No .pt files found in {data_dir}")
+
+    datasets: list[FewDemoDataset] = []
+    task_specs = []
+    for idx, pt_path in enumerate(pt_files):
+        ds = FewDemoDataset(pt_path, num_demos=num_demos, seed=seed)
+        datasets.append(ds)
+        task_id_str = pt_path.stem
+        task_instruction = ds.metadata.get("instruction", "complete the manipulation task")
+        task_specs.append(
+            TaskSpec(
+                task_id=task_id_str,
+                instruction=task_instruction,
+                env_id=ds.metadata.get("env_id", ""),
+                libero_task_idx=ds.metadata.get("libero_task_id", idx),
+                data_path=str(pt_path),
+            )
+        )
+        if demo_trajectories is not None:
+            trajs = ds.episodes_as_trajectories()
+            for traj in trajs:
+                traj.task_id = task_id_str
+            demo_trajectories[task_id_str] = trajs
+
+    resolved_action_dim = ACTION_DIM if simulator == "libero" else datasets[0].action_dim
+    return task_specs, demo_trajectories, datasets[0].state_dim, resolved_action_dim
 
 
 def main(
@@ -111,8 +196,8 @@ def main(
     Use ``--num-rollout-envs N`` to enable vectorised parallel rollouts
     (recommended: set equal to ``--trajs-per-iter`` for full parallelism).
 
-    Use ``--multitask`` with ``--data-dir`` pointing to a directory of per-task
-    ``.pt`` files to run multi-task SRPO with per-task reward models.
+    Use ``--multitask`` with either ``--data-dir`` or ``--libero-suite`` to run
+    multi-task SRPO with per-task reward models.
     """
     seed_everything(seed)
     device = get_device()
@@ -127,6 +212,7 @@ def main(
             sft_checkpoint=sft_checkpoint,
             checkpoint=checkpoint,
             data_dir=data_dir,
+            libero_suite=libero_suite,
             num_demos=num_demos,
             mode=mode,
             simulator=simulator,
@@ -278,6 +364,7 @@ def _run_multitask(
     sft_checkpoint: Path | None,
     checkpoint: str,
     data_dir: Path | None,
+    libero_suite: str | None,
     num_demos: int,
     mode: str,
     simulator: str,
@@ -304,45 +391,27 @@ def _run_multitask(
     use_wandb: bool,
     device: str,
 ) -> None:
-    """Build TaskSpecs from a directory of .pt files and launch multi-task training."""
-    from vla.constants import ACTION_DIM
+    """Build TaskSpecs and launch multi-task training."""
+    task_specs, demo_trajectories, resolved_state_dim, resolved_action_dim = _load_multitask_data(
+        data_dir=data_dir,
+        libero_suite=libero_suite,
+        num_demos=num_demos,
+        seed=seed,
+        simulator=simulator,
+        suite=suite,
+        include_demos=mode == "srpo",
+    )
 
-    if data_dir is None:
-        data_dir = PREPROCESSED_DIR
-    pt_files = sorted(Path(data_dir).glob("*.pt"))
-    if not pt_files:
-        raise FileNotFoundError(f"No .pt files found in {data_dir}")
-
-    datasets: list[FewDemoDataset] = []
-    task_specs: list[TaskSpec] = []
-    for idx, pt_path in enumerate(pt_files):
-        ds = FewDemoDataset(pt_path, num_demos=num_demos, seed=seed)
-        datasets.append(ds)
-        task_id_str = pt_path.stem
-        task_instruction = ds.metadata.get("instruction", "complete the manipulation task")
-        task_specs.append(
-            TaskSpec(
-                task_id=task_id_str,
-                instruction=task_instruction,
-                env_id=ds.metadata.get("env_id", ""),
-                libero_task_idx=ds.metadata.get("libero_task_id", idx),
-                data_path=str(pt_path),
-            )
-        )
-
-    logging.info("Multi-task SRPO: %d tasks discovered from %s", len(task_specs), data_dir)
+    use_libero_suite = simulator == "libero" and libero_suite is not None and data_dir is None
+    source_desc = libero_suite if use_libero_suite else str(data_dir or PREPROCESSED_DIR)
+    logging.info("Multi-task SRPO: %d tasks discovered from %s", len(task_specs), source_desc)
     for spec in task_specs:
         logging.info("  [%s] instruction=%r  libero_idx=%d", spec.task_id, spec.instruction, spec.libero_task_idx)
-
-    if simulator == "libero":
-        resolved_action_dim = ACTION_DIM
-    else:
-        resolved_action_dim = datasets[0].action_dim
 
     policy = SmolVLAPolicy(
         checkpoint=checkpoint,
         action_dim=resolved_action_dim,
-        state_dim=datasets[0].state_dim,
+        state_dim=resolved_state_dim,
         device=str(device),
     )
     if sft_checkpoint is not None:
@@ -351,15 +420,13 @@ def _run_multitask(
     else:
         logging.info("No SFT checkpoint – using pretrained %s weights directly", checkpoint)
 
-    demo_trajectories: dict[str, list[Trajectory]] | None = None
-    if mode == "srpo":
-        demo_trajectories = {}
-        for spec, ds in zip(task_specs, datasets, strict=True):
-            trajs = ds.episodes_as_trajectories()
-            for t in trajs:
-                t.task_id = spec.task_id
-            demo_trajectories[spec.task_id] = trajs
-            logging.info("  [%s] %d demo trajectories for reference seeding", spec.task_id, len(trajs))
+    if demo_trajectories is not None:
+        for spec in task_specs:
+            logging.info(
+                "  [%s] %d demo trajectories for reference seeding",
+                spec.task_id,
+                len(demo_trajectories.get(spec.task_id, [])),
+            )
 
     config = SRPOConfig(
         lr=lr,
@@ -380,7 +447,7 @@ def _run_multitask(
         dbscan_min_samples=dbscan_min_samples,
         simulator=simulator,
         suite=suite,
-        state_dim=datasets[0].state_dim,
+        state_dim=resolved_state_dim,
         num_rollout_envs=num_rollout_envs,
         num_eval_envs=num_eval_envs,
         fm_batch_size=fm_batch_size,
