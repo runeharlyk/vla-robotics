@@ -540,6 +540,9 @@ def train_srpo(
                 num_eval_envs=config.num_eval_envs,
             )
             print_metrics(metrics, tag=f"{config.mode} iter {iteration}")
+            log_data[f"{config.mode}/success_rate"] = metrics.success_rate
+            log_data[f"{config.mode}/mean_reward"] = metrics.mean_reward
+            log_data[f"{config.mode}/mean_ep_len"] = metrics.mean_episode_length
             if wandb_run is not None:
                 wandb_run.log(
                     {
@@ -832,8 +835,6 @@ def train_srpo_multitask(
         logger.info(f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  successes={total_successes}/{M}")
         for tid in per_task_successes:
             logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
-        if wandb_run is not None:
-            wandb_run.log(log_data)
 
         # ── 8. Periodic evaluation ───────────────────────────────────────
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
@@ -849,15 +850,9 @@ def train_srpo_multitask(
                     num_eval_envs=config.num_eval_envs,
                 )
                 print_metrics(metrics, tag=f"{config.mode} iter {iteration} (suite={config.suite})")
-                if wandb_run is not None:
-                    wandb_run.log(
-                        {
-                            f"{config.mode}/eval/success_rate": metrics.success_rate,
-                            f"{config.mode}/eval/mean_reward": metrics.mean_reward,
-                            f"{config.mode}/eval/mean_ep_len": metrics.mean_episode_length,
-                            f"{config.mode}/eval/iteration": iteration,
-                        }
-                    )
+                log_data[f"{config.mode}/eval/success_rate"] = metrics.success_rate
+                log_data[f"{config.mode}/eval/mean_reward"] = metrics.mean_reward
+                log_data[f"{config.mode}/eval/mean_ep_len"] = metrics.mean_episode_length
                 if metrics.success_rate > best_success:
                     best_success = metrics.success_rate
                     policy.save_checkpoint(save_path / "best")
@@ -874,13 +869,10 @@ def train_srpo_multitask(
                         seed=config.seed + 20000,
                     )
                     print_metrics(metrics, tag=f"{config.mode} iter {iteration} [{spec.task_id}]")
-                    if wandb_run is not None:
-                        wandb_run.log(
-                            {
-                                f"{config.mode}/{spec.task_id}/eval/success_rate": metrics.success_rate,
-                                f"{config.mode}/{spec.task_id}/eval/iteration": iteration,
-                            }
-                        )
+                    log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
+
+        if wandb_run is not None:
+            wandb_run.log(log_data)
 
     policy.save_checkpoint(save_path / "last")
     for engine in engines.values():

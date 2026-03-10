@@ -181,7 +181,7 @@ class WorldProgressReward:
 
         k = self.cfg.dbscan_min_samples
         if self.cfg.dbscan_auto_eps and len(X) > k:
-            kth_dists = NearestNeighbors(n_neighbors=k).fit(X).kneighbors(X)[0][:, -1]
+            kth_dists = NearestNeighbors(n_neighbors=k).fit(X).kneighbors()[0][:, -1]
             eps = float(np.percentile(kth_dists, self.cfg.dbscan_percentile))
         else:
             eps = self.cfg.dbscan_eps
