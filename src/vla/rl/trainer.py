@@ -4,13 +4,14 @@ Implements the full SRPO algorithm (Section 3.3 of the paper):
   1. Collect M trajectories with π_θ_old.
   2. Compute world-progress trajectory rewards g_i via the world model.
   3. Compute trajectory-level advantages  = (g_i − μ_g) / σ_g.
-  4. Cache per-step flow-matching losses under θ_old **and** π_ref
-     (batched, computed once).
-  5. For each PPO-epoch:
-       - Recompute per-step FM losses under θ (mini-batched)
-       - Clipped surrogate loss + KL regularisation against π_ref
-       - Accumulate gradients across trajectories, step once per epoch.
-  6. Update θ_old ← θ, add any new successes to reference set.
+  4. Policy update (selected via ``config.update_method``):
+     **AWR** (default, recommended for flow-matching policies):
+       - Weight each trajectory's FM loss by exp(advantage / β)
+       - No importance-sampling ratios needed
+     **PPO** (legacy, for discrete-token policies):
+       - Cache FM losses under θ_old and π_ref
+       - Clipped surrogate loss + KL regularisation
+  5. Update θ_old ← θ, add any new successes to reference set.
 
 The rollout engine is **simulator-agnostic**: pass in any object that
 implements :class:`~vla.rl.rollout.RolloutEngine` (ManiSkill or LIBERO).
@@ -21,6 +22,7 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import math
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,9 +65,13 @@ class SRPOConfig:
     max_grad_norm: float = 10.0
     num_iterations: int = 100
     trajectories_per_iter: int = 16
+    update_method: str = "awr"
     ppo_epochs: int = 4
     clip_epsilon: float = 0.2
     clip_epsilon_high: float = 0.2
+    awr_epochs: int = 2
+    awr_temperature: float = 5.0
+    awr_weight_clip: float = 20.0
     kl_coeff: float = 0.01
     eval_every: int = 10
     eval_episodes: int = 50
@@ -425,7 +431,7 @@ def train_srpo(
                 f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
             continue
 
-        # ── 4. Cache FM losses under θ_old AND π_ref (computed once) ────
+        # ── 4. Pre-sample fixed noise/time for FM loss computation ──────
         policy.eval()
         fixed_noise_per_traj: list[torch.Tensor] = []
         fixed_time_per_traj: list[torch.Tensor] = []
@@ -435,102 +441,163 @@ def train_srpo(
             fixed_noise_per_traj.append(noise)
             fixed_time_per_traj.append(time)
 
-        merged_traj, merged_noise, merged_time, traj_lengths = _merge_trajectory_data(
-            trajectories, fixed_noise_per_traj, fixed_time_per_traj,
-        )
-
-        with torch.no_grad():
-            all_old = _compute_fm_loss_batched(
-                policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
-            )
-            old_losses_per_traj = list(torch.split(all_old.detach(), traj_lengths))
-
-            all_ref = _compute_fm_loss_batched(
-                ref_policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
-            )
-            ref_losses_per_traj = list(torch.split(all_ref.detach(), traj_lengths))
-
-        del merged_traj
-
-        # ── 5. PPO epochs (batched forward, gradient accumulation) ──────
-        policy.train()
-        total_surrogate = 0.0
-        total_kl = 0.0
         M = len(trajectories)
 
-        for _ppo_epoch in range(config.ppo_epochs):
-            optimizer.zero_grad()
-            epoch_clip_loss = 0.0
-            epoch_kl = 0.0
-
-            for i, traj in enumerate(trajectories):
-                adv_i = advantages[i]
-                old_losses_t = old_losses_per_traj[i]
-                ref_losses_t = ref_losses_per_traj[i]
-                noise = fixed_noise_per_traj[i]
-                time = fixed_time_per_traj[i]
-
-                new_losses_t = _compute_fm_loss_batched(
-                    policy,
-                    traj,
-                    instruction,
-                    noise,
-                    time,
-                    batch_size=B,
+        if config.update_method == "awr":
+            # ── 5a. AWR: advantage-weighted FM regression ────────────────
+            ref_losses_per_traj: list[torch.Tensor] = []
+            if config.kl_coeff > 0:
+                merged_traj, merged_noise, merged_time, traj_lengths = _merge_trajectory_data(
+                    trajectories, fixed_noise_per_traj, fixed_time_per_traj,
                 )
-
-                log_ratios = old_losses_t - new_losses_t
-                ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
-
-                adv_t = torch.full_like(ratios, adv_i)
-
-                surr1 = ratios * adv_t
-                surr2 = (
-                    torch.clamp(
-                        ratios,
-                        1.0 - config.clip_epsilon,
-                        1.0 + config.clip_epsilon_high,
+                with torch.no_grad():
+                    all_ref = _compute_fm_loss_batched(
+                        ref_policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
                     )
-                    * adv_t
+                    ref_losses_per_traj = list(torch.split(all_ref.detach(), traj_lengths))
+                del merged_traj
+
+            policy.train()
+            total_weighted_loss = 0.0
+            total_kl = 0.0
+            total_weight = 0.0
+
+            num_epochs = config.awr_epochs
+            for _epoch in range(num_epochs):
+                optimizer.zero_grad()
+                epoch_loss = 0.0
+                epoch_kl = 0.0
+                epoch_weight = 0.0
+
+                for i, traj in enumerate(trajectories):
+                    adv_i = advantages[i]
+                    weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
+
+                    fm_loss = _compute_fm_loss_batched(
+                        policy, traj, instruction,
+                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
+                        batch_size=B,
+                    ).mean()
+
+                    traj_loss = weight * fm_loss / M
+
+                    if config.kl_coeff > 0 and ref_losses_per_traj:
+                        ref_fm = ref_losses_per_traj[i].mean()
+                        kl_approx = 0.5 * (ref_fm - fm_loss) ** 2
+                        traj_loss = traj_loss + config.kl_coeff * kl_approx / M
+                        epoch_kl += (config.kl_coeff * kl_approx).item()
+
+                    traj_loss.backward()
+                    epoch_loss += (weight * fm_loss).item()
+                    epoch_weight += weight
+
+                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+                optimizer.step()
+
+                total_weighted_loss += epoch_loss
+                total_kl += epoch_kl
+                total_weight += epoch_weight
+
+            avg_loss = total_weighted_loss / max(num_epochs * M, 1)
+            avg_kl = total_kl / max(num_epochs * M, 1)
+            avg_weight = total_weight / max(num_epochs * M, 1)
+
+        else:
+            # ── 5b. PPO: clipped surrogate with importance sampling ──────
+            merged_traj, merged_noise, merged_time, traj_lengths = _merge_trajectory_data(
+                trajectories, fixed_noise_per_traj, fixed_time_per_traj,
+            )
+
+            with torch.no_grad():
+                all_old = _compute_fm_loss_batched(
+                    policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
                 )
-                clip_loss = -torch.min(surr1, surr2).mean()
+                old_losses_per_traj = list(torch.split(all_old.detach(), traj_lengths))
 
-                log_ratio_ref = ref_losses_t - new_losses_t
-                kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
-                kl_penalty = config.kl_coeff * kl_approx
+                all_ref = _compute_fm_loss_batched(
+                    ref_policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
+                )
+                ref_losses_per_traj = list(torch.split(all_ref.detach(), traj_lengths))
 
-                traj_loss = (clip_loss + kl_penalty) / M
-                traj_loss.backward()
+            del merged_traj
 
-                epoch_clip_loss += clip_loss.item()
-                epoch_kl += kl_penalty.item()
+            policy.train()
+            total_surrogate = 0.0
+            total_kl = 0.0
 
-            torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-            optimizer.step()
+            for _ppo_epoch in range(config.ppo_epochs):
+                optimizer.zero_grad()
+                epoch_clip_loss = 0.0
+                epoch_kl = 0.0
 
-            total_surrogate += epoch_clip_loss
-            total_kl += epoch_kl
+                for i, traj in enumerate(trajectories):
+                    adv_i = advantages[i]
+                    old_losses_t = old_losses_per_traj[i]
+                    ref_losses_t = ref_losses_per_traj[i]
 
-        avg_surr = total_surrogate / max(config.ppo_epochs * M, 1)
-        avg_kl = total_kl / max(config.ppo_epochs * M, 1)
+                    new_losses_t = _compute_fm_loss_batched(
+                        policy, traj, instruction,
+                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
+                        batch_size=B,
+                    )
+
+                    log_ratios = old_losses_t - new_losses_t
+                    ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
+
+                    adv_t = torch.full_like(ratios, adv_i)
+
+                    surr1 = ratios * adv_t
+                    surr2 = (
+                        torch.clamp(
+                            ratios,
+                            1.0 - config.clip_epsilon,
+                            1.0 + config.clip_epsilon_high,
+                        )
+                        * adv_t
+                    )
+                    clip_loss = -torch.min(surr1, surr2).mean()
+
+                    log_ratio_ref = ref_losses_t - new_losses_t
+                    kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
+                    kl_penalty = config.kl_coeff * kl_approx
+
+                    traj_loss = (clip_loss + kl_penalty) / M
+                    traj_loss.backward()
+
+                    epoch_clip_loss += clip_loss.item()
+                    epoch_kl += kl_penalty.item()
+
+                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+                optimizer.step()
+
+                total_surrogate += epoch_clip_loss
+                total_kl += epoch_kl
+
+            avg_loss = total_surrogate / max(config.ppo_epochs * M, 1)
+            avg_kl = total_kl / max(config.ppo_epochs * M, 1)
+            avg_weight = 0.0
+            old_losses_per_traj.clear()
 
         # ── 6. Cleanup cached tensors ───────────────────────────────────
-        old_losses_per_traj.clear()
-        ref_losses_per_traj.clear()
         fixed_noise_per_traj.clear()
         fixed_time_per_traj.clear()
 
+        loss_key = "awr_loss" if config.update_method == "awr" else "surrogate_loss"
         log_data = {
-            f"{config.mode}/surrogate_loss": avg_surr,
+            f"{config.mode}/{loss_key}": avg_loss,
             f"{config.mode}/kl_penalty": avg_kl,
             f"{config.mode}/batch_successes": num_successes,
             f"{config.mode}/mean_g": g_mean.item(),
             f"{config.mode}/iteration": iteration,
         }
+        if config.update_method == "awr":
+            log_data[f"{config.mode}/mean_weight"] = avg_weight
+
         if cluster_diag is not None:
             log_data.update(cluster_diag.as_dict(prefix=f"{config.mode}/cluster"))
         logger.info(
-            f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  successes={num_successes}  g_mean={g_mean:.4f}"
+            f"Iter {iteration}  {loss_key}={avg_loss:.6f}  kl={avg_kl:.6f}"
+            f"  successes={num_successes}  g_mean={g_mean:.4f}"
         )
         if cluster_diag is not None:
             logger.info(
@@ -738,13 +805,14 @@ def train_srpo_multitask(
             for j, idx in enumerate(indices):
                 advantages[idx] = task_adv[j]
 
+        skipped_task_set = set(skipped_tasks)
         if skipped_tasks:
             logger.info(
                 f"Iter {iteration}: dynamic rejection — skipped {len(skipped_tasks)} tasks "
                 f"with uniform rewards: {skipped_tasks}"
             )
 
-        # ── 4. Cache FM losses under θ_old AND π_ref ────────────────────
+        # ── 4. Pre-sample fixed noise/time for FM loss computation ──────
         policy.eval()
         fixed_noise_per_traj: list[torch.Tensor] = []
         fixed_time_per_traj: list[torch.Tensor] = []
@@ -756,96 +824,161 @@ def train_srpo_multitask(
             fixed_time_per_traj.append(time)
             instrs_per_traj.append(spec_lookup[traj.task_id].instruction)
 
-        old_losses_per_traj: list[torch.Tensor] = []
-        ref_losses_per_traj: list[torch.Tensor] = []
-
-        with torch.no_grad():
-            for i, traj in enumerate(all_trajectories):
-                old_loss = _compute_fm_loss_batched(
-                    policy, traj, instrs_per_traj[i],
-                    fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                    batch_size=B,
-                )
-                old_losses_per_traj.append(old_loss.detach())
-
-                ref_loss = _compute_fm_loss_batched(
-                    ref_policy, traj, instrs_per_traj[i],
-                    fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                    batch_size=B,
-                )
-                ref_losses_per_traj.append(ref_loss.detach())
-
-        # ── 5. PPO epochs ────────────────────────────────────────────────
-        policy.train()
-        total_surrogate = 0.0
-        total_kl = 0.0
         M = len(all_trajectories)
 
-        for _ppo_epoch in range(config.ppo_epochs):
-            optimizer.zero_grad()
-            epoch_clip_loss = 0.0
-            epoch_kl = 0.0
+        if config.update_method == "awr":
+            # ── 5a. AWR: advantage-weighted FM regression ────────────────
+            ref_losses_per_traj: list[torch.Tensor] = []
+            if config.kl_coeff > 0:
+                with torch.no_grad():
+                    for i, traj in enumerate(all_trajectories):
+                        ref_loss = _compute_fm_loss_batched(
+                            ref_policy, traj, instrs_per_traj[i],
+                            fixed_noise_per_traj[i], fixed_time_per_traj[i],
+                            batch_size=B,
+                        )
+                        ref_losses_per_traj.append(ref_loss.detach())
 
-            for i, traj in enumerate(all_trajectories):
-                adv_i = advantages[i]
-                old_losses_t = old_losses_per_traj[i]
-                ref_losses_t = ref_losses_per_traj[i]
-                noise = fixed_noise_per_traj[i]
-                time = fixed_time_per_traj[i]
+            policy.train()
+            total_weighted_loss = 0.0
+            total_kl = 0.0
+            total_weight = 0.0
 
-                new_losses_t = _compute_fm_loss_batched(
-                    policy, traj, instrs_per_traj[i],
-                    noise, time, batch_size=B,
-                )
+            num_epochs = config.awr_epochs
+            for _epoch in range(num_epochs):
+                optimizer.zero_grad()
+                epoch_loss = 0.0
+                epoch_kl = 0.0
+                epoch_weight = 0.0
 
-                log_ratios = old_losses_t - new_losses_t
-                ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
+                for i, traj in enumerate(all_trajectories):
+                    if traj.task_id in skipped_task_set:
+                        continue
+                    adv_i = advantages[i]
+                    weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
 
-                adv_t = torch.full_like(ratios, adv_i)
-                surr1 = ratios * adv_t
-                surr2 = (
-                    torch.clamp(
-                        ratios,
-                        1.0 - config.clip_epsilon,
-                        1.0 + config.clip_epsilon_high,
+                    fm_loss = _compute_fm_loss_batched(
+                        policy, traj, instrs_per_traj[i],
+                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
+                        batch_size=B,
+                    ).mean()
+
+                    traj_loss = weight * fm_loss / M
+
+                    if config.kl_coeff > 0 and ref_losses_per_traj:
+                        ref_fm = ref_losses_per_traj[i].mean()
+                        kl_approx = 0.5 * (ref_fm - fm_loss) ** 2
+                        traj_loss = traj_loss + config.kl_coeff * kl_approx / M
+                        epoch_kl += (config.kl_coeff * kl_approx).item()
+
+                    traj_loss.backward()
+                    epoch_loss += (weight * fm_loss).item()
+                    epoch_weight += weight
+
+                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+                optimizer.step()
+
+                total_weighted_loss += epoch_loss
+                total_kl += epoch_kl
+                total_weight += epoch_weight
+
+            avg_loss = total_weighted_loss / max(num_epochs * M, 1)
+            avg_kl = total_kl / max(num_epochs * M, 1)
+            avg_weight = total_weight / max(num_epochs * M, 1)
+
+        else:
+            # ── 5b. PPO: clipped surrogate with importance sampling ──────
+            old_losses_per_traj: list[torch.Tensor] = []
+            ref_losses_per_traj: list[torch.Tensor] = []
+
+            with torch.no_grad():
+                for i, traj in enumerate(all_trajectories):
+                    old_loss = _compute_fm_loss_batched(
+                        policy, traj, instrs_per_traj[i],
+                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
+                        batch_size=B,
                     )
-                    * adv_t
-                )
-                clip_loss = -torch.min(surr1, surr2).mean()
+                    old_losses_per_traj.append(old_loss.detach())
 
-                log_ratio_ref = ref_losses_t - new_losses_t
-                kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
-                kl_penalty = config.kl_coeff * kl_approx
+                    ref_loss = _compute_fm_loss_batched(
+                        ref_policy, traj, instrs_per_traj[i],
+                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
+                        batch_size=B,
+                    )
+                    ref_losses_per_traj.append(ref_loss.detach())
 
-                traj_loss = (clip_loss + kl_penalty) / M
-                traj_loss.backward()
+            policy.train()
+            total_surrogate = 0.0
+            total_kl = 0.0
 
-                epoch_clip_loss += clip_loss.item()
-                epoch_kl += kl_penalty.item()
+            for _ppo_epoch in range(config.ppo_epochs):
+                optimizer.zero_grad()
+                epoch_clip_loss = 0.0
+                epoch_kl = 0.0
 
-            torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-            optimizer.step()
+                for i, traj in enumerate(all_trajectories):
+                    adv_i = advantages[i]
+                    old_losses_t = old_losses_per_traj[i]
+                    ref_losses_t = ref_losses_per_traj[i]
 
-            total_surrogate += epoch_clip_loss
-            total_kl += epoch_kl
+                    new_losses_t = _compute_fm_loss_batched(
+                        policy, traj, instrs_per_traj[i],
+                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
+                        batch_size=B,
+                    )
 
-        avg_surr = total_surrogate / max(config.ppo_epochs * M, 1)
-        avg_kl = total_kl / max(config.ppo_epochs * M, 1)
+                    log_ratios = old_losses_t - new_losses_t
+                    ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
+
+                    adv_t = torch.full_like(ratios, adv_i)
+                    surr1 = ratios * adv_t
+                    surr2 = (
+                        torch.clamp(
+                            ratios,
+                            1.0 - config.clip_epsilon,
+                            1.0 + config.clip_epsilon_high,
+                        )
+                        * adv_t
+                    )
+                    clip_loss = -torch.min(surr1, surr2).mean()
+
+                    log_ratio_ref = ref_losses_t - new_losses_t
+                    kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
+                    kl_penalty = config.kl_coeff * kl_approx
+
+                    traj_loss = (clip_loss + kl_penalty) / M
+                    traj_loss.backward()
+
+                    epoch_clip_loss += clip_loss.item()
+                    epoch_kl += kl_penalty.item()
+
+                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+                optimizer.step()
+
+                total_surrogate += epoch_clip_loss
+                total_kl += epoch_kl
+
+            avg_loss = total_surrogate / max(config.ppo_epochs * M, 1)
+            avg_kl = total_kl / max(config.ppo_epochs * M, 1)
+            avg_weight = 0.0
+            old_losses_per_traj.clear()
 
         # ── 6. Cleanup cached tensors ────────────────────────────────────
-        old_losses_per_traj.clear()
-        ref_losses_per_traj.clear()
         fixed_noise_per_traj.clear()
         fixed_time_per_traj.clear()
 
         # ── 7. Logging ───────────────────────────────────────────────────
+        loss_key = "awr_loss" if config.update_method == "awr" else "surrogate_loss"
         log_data: dict[str, Any] = {
-            f"{config.mode}/surrogate_loss": avg_surr,
+            f"{config.mode}/{loss_key}": avg_loss,
             f"{config.mode}/kl_penalty": avg_kl,
             f"{config.mode}/total_successes": total_successes,
             f"{config.mode}/skipped_tasks": len(skipped_tasks),
             f"{config.mode}/iteration": iteration,
         }
+        if config.update_method == "awr":
+            log_data[f"{config.mode}/mean_weight"] = avg_weight
+
         for tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{tid}/successes"] = n_succ
             log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean.get(tid, 0.0)
@@ -854,7 +987,7 @@ def train_srpo_multitask(
                 if diag is not None:
                     log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
 
-        logger.info(f"Iter {iteration}  surr={avg_surr:.6f}  kl={avg_kl:.6f}  successes={total_successes}/{M}")
+        logger.info(f"Iter {iteration}  {loss_key}={avg_loss:.6f}  kl={avg_kl:.6f}  successes={total_successes}/{M}")
         for tid in per_task_successes:
             logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
 
