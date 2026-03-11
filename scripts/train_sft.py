@@ -27,8 +27,8 @@ import torch
 import typer
 
 import wandb
-from vla.data.dataset import ConcatFewDemoDataset, FewDemoDataset
 from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
+from vla.data.dataset import ConcatFewDemoDataset, FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
 from vla.training.sft_smolvla import SFTConfig, train_sft
 from vla.utils import get_device, run_id, seed_everything

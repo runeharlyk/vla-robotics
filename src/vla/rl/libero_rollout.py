@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 import torch
 
+from vla.constants import SUITE_MAP
 from vla.rl.rollout import Trajectory
 
 logger = logging.getLogger(__name__)
@@ -230,13 +231,6 @@ class LiberoRollout:
         num_cameras: Expected number of camera views.
     """
 
-    SUITE_MAP: dict[str, str] = {
-        "spatial": "libero_spatial",
-        "object": "libero_object",
-        "goal": "libero_goal",
-        "long": "libero_10",
-    }
-
     def __init__(
         self,
         suite_name: str = "libero_spatial",
@@ -249,7 +243,7 @@ class LiberoRollout:
         num_cameras: int = 2,
         camera_name: str | None = None,
     ) -> None:
-        resolved = self.SUITE_MAP.get(suite_name.lower(), suite_name)
+        resolved = SUITE_MAP.get(suite_name.lower(), suite_name)
         self.suite_name = resolved
         self.task_id = task_id
         self.num_envs = num_envs

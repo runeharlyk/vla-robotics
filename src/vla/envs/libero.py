@@ -9,6 +9,8 @@ from lerobot.envs.libero import LiberoEnv as _LeRobotLiberoEnv
 from lerobot.envs.libero import _get_suite
 from lerobot.processor.env_processor import LiberoProcessorStep
 
+from vla.constants import SUITE_MAP
+
 _PROC = LiberoProcessorStep()
 
 LIBERO_CAMERAS = "agentview_image,robot0_eye_in_hand_image"
@@ -103,16 +105,9 @@ class LiberoEnv:
 class LiberoEnvFactory:
     """Creates :class:`LiberoEnv` instances for each task in a LIBERO suite."""
 
-    SUITE_MAP: dict[str, str] = {
-        "spatial": "libero_spatial",
-        "object": "libero_object",
-        "goal": "libero_goal",
-        "long": "libero_10",
-    }
-
     def __init__(self, suite: str, state_dim: int = 8, task_id: int | None = None):
         self._suite_key = suite.lower()
-        self._libero_name = self.SUITE_MAP.get(self._suite_key, f"libero_{self._suite_key}")
+        self._libero_name = SUITE_MAP.get(self._suite_key, f"libero_{self._suite_key}")
         self._benchmark = _get_suite(self._libero_name)
         self._state_dim = state_dim
         self._single_task_id = task_id
