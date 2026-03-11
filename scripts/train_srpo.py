@@ -38,6 +38,7 @@ from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.rollout import Trajectory
 from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo
+from vla.training.metrics_logger import MetricsLogger
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -220,33 +221,35 @@ def main(
             data_dir=data_dir,
             libero_suite=libero_suite,
             num_demos=num_demos,
-            mode=mode,
-            simulator=simulator,
-            suite=suite,
+            config=SRPOConfig(
+                lr=lr,
+                max_grad_norm=max_grad_norm,
+                num_iterations=num_iterations,
+                trajectories_per_iter=trajectories_per_iter,
+                update_method=update_method,
+                ppo_epochs=ppo_epochs,
+                clip_epsilon=clip_epsilon,
+                awr_epochs=awr_epochs,
+                awr_temperature=awr_temperature,
+                awr_weight_clip=awr_weight_clip,
+                kl_coeff=kl_coeff,
+                eval_every=eval_every,
+                eval_episodes=eval_episodes,
+                max_steps=resolved_max_steps,
+                seed=seed,
+                mode=mode,
+                world_model_type=world_model,
+                subsample_every=subsample_every,
+                dbscan_eps=dbscan_eps,
+                dbscan_min_samples=dbscan_min_samples,
+                simulator=simulator,
+                suite=suite,
+                num_rollout_envs=num_rollout_envs,
+                num_eval_envs=resolved_eval_envs,
+                fm_batch_size=fm_batch_size,
+                gradient_checkpointing=gradient_checkpointing,
+            ),
             trajs_per_task=trajs_per_task,
-            num_rollout_envs=num_rollout_envs,
-            num_eval_envs=resolved_eval_envs,
-            fm_batch_size=fm_batch_size,
-            gradient_checkpointing=gradient_checkpointing,
-            lr=lr,
-            max_grad_norm=max_grad_norm,
-            num_iterations=num_iterations,
-            trajectories_per_iter=trajectories_per_iter,
-            update_method=update_method,
-            ppo_epochs=ppo_epochs,
-            clip_epsilon=clip_epsilon,
-            awr_epochs=awr_epochs,
-            awr_temperature=awr_temperature,
-            awr_weight_clip=awr_weight_clip,
-            kl_coeff=kl_coeff,
-            eval_every=eval_every,
-            eval_episodes=eval_episodes,
-            max_steps=resolved_max_steps,
-            seed=seed,
-            world_model=world_model,
-            subsample_every=subsample_every,
-            dbscan_eps=dbscan_eps,
-            dbscan_min_samples=dbscan_min_samples,
             use_wandb=use_wandb,
             device=device,
         )
@@ -351,43 +354,32 @@ def main(
 
     run = None
     if use_wandb:
+        wb_config = config.to_dict()
+        wb_config.update(
+            method=mode,
+            task=resolved_env_id,
+            instruction=resolved_instruction,
+            checkpoint=checkpoint,
+            sft_checkpoint=str(sft_checkpoint),
+            num_demos=num_demos,
+        )
         run = wandb.init(
             project="srpo-smolvla",
             name=f"{mode}_{task_tag}_seed{seed}",
-            config={
-                "method": mode,
-                "task": resolved_env_id,
-                "instruction": resolved_instruction,
-                "seed": seed,
-                "lr": lr,
-                "max_grad_norm": max_grad_norm,
-                "num_iterations": num_iterations,
-                "trajectories_per_iter": trajectories_per_iter,
-                "update_method": update_method,
-                "ppo_epochs": ppo_epochs,
-                "clip_epsilon": clip_epsilon,
-                "awr_epochs": awr_epochs,
-                "awr_temperature": awr_temperature,
-                "awr_weight_clip": awr_weight_clip,
-                "kl_coeff": kl_coeff,
-                "checkpoint": checkpoint,
-                "sft_checkpoint": str(sft_checkpoint),
-                "env_id": resolved_env_id,
-                "world_model": world_model,
-                "num_demos": num_demos,
-                "simulator": simulator,
-                "suite": suite,
-                "num_rollout_envs": num_rollout_envs,
-                "fm_batch_size": fm_batch_size,
-            },
+            config=wb_config,
         )
+
+    ml = MetricsLogger(
+        jsonl_path=Path(config.save_dir) / "metrics.jsonl",
+        wandb_run=run,
+    )
 
     train_srpo(
         policy,
         config,
         [task_spec],
         demo_trajectories=demo_dict,
-        wandb_run=run,
+        metrics_logger=ml,
         trajs_per_task_per_iter=trajectories_per_iter,
     )
 
@@ -407,33 +399,8 @@ def _run_multitask(
     data_dir: Path | None,
     libero_suite: str | None,
     num_demos: int,
-    mode: str,
-    simulator: str,
-    suite: str,
+    config: SRPOConfig,
     trajs_per_task: int,
-    num_rollout_envs: int,
-    num_eval_envs: int,
-    fm_batch_size: int,
-    gradient_checkpointing: bool,
-    lr: float,
-    max_grad_norm: float,
-    num_iterations: int,
-    trajectories_per_iter: int,
-    update_method: str,
-    ppo_epochs: int,
-    clip_epsilon: float,
-    awr_epochs: int,
-    awr_temperature: float,
-    awr_weight_clip: float,
-    kl_coeff: float,
-    eval_every: int,
-    eval_episodes: int,
-    max_steps: int,
-    seed: int,
-    world_model: str,
-    subsample_every: int,
-    dbscan_eps: float,
-    dbscan_min_samples: int,
     use_wandb: bool,
     device: str,
 ) -> None:
@@ -442,17 +409,20 @@ def _run_multitask(
         data_dir=data_dir,
         libero_suite=libero_suite,
         num_demos=num_demos,
-        seed=seed,
-        simulator=simulator,
-        suite=suite,
-        include_demos=mode == "srpo",
+        seed=config.seed,
+        simulator=config.simulator,
+        suite=config.suite,
+        include_demos=config.mode == "srpo",
     )
 
-    use_libero_suite = simulator == "libero" and libero_suite is not None and data_dir is None
+    use_libero_suite = config.simulator == "libero" and libero_suite is not None and data_dir is None
     source_desc = libero_suite if use_libero_suite else str(data_dir or PREPROCESSED_DIR)
     logger.info("Multi-task SRPO: %d tasks discovered from %s", len(task_specs), source_desc)
     for spec in task_specs:
         logger.info("  [%s] instruction=%r  libero_idx=%d", spec.task_id, spec.instruction, spec.libero_task_idx)
+
+    config.save_dir = str(CHECKPOINTS_DIR / config.mode / f"multitask_{config.suite}_seed{config.seed}")
+    config.state_dim = resolved_state_dim
 
     policy = SmolVLAPolicy(
         checkpoint=checkpoint,
@@ -474,77 +444,36 @@ def _run_multitask(
                 len(demo_trajectories.get(spec.task_id, [])),
             )
 
-    config = SRPOConfig(
-        lr=lr,
-        max_grad_norm=max_grad_norm,
-        num_iterations=num_iterations,
-        trajectories_per_iter=trajectories_per_iter,
-        update_method=update_method,
-        ppo_epochs=ppo_epochs,
-        clip_epsilon=clip_epsilon,
-        awr_epochs=awr_epochs,
-        awr_temperature=awr_temperature,
-        awr_weight_clip=awr_weight_clip,
-        kl_coeff=kl_coeff,
-        eval_every=eval_every,
-        eval_episodes=eval_episodes,
-        max_steps=max_steps,
-        save_dir=str(CHECKPOINTS_DIR / mode / f"multitask_{suite}_seed{seed}"),
-        seed=seed,
-        mode=mode,
-        world_model_type=world_model,
-        subsample_every=subsample_every,
-        dbscan_eps=dbscan_eps,
-        dbscan_min_samples=dbscan_min_samples,
-        simulator=simulator,
-        suite=suite,
-        state_dim=resolved_state_dim,
-        num_rollout_envs=num_rollout_envs,
-        num_eval_envs=num_eval_envs,
-        fm_batch_size=fm_batch_size,
-        gradient_checkpointing=gradient_checkpointing,
-    )
-
     run = None
     if use_wandb:
         task_names = [s.task_id for s in task_specs]
+        wb_config = config.to_dict()
+        wb_config.update(
+            multitask=True,
+            tasks=task_names,
+            num_tasks=len(task_specs),
+            checkpoint=checkpoint,
+            sft_checkpoint=str(sft_checkpoint),
+            num_demos=num_demos,
+            trajs_per_task_per_iter=trajs_per_task,
+        )
         run = wandb.init(
             project="srpo-smolvla",
-            name=f"{mode}_multitask_{suite}_seed{seed}",
-            config={
-                "method": mode,
-                "multitask": True,
-                "tasks": task_names,
-                "num_tasks": len(task_specs),
-                "suite": suite,
-                "seed": seed,
-                "lr": lr,
-                "max_grad_norm": max_grad_norm,
-                "num_iterations": num_iterations,
-                "trajs_per_task_per_iter": trajs_per_task,
-                "update_method": update_method,
-                "ppo_epochs": ppo_epochs,
-                "clip_epsilon": clip_epsilon,
-                "awr_epochs": awr_epochs,
-                "awr_temperature": awr_temperature,
-                "awr_weight_clip": awr_weight_clip,
-                "kl_coeff": kl_coeff,
-                "checkpoint": checkpoint,
-                "sft_checkpoint": str(sft_checkpoint),
-                "world_model": world_model,
-                "num_demos": num_demos,
-                "simulator": simulator,
-                "num_rollout_envs": num_rollout_envs,
-                "fm_batch_size": fm_batch_size,
-            },
+            name=f"{config.mode}_multitask_{config.suite}_seed{config.seed}",
+            config=wb_config,
         )
+
+    ml = MetricsLogger(
+        jsonl_path=Path(config.save_dir) / "metrics.jsonl",
+        wandb_run=run,
+    )
 
     train_srpo(
         policy,
         config,
         task_specs,
         demo_trajectories=demo_trajectories,
-        wandb_run=run,
+        metrics_logger=ml,
         trajs_per_task_per_iter=trajs_per_task,
     )
 

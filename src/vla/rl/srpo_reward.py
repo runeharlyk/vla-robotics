@@ -428,22 +428,3 @@ class MultiTaskWorldProgressReward:
 
     def get_diagnostics(self) -> dict[str, ClusterDiagnostics | None]:
         return {tid: rm.get_diagnostics() for tid, rm in self._per_task.items()}
-
-
-def compute_returns(rewards: torch.Tensor, gamma: float = 0.99) -> torch.Tensor:
-    """Compute discounted returns for a single trajectory.
-
-    Args:
-        rewards: ``(T,)`` reward tensor.
-        gamma: Discount factor.
-
-    Returns:
-        ``(T,)`` return tensor.
-    """
-    T = rewards.shape[0]
-    returns = torch.zeros_like(rewards)
-    running = 0.0
-    for t in reversed(range(T)):
-        running = rewards[t] + gamma * running
-        returns[t] = running
-    return returns

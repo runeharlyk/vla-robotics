@@ -19,8 +19,12 @@ import numpy as np
 import torch
 
 from vla.constants import SUITE_MAP
-from vla.rl.rollout import Trajectory
-from vla.utils.tensor import action_to_numpy
+from vla.rl.rollout import (
+    SingleStepResult,
+    Trajectory,
+    collect_batch_sequential,
+    collect_single_episode,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -286,6 +290,9 @@ class LiberoRollout:
         state = torch.from_numpy(packed_obs["state"])
         return images, state
 
+    def _make_single_adapter(self) -> _LiberoSingleAdapter:
+        return _LiberoSingleAdapter(self)
+
     def collect_batch(
         self,
         policy_fn: Any,
@@ -296,69 +303,17 @@ class LiberoRollout:
     ) -> list[Trajectory]:
         """Collect trajectories from LIBERO — vectorised when ``num_envs > 1``.
 
-        Args:
-            policy_fn: Single-obs callable (used when ``num_envs == 1``).
-            instruction: Language instruction (overridden by env task description).
-            num_trajectories: How many episodes to collect.
-            seed: Base seed.
-            policy_batch_fn: Batched callable
-                ``(images_BNCHW, instruction, states_BS) -> actions_BA``.
-
-        Returns:
-            List of :class:`Trajectory` objects.
+        Falls back to :func:`collect_batch_sequential` with the shared
+        single-episode loop when vectorised collection is not available.
         """
         task_instr = self.vec_env.task_description
         if self.num_envs > 1 and policy_batch_fn is not None:
             return self._collect_vectorized(policy_batch_fn, task_instr, num_trajectories, seed)
-        return self._collect_sequential(policy_fn, task_instr, num_trajectories, seed)
-
-    def _collect_sequential(
-        self, policy_fn: Any, instruction: str, num_trajectories: int, seed: int | None
-    ) -> list[Trajectory]:
-        trajectories: list[Trajectory] = []
-        for i in range(num_trajectories):
-            s = (seed + i) if seed is not None else None
-            traj = self._collect_single(policy_fn, instruction, s)
-            trajectories.append(traj)
-        return trajectories
-
-    def _collect_single(self, policy_fn: Any, instruction: str, seed: int | None) -> Trajectory:
-        obs_list = self.vec_env.reset([seed])
-        obs = obs_list[0]
-
-        images, states, actions_list, rewards_list, dones_list = [], [], [], [], []
-        success = False
-
-        for _step in range(self.max_steps):
-            img_t, state_t = self._obs_to_tensors(obs)
-            action = policy_fn(img_t, instruction, state_t)
-            action_np = action_to_numpy(action)
-
-            images.append(img_t)
-            states.append(state_t)
-            actions_list.append(torch.from_numpy(action_np.copy()))
-
-            obs_list, rewards, terminateds, truncateds, infos = self.vec_env.step(action_np[np.newaxis])
-            obs = obs_list[0]
-
-            rewards_list.append(torch.tensor(rewards[0]))
-            done = terminateds[0] or truncateds[0]
-            dones_list.append(torch.tensor(float(done)))
-
-            if infos[0].get("is_success", False):
-                success = True
-            if done:
-                break
-
-        T = len(images)
-        return Trajectory(
-            images=torch.stack(images) if images else torch.empty(0),
-            states=torch.stack(states) if states else torch.empty(0),
-            actions=torch.stack(actions_list) if actions_list else torch.empty(0),
-            rewards=torch.stack(rewards_list) if rewards_list else torch.empty(0),
-            dones=torch.stack(dones_list) if dones_list else torch.empty(0),
-            success=success,
-            length=T,
+        adapter = self._make_single_adapter()
+        return collect_batch_sequential(
+            lambda s: collect_single_episode(adapter, policy_fn, task_instr, self.max_steps, s),
+            num_trajectories,
+            seed,
         )
 
     def _collect_vectorized(
@@ -377,6 +332,37 @@ class LiberoRollout:
 
     def close(self) -> None:
         self.vec_env.close()
+
+
+# ---------------------------------------------------------------------------
+# SingleEnvAdapter for the shared episode loop
+# ---------------------------------------------------------------------------
+
+
+class _LiberoSingleAdapter:
+    """Adapts :class:`LiberoRollout` to the :class:`SingleEnvAdapter` protocol."""
+
+    def __init__(self, rollout: LiberoRollout) -> None:
+        self._r = rollout
+
+    def reset(self, seed: int | None) -> dict:
+        obs_list = self._r.vec_env.reset([seed])
+        return obs_list[0]
+
+    def obs_to_tensors(self, raw_obs: dict) -> tuple[torch.Tensor, torch.Tensor]:
+        return self._r._obs_to_tensors(raw_obs)
+
+    def step(self, action: np.ndarray) -> SingleStepResult:
+        obs_list, rewards, terminateds, truncateds, infos = self._r.vec_env.step(
+            action[np.newaxis],
+        )
+        return SingleStepResult(
+            raw_obs=obs_list[0],
+            reward=rewards[0],
+            terminated=terminateds[0],
+            truncated=truncateds[0],
+            success=infos[0].get("is_success", False),
+        )
 
 
 # ---------------------------------------------------------------------------

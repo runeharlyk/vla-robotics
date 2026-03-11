@@ -14,16 +14,18 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader, Dataset
 
+from vla.base_config import BaseTrainingConfig
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.env_metadata import EnvMetadata
 from vla.models.smolvla import SmolVLAPolicy
+from vla.training.checkpoint import save_best_checkpoint
 from vla.training.lr_scheduler import cosine_decay_with_warmup_lambda_lr
+from vla.training.metrics_logger import MetricsLogger
 
 logger = logging.getLogger(__name__)
 
@@ -85,16 +87,14 @@ def _load_training_state(
 
 
 @dataclass
-class SFTConfig:
+class SFTConfig(BaseTrainingConfig):
     """Hyperparameters for supervised fine-tuning (behaviour cloning).
 
     Defaults match the LeRobot SmolVLA fine-tuning recipe.
+    Inherits common fields from :class:`BaseTrainingConfig`.
     """
 
     lr: float = 1e-4
-    betas: tuple[float, float] = (0.9, 0.95)
-    weight_decay: float = 1e-10
-    grad_clip_norm: float = 10.0
     warmup_steps: int = 1_000
     decay_steps: int = 30_000
     decay_lr: float = 2.5e-6
@@ -102,15 +102,37 @@ class SFTConfig:
     micro_batch_size: int = 4
     num_epochs: int = 50
     eval_every: int = 5
-    eval_episodes: int = 50
     max_steps: int = 200
     save_dir: str = "checkpoints/sft"
-    env_id: str = "PickCube-v1"
-    seed: int = 42
-    simulator: str = "maniskill"
     eval_suite: str = "all"
     control_mode: str = "pd_joint_delta_pos"
     resume_from: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Gradient step helper
+# ---------------------------------------------------------------------------
+
+
+def _optimizer_step(
+    optimizer: torch.optim.Optimizer,
+    scheduler: LambdaLR,
+    trainable: list[torch.nn.Parameter],
+    grad_clip_norm: float,
+) -> float:
+    """Clip gradients, step optimizer & scheduler, zero grads.
+
+    Returns:
+        The (possibly clipped) gradient norm.
+    """
+    if grad_clip_norm > 0:
+        gn = torch.nn.utils.clip_grad_norm_(trainable, max_norm=grad_clip_norm)
+    else:
+        gn = torch.nn.utils.clip_grad_norm_(trainable, float("inf"), error_if_nonfinite=False)
+    optimizer.step()
+    scheduler.step()
+    optimizer.zero_grad()
+    return gn.item()
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +144,7 @@ def train_sft(
     policy: SmolVLAPolicy,
     dataset: Dataset,
     config: SFTConfig,
-    wandb_run: Any | None = None,
+    metrics_logger: MetricsLogger | None = None,
     instruction: str | None = None,
 ) -> SmolVLAPolicy:
     """Run supervised fine-tuning (behaviour cloning) on a few-demo dataset.
@@ -130,7 +152,7 @@ def train_sft(
     Follows the LeRobot SmolVLA training recipe:
       - AdamW with betas=(0.9, 0.95), weight_decay=1e-10
       - Cosine decay LR with linear warmup (auto-scaled to total steps)
-      - Gradient clipping at ``config.grad_clip_norm``
+      - Gradient clipping at ``config.max_grad_norm``
       - grad_norm logged every epoch
 
     Supports checkpoint resume via ``config.resume_from``.
@@ -144,7 +166,8 @@ def train_sft(
         dataset: Dataset returning dicts with ``image``, ``state``, ``action``,
             ``instruction`` keys.  Must expose ``norm_stats`` attribute.
         config: SFT hyperparameters.
-        wandb_run: Optional wandb run for logging.
+        metrics_logger: Optional :class:`MetricsLogger` for W&B and JSONL
+            persistence.  When ``None``, metrics are not logged.
         instruction: Override instruction for evaluation (default: from dataset).
 
     Returns:
@@ -162,13 +185,7 @@ def train_sft(
         dataset.norm_stats.action_std.tolist(),
     )
 
-    trainable = [p for p in policy.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(
-        trainable,
-        lr=config.lr,
-        betas=config.betas,
-        weight_decay=config.weight_decay,
-    )
+    optimizer, trainable = config.build_optimizer(policy)
 
     micro_bs = min(config.micro_batch_size, config.batch_size)
     grad_accum_steps = max(config.batch_size // micro_bs, 1)
@@ -250,27 +267,13 @@ def train_sft(
             num_micro_batches += 1
 
             if num_micro_batches % grad_accum_steps == 0:
-                if config.grad_clip_norm > 0:
-                    gn = torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.grad_clip_norm)
-                else:
-                    gn = torch.nn.utils.clip_grad_norm_(trainable, float("inf"), error_if_nonfinite=False)
-                epoch_grad_norm += gn.item()
+                epoch_grad_norm += _optimizer_step(optimizer, scheduler, trainable, config.max_grad_norm)
                 num_optimizer_steps += 1
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
                 global_step += 1
 
         if num_micro_batches % grad_accum_steps != 0:
-            if config.grad_clip_norm > 0:
-                gn = torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.grad_clip_norm)
-            else:
-                gn = torch.nn.utils.clip_grad_norm_(trainable, float("inf"), error_if_nonfinite=False)
-            epoch_grad_norm += gn.item()
+            epoch_grad_norm += _optimizer_step(optimizer, scheduler, trainable, config.max_grad_norm)
             num_optimizer_steps += 1
-            optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad()
             global_step += 1
 
         avg_loss = epoch_loss / max(num_micro_batches, 1)
@@ -285,8 +288,8 @@ def train_sft(
             current_lr,
             global_step,
         )
-        if wandb_run is not None:
-            wandb_run.log(
+        if metrics_logger is not None:
+            metrics_logger.log(
                 {
                     "sft/loss": avg_loss,
                     "sft/grad_norm": avg_grad_norm,
@@ -309,20 +312,26 @@ def train_sft(
                 suite=config.eval_suite,
             )
             print_metrics(metrics, tag=f"SFT epoch {epoch}")
-            if wandb_run is not None:
-                wandb_run.log(
-                    {
-                        "sft/success_rate": metrics.success_rate,
-                        "sft/mean_reward": metrics.mean_reward,
-                        "sft/mean_ep_len": metrics.mean_episode_length,
-                        "sft/epoch": epoch,
-                    }
-                )
-            if metrics.success_rate > best_success:
-                best_success = metrics.success_rate
+            eval_log = {
+                "sft/success_rate": metrics.success_rate,
+                "sft/mean_reward": metrics.mean_reward,
+                "sft/mean_ep_len": metrics.mean_episode_length,
+                "sft/epoch": epoch,
+            }
+            if metrics_logger is not None:
+                metrics_logger.log(eval_log)
+
+            def _save(
+                _epoch: int = epoch,
+                _step: int = global_step,
+                _best: float = best_success,
+            ) -> None:
                 policy.save_checkpoint(save_path / "best", env_metadata=_save_meta)
-                _save_training_state(save_path / "best", optimizer, scheduler, epoch, global_step, best_success)
-                logger.info("New best SFT checkpoint: %.2f%%", best_success * 100)
+                _save_training_state(save_path / "best", optimizer, scheduler, _epoch, _step, _best)
+
+            best_success = save_best_checkpoint(
+                metrics.success_rate, best_success, _save, tag="SFT",
+            )
 
         policy.save_checkpoint(save_path / "last", env_metadata=_save_meta)
         _save_training_state(save_path / "last", optimizer, scheduler, epoch, global_step, best_success)

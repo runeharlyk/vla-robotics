@@ -8,6 +8,7 @@ from typing import Any
 import torch
 
 from vla.models.smolvla import SmolVLAPolicy
+from vla.models.vla_flow_matching import VLAFlowMatching  # noqa: F401
 
 
 @dataclass
@@ -108,4 +109,4 @@ def _load_smolvla(checkpoint: str, device: str) -> LoadedPolicy:
     )
 
 
-__all__ = ["SmolVLAPolicy", "LoadedPolicy", "load_policy"]
+__all__ = ["SmolVLAPolicy", "VLAFlowMatching", "LoadedPolicy", "load_policy"]

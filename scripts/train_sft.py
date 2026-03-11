@@ -30,6 +30,7 @@ import wandb
 from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.data.dataset import ConcatFewDemoDataset, FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
+from vla.training.metrics_logger import MetricsLogger
 from vla.training.sft_smolvla import SFTConfig, train_sft
 from vla.utils import get_device, run_id, seed_everything
 
@@ -92,7 +93,7 @@ def main(
     warmup_steps: int = typer.Option(1000, "--warmup-steps"),
     decay_steps: int = typer.Option(30000, "--decay-steps"),
     decay_lr: float = typer.Option(2.5e-6, "--decay-lr"),
-    grad_clip_norm: float = typer.Option(10.0, "--grad-clip-norm"),
+    max_grad_norm: float = typer.Option(10.0, "--grad-clip-norm", "--max-grad-norm"),
     eval_every: int = typer.Option(5, "--eval-every"),
     eval_episodes: int = typer.Option(50, "--eval-episodes"),
     max_steps: int = typer.Option(None, "--max-steps", help="Override max episode steps (default: from metadata)"),
@@ -193,7 +194,7 @@ def main(
         warmup_steps=warmup_steps,
         decay_steps=decay_steps,
         decay_lr=decay_lr,
-        grad_clip_norm=grad_clip_norm,
+        max_grad_norm=max_grad_norm,
         eval_every=eval_every,
         eval_episodes=eval_episodes,
         max_steps=resolved_max_steps,
@@ -208,32 +209,31 @@ def main(
 
     run = None
     if use_wandb:
+        wb_config = config.to_dict()
+        wb_config.update(
+            method="sft",
+            task=resolved_env_id,
+            instruction=resolved_instruction,
+            num_demos=num_demos,
+            checkpoint=checkpoint,
+            action_dim=dataset.action_dim,
+            state_dim=dataset.state_dim,
+            data_source="libero" if libero_suite else "pt",
+            resume=resume or "",
+        )
         run = wandb.init(
             project="srpo-smolvla",
             name=f"sft_{data_tag}_{demos_tag}_seed{seed}",
-            config={
-                "method": "sft",
-                "task": resolved_env_id,
-                "instruction": resolved_instruction,
-                "num_demos": num_demos,
-                "seed": seed,
-                "lr": lr,
-                "batch_size": batch_size,
-                "num_epochs": num_epochs,
-                "checkpoint": checkpoint,
-                "env_id": resolved_env_id,
-                "control_mode": resolved_control_mode,
-                "action_dim": dataset.action_dim,
-                "state_dim": dataset.state_dim,
-                "simulator": resolved_simulator,
-                "eval_suite": eval_suite,
-                "data_source": "libero" if libero_suite else "pt",
-                "resume": resume or "",
-            },
+            config=wb_config,
             resume="allow" if resume else None,
         )
 
-    train_sft(policy, dataset, config, wandb_run=run, instruction=resolved_instruction)
+    ml = MetricsLogger(
+        jsonl_path=Path(config.save_dir) / "metrics.jsonl",
+        wandb_run=run,
+    )
+
+    train_sft(policy, dataset, config, metrics_logger=ml, instruction=resolved_instruction)
 
     if run is not None:
         run.finish()

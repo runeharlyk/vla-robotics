@@ -20,11 +20,8 @@ implements :class:`~vla.rl.rollout.RolloutEngine` (ManiSkill or LIBERO).
 from __future__ import annotations
 
 import copy
-import json
 import logging
-import math
 from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -34,85 +31,37 @@ from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.advantage import normalize_advantages_per_task
-from vla.rl.rollout import ManiSkillRollout, RolloutEngine, Trajectory
+from vla.rl.config import SRPOConfig, TaskSpec
+from vla.rl.maniskill_rollout import ManiSkillRollout
+from vla.rl.policy_update import (
+    UpdateMetrics,
+    _sample_fixed_noise_time,
+    awr_update,
+    ppo_update,
+)
+from vla.rl.rollout import RolloutEngine, Trajectory
 from vla.rl.srpo_reward import (
     MultiTaskWorldProgressReward,
     SRPORewardConfig,
 )
+from vla.training.checkpoint import save_best_checkpoint
+from vla.training.metrics_logger import MetricsLogger
 from vla.utils.tensor import to_float01
 
 logger = logging.getLogger(__name__)
 
-
-def _to_json_serializable(obj: Any) -> Any:
-    if isinstance(obj, (int, float, str, bool, type(None))):
-        return obj
-    if isinstance(obj, (list, tuple)):
-        return [_to_json_serializable(x) for x in obj]
-    if isinstance(obj, dict):
-        return {k: _to_json_serializable(v) for k, v in obj.items()}
-    if hasattr(obj, "item"):
-        return obj.item()
-    return obj
-
-
-@dataclass
-class SRPOConfig:
-    """Hyperparameters for SRPO RL training."""
-
-    lr: float = 1e-5
-    betas: tuple[float, float] = (0.9, 0.95)
-    weight_decay: float = 1e-10
-    max_grad_norm: float = 10.0
-    num_iterations: int = 100
-    trajectories_per_iter: int = 16
-    update_method: str = "awr"
-    ppo_epochs: int = 4
-    clip_epsilon: float = 0.2
-    clip_epsilon_high: float = 0.2
-    awr_epochs: int = 2
-    awr_temperature: float = 5.0
-    awr_weight_clip: float = 20.0
-    kl_coeff: float = 0.01
-    eval_every: int = 10
-    eval_episodes: int = 50
-    max_steps: int = 280
-    save_dir: str = "checkpoints/srpo"
-    env_id: str = "PickCube-v1"
-    seed: int = 42
-    mode: str = "srpo"
-    world_model_type: str = "dinov2"
-    subsample_every: int = 5
-    dbscan_eps: float = 0.5
-    dbscan_min_samples: int = 2
-    num_fm_noise_samples: int = 4
-    simulator: str = "maniskill"
-    suite: str = "spatial"
-    task_id: int = 0
-    state_dim: int = 0
-    num_rollout_envs: int = 1
-    num_eval_envs: int = 1
-    fm_batch_size: int = 32
-    gradient_checkpointing: bool = False
-
-
-@dataclass
-class TaskSpec:
-    """Describes a single task for multi-task SRPO training.
-
-    Args:
-        task_id: Unique string key (used to index per-task reward models).
-        instruction: Language instruction for the task.
-        env_id: ManiSkill env id (ignored for LIBERO).
-        libero_task_idx: Task index within a LIBERO suite.
-        data_path: Path to preprocessed ``.pt`` file with demos for this task.
-    """
-
-    task_id: str
-    instruction: str
-    env_id: str = ""
-    libero_task_idx: int = 0
-    data_path: str = ""
+# Re-export so existing ``from vla.rl.trainer import SRPOConfig`` still works.
+__all__ = [
+    "SRPOConfig",
+    "TaskSpec",
+    "UpdateMetrics",
+    "awr_update",
+    "build_rollout_engine",
+    "collect_all_trajectories",
+    "evaluate_and_checkpoint",
+    "ppo_update",
+    "train_srpo",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -120,24 +69,36 @@ class TaskSpec:
 # ---------------------------------------------------------------------------
 
 
-def build_rollout_engine(config: SRPOConfig) -> RolloutEngine:
-    """Create a rollout engine from the config's simulator setting."""
+def build_rollout_engine(
+    config: SRPOConfig,
+    spec: TaskSpec | None = None,
+    num_envs: int | None = None,
+) -> RolloutEngine:
+    """Create a rollout engine from config and optional task spec.
+
+    When *spec* is provided, its ``env_id`` / ``libero_task_idx`` override
+    the values in *config*.  When *num_envs* is ``None``, defaults to
+    ``config.num_rollout_envs``.
+    """
     sim = config.simulator.lower()
+    resolved_envs = num_envs if num_envs is not None else config.num_rollout_envs
 
     if sim == "maniskill":
+        env_id = (spec.env_id or config.env_id) if spec else config.env_id
         return ManiSkillRollout(
-            env_id=config.env_id,
-            num_envs=config.num_rollout_envs,
+            env_id=env_id,
+            num_envs=resolved_envs,
             max_steps=config.max_steps,
         )
 
     if sim == "libero":
         from vla.rl.libero_rollout import LiberoRollout
 
+        task_id = spec.libero_task_idx if spec else config.task_id
         return LiberoRollout(
             suite_name=config.suite,
-            task_id=config.task_id,
-            num_envs=config.num_rollout_envs,
+            task_id=task_id,
+            num_envs=resolved_envs,
             max_steps=config.max_steps,
             state_dim=config.state_dim,
         )
@@ -145,146 +106,127 @@ def build_rollout_engine(config: SRPOConfig) -> RolloutEngine:
     raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
 
 
-def _build_task_rollout_engine(
+# ---------------------------------------------------------------------------
+# Decomposed training stages
+# ---------------------------------------------------------------------------
+
+
+def collect_all_trajectories(
+    policy: SmolVLAPolicy,
+    task_specs: list[TaskSpec],
+    rollout_engines: dict[str, RolloutEngine],
     config: SRPOConfig,
-    spec: TaskSpec,
-    num_envs: int = 1,
-) -> RolloutEngine:
-    """Create a rollout engine for a single :class:`TaskSpec`."""
-    sim = config.simulator.lower()
-    if sim == "maniskill":
-        return ManiSkillRollout(
-            env_id=spec.env_id or config.env_id,
-            num_envs=num_envs,
-            max_steps=config.max_steps,
-        )
-    if sim == "libero":
-        from vla.rl.libero_rollout import LiberoRollout
+    iteration: int,
+    trajs_per_task: int,
+) -> tuple[list[Trajectory], dict[str, int]]:
+    """Collect rollout trajectories from all tasks.
 
-        return LiberoRollout(
-            suite_name=config.suite,
-            task_id=spec.libero_task_idx,
-            num_envs=num_envs,
-            max_steps=config.max_steps,
-            state_dim=config.state_dim,
-        )
-    raise ValueError(f"Unknown simulator {config.simulator!r}")
-
-
-# ---------------------------------------------------------------------------
-# Batched FM-loss helpers
-# ---------------------------------------------------------------------------
-
-
-def _sample_fixed_noise_time(
-    traj: Trajectory,
-    policy: SmolVLAPolicy,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Pre-sample noise and time tensors for an entire trajectory.
+    Creates rollout engines lazily if they are missing from the map.
 
     Returns:
-        noise: ``(T, chunk_size, max_action_dim)``
-        time:  ``(T,)``
+        Tuple of (all_trajectories, per_task_successes).
     """
-    T = traj.length
-    noise = torch.randn(T, policy.chunk_size, policy.max_action_dim)
-    beta = torch.distributions.Beta(1.5, 1.0)
-    time = beta.sample((T,)) * 0.999 + 0.001
-    return noise, time
+    policy.eval()
+    all_trajectories: list[Trajectory] = []
+    per_task_successes: dict[str, int] = {}
+
+    for spec in task_specs:
+        if spec.task_id not in rollout_engines:
+            logger.info(f"Creating rollout engine for {spec.task_id}")
+            rollout_engines[spec.task_id] = build_rollout_engine(config, spec=spec)
+        use_vectorized = config.num_rollout_envs > 1
+        trajs = rollout_engines[spec.task_id].collect_batch(
+            policy_fn=policy.predict_action,
+            instruction=spec.instruction,
+            num_trajectories=trajs_per_task,
+            seed=config.seed + iteration * 1000,
+            policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
+        )
+        for t in trajs:
+            t.task_id = spec.task_id
+        all_trajectories.extend(trajs)
+        per_task_successes[spec.task_id] = sum(1 for t in trajs if t.success)
+
+    return all_trajectories, per_task_successes
 
 
-def _compute_fm_loss_batched(
+def evaluate_and_checkpoint(
     policy: SmolVLAPolicy,
-    traj: Trajectory,
-    instruction: str,
-    fixed_noise: torch.Tensor,
-    fixed_time: torch.Tensor,
-    batch_size: int = 32,
-) -> torch.Tensor:
-    """Compute per-timestep FM loss in mini-batches.
-
-    Packs ``batch_size`` timesteps into a single forward pass through the
-    VLA model, giving a near-linear speedup over the naive per-step loop.
-
-    Args:
-        policy: SmolVLA policy (θ, θ_old, or π_ref).
-        traj: Trajectory whose steps are batched.
-        instruction: Language instruction (shared across all steps).
-        fixed_noise: ``(T, chunk_size, max_action_dim)`` pre-sampled noise.
-        fixed_time:  ``(T,)`` pre-sampled time values.
-        batch_size: Number of timesteps per forward pass.
+    config: SRPOConfig,
+    task_specs: list[TaskSpec],
+    iteration: int,
+    save_path: Path,
+    best_success: float,
+    log_data: dict[str, Any],
+) -> float:
+    """Run periodic evaluation and save the best checkpoint.
 
     Returns:
-        ``(T,)`` per-step mean FM loss.
+        Updated best success rate.
     """
-    T = traj.length
-    all_losses: list[torch.Tensor] = []
-    use_amp = policy.device.type == "cuda" if hasattr(policy.device, "type") else str(policy.device).startswith("cuda")
-
-    for start in range(0, T, batch_size):
-        end = min(start + batch_size, T)
-        B = end - start
-
-        imgs = traj.images[start:end].to(policy.device)
-        actions = traj.actions[start:end].to(policy.device)
-
-        imgs_f = policy._to_float01(imgs).to(policy.device, dtype=policy.dtype)
-        img_list, mask_list = policy._prepare_images(imgs_f)
-        tokens, tmasks = policy._tokenize(instruction, batch_size=B)
-
-        state_raw = traj.states[start:end] if traj.states is not None else None
-        state = policy._prepare_state_input(state_raw, batch_size=B)
-
-        normalized_action = policy._normalize_action(actions.to(policy.device, dtype=policy.dtype))
-        action_padded = policy._prepare_action(normalized_action)
-        action_padded = action_padded.unsqueeze(1).expand(-1, policy.chunk_size, -1)
-
-        noise = fixed_noise[start:end].to(policy.device, dtype=policy.dtype)
-        time = fixed_time[start:end].to(policy.device, dtype=policy.dtype)
-
-        with torch.amp.autocast("cuda", enabled=use_amp):
-            losses = policy.model.forward(
-                img_list,
-                mask_list,
-                tokens,
-                tmasks,
-                state,
-                action_padded,
-                noise=noise,
-                time=time,
+    if config.simulator == "libero":
+        task_sr_sum = 0.0
+        for spec in task_specs:
+            metrics = evaluate_smolvla(
+                policy,
+                instruction=spec.instruction,
+                simulator="libero",
+                num_episodes=config.eval_episodes,
+                max_steps=config.max_steps,
+                seed=config.seed + 20000,
+                suite=config.suite,
+                task_id=spec.libero_task_idx,
+                num_eval_envs=config.num_eval_envs,
             )
-        per_step = losses[:, :, : policy.max_action_dim].mean(dim=(1, 2))
-        all_losses.append(per_step)
+            print_metrics(
+                metrics,
+                tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
+            )
+            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = (
+                metrics.success_rate
+            )
+            log_data[f"{config.mode}/{spec.task_id}/eval/mean_reward"] = (
+                metrics.mean_reward
+            )
+            log_data[f"{config.mode}/{spec.task_id}/eval/mean_ep_len"] = (
+                metrics.mean_episode_length
+            )
+            task_sr_sum += metrics.success_rate
+        avg_sr = task_sr_sum / len(task_specs)
+        log_data[f"{config.mode}/eval/success_rate"] = avg_sr
+        best_success = save_best_checkpoint(
+            avg_sr, best_success,
+            lambda: policy.save_checkpoint(save_path / "best"),
+            tag=config.mode,
+        )
+    else:
+        task_sr_sum = 0.0
+        for spec in task_specs:
+            metrics = evaluate_smolvla(
+                policy,
+                instruction=spec.instruction,
+                simulator=config.simulator,
+                env_id=spec.env_id or config.env_id,
+                num_episodes=config.eval_episodes,
+                max_steps=config.max_steps,
+                seed=config.seed + 20000,
+            )
+            print_metrics(
+                metrics,
+                tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
+            )
+            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = (
+                metrics.success_rate
+            )
+            task_sr_sum += metrics.success_rate
+        avg_sr = task_sr_sum / len(task_specs)
+        best_success = save_best_checkpoint(
+            avg_sr, best_success,
+            lambda: policy.save_checkpoint(save_path / "best"),
+            tag=config.mode,
+        )
 
-    return torch.cat(all_losses)
-
-
-def _merge_trajectory_data(
-    trajectories: list[Trajectory],
-    noise_list: list[torch.Tensor],
-    time_list: list[torch.Tensor],
-) -> tuple[Trajectory, torch.Tensor, torch.Tensor, list[int]]:
-    """Concatenate trajectory data for mega-batched FM-loss computation.
-
-    Returns a virtual merged ``Trajectory``, merged noise/time tensors,
-    and the per-trajectory lengths needed to split results back.
-    """
-    lengths = [t.length for t in trajectories]
-    has_states = trajectories[0].states is not None
-    merged = Trajectory(
-        images=torch.cat([t.images[: t.length] for t in trajectories]),
-        actions=torch.cat([t.actions[: t.length] for t in trajectories]),
-        states=(
-            torch.cat([t.states[: t.length] for t in trajectories])
-            if has_states
-            else trajectories[0].states
-        ),
-        rewards=torch.zeros(1),
-        dones=torch.zeros(1),
-        success=False,
-        length=sum(lengths),
-    )
-    return merged, torch.cat(noise_list), torch.cat(time_list), lengths
+    return best_success
 
 
 # ---------------------------------------------------------------------------
@@ -297,7 +239,7 @@ def train_srpo(
     config: SRPOConfig,
     task_specs: list[TaskSpec],
     demo_trajectories: dict[str, list[Trajectory]] | None = None,
-    wandb_run: Any | None = None,
+    metrics_logger: MetricsLogger | None = None,
     trajs_per_task_per_iter: int = 4,
     rollout_engines: dict[str, RolloutEngine] | None = None,
 ) -> SmolVLAPolicy:
@@ -318,7 +260,9 @@ def train_srpo(
         task_specs: One or more :class:`TaskSpec` describing the task(s).
         demo_trajectories: ``{task_id: [Trajectory, ...]}`` for seeding the
             per-task reward models.  Pass ``None`` to skip demo seeding.
-        wandb_run: Optional wandb run for logging.
+        metrics_logger: Optional :class:`MetricsLogger` for W&B and JSONL
+            persistence.  When ``None``, a JSONL-only logger is created
+            from ``config.save_dir``.
         trajs_per_task_per_iter: Trajectories to collect **per task** each
             iteration.  For single-task training, set this equal to
             ``config.trajectories_per_iter``.
@@ -332,13 +276,7 @@ def train_srpo(
     if config.gradient_checkpointing:
         policy.enable_gradient_checkpointing()
 
-    trainable = [p for p in policy.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(
-        trainable,
-        lr=config.lr,
-        betas=config.betas,
-        weight_decay=config.weight_decay,
-    )
+    optimizer, trainable = config.build_optimizer(policy)
 
     ref_policy = copy.deepcopy(policy)
     ref_policy.eval()
@@ -376,36 +314,17 @@ def train_srpo(
                     demo_images.append(imgs)
                 reward_model.add_demo_trajectories(tid, demo_images)
 
-    B = config.fm_batch_size
     save_path = Path(config.save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
-    metrics_path = save_path / "metrics.jsonl"
+    if metrics_logger is None:
+        metrics_logger = MetricsLogger(jsonl_path=save_path / "metrics.jsonl")
     best_success = -1.0
 
     for iteration in range(1, config.num_iterations + 1):
         # ── 1. Collect trajectories from all tasks ───────────────────────
-        policy.eval()
-        all_trajectories: list[Trajectory] = []
-        per_task_successes: dict[str, int] = {}
-
-        for spec in task_specs:
-            if spec.task_id not in rollout_engines:
-                logger.info(f"Creating rollout engine for {spec.task_id}")
-                rollout_engines[spec.task_id] = _build_task_rollout_engine(
-                    config, spec, num_envs=config.num_rollout_envs,
-                )
-            use_vectorized = config.num_rollout_envs > 1
-            trajs = rollout_engines[spec.task_id].collect_batch(
-                policy_fn=policy.predict_action,
-                instruction=spec.instruction,
-                num_trajectories=trajs_per_task_per_iter,
-                seed=config.seed + iteration * 1000,
-                policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
-            )
-            for t in trajs:
-                t.task_id = spec.task_id
-            all_trajectories.extend(trajs)
-            per_task_successes[spec.task_id] = sum(1 for t in trajs if t.success)
+        all_trajectories, per_task_successes = collect_all_trajectories(
+            policy, task_specs, rollout_engines, config, iteration, trajs_per_task_per_iter,
+        )
 
         total_successes = sum(per_task_successes.values())
         logger.info(
@@ -454,10 +373,7 @@ def train_srpo(
             }
             for tid in per_task_g_mean:
                 log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean[tid]
-            if wandb_run is not None:
-                wandb_run.log(log_data)
-            with open(metrics_path, "a") as f:
-                f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
+            metrics_logger.log(log_data)
             continue
 
         if skipped_tasks:
@@ -478,160 +394,37 @@ def train_srpo(
             fixed_time_per_traj.append(time)
             instrs_per_traj.append(spec_lookup[traj.task_id].instruction)
 
-        M = len(all_trajectories)
-
+        # ── 5. Policy update ─────────────────────────────────────────────
         if config.update_method == "awr":
-            # ── 5a. AWR: advantage-weighted FM regression ────────────────
-            ref_losses_per_traj: list[torch.Tensor] = []
-            if config.kl_coeff > 0:
-                with torch.no_grad():
-                    for i, traj in enumerate(all_trajectories):
-                        ref_loss = _compute_fm_loss_batched(
-                            ref_policy, traj, instrs_per_traj[i],
-                            fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                            batch_size=B,
-                        )
-                        ref_losses_per_traj.append(ref_loss.detach())
-
-            policy.train()
-            total_weighted_loss = 0.0
-            total_kl = 0.0
-            total_weight = 0.0
-
-            num_epochs = config.awr_epochs
-            for _epoch in range(num_epochs):
-                optimizer.zero_grad()
-                epoch_loss = 0.0
-                epoch_kl = 0.0
-                epoch_weight = 0.0
-
-                for i, traj in enumerate(all_trajectories):
-                    if traj.task_id in skipped_task_set:
-                        continue
-                    adv_i = advantages[i]
-                    weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
-
-                    fm_loss = _compute_fm_loss_batched(
-                        policy, traj, instrs_per_traj[i],
-                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                        batch_size=B,
-                    ).mean()
-
-                    traj_loss = weight * fm_loss / M
-
-                    if config.kl_coeff > 0 and ref_losses_per_traj:
-                        ref_fm = ref_losses_per_traj[i].mean()
-                        kl_approx = 0.5 * (ref_fm - fm_loss) ** 2
-                        traj_loss = traj_loss + config.kl_coeff * kl_approx / M
-                        epoch_kl += (config.kl_coeff * kl_approx).item()
-
-                    traj_loss.backward()
-                    epoch_loss += (weight * fm_loss).item()
-                    epoch_weight += weight
-
-                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-                optimizer.step()
-
-                total_weighted_loss += epoch_loss
-                total_kl += epoch_kl
-                total_weight += epoch_weight
-
-            avg_loss = total_weighted_loss / max(num_epochs * M, 1)
-            avg_kl = total_kl / max(num_epochs * M, 1)
-            avg_weight = total_weight / max(num_epochs * M, 1)
-
+            update_metrics = awr_update(
+                policy, ref_policy, optimizer, trainable,
+                all_trajectories, advantages, instrs_per_traj,
+                fixed_noise_per_traj, fixed_time_per_traj,
+                skipped_task_set, config,
+            )
         else:
-            # ── 5b. PPO: clipped surrogate with importance sampling ──────
-            old_losses_per_traj: list[torch.Tensor] = []
-            ref_losses_per_traj: list[torch.Tensor] = []
+            update_metrics = ppo_update(
+                policy, ref_policy, optimizer, trainable,
+                all_trajectories, advantages, instrs_per_traj,
+                fixed_noise_per_traj, fixed_time_per_traj,
+                config,
+            )
 
-            with torch.no_grad():
-                for i, traj in enumerate(all_trajectories):
-                    old_loss = _compute_fm_loss_batched(
-                        policy, traj, instrs_per_traj[i],
-                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                        batch_size=B,
-                    )
-                    old_losses_per_traj.append(old_loss.detach())
-
-                    ref_loss = _compute_fm_loss_batched(
-                        ref_policy, traj, instrs_per_traj[i],
-                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                        batch_size=B,
-                    )
-                    ref_losses_per_traj.append(ref_loss.detach())
-
-            policy.train()
-            total_surrogate = 0.0
-            total_kl = 0.0
-
-            for _ppo_epoch in range(config.ppo_epochs):
-                optimizer.zero_grad()
-                epoch_clip_loss = 0.0
-                epoch_kl = 0.0
-
-                for i, traj in enumerate(all_trajectories):
-                    adv_i = advantages[i]
-                    old_losses_t = old_losses_per_traj[i]
-                    ref_losses_t = ref_losses_per_traj[i]
-
-                    new_losses_t = _compute_fm_loss_batched(
-                        policy, traj, instrs_per_traj[i],
-                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                        batch_size=B,
-                    )
-
-                    log_ratios = old_losses_t - new_losses_t
-                    ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
-
-                    adv_t = torch.full_like(ratios, adv_i)
-                    surr1 = ratios * adv_t
-                    surr2 = (
-                        torch.clamp(
-                            ratios,
-                            1.0 - config.clip_epsilon,
-                            1.0 + config.clip_epsilon_high,
-                        )
-                        * adv_t
-                    )
-                    clip_loss = -torch.min(surr1, surr2).mean()
-
-                    log_ratio_ref = ref_losses_t - new_losses_t
-                    kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
-                    kl_penalty = config.kl_coeff * kl_approx
-
-                    traj_loss = (clip_loss + kl_penalty) / M
-                    traj_loss.backward()
-
-                    epoch_clip_loss += clip_loss.item()
-                    epoch_kl += kl_penalty.item()
-
-                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-                optimizer.step()
-
-                total_surrogate += epoch_clip_loss
-                total_kl += epoch_kl
-
-            avg_loss = total_surrogate / max(config.ppo_epochs * M, 1)
-            avg_kl = total_kl / max(config.ppo_epochs * M, 1)
-            avg_weight = 0.0
-            old_losses_per_traj.clear()
-
-        # ── 6. Cleanup cached tensors ────────────────────────────────────
         fixed_noise_per_traj.clear()
         fixed_time_per_traj.clear()
 
-        # ── 7. Logging ───────────────────────────────────────────────────
+        # ── 6. Logging ───────────────────────────────────────────────────
+        M = len(all_trajectories)
         loss_key = "awr_loss" if config.update_method == "awr" else "surrogate_loss"
         log_data = {
-            f"{config.mode}/{loss_key}": avg_loss,
-            f"{config.mode}/kl_penalty": avg_kl,
+            f"{config.mode}/{loss_key}": update_metrics.avg_loss,
+            f"{config.mode}/kl_penalty": update_metrics.avg_kl,
             f"{config.mode}/total_successes": total_successes,
             f"{config.mode}/skipped_tasks": len(skipped_tasks),
             f"{config.mode}/iteration": iteration,
         }
         if config.update_method == "awr":
-            log_data[f"{config.mode}/mean_weight"] = avg_weight
+            log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
 
         for tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{tid}/successes"] = n_succ
@@ -642,7 +435,7 @@ def train_srpo(
                     log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
 
         logger.info(
-            f"Iter {iteration}  {loss_key}={avg_loss:.6f}  kl={avg_kl:.6f}"
+            f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}  kl={update_metrics.avg_kl:.6f}"
             f"  successes={total_successes}/{M}"
         )
         for tid in per_task_successes:
@@ -651,60 +444,13 @@ def train_srpo(
                 f"  g_mean={per_task_g_mean.get(tid, 0.0):.4f}"
             )
 
-        # ── 8. Periodic evaluation ───────────────────────────────────────
+        # ── 7. Periodic evaluation ───────────────────────────────────────
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
-            if config.simulator == "libero":
-                metrics = evaluate_smolvla(
-                    policy,
-                    instruction="",
-                    simulator="libero",
-                    num_episodes=config.eval_episodes,
-                    max_steps=config.max_steps,
-                    seed=config.seed + 20000,
-                    suite=config.suite,
-                    num_eval_envs=config.num_eval_envs,
-                )
-                print_metrics(
-                    metrics,
-                    tag=f"{config.mode} iter {iteration} (suite={config.suite})",
-                )
-                log_data[f"{config.mode}/eval/success_rate"] = metrics.success_rate
-                log_data[f"{config.mode}/eval/mean_reward"] = metrics.mean_reward
-                log_data[f"{config.mode}/eval/mean_ep_len"] = metrics.mean_episode_length
-                if metrics.success_rate > best_success:
-                    best_success = metrics.success_rate
-                    policy.save_checkpoint(save_path / "best")
-                    logger.info(f"New best {config.mode} checkpoint: {best_success:.2%}")
-            else:
-                task_sr_sum = 0.0
-                for spec in task_specs:
-                    metrics = evaluate_smolvla(
-                        policy,
-                        instruction=spec.instruction,
-                        simulator=config.simulator,
-                        env_id=spec.env_id or config.env_id,
-                        num_episodes=config.eval_episodes,
-                        max_steps=config.max_steps,
-                        seed=config.seed + 20000,
-                    )
-                    print_metrics(
-                        metrics,
-                        tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
-                    )
-                    log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = (
-                        metrics.success_rate
-                    )
-                    task_sr_sum += metrics.success_rate
-                avg_sr = task_sr_sum / len(task_specs)
-                if avg_sr > best_success:
-                    best_success = avg_sr
-                    policy.save_checkpoint(save_path / "best")
-                    logger.info(f"New best {config.mode} checkpoint: {best_success:.2%}")
+            best_success = evaluate_and_checkpoint(
+                policy, config, task_specs, iteration, save_path, best_success, log_data,
+            )
 
-        if wandb_run is not None:
-            wandb_run.log(log_data)
-        with open(metrics_path, "a") as f:
-            f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
+        metrics_logger.log(log_data)
 
     policy.save_checkpoint(save_path / "last")
     for engine in rollout_engines.values():

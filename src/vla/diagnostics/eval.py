@@ -172,6 +172,7 @@ def _evaluate_libero_vectorized(
     seed: int,
     state_dim: int,
     image_size: int = 256,
+    max_steps: int = 280,
 ) -> EvalMetrics:
     from vla.rl.libero_rollout import LiberoRollout
 
@@ -180,7 +181,7 @@ def _evaluate_libero_vectorized(
         suite_name=suite,
         task_id=resolved_task_id,
         num_envs=num_envs,
-        max_steps=280,
+        max_steps=max_steps,
         image_size=image_size,
         state_dim=state_dim,
     )
@@ -245,6 +246,7 @@ def evaluate_smolvla(
             seed=seed,
             state_dim=policy.state_dim,
             image_size=image_size,
+            max_steps=max_steps,
         )
 
     factory_kwargs: dict = {}
