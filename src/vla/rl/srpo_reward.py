@@ -24,6 +24,7 @@ from sklearn.neighbors import NearestNeighbors
 
 from vla.models.world_model import WorldModelEncoder
 from vla.rl.rollout import Trajectory
+from vla.utils import to_float01
 
 logger = logging.getLogger(__name__)
 
@@ -126,11 +127,7 @@ class WorldProgressReward:
         for traj in trajectories:
             if not traj.success:
                 continue
-            imgs = (
-                traj.images[: traj.length].float() / 255.0
-                if traj.images.dtype == torch.uint8
-                else traj.images[: traj.length].float()
-            )
+            imgs = to_float01(traj.images[: traj.length])
             new_embs.append(self.encoder.encode_trajectory(imgs, self.cfg.subsample_every))
         if new_embs:
             self._insert_online(new_embs)
@@ -214,9 +211,7 @@ class WorldProgressReward:
         """Encode all trajectories in a single batched pass."""
         all_imgs = []
         for traj in trajectories:
-            imgs = traj.images[: traj.length]
-            imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
-            all_imgs.append(imgs)
+            all_imgs.append(to_float01(traj.images[: traj.length]))
         embs = self.encoder.encode_trajectories(all_imgs, self.cfg.subsample_every)
         return list(embs.unbind(0))
 
@@ -224,6 +219,10 @@ class WorldProgressReward:
         """Apply the activation function φ(·) mapping to (0, 1)."""
         if self.cfg.activation == "sigmoid":
             return torch.sigmoid(-x)
+        logger.warning(
+            "Unknown activation %r — falling back to 'sigmoid'. Choose from: 'sigmoid'.",
+            self.cfg.activation,
+        )
         return torch.sigmoid(-x)
 
     def _distances_to_centres(self, emb: torch.Tensor, centres: torch.Tensor) -> torch.Tensor:
