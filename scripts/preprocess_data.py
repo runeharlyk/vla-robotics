@@ -27,6 +27,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from vla.constants import PREPROCESSED_DIR, RAW_DIR
+from vla.utils.camera import pad_camera_views
 
 DEFAULT_SKILL = "PickCube-v1"
 DEFAULT_INSTRUCTION = "complete the manipulation task"
@@ -163,15 +164,15 @@ def extract_rgb_views(obs: dict, env, num_cameras: int) -> list[np.ndarray]:
         )
         _warned_render_fallback = True
     arrays = sensor_views + render_views
-    if len(arrays) < num_cameras:
-        if not _warned_camera_fallback:
-            typer.echo(
-                "Warning: fewer total camera views than requested after sensor+render; duplicating last camera view.",
-                err=True,
-            )
-            _warned_camera_fallback = True
-        arrays.extend([arrays[-1].copy() for _ in range(num_cameras - len(arrays))])
-    return arrays[:num_cameras]
+    if not arrays:
+        raise RuntimeError("Could not extract any camera views from sensor_data or render output")
+    if len(arrays) < num_cameras and not _warned_camera_fallback:
+        typer.echo(
+            "Warning: fewer total camera views than requested after sensor+render; duplicating last camera view.",
+            err=True,
+        )
+        _warned_camera_fallback = True
+    return pad_camera_views(arrays, num_cameras)
 
 
 def flatten_obs_state(obs: dict) -> np.ndarray:

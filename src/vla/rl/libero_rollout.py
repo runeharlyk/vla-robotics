@@ -275,15 +275,10 @@ class LiberoRollout:
             ``(num_cameras, C, H, W)`` uint8 image tensor and
             ``(state_dim,)`` float32 state tensor.
         """
-        cam_tensors = []
-        for img_np in packed_obs["images"]:
-            cam_tensors.append(torch.from_numpy(img_np).permute(2, 0, 1))
+        cam_tensors = [torch.from_numpy(img_np).permute(2, 0, 1) for img_np in packed_obs["images"]]
+        default = torch.zeros(3, self.image_size, self.image_size, dtype=torch.uint8)
         while len(cam_tensors) < self.num_cameras:
-            cam_tensors.append(
-                cam_tensors[-1].clone()
-                if cam_tensors
-                else torch.zeros(3, self.image_size, self.image_size, dtype=torch.uint8)
-            )
+            cam_tensors.append(cam_tensors[-1].clone() if cam_tensors else default.clone())
         cam_tensors = cam_tensors[: self.num_cameras]
 
         images = torch.stack(cam_tensors, dim=0)
@@ -375,111 +370,55 @@ class LiberoRollout:
         num_trajectories: int,
         seed: int | None,
     ) -> list[Trajectory]:
-        N = self.num_envs
-        all_trajectories: list[Trajectory] = []
-        remaining = num_trajectories
-        wave_idx = 0
+        from vla.rl.vec_env import collect_trajectories_vectorized
 
-        while remaining > 0:
-            active_n = min(N, remaining)
-            wave_seed = (seed + wave_idx * N) if seed is not None else None
-            wave_trajs = self._collect_wave(policy_batch_fn, instruction, active_n, wave_seed)
-            all_trajectories.extend(wave_trajs)
-            remaining -= len(wave_trajs)
-            wave_idx += 1
-
-        return all_trajectories[:num_trajectories]
-
-    def _collect_wave(
-        self,
-        policy_batch_fn: Any,
-        instruction: str,
-        active_n: int,
-        seed: int | None,
-    ) -> list[Trajectory]:
-        N = self.num_envs
-        seeds = [(seed + i) if seed is not None else None for i in range(N)]
-        obs_list = self.vec_env.reset(seeds)
-
-        img_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        state_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        action_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        reward_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        done_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        success_flags = [False] * N
-        env_done = [i >= active_n for i in range(N)]
-
-        for _step in range(self.max_steps):
-            if all(env_done):
-                break
-
-            all_imgs = []
-            all_states = []
-            for i in range(N):
-                img_t, state_t = self._obs_to_tensors(obs_list[i])
-                all_imgs.append(img_t)
-                all_states.append(state_t)
-
-            images_batch = torch.stack(all_imgs, dim=0)
-            states_batch = torch.stack(all_states, dim=0)
-
-            active_indices = [i for i in range(N) if not env_done[i]]
-            if not active_indices:
-                break
-
-            active_imgs = images_batch[active_indices]
-            active_states = states_batch[active_indices]
-
-            with torch.no_grad():
-                active_actions = policy_batch_fn(active_imgs, instruction, active_states)
-
-            if isinstance(active_actions, torch.Tensor):
-                active_actions_np = active_actions.detach().cpu().numpy()
-            else:
-                active_actions_np = np.asarray(active_actions, dtype=np.float32)
-            if active_actions_np.ndim == 1:
-                active_actions_np = active_actions_np[np.newaxis]
-
-            action_dim = active_actions_np.shape[-1]
-            actions_np = np.zeros((N, action_dim), dtype=np.float32)
-            for idx, env_i in enumerate(active_indices):
-                actions_np[env_i] = active_actions_np[idx]
-
-            for idx, env_i in enumerate(active_indices):
-                img_bufs[env_i].append(images_batch[env_i])
-                state_bufs[env_i].append(states_batch[env_i])
-                action_bufs[env_i].append(torch.from_numpy(active_actions_np[idx].copy()))
-
-            obs_list, rewards, terminateds, truncateds, infos = self.vec_env.step(actions_np)
-
-            for env_i in active_indices:
-                reward_bufs[env_i].append(torch.tensor(rewards[env_i]))
-                step_done = terminateds[env_i] or truncateds[env_i]
-                done_bufs[env_i].append(torch.tensor(float(step_done)))
-
-                if infos[env_i].get("is_success", False):
-                    success_flags[env_i] = True
-                if step_done:
-                    env_done[env_i] = True
-
-        trajectories: list[Trajectory] = []
-        for i in range(active_n):
-            T = len(img_bufs[i])
-            if T == 0:
-                continue
-            trajectories.append(
-                Trajectory(
-                    images=torch.stack(img_bufs[i]),
-                    states=torch.stack(state_bufs[i]),
-                    actions=torch.stack(action_bufs[i]),
-                    rewards=torch.stack(reward_bufs[i]),
-                    dones=torch.stack(done_bufs[i]),
-                    success=success_flags[i],
-                    length=T,
-                )
-            )
-
-        return trajectories
+        adapter = _LiberoVecAdapter(self)
+        return collect_trajectories_vectorized(
+            adapter, policy_batch_fn, instruction, num_trajectories, seed, self.max_steps
+        )
 
     def close(self) -> None:
         self.vec_env.close()
+
+
+# ---------------------------------------------------------------------------
+# VecEnvAdapter for the shared wave-loop
+# ---------------------------------------------------------------------------
+
+
+class _LiberoVecAdapter:
+    """Adapts :class:`LiberoRollout` to the :class:`VecEnvAdapter` protocol."""
+
+    def __init__(self, rollout: LiberoRollout) -> None:
+        self._r = rollout
+
+    @property
+    def num_envs(self) -> int:
+        return self._r.num_envs
+
+    def reset(self, seed: int | None) -> list[dict]:
+        N = self._r.num_envs
+        seeds = [(seed + i) if seed is not None else None for i in range(N)]
+        return self._r.vec_env.reset(seeds)
+
+    def extract_batch_obs(self, raw_obs: list[dict]) -> tuple[torch.Tensor, torch.Tensor]:
+        all_imgs = []
+        all_states = []
+        for i in range(self._r.num_envs):
+            img_t, state_t = self._r._obs_to_tensors(raw_obs[i])
+            all_imgs.append(img_t)
+            all_states.append(state_t)
+        return torch.stack(all_imgs, dim=0), torch.stack(all_states, dim=0)
+
+    def step(self, actions: np.ndarray) -> Any:
+        from vla.rl.vec_env import StepResult
+
+        obs_list, rewards, terminateds, truncateds, infos = self._r.vec_env.step(actions)
+        successes = [info.get("is_success", False) for info in infos]
+        return StepResult(
+            raw_obs=obs_list,
+            rewards=rewards,
+            terminateds=terminateds,
+            truncateds=truncateds,
+            successes=successes,
+        )

@@ -22,6 +22,8 @@ import mani_skill.envs  # noqa: F401 - registers envs
 import numpy as np
 import torch
 
+from vla.utils.camera import pad_camera_views
+
 logger = logging.getLogger(__name__)
 
 
@@ -229,17 +231,15 @@ class ManiSkillRollout:
         frames = sensor_frames + render_frames
         if not frames:
             raise RuntimeError("Could not extract any camera images from sensor_data or render output")
-        if len(frames) < self.num_cameras:
-            if not self._warned_camera_fallback:
-                logger.warning(
-                    "Only %d total camera view(s) available after sensor+render extraction, but %d requested. "
-                    "Falling back by duplicating the last camera view.",
-                    len(frames),
-                    self.num_cameras,
-                )
-                self._warned_camera_fallback = True
-            frames.extend([frames[-1].copy() for _ in range(self.num_cameras - len(frames))])
-        return frames[: self.num_cameras]
+        if len(frames) < self.num_cameras and not self._warned_camera_fallback:
+            logger.warning(
+                "Only %d total camera view(s) available after sensor+render extraction, but %d requested. "
+                "Falling back by duplicating the last camera view.",
+                len(frames),
+                self.num_cameras,
+            )
+            self._warned_camera_fallback = True
+        return pad_camera_views(frames, self.num_cameras)
 
     @staticmethod
     def _extract_privileged(info: dict) -> dict[str, float]:
@@ -304,13 +304,8 @@ class ManiSkillRollout:
 
         N = self.num_envs
         cam_batches = self._extract_sensor_rgbs_batched(obs)
-
-        while len(cam_batches) < self.num_cameras:
-            if cam_batches:
-                cam_batches.append(cam_batches[-1].copy())
-            else:
-                cam_batches.append(np.zeros((N, self.image_size, self.image_size, 3), dtype=np.uint8))
-        cam_batches = cam_batches[: self.num_cameras]
+        default_batch = np.zeros((N, self.image_size, self.image_size, 3), dtype=np.uint8)
+        cam_batches = pad_camera_views(cam_batches, self.num_cameras, default=default_batch)
 
         all_imgs = []
         for env_i in range(N):
@@ -481,110 +476,49 @@ class ManiSkillRollout:
         If ``num_trajectories > num_envs`` the environments are reused
         across multiple waves.
         """
-        N = self.num_envs
-        all_trajectories: list[Trajectory] = []
+        from vla.rl.vec_env import collect_trajectories_vectorized
 
-        remaining = num_trajectories
-        wave_idx = 0
-
-        while remaining > 0:
-            active_n = min(N, remaining)
-            wave_seed = (seed + wave_idx * N) if seed is not None else None
-            wave_trajs = self._collect_wave(policy_batch_fn, instruction, active_n, wave_seed)
-            all_trajectories.extend(wave_trajs)
-            remaining -= len(wave_trajs)
-            wave_idx += 1
-
-        return all_trajectories[:num_trajectories]
-
-    def _collect_wave(
-        self,
-        policy_batch_fn: Any,
-        instruction: str,
-        active_n: int,
-        seed: int | None,
-    ) -> list[Trajectory]:
-        """Run one wave of ``active_n`` parallel episodes to completion."""
-        N = self.num_envs
-
-        obs, info = self.env.reset(seed=seed)
-
-        img_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        state_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        action_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        reward_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        done_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
-        success_flags = [False] * N
-        env_done = [i >= active_n for i in range(N)]
-
-        for _step in range(self.max_steps):
-            if all(env_done):
-                break
-
-            images_batch, states_batch = self._extract_batched_obs(obs)
-
-            active_indices = [i for i in range(N) if not env_done[i]]
-            if not active_indices:
-                break
-
-            active_imgs = images_batch[active_indices]
-            active_states = states_batch[active_indices]
-
-            with torch.no_grad():
-                active_actions = policy_batch_fn(active_imgs, instruction, active_states)
-
-            if isinstance(active_actions, torch.Tensor):
-                active_actions_np = active_actions.detach().cpu().numpy()
-            else:
-                active_actions_np = np.asarray(active_actions, dtype=np.float32)
-            if active_actions_np.ndim == 1:
-                active_actions_np = active_actions_np[np.newaxis]
-
-            action_dim = active_actions_np.shape[-1]
-            actions_np = np.zeros((N, action_dim), dtype=np.float32)
-            for idx, env_i in enumerate(active_indices):
-                actions_np[env_i] = active_actions_np[idx]
-
-            for idx, env_i in enumerate(active_indices):
-                img_bufs[env_i].append(images_batch[env_i])
-                state_bufs[env_i].append(states_batch[env_i])
-                action_bufs[env_i].append(torch.from_numpy(active_actions_np[idx].copy()))
-
-            obs, reward, terminated, truncated, info = self.env.step(actions_np)
-
-            rewards = self._extract_rewards_batched(reward, N)
-            term_list, trunc_list = self._extract_done_batched(terminated, truncated, N)
-            succ_list = self._extract_success_batched(info, N)
-
-            for env_i in active_indices:
-                reward_bufs[env_i].append(torch.tensor(rewards[env_i]))
-                step_done = term_list[env_i] or trunc_list[env_i]
-                done_bufs[env_i].append(torch.tensor(float(step_done)))
-
-                if succ_list[env_i]:
-                    success_flags[env_i] = True
-
-                if step_done:
-                    env_done[env_i] = True
-
-        trajectories: list[Trajectory] = []
-        for i in range(active_n):
-            T = len(img_bufs[i])
-            if T == 0:
-                continue
-            trajectories.append(
-                Trajectory(
-                    images=torch.stack(img_bufs[i]),
-                    states=torch.stack(state_bufs[i]),
-                    actions=torch.stack(action_bufs[i]),
-                    rewards=torch.stack(reward_bufs[i]),
-                    dones=torch.stack(done_bufs[i]),
-                    success=success_flags[i],
-                    length=T,
-                )
-            )
-
-        return trajectories
+        adapter = _ManiSkillVecAdapter(self)
+        return collect_trajectories_vectorized(
+            adapter, policy_batch_fn, instruction, num_trajectories, seed, self.max_steps
+        )
 
     def close(self) -> None:
         self.env.close()
+
+
+# ---------------------------------------------------------------------------
+# VecEnvAdapter for the shared wave-loop
+# ---------------------------------------------------------------------------
+
+
+class _ManiSkillVecAdapter:
+    """Adapts :class:`ManiSkillRollout` to the :class:`VecEnvAdapter` protocol."""
+
+    def __init__(self, rollout: ManiSkillRollout) -> None:
+        self._r = rollout
+
+    @property
+    def num_envs(self) -> int:
+        return self._r.num_envs
+
+    def reset(self, seed: int | None) -> Any:
+        obs, _info = self._r.env.reset(seed=seed)
+        return obs
+
+    def extract_batch_obs(self, raw_obs: Any) -> tuple[torch.Tensor, torch.Tensor]:
+        return self._r._extract_batched_obs(raw_obs)
+
+    def step(self, actions: np.ndarray) -> Any:
+        from vla.rl.vec_env import StepResult
+
+        obs, reward, terminated, truncated, info = self._r.env.step(actions)
+        N = self._r.num_envs
+        term_list, trunc_list = ManiSkillRollout._extract_done_batched(terminated, truncated, N)
+        return StepResult(
+            raw_obs=obs,
+            rewards=ManiSkillRollout._extract_rewards_batched(reward, N),
+            terminateds=term_list,
+            truncateds=trunc_list,
+            successes=ManiSkillRollout._extract_success_batched(info, N),
+        )
