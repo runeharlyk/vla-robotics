@@ -28,6 +28,24 @@ class NormStats:
     state_std: torch.Tensor
 
 
+def norm_stats_from_tensors(actions: torch.Tensor, states: torch.Tensor) -> NormStats:
+    """Compute per-dimension mean/std normalization statistics.
+
+    Args:
+        actions: ``(N, action_dim)`` float tensor of all action samples.
+        states: ``(N, state_dim)`` float tensor of all state samples.
+
+    Returns:
+        :class:`NormStats` with per-dimension mean and std (std clamped to ≥ 1e-8).
+    """
+    return NormStats(
+        action_mean=actions.mean(dim=0),
+        action_std=actions.std(dim=0).clamp(min=1e-8),
+        state_mean=states.mean(dim=0),
+        state_std=states.std(dim=0).clamp(min=1e-8),
+    )
+
+
 class FewDemoDataset(Dataset):
     """Dataset that flattens episode timesteps into individual (image, state, action) samples.
 
@@ -38,6 +56,7 @@ class FewDemoDataset(Dataset):
     """
 
     def __init__(self, pt_path: str | Path, num_demos: int | None = None, seed: int = 42) -> None:
+        # weights_only=False: file contains Python dicts and lists alongside tensors
         data = torch.load(pt_path, map_location="cpu", weights_only=False)
         self.metadata: dict = data["metadata"]
         episodes: list[dict] = data["episodes"]
@@ -80,12 +99,7 @@ class FewDemoDataset(Dataset):
         self.state_dim = int(self.metadata["state_dim"])
         self.control_mode: str = self.metadata.get("control_mode", "pd_joint_delta_pos")
 
-        self.norm_stats = NormStats(
-            action_mean=self.actions_cat.mean(dim=0),
-            action_std=self.actions_cat.std(dim=0).clamp(min=1e-8),
-            state_mean=self.states_cat.mean(dim=0),
-            state_std=self.states_cat.std(dim=0).clamp(min=1e-8),
-        )
+        self.norm_stats = norm_stats_from_tensors(self.actions_cat, self.states_cat)
 
     def __len__(self) -> int:
         return self.images_cat.shape[0]
@@ -162,12 +176,7 @@ class ConcatFewDemoDataset(Dataset):
         unique_instrs = list(dict.fromkeys(d.instruction for d in subs))
         self.instruction: str = unique_instrs[0]
 
-        self.norm_stats = NormStats(
-            action_mean=self.actions_cat.mean(dim=0),
-            action_std=self.actions_cat.std(dim=0).clamp(min=1e-8),
-            state_mean=self.states_cat.mean(dim=0),
-            state_std=self.states_cat.std(dim=0).clamp(min=1e-8),
-        )
+        self.norm_stats = norm_stats_from_tensors(self.actions_cat, self.states_cat)
 
         self.metadata: dict = subs[0].metadata.copy()
         if len(unique_instrs) > 1:
