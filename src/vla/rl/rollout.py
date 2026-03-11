@@ -23,6 +23,7 @@ import numpy as np
 import torch
 
 from vla.utils.camera import pad_camera_views
+from vla.utils.tensor import action_to_numpy
 
 logger = logging.getLogger(__name__)
 
@@ -382,10 +383,7 @@ class ManiSkillRollout:
             state_t = torch.from_numpy(state)
 
             action = policy_fn(img_t, instruction, state_t)
-            if isinstance(action, torch.Tensor):
-                action_np = action.detach().cpu().numpy().flatten()
-            else:
-                action_np = np.asarray(action, dtype=np.float32).flatten()
+            action_np = action_to_numpy(action)
 
             images.append(img_t)
             states.append(torch.from_numpy(state))

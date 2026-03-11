@@ -20,6 +20,7 @@ import torch
 
 from vla.envs import SimEnvFactory, make_env_factory
 from vla.rl.rollout import Trajectory
+from vla.utils.tensor import action_to_numpy
 
 logger = logging.getLogger(__name__)
 
@@ -134,11 +135,7 @@ def evaluate(
                 batch = env.obs_to_batch(raw_obs, device=device)
                 action = policy_fn(batch)
 
-                if isinstance(action, torch.Tensor):
-                    action_np = action.detach().cpu().numpy()
-                else:
-                    action_np = np.asarray(action, dtype=np.float32)
-                action_np = action_np.flatten()
+                action_np = action_to_numpy(action)
 
                 raw_obs, reward, terminated, truncated, info = env.step(action_np)
                 ep_reward += float(reward)

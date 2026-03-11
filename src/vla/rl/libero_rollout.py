@@ -20,6 +20,7 @@ import torch
 
 from vla.constants import SUITE_MAP
 from vla.rl.rollout import Trajectory
+from vla.utils.tensor import action_to_numpy
 
 logger = logging.getLogger(__name__)
 
@@ -331,10 +332,7 @@ class LiberoRollout:
         for _step in range(self.max_steps):
             img_t, state_t = self._obs_to_tensors(obs)
             action = policy_fn(img_t, instruction, state_t)
-            if isinstance(action, torch.Tensor):
-                action_np = action.detach().cpu().numpy().flatten()
-            else:
-                action_np = np.asarray(action, dtype=np.float32).flatten()
+            action_np = action_to_numpy(action)
 
             images.append(img_t)
             states.append(state_t)
