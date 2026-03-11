@@ -38,6 +38,7 @@ if "transformers" not in sys.modules:
 if "wandb" not in sys.modules:
     sys.modules["wandb"] = MagicMock()
 
+from tests.helpers import make_fake_pt
 from vla.data.dataset import FewDemoDataset
 from vla.rl.rollout import Trajectory
 from vla.rl.srpo_reward import (
@@ -53,41 +54,6 @@ from scripts.train_srpo import _load_multitask_data
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _make_fake_pt(
-    path: Path,
-    num_episodes: int = 3,
-    T: int = 10,
-    action_dim: int = 7,
-    state_dim: int = 14,
-    instruction: str = "pick up the block",
-    libero_task_id: int = 0,
-):
-    episodes = []
-    for _ in range(num_episodes):
-        episodes.append(
-            {
-                "images": torch.randint(0, 255, (T, 2, 3, 64, 64), dtype=torch.uint8),
-                "states": torch.randn(T, state_dim),
-                "actions": torch.randn(T, action_dim),
-            }
-        )
-    torch.save(
-        {
-            "metadata": {
-                "env_id": "TestEnv-v1",
-                "instruction": instruction,
-                "action_dim": action_dim,
-                "state_dim": state_dim,
-                "image_size": 64,
-                "control_mode": "pd_joint_delta_pos",
-                "libero_task_id": libero_task_id,
-            },
-            "episodes": episodes,
-        },
-        path,
-    )
 
 
 def _make_trajectory(task_id: str = "", success: bool = False, T: int = 10) -> Trajectory:
@@ -186,7 +152,7 @@ class TestMultitaskDataLoading:
         pt_files = []
         for i, instr in enumerate(instructions):
             pt = tmp_path / f"task_{i}.pt"
-            _make_fake_pt(pt, num_episodes=2, instruction=instr, libero_task_id=i)
+            make_fake_pt(pt, num_episodes=2, instruction=instr, libero_task_id=i)
             pt_files.append(pt)
 
         specs = []
@@ -211,8 +177,8 @@ class TestMultitaskDataLoading:
     def test_demo_trajectories_per_task(self, tmp_path):
         pt_a = tmp_path / "alpha.pt"
         pt_b = tmp_path / "beta.pt"
-        _make_fake_pt(pt_a, num_episodes=5, instruction="task alpha")
-        _make_fake_pt(pt_b, num_episodes=3, instruction="task beta")
+        make_fake_pt(pt_a, num_episodes=5, instruction="task alpha")
+        make_fake_pt(pt_b, num_episodes=3, instruction="task beta")
 
         demo_trajs: dict[str, list[Trajectory]] = {}
         for pt in [pt_a, pt_b]:
@@ -398,25 +364,25 @@ class TestOneShotBehavior:
 
     def test_dataset_caps_to_one_episode(self, tmp_path):
         pt = tmp_path / "multi.pt"
-        _make_fake_pt(pt, num_episodes=10)
+        make_fake_pt(pt, num_episodes=10)
         ds = FewDemoDataset(pt, num_demos=1)
         assert ds.num_episodes == 1
 
     def test_dataset_with_single_source_episode(self, tmp_path):
         pt = tmp_path / "single.pt"
-        _make_fake_pt(pt, num_episodes=1)
+        make_fake_pt(pt, num_episodes=1)
         ds = FewDemoDataset(pt, num_demos=1)
         assert ds.num_episodes == 1
 
     def test_dataset_without_num_demos_on_single_episode_file(self, tmp_path):
         pt = tmp_path / "single.pt"
-        _make_fake_pt(pt, num_episodes=1)
+        make_fake_pt(pt, num_episodes=1)
         ds = FewDemoDataset(pt)
         assert ds.num_episodes == 1
 
     def test_episodes_as_trajectories_one_shot(self, tmp_path):
         pt = tmp_path / "one.pt"
-        _make_fake_pt(pt, num_episodes=5, T=15)
+        make_fake_pt(pt, num_episodes=5, T=15)
         ds = FewDemoDataset(pt, num_demos=1)
         trajs = ds.episodes_as_trajectories()
         assert len(trajs) == 1
@@ -425,7 +391,7 @@ class TestOneShotBehavior:
 
     def test_one_shot_dataset_timestep_count(self, tmp_path):
         pt = tmp_path / "one.pt"
-        _make_fake_pt(pt, num_episodes=8, T=20)
+        make_fake_pt(pt, num_episodes=8, T=20)
         ds = FewDemoDataset(pt, num_demos=1)
         assert len(ds) == 20
 
@@ -555,7 +521,7 @@ class TestOneShotBehavior:
     def test_multitask_one_shot_data_loading(self, tmp_path):
         instructions = ["pick up the mug", "place the bowl", "stack the cube"]
         for i, instr in enumerate(instructions):
-            _make_fake_pt(tmp_path / f"task_{i}.pt", num_episodes=5, instruction=instr)
+            make_fake_pt(tmp_path / f"task_{i}.pt", num_episodes=5, instruction=instr)
 
         specs = []
         for pt in sorted(tmp_path.glob("*.pt")):

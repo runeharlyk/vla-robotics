@@ -1,11 +1,11 @@
-from pathlib import Path
-
 import torch
 from torch.utils.data import Subset, TensorDataset
 
 from vla.constants import LIBERO_SUITES
 from vla.data import make_dataloader, split_dataset
 from vla.data.dataset import ConcatFewDemoDataset, FewDemoDataset
+
+from tests.helpers import make_fake_pt
 
 
 class TestLiberoSuites:
@@ -46,36 +46,10 @@ class TestSplitDataset:
         assert len(val) >= 1
 
 
-def _make_fake_pt(path: Path, num_episodes: int = 3, T: int = 5, action_dim: int = 8, instruction: str = "pick up"):
-    episodes = []
-    for _ in range(num_episodes):
-        episodes.append(
-            {
-                "images": torch.randint(0, 255, (T, 2, 3, 64, 64), dtype=torch.uint8),
-                "states": torch.randn(T, 14),
-                "actions": torch.randn(T, action_dim),
-            }
-        )
-    torch.save(
-        {
-            "metadata": {
-                "env_id": "PickCube-v1",
-                "instruction": instruction,
-                "action_dim": action_dim,
-                "state_dim": 14,
-                "image_size": 64,
-                "control_mode": "pd_joint_delta_pos",
-            },
-            "episodes": episodes,
-        },
-        path,
-    )
-
-
 class TestFewDemoDataset:
     def test_load_single(self, tmp_path):
         pt = tmp_path / "test.pt"
-        _make_fake_pt(pt, num_episodes=4, T=3)
+        make_fake_pt(pt, num_episodes=4, T=3)
         ds = FewDemoDataset(pt)
         assert ds.num_episodes == 4
         assert len(ds) == 12
@@ -85,7 +59,7 @@ class TestFewDemoDataset:
 
     def test_subsample(self, tmp_path):
         pt = tmp_path / "test.pt"
-        _make_fake_pt(pt, num_episodes=10, T=2)
+        make_fake_pt(pt, num_episodes=10, T=2)
         ds = FewDemoDataset(pt, num_demos=3, seed=0)
         assert ds.num_episodes == 3
         assert len(ds) == 6
@@ -95,8 +69,8 @@ class TestConcatFewDemoDataset:
     def test_combine_two(self, tmp_path):
         pt1 = tmp_path / "a.pt"
         pt2 = tmp_path / "b.pt"
-        _make_fake_pt(pt1, num_episodes=2, T=3, instruction="pick up")
-        _make_fake_pt(pt2, num_episodes=3, T=4, instruction="stack cubes")
+        make_fake_pt(pt1, num_episodes=2, T=3, instruction="pick up")
+        make_fake_pt(pt2, num_episodes=3, T=4, instruction="stack cubes")
         ds = ConcatFewDemoDataset([pt1, pt2])
         assert ds.num_episodes == 5
         assert len(ds) == 2 * 3 + 3 * 4
@@ -109,8 +83,8 @@ class TestConcatFewDemoDataset:
     def test_rejects_mismatched_dims(self, tmp_path):
         pt1 = tmp_path / "a.pt"
         pt2 = tmp_path / "b.pt"
-        _make_fake_pt(pt1, action_dim=8)
-        _make_fake_pt(pt2, action_dim=7)
+        make_fake_pt(pt1, action_dim=8)
+        make_fake_pt(pt2, action_dim=7)
         import pytest
 
         with pytest.raises(ValueError):
@@ -119,8 +93,8 @@ class TestConcatFewDemoDataset:
     def test_norm_stats_computed(self, tmp_path):
         pt1 = tmp_path / "a.pt"
         pt2 = tmp_path / "b.pt"
-        _make_fake_pt(pt1, num_episodes=2, T=5)
-        _make_fake_pt(pt2, num_episodes=2, T=5)
+        make_fake_pt(pt1, num_episodes=2, T=5)
+        make_fake_pt(pt2, num_episodes=2, T=5)
         ds = ConcatFewDemoDataset([pt1, pt2])
         assert ds.norm_stats.action_mean.shape == (8,)
         assert ds.norm_stats.action_std.shape == (8,)
