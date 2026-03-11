@@ -37,7 +37,7 @@ from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.rollout import Trajectory
-from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo, train_srpo_multitask
+from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -292,15 +292,24 @@ def main(
         num_rollout_envs,
     )
 
-    demo_trajectories: list[Trajectory] | None = None
+    task_tag = resolved_env_id.lower().replace("-", "_")
+    task_spec = TaskSpec(
+        task_id=task_tag,
+        instruction=resolved_instruction,
+        env_id=resolved_env_id,
+        libero_task_idx=task_id if simulator == "libero" else 0,
+    )
+
+    demo_dict: dict[str, list[Trajectory]] | None = None
     if mode == "srpo":
         if libero_suite is not None:
-            demo_trajectories = dataset.episodes_as_trajectories(task_id=task_id)
+            raw_demos = dataset.episodes_as_trajectories(task_id=task_id)
         else:
-            demo_trajectories = dataset.episodes_as_trajectories()
-        logging.info("Built %d demo trajectories for reference seeding", len(demo_trajectories))
-
-    task_tag = resolved_env_id.lower().replace("-", "_")
+            raw_demos = dataset.episodes_as_trajectories()
+        for t in raw_demos:
+            t.task_id = task_tag
+        demo_dict = {task_tag: raw_demos}
+        logging.info("Built %d demo trajectories for reference seeding", len(raw_demos))
 
     config = SRPOConfig(
         lr=lr,
@@ -368,7 +377,14 @@ def main(
             },
         )
 
-    train_srpo(policy, config, resolved_instruction, demo_trajectories=demo_trajectories, wandb_run=run)
+    train_srpo(
+        policy,
+        config,
+        [task_spec],
+        demo_trajectories=demo_dict,
+        wandb_run=run,
+        trajs_per_task_per_iter=trajectories_per_iter,
+    )
 
     if run is not None:
         run.finish()
@@ -518,7 +534,7 @@ def _run_multitask(
             },
         )
 
-    train_srpo_multitask(
+    train_srpo(
         policy,
         config,
         task_specs,

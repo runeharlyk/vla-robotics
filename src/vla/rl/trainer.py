@@ -37,7 +37,6 @@ from vla.rl.rollout import ManiSkillRollout, RolloutEngine, Trajectory
 from vla.rl.srpo_reward import (
     MultiTaskWorldProgressReward,
     SRPORewardConfig,
-    WorldProgressReward,
 )
 
 logger = logging.getLogger(__name__)
@@ -294,388 +293,36 @@ def _merge_trajectory_data(
 def train_srpo(
     policy: SmolVLAPolicy,
     config: SRPOConfig,
-    instruction: str,
-    demo_trajectories: list[Trajectory] | None = None,
-    wandb_run: Any | None = None,
-    rollout_engine: RolloutEngine | None = None,
-) -> SmolVLAPolicy:
-    """Run SRPO training on top of an SFT-initialised policy.
-
-    Implements the full SRPO algorithm from the paper:
-      - World-progress reward shaping via world-model embeddings + DBSCAN
-      - Trajectory-level advantages (GRPO-style)
-      - Clipped surrogate objective with importance sampling
-      - KL regularisation against the reference (SFT) policy
-
-    When ``config.mode == "sparse_rl"`` the world-model rewards are
-    disabled and only the binary environment reward is used (ablation).
-
-    Args:
-        policy: SFT-initialised SmolVLA policy (becomes π_θ *and* π_ref).
-        config: SRPO hyperparameters.
-        instruction: Language instruction for the task.
-        demo_trajectories: Optional list of demo trajectories to seed the
-            reference set.  Their images are used for world-model encoding.
-        wandb_run: Optional wandb run for logging.
-        rollout_engine: Pre-built rollout engine.  When ``None`` one is
-            created from ``config`` via :func:`build_rollout_engine`.
-
-    Returns:
-        The RL-tuned policy.
-    """
-    if config.gradient_checkpointing:
-        policy.enable_gradient_checkpointing()
-
-    trainable = [p for p in policy.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(
-        trainable,
-        lr=config.lr,
-        betas=config.betas,
-        weight_decay=config.weight_decay,
-    )
-
-    ref_policy = copy.deepcopy(policy)
-    ref_policy.eval()
-    for p in ref_policy.parameters():
-        p.requires_grad_(False)
-
-    world_encoder: WorldModelEncoder | None = None
-    reward_model: WorldProgressReward | None = None
-
-    if config.mode == "srpo":
-        world_encoder = build_world_model(
-            model_type=config.world_model_type,
-            device=str(policy.device),
-        )
-        reward_cfg = SRPORewardConfig(
-            subsample_every=config.subsample_every,
-            dbscan_eps=config.dbscan_eps,
-            dbscan_min_samples=config.dbscan_min_samples,
-        )
-        reward_model = WorldProgressReward(world_encoder, reward_cfg)
-
-        if demo_trajectories:
-            demo_images = []
-            for dt in demo_trajectories:
-                imgs = dt.images[: dt.length]
-                imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
-                demo_images.append(imgs)
-            reward_model.add_demo_trajectories(demo_images)
-
-    if rollout_engine is None:
-        rollout_engine = build_rollout_engine(config)
-
-    use_vectorized = config.num_rollout_envs > 1
-    B = config.fm_batch_size
-
-    save_path = Path(config.save_dir)
-    save_path.mkdir(parents=True, exist_ok=True)
-    metrics_path = save_path / "metrics.jsonl"
-    best_success = -1.0
-
-    _save_meta = dict(
-        env_id=config.env_id,
-        instruction=instruction,
-        control_mode="pd_joint_delta_pos",
-    )
-
-    for iteration in range(1, config.num_iterations + 1):
-        # ── 1. Collect trajectories with current policy ─────────────────
-        policy.eval()
-        trajectories = rollout_engine.collect_batch(
-            policy_fn=policy.predict_action,
-            instruction=instruction,
-            num_trajectories=config.trajectories_per_iter,
-            seed=config.seed + iteration * 1000,
-            policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
-        )
-        num_successes = sum(1 for t in trajectories if t.success)
-        logger.info(f"Iter {iteration}: collected {len(trajectories)} trajs, {num_successes} successes")
-
-        # ── 2. Compute trajectory-level rewards g_i ─────────────────────
-        if world_encoder is not None:
-            world_encoder.reload(policy.device)
-
-        if config.mode == "srpo" and reward_model is not None:
-            g_values, traj_embs = reward_model.compute_trajectory_rewards(trajectories)
-            cluster_diag = reward_model.get_diagnostics()
-            success_embs = [traj_embs[i] for i, t in enumerate(trajectories) if t.success]
-            reward_model.add_successful_embeddings(success_embs)
-        else:
-            g_values = [1.0 if t.success else 0.0 for t in trajectories]
-            cluster_diag = None
-
-        if world_encoder is not None:
-            world_encoder.offload()
-
-        # ── 3. Compute trajectory-level advantages  ──────────────────
-        g_tensor = torch.tensor(g_values, dtype=torch.float32)
-        g_mean = g_tensor.mean()
-        g_std = g_tensor.std().clamp(min=1e-8)
-        advantages = ((g_tensor - g_mean) / g_std).tolist()
-
-        if g_std < 1e-6:
-            logger.info(
-                f"Iter {iteration}: skipping update — all rewards identical "
-                f"(g={g_mean.item():.4f}, num_successes={num_successes})"
-            )
-            log_data = {
-                f"{config.mode}/skipped_update": 1,
-                f"{config.mode}/batch_successes": num_successes,
-                f"{config.mode}/mean_g": g_mean.item(),
-                f"{config.mode}/iteration": iteration,
-            }
-            if wandb_run is not None:
-                wandb_run.log(log_data)
-            with open(metrics_path, "a") as f:
-                f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
-            continue
-
-        # ── 4. Pre-sample fixed noise/time for FM loss computation ──────
-        policy.eval()
-        fixed_noise_per_traj: list[torch.Tensor] = []
-        fixed_time_per_traj: list[torch.Tensor] = []
-
-        for traj in trajectories:
-            noise, time = _sample_fixed_noise_time(traj, policy)
-            fixed_noise_per_traj.append(noise)
-            fixed_time_per_traj.append(time)
-
-        M = len(trajectories)
-
-        if config.update_method == "awr":
-            # ── 5a. AWR: advantage-weighted FM regression ────────────────
-            ref_losses_per_traj: list[torch.Tensor] = []
-            if config.kl_coeff > 0:
-                merged_traj, merged_noise, merged_time, traj_lengths = _merge_trajectory_data(
-                    trajectories, fixed_noise_per_traj, fixed_time_per_traj,
-                )
-                with torch.no_grad():
-                    all_ref = _compute_fm_loss_batched(
-                        ref_policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
-                    )
-                    ref_losses_per_traj = list(torch.split(all_ref.detach(), traj_lengths))
-                del merged_traj
-
-            policy.train()
-            total_weighted_loss = 0.0
-            total_kl = 0.0
-            total_weight = 0.0
-
-            num_epochs = config.awr_epochs
-            for _epoch in range(num_epochs):
-                optimizer.zero_grad()
-                epoch_loss = 0.0
-                epoch_kl = 0.0
-                epoch_weight = 0.0
-
-                for i, traj in enumerate(trajectories):
-                    adv_i = advantages[i]
-                    weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
-
-                    fm_loss = _compute_fm_loss_batched(
-                        policy, traj, instruction,
-                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                        batch_size=B,
-                    ).mean()
-
-                    traj_loss = weight * fm_loss / M
-
-                    if config.kl_coeff > 0 and ref_losses_per_traj:
-                        ref_fm = ref_losses_per_traj[i].mean()
-                        kl_approx = 0.5 * (ref_fm - fm_loss) ** 2
-                        traj_loss = traj_loss + config.kl_coeff * kl_approx / M
-                        epoch_kl += (config.kl_coeff * kl_approx).item()
-
-                    traj_loss.backward()
-                    epoch_loss += (weight * fm_loss).item()
-                    epoch_weight += weight
-
-                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-                optimizer.step()
-
-                total_weighted_loss += epoch_loss
-                total_kl += epoch_kl
-                total_weight += epoch_weight
-
-            avg_loss = total_weighted_loss / max(num_epochs * M, 1)
-            avg_kl = total_kl / max(num_epochs * M, 1)
-            avg_weight = total_weight / max(num_epochs * M, 1)
-
-        else:
-            # ── 5b. PPO: clipped surrogate with importance sampling ──────
-            merged_traj, merged_noise, merged_time, traj_lengths = _merge_trajectory_data(
-                trajectories, fixed_noise_per_traj, fixed_time_per_traj,
-            )
-
-            with torch.no_grad():
-                all_old = _compute_fm_loss_batched(
-                    policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
-                )
-                old_losses_per_traj = list(torch.split(all_old.detach(), traj_lengths))
-
-                all_ref = _compute_fm_loss_batched(
-                    ref_policy, merged_traj, instruction, merged_noise, merged_time, batch_size=B,
-                )
-                ref_losses_per_traj = list(torch.split(all_ref.detach(), traj_lengths))
-
-            del merged_traj
-
-            policy.train()
-            total_surrogate = 0.0
-            total_kl = 0.0
-
-            for _ppo_epoch in range(config.ppo_epochs):
-                optimizer.zero_grad()
-                epoch_clip_loss = 0.0
-                epoch_kl = 0.0
-
-                for i, traj in enumerate(trajectories):
-                    adv_i = advantages[i]
-                    old_losses_t = old_losses_per_traj[i]
-                    ref_losses_t = ref_losses_per_traj[i]
-
-                    new_losses_t = _compute_fm_loss_batched(
-                        policy, traj, instruction,
-                        fixed_noise_per_traj[i], fixed_time_per_traj[i],
-                        batch_size=B,
-                    )
-
-                    log_ratios = old_losses_t - new_losses_t
-                    ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
-
-                    adv_t = torch.full_like(ratios, adv_i)
-
-                    surr1 = ratios * adv_t
-                    surr2 = (
-                        torch.clamp(
-                            ratios,
-                            1.0 - config.clip_epsilon,
-                            1.0 + config.clip_epsilon_high,
-                        )
-                        * adv_t
-                    )
-                    clip_loss = -torch.min(surr1, surr2).mean()
-
-                    log_ratio_ref = ref_losses_t - new_losses_t
-                    kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
-                    kl_penalty = config.kl_coeff * kl_approx
-
-                    traj_loss = (clip_loss + kl_penalty) / M
-                    traj_loss.backward()
-
-                    epoch_clip_loss += clip_loss.item()
-                    epoch_kl += kl_penalty.item()
-
-                torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-                optimizer.step()
-
-                total_surrogate += epoch_clip_loss
-                total_kl += epoch_kl
-
-            avg_loss = total_surrogate / max(config.ppo_epochs * M, 1)
-            avg_kl = total_kl / max(config.ppo_epochs * M, 1)
-            avg_weight = 0.0
-            old_losses_per_traj.clear()
-
-        # ── 6. Cleanup cached tensors ───────────────────────────────────
-        fixed_noise_per_traj.clear()
-        fixed_time_per_traj.clear()
-
-        loss_key = "awr_loss" if config.update_method == "awr" else "surrogate_loss"
-        log_data = {
-            f"{config.mode}/{loss_key}": avg_loss,
-            f"{config.mode}/kl_penalty": avg_kl,
-            f"{config.mode}/batch_successes": num_successes,
-            f"{config.mode}/mean_g": g_mean.item(),
-            f"{config.mode}/iteration": iteration,
-        }
-        if config.update_method == "awr":
-            log_data[f"{config.mode}/mean_weight"] = avg_weight
-
-        if cluster_diag is not None:
-            log_data.update(cluster_diag.as_dict(prefix=f"{config.mode}/cluster"))
-        logger.info(
-            f"Iter {iteration}  {loss_key}={avg_loss:.6f}  kl={avg_kl:.6f}"
-            f"  successes={num_successes}  g_mean={g_mean:.4f}"
-        )
-        if cluster_diag is not None:
-            logger.info(
-                f"  clusters={cluster_diag.num_clusters}  refs={cluster_diag.num_references}"
-                f"  intra={cluster_diag.mean_intra_cluster_dist:.4f}"
-                f"  inter={cluster_diag.mean_inter_cluster_dist:.4f}"
-                f"  silhouette_ratio={cluster_diag.silhouette_ratio:.4f}"
-                f"  reward=[{cluster_diag.reward_min:.3f}, {cluster_diag.reward_max:.3f}]"
-            )
-        if wandb_run is not None:
-            wandb_run.log(log_data)
-
-        if iteration % config.eval_every == 0 or iteration == config.num_iterations:
-            metrics = evaluate_smolvla(
-                policy,
-                instruction=instruction,
-                simulator=config.simulator,
-                env_id=config.env_id,
-                num_episodes=config.eval_episodes,
-                max_steps=config.max_steps,
-                seed=config.seed + 20000,
-                suite=config.suite,
-                task_id=config.task_id if config.simulator == "libero" else None,
-                num_eval_envs=config.num_eval_envs,
-            )
-            print_metrics(metrics, tag=f"{config.mode} iter {iteration}")
-            log_data[f"{config.mode}/success_rate"] = metrics.success_rate
-            log_data[f"{config.mode}/mean_reward"] = metrics.mean_reward
-            log_data[f"{config.mode}/mean_ep_len"] = metrics.mean_episode_length
-            if wandb_run is not None:
-                wandb_run.log(
-                    {
-                        f"{config.mode}/success_rate": metrics.success_rate,
-                        f"{config.mode}/mean_reward": metrics.mean_reward,
-                        f"{config.mode}/mean_ep_len": metrics.mean_episode_length,
-                        f"{config.mode}/iteration": iteration,
-                    }
-                )
-            if metrics.success_rate > best_success:
-                best_success = metrics.success_rate
-                policy.save_checkpoint(save_path / "best", **_save_meta)
-                logger.info(f"New best {config.mode} checkpoint: {best_success:.2%}")
-
-        with open(metrics_path, "a") as f:
-            f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
-
-    policy.save_checkpoint(save_path / "last", **_save_meta)
-    rollout_engine.close()
-    return policy
-
-
-# ---------------------------------------------------------------------------
-# Multi-task SRPO training loop
-# ---------------------------------------------------------------------------
-
-
-def train_srpo_multitask(
-    policy: SmolVLAPolicy,
-    config: SRPOConfig,
     task_specs: list[TaskSpec],
     demo_trajectories: dict[str, list[Trajectory]] | None = None,
     wandb_run: Any | None = None,
     trajs_per_task_per_iter: int = 4,
+    rollout_engines: dict[str, RolloutEngine] | None = None,
 ) -> SmolVLAPolicy:
-    """Run multi-task SRPO training on top of an SFT-initialised policy.
+    """Run SRPO training (single- or multi-task) on an SFT-initialised policy.
 
-    Each iteration collects trajectories from **every** task, computes
-    per-task rewards and advantages, and accumulates gradients across all
-    tasks before stepping the optimizer.
+    Handles both single-task (``len(task_specs) == 1``) and multi-task
+    training in a single code-path.  Each iteration:
+
+      1. Collects trajectories from every task via per-task rollout engines.
+      2. Computes per-task world-progress rewards (DBSCAN clustering).
+      3. Normalises advantages **per task** (with 1 task this equals global).
+      4. Runs the policy update (AWR or PPO).
+      5. Periodically evaluates and checkpoints.
 
     Args:
-        policy: SFT-initialised SmolVLA policy.
-        config: SRPO hyperparameters (shared across tasks).
-        task_specs: List of :class:`TaskSpec` describing each task.
-        demo_trajectories: ``{task_id: [Trajectory, ...]}`` demo trajectories
-            for seeding per-task reward models.
+        policy: SFT-initialised SmolVLA policy (becomes both π_θ and π_ref).
+        config: SRPO hyperparameters.
+        task_specs: One or more :class:`TaskSpec` describing the task(s).
+        demo_trajectories: ``{task_id: [Trajectory, ...]}`` for seeding the
+            per-task reward models.  Pass ``None`` to skip demo seeding.
         wandb_run: Optional wandb run for logging.
-        trajs_per_task_per_iter: Trajectories to collect per task per iteration.
+        trajs_per_task_per_iter: Trajectories to collect **per task** each
+            iteration.  For single-task training, set this equal to
+            ``config.trajectories_per_iter``.
+        rollout_engines: Optional pre-built ``{task_id: RolloutEngine}`` map.
+            When ``None``, engines are created from ``task_specs`` and
+            ``config`` automatically.
 
     Returns:
         The RL-tuned policy.
@@ -696,18 +343,13 @@ def train_srpo_multitask(
     for p in ref_policy.parameters():
         p.requires_grad_(False)
 
-    # ── Per-task rollout engines ─────────────────────────────────────────
-    engines: dict[str, RolloutEngine] = {}
-    for spec in task_specs:
-        engines[spec.task_id] = _build_task_rollout_engine(
-            config,
-            spec,
-            num_envs=config.num_rollout_envs,
-        )
+    # ── Per-task rollout engines (created lazily to avoid OOM) ──────────
+    if rollout_engines is None:
+        rollout_engines = {}
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
 
-    # ── Multi-task reward model ──────────────────────────────────────────
+    # ── Per-task reward model (works for single-task too: 1 key) ─────────
     world_encoder: WorldModelEncoder | None = None
     reward_model: MultiTaskWorldProgressReward | None = None
 
@@ -745,8 +387,13 @@ def train_srpo_multitask(
         per_task_successes: dict[str, int] = {}
 
         for spec in task_specs:
+            if spec.task_id not in rollout_engines:
+                logger.info(f"Creating rollout engine for {spec.task_id}")
+                rollout_engines[spec.task_id] = _build_task_rollout_engine(
+                    config, spec, num_envs=config.num_rollout_envs,
+                )
             use_vectorized = config.num_rollout_envs > 1
-            trajs = engines[spec.task_id].collect_batch(
+            trajs = rollout_engines[spec.task_id].collect_batch(
                 policy_fn=policy.predict_action,
                 instruction=spec.instruction,
                 num_trajectories=trajs_per_task_per_iter,
@@ -806,6 +453,24 @@ def train_srpo_multitask(
                 advantages[idx] = task_adv[j]
 
         skipped_task_set = set(skipped_tasks)
+        if len(skipped_tasks) == len(task_specs):
+            logger.info(
+                f"Iter {iteration}: skipping update — all tasks have uniform rewards "
+                f"(successes={total_successes})"
+            )
+            log_data: dict[str, Any] = {
+                f"{config.mode}/skipped_update": 1,
+                f"{config.mode}/total_successes": total_successes,
+                f"{config.mode}/iteration": iteration,
+            }
+            for tid in per_task_g_mean:
+                log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean[tid]
+            if wandb_run is not None:
+                wandb_run.log(log_data)
+            with open(metrics_path, "a") as f:
+                f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
+            continue
+
         if skipped_tasks:
             logger.info(
                 f"Iter {iteration}: dynamic rejection — skipped {len(skipped_tasks)} tasks "
@@ -969,7 +634,7 @@ def train_srpo_multitask(
 
         # ── 7. Logging ───────────────────────────────────────────────────
         loss_key = "awr_loss" if config.update_method == "awr" else "surrogate_loss"
-        log_data: dict[str, Any] = {
+        log_data = {
             f"{config.mode}/{loss_key}": avg_loss,
             f"{config.mode}/kl_penalty": avg_kl,
             f"{config.mode}/total_successes": total_successes,
@@ -987,9 +652,15 @@ def train_srpo_multitask(
                 if diag is not None:
                     log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
 
-        logger.info(f"Iter {iteration}  {loss_key}={avg_loss:.6f}  kl={avg_kl:.6f}  successes={total_successes}/{M}")
+        logger.info(
+            f"Iter {iteration}  {loss_key}={avg_loss:.6f}  kl={avg_kl:.6f}"
+            f"  successes={total_successes}/{M}"
+        )
         for tid in per_task_successes:
-            logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
+            logger.info(
+                f"  [{tid}] successes={per_task_successes[tid]}"
+                f"  g_mean={per_task_g_mean.get(tid, 0.0):.4f}"
+            )
 
         # ── 8. Periodic evaluation ───────────────────────────────────────
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
@@ -1004,7 +675,10 @@ def train_srpo_multitask(
                     suite=config.suite,
                     num_eval_envs=config.num_eval_envs,
                 )
-                print_metrics(metrics, tag=f"{config.mode} iter {iteration} (suite={config.suite})")
+                print_metrics(
+                    metrics,
+                    tag=f"{config.mode} iter {iteration} (suite={config.suite})",
+                )
                 log_data[f"{config.mode}/eval/success_rate"] = metrics.success_rate
                 log_data[f"{config.mode}/eval/mean_reward"] = metrics.mean_reward
                 log_data[f"{config.mode}/eval/mean_ep_len"] = metrics.mean_episode_length
@@ -1013,18 +687,30 @@ def train_srpo_multitask(
                     policy.save_checkpoint(save_path / "best")
                     logger.info(f"New best {config.mode} checkpoint: {best_success:.2%}")
             else:
+                task_sr_sum = 0.0
                 for spec in task_specs:
                     metrics = evaluate_smolvla(
                         policy,
                         instruction=spec.instruction,
                         simulator=config.simulator,
-                        env_id=spec.env_id,
+                        env_id=spec.env_id or config.env_id,
                         num_episodes=config.eval_episodes,
                         max_steps=config.max_steps,
                         seed=config.seed + 20000,
                     )
-                    print_metrics(metrics, tag=f"{config.mode} iter {iteration} [{spec.task_id}]")
-                    log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
+                    print_metrics(
+                        metrics,
+                        tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
+                    )
+                    log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = (
+                        metrics.success_rate
+                    )
+                    task_sr_sum += metrics.success_rate
+                avg_sr = task_sr_sum / len(task_specs)
+                if avg_sr > best_success:
+                    best_success = avg_sr
+                    policy.save_checkpoint(save_path / "best")
+                    logger.info(f"New best {config.mode} checkpoint: {best_success:.2%}")
 
         if wandb_run is not None:
             wandb_run.log(log_data)
@@ -1032,6 +718,6 @@ def train_srpo_multitask(
             f.write(json.dumps(_to_json_serializable(log_data)) + "\n")
 
     policy.save_checkpoint(save_path / "last")
-    for engine in engines.values():
+    for engine in rollout_engines.values():
         engine.close()
     return policy
