@@ -22,6 +22,7 @@ from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file as load_safetensors
 from transformers import AutoProcessor
 
+from vla.env_metadata import EnvMetadata
 from vla.models.vendor.smolvlm_with_expert import SmolVLMWithExpertModel
 
 DEFAULT_CHECKPOINT = "HuggingFaceVLA/smolvla_libero"
@@ -707,14 +708,22 @@ class SmolVLAPolicy(nn.Module):
             embs, _, _ = self.model.embed_prefix(img_list, mask_list, tokens, tmasks, s)
             return embs[0, -1].float()
 
-    def save_checkpoint(self, path: str | Path, **extra_metadata: Any) -> None:
+    def save_checkpoint(
+        self,
+        path: str | Path,
+        env_metadata: EnvMetadata | None = None,
+        **extra_metadata: Any,
+    ) -> None:
         """Save full model weights, normalization statistics, and optional metadata.
 
-        Any additional keyword arguments are persisted under an ``"env_metadata"``
-        key so that downstream evaluate / visualize scripts can auto-configure
-        ``env_id``, ``instruction``, ``control_mode``, etc. without requiring
-        the user to re-specify them.
+        Args:
+            path: Directory to write ``policy.pt`` into.
+            env_metadata: Typed environment metadata.  If ``None`` but keyword
+                arguments are provided, an :class:`EnvMetadata` is constructed
+                from them for backward compatibility.
         """
+        if env_metadata is None and extra_metadata:
+            env_metadata = EnvMetadata.from_dict(extra_metadata)
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
         torch.save(
@@ -728,13 +737,16 @@ class SmolVLAPolicy(nn.Module):
                 "action_std": self.action_std.detach().cpu(),
                 "state_mean": self.state_mean.detach().cpu(),
                 "state_std": self.state_std.detach().cpu(),
-                "env_metadata": extra_metadata,
+                "env_metadata": env_metadata.to_dict() if env_metadata else {},
             },
             path / "policy.pt",
         )
 
-    def load_checkpoint(self, path: str | Path) -> dict[str, Any]:
+    def load_checkpoint(self, path: str | Path) -> EnvMetadata:
         """Load model weights and normalization statistics from a previously saved checkpoint.
+
+        Returns:
+            :class:`EnvMetadata` parsed from the stored metadata dict.
         """
         path = Path(path)
         # weights_only=False: policy.pt contains metadata dicts alongside the model state dict
@@ -760,4 +772,4 @@ class SmolVLAPolicy(nn.Module):
                 self.register_buffer("state_std", torch.ones_like(sstd), persistent=True)
             self.state_mean.copy_(sm)
             self.state_std.copy_(sstd)
-        return data.get("env_metadata", {})
+        return EnvMetadata.from_dict(data.get("env_metadata", {}))

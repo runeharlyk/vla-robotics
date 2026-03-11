@@ -269,17 +269,21 @@ def main(
         state_dim=dataset.state_dim,
         device=str(device),
     )
-    env_meta: dict = {}
+    env_meta = None
     if sft_checkpoint is not None:
         env_meta = policy.load_checkpoint(sft_checkpoint)
         logger.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
     else:
         logger.info("No SFT checkpoint provided - using pretrained %s weights directly", checkpoint)
 
-    resolved_env_id = env_id or env_meta.get("env_id") or dataset.metadata.get("env_id", "PickCube-v1")
+    resolved_env_id = (
+        env_id
+        or (env_meta.env_id if env_meta else None)
+        or dataset.metadata.get("env_id", "PickCube-v1")
+    )
     resolved_instruction = (
         instruction
-        or env_meta.get("instruction")
+        or (env_meta.instruction if env_meta else None)
         or dataset.metadata.get("instruction", "complete the manipulation task")
     )
 

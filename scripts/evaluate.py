@@ -51,9 +51,9 @@ def main(
         env_meta,
     )
 
-    resolved_env_id = env_id or env_meta.get("env_id", "PickCube-v1")
-    resolved_instruction = instruction or env_meta.get("instruction", "complete the manipulation task")
-    resolved_control_mode = control_mode or env_meta.get("control_mode", "pd_joint_delta_pos")
+    resolved_env_id = env_id or env_meta.env_id
+    resolved_instruction = instruction or env_meta.instruction
+    resolved_control_mode = control_mode or env_meta.control_mode
     resolved_max_steps = max_steps or 200
 
     logging.info(

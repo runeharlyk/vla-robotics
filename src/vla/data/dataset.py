@@ -28,6 +28,32 @@ class NormStats:
     state_std: torch.Tensor
 
 
+def _episodes_to_trajectories(episodes: list[dict]) -> list[Trajectory]:
+    """Convert raw episode dicts to :class:`Trajectory` objects for SRPO seeding.
+
+    Args:
+        episodes: List of dicts with ``images``, ``states``, ``actions`` keys.
+
+    Returns:
+        One :class:`Trajectory` per episode, marked as successful demos.
+    """
+    trajs: list[Trajectory] = []
+    for ep in episodes:
+        T = ep["actions"].shape[0]
+        trajs.append(
+            Trajectory(
+                images=ep["images"][:T],
+                states=ep["states"][:T],
+                actions=ep["actions"][:T],
+                rewards=torch.ones(T),
+                dones=torch.zeros(T),
+                success=True,
+                length=T,
+            )
+        )
+    return trajs
+
+
 def norm_stats_from_tensors(actions: torch.Tensor, states: torch.Tensor) -> NormStats:
     """Compute per-dimension mean/std normalization statistics.
 
@@ -118,21 +144,7 @@ class FewDemoDataset(Dataset):
 
     def episodes_as_trajectories(self) -> list[Trajectory]:
         """Convert stored episodes to :class:`Trajectory` objects for SRPO seeding."""
-        trajs: list[Trajectory] = []
-        for ep in self._episodes:
-            T = ep["actions"].shape[0]
-            trajs.append(
-                Trajectory(
-                    images=ep["images"][:T],
-                    states=ep["states"][:T],
-                    actions=ep["actions"][:T],
-                    rewards=torch.ones(T),
-                    dones=torch.zeros(T),
-                    success=True,
-                    length=T,
-                )
-            )
-        return trajs
+        return _episodes_to_trajectories(self._episodes)
 
 
 class ConcatFewDemoDataset(Dataset):
@@ -203,18 +215,5 @@ class ConcatFewDemoDataset(Dataset):
         return int(self.images_cat.shape[-1])
 
     def episodes_as_trajectories(self) -> list[Trajectory]:
-        trajs: list[Trajectory] = []
-        for ep in self._episodes:
-            T = ep["actions"].shape[0]
-            trajs.append(
-                Trajectory(
-                    images=ep["images"][:T],
-                    states=ep["states"][:T],
-                    actions=ep["actions"][:T],
-                    rewards=torch.ones(T),
-                    dones=torch.zeros(T),
-                    success=True,
-                    length=T,
-                )
-            )
-        return trajs
+        """Convert stored episodes to :class:`Trajectory` objects for SRPO seeding."""
+        return _episodes_to_trajectories(self._episodes)

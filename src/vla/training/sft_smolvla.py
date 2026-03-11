@@ -12,7 +12,6 @@ Mirrors the LeRobot training recipe for SmolVLA fine-tuning:
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,43 +21,13 @@ from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader, Dataset
 
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
+from vla.env_metadata import EnvMetadata
 from vla.models.smolvla import SmolVLAPolicy
+from vla.training.lr_scheduler import cosine_decay_with_warmup_lambda_lr
 
 logger = logging.getLogger(__name__)
 
 TRAINING_STATE_FILE = "training_state.pt"
-
-
-# ---------------------------------------------------------------------------
-# LR schedule
-# ---------------------------------------------------------------------------
-
-
-def _cosine_decay_with_warmup_schedule(
-    warmup_steps: int,
-    decay_steps: int,
-    peak_lr: float,
-    decay_lr: float,
-    total_steps: int,
-) -> callable:
-    """Return a lambda for :class:`LambdaLR` implementing cosine decay with linear warmup.
-
-    If ``total_steps < decay_steps`` both warmup and decay durations are
-    scaled proportionally (matching the LeRobot auto-scale behaviour).
-    """
-    if decay_steps > total_steps:
-        warmup_steps = int(warmup_steps * total_steps / decay_steps)
-        decay_steps = total_steps
-
-    def _lr_lambda(current_step: int) -> float:
-        if current_step < warmup_steps:
-            return (current_step + 1) / (warmup_steps + 1)
-        progress = min((current_step - warmup_steps) / max(decay_steps - warmup_steps, 1), 1.0)
-        cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
-        lr = decay_lr + (peak_lr - decay_lr) * cosine
-        return lr / peak_lr
-
-    return _lr_lambda
 
 
 # ---------------------------------------------------------------------------
@@ -229,14 +198,14 @@ def train_sft(
         config.decay_steps,
     )
 
-    lr_lambda = _cosine_decay_with_warmup_schedule(
+    scheduler = cosine_decay_with_warmup_lambda_lr(
+        optimizer,
         warmup_steps=config.warmup_steps,
         decay_steps=config.decay_steps,
         peak_lr=config.lr,
         decay_lr=config.decay_lr,
         total_steps=total_optimizer_steps,
     )
-    scheduler = LambdaLR(optimizer, lr_lambda)
 
     eval_instruction = instruction or getattr(dataset, "instruction", "complete the manipulation task")
     control_mode = config.control_mode
@@ -250,7 +219,7 @@ def train_sft(
         resume_dir = Path(config.resume_from)
         start_epoch, global_step, best_success = _load_training_state(resume_dir, optimizer, scheduler, policy.device)
 
-    _save_meta = dict(
+    _save_meta = EnvMetadata(
         env_id=env_id,
         instruction=eval_instruction,
         control_mode=control_mode,
@@ -351,11 +320,11 @@ def train_sft(
                 )
             if metrics.success_rate > best_success:
                 best_success = metrics.success_rate
-                policy.save_checkpoint(save_path / "best", **_save_meta)
+                policy.save_checkpoint(save_path / "best", env_metadata=_save_meta)
                 _save_training_state(save_path / "best", optimizer, scheduler, epoch, global_step, best_success)
                 logger.info("New best SFT checkpoint: %.2f%%", best_success * 100)
 
-        policy.save_checkpoint(save_path / "last", **_save_meta)
+        policy.save_checkpoint(save_path / "last", env_metadata=_save_meta)
         _save_training_state(save_path / "last", optimizer, scheduler, epoch, global_step, best_success)
 
     return policy
