@@ -39,6 +39,7 @@ from vla.rl.srpo_reward import (
     MultiTaskWorldProgressReward,
     SRPORewardConfig,
 )
+from vla.utils.tensor import to_float01
 
 logger = logging.getLogger(__name__)
 
@@ -371,7 +372,7 @@ def train_srpo(
                 demo_images = []
                 for dt in demos:
                     imgs = dt.images[: dt.length]
-                    imgs = imgs.float() / 255.0 if imgs.dtype == torch.uint8 else imgs.float()
+                    imgs = to_float01(imgs)
                     demo_images.append(imgs)
                 reward_model.add_demo_trajectories(tid, demo_images)
 

@@ -24,6 +24,7 @@ from transformers import AutoProcessor
 
 from vla.env_metadata import EnvMetadata
 from vla.models.vendor.smolvlm_with_expert import SmolVLMWithExpertModel
+from vla.utils.tensor import to_float01
 
 DEFAULT_CHECKPOINT = "HuggingFaceVLA/smolvla_libero"
 logger = logging.getLogger(__name__)
@@ -600,11 +601,7 @@ class SmolVLAPolicy(nn.Module):
 
     @staticmethod
     def _to_float01(img: torch.Tensor) -> torch.Tensor:
-        if img.dtype == torch.uint8:
-            return img.float() / 255.0
-        if img.max() > 1.5:
-            return img.float() / 255.0
-        return img.float()
+        return to_float01(img, auto_scale=True)
 
     def predict_action(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Predict a single action from an image observation.

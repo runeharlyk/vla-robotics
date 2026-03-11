@@ -23,6 +23,8 @@ from abc import ABC, abstractmethod
 import torch
 from transformers import AutoImageProcessor, AutoModel
 
+from vla.utils.tensor import to_float01
+
 logger = logging.getLogger(__name__)
 
 DINOV2_MODEL_ID = "facebook/dinov2-large"
@@ -176,9 +178,7 @@ class DINOv2Encoder(WorldModelEncoder):
     @staticmethod
     def _tensor_to_pil_format(img: torch.Tensor) -> torch.Tensor:
         """Ensure image is float in [0,1] with shape (C,H,W)."""
-        if img.dtype == torch.uint8:
-            return img.float() / 255.0
-        return img.float()
+        return to_float01(img)
 
 
 class VJEPA2Encoder(WorldModelEncoder):
@@ -340,10 +340,7 @@ class VJEPA2Encoder(WorldModelEncoder):
         B = images.shape[0]
         all_embs = []
         for start in range(0, B, self.batch_size):
-            batch = images[start: start + self.batch_size]
-            batch = batch.float()
-            if batch.max() > 1.0:
-                batch = batch / 255.0
+            batch = to_float01(images[start: start + self.batch_size], auto_scale=True)
 
             if self._backend == "timm":
                 batch = batch.to(self.device, dtype=self.dtype)
@@ -385,9 +382,7 @@ class VJEPA2Encoder(WorldModelEncoder):
             t, v, c, h, w = frames.shape
             frames = frames.reshape(t * v, c, h, w)
 
-        frames = frames.float()
-        if frames.max() > 1.0:
-            frames = frames / 255.0
+        frames = to_float01(frames, auto_scale=True)
 
         if self._backend == "transformers":
             clip = frames.unsqueeze(0)
@@ -432,9 +427,7 @@ class VJEPA2Encoder(WorldModelEncoder):
             if frames.ndim == 5:  # (T, V, C, H, W)
                 t, v, c, h, w = frames.shape
                 frames = frames.reshape(t * v, c, h, w)
-            frames = frames.float()
-            if frames.max() > 1.0:
-                frames = frames / 255.0
+            frames = to_float01(frames, auto_scale=True)
             clips.append(frames)  # (F_i, C, H, W)
 
         # Pad to the same temporal length so we can stack into one tensor

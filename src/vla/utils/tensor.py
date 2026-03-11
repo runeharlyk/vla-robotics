@@ -6,16 +6,20 @@ import numpy as np
 import torch
 
 
-def to_float01(img: torch.Tensor) -> torch.Tensor:
+def to_float01(img: torch.Tensor, *, auto_scale: bool = False) -> torch.Tensor:
     """Convert a uint8 or float image tensor to float in [0, 1].
 
     Args:
         img: Image tensor of any dtype.
+        auto_scale: When ``True``, also rescale float tensors whose values
+            exceed 1.5 (heuristic for float tensors in the [0, 255] range).
 
     Returns:
         Float tensor with values in ``[0, 1]``.
     """
     if img.dtype == torch.uint8:
+        return img.float() / 255.0
+    if auto_scale and img.max() > 1.5:
         return img.float() / 255.0
     return img.float()
 

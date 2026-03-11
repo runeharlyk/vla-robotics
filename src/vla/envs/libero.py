@@ -10,6 +10,7 @@ from lerobot.envs.libero import _get_suite
 from lerobot.processor.env_processor import LiberoProcessorStep
 
 from vla.constants import SUITE_MAP
+from vla.utils.tensor import to_float01
 
 _PROC = LiberoProcessorStep()
 
@@ -67,7 +68,7 @@ class LiberoEnv:
                 if img.ndim == 3:
                     img = img.unsqueeze(0)
                 img = einops.rearrange(img, "b h w c -> b c h w").contiguous()
-                img = img.float() / 255.0
+                img = to_float01(img)
                 img = torch.flip(img, dims=[2, 3])
                 if device is not None:
                     img = img.to(device, non_blocking=True)

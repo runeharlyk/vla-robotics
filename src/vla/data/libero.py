@@ -10,6 +10,7 @@ from torch.utils.data import ConcatDataset, Dataset
 
 from vla.constants import ACTION_DIM, LIBERO_SUITES
 from vla.data.dataset import NormStats
+from vla.utils.tensor import to_float01
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +269,7 @@ def _load_libero_v2_from_hf(
                     out[k] = torch.from_numpy(v)
                 elif hasattr(v, "convert"):
                     arr = np.array(v.convert("RGB")).transpose(2, 0, 1)
-                    out[k] = torch.from_numpy(arr).float() / 255.0
+                    out[k] = to_float01(torch.from_numpy(arr))
                 else:
                     out[k] = v
             return out

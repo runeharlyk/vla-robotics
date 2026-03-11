@@ -6,6 +6,8 @@ from typing import Any
 import numpy as np
 import torch
 
+from vla.utils.tensor import to_float01
+
 _logger = logging.getLogger(__name__)
 
 
@@ -125,7 +127,7 @@ class ManiSkillEnv:
         batch: dict = {}
 
         for cam_key, img_np in raw_obs.get("pixels", {}).items():
-            img = torch.from_numpy(img_np).float() / 255.0
+            img = to_float01(torch.from_numpy(img_np))
             if img.ndim == 3:
                 img = img.unsqueeze(0)
             if img.shape[-1] in (3, 4):
