@@ -41,6 +41,7 @@ if "wandb" not in sys.modules:
 from tests.helpers import make_fake_pt
 from vla.data.dataset import FewDemoDataset
 from vla.rl.rollout import Trajectory
+from vla.rl.advantage import normalize_advantages_per_task
 from vla.rl.srpo_reward import (
     ClusterDiagnostics,
     MultiTaskWorldProgressReward,
@@ -542,26 +543,16 @@ class TestOneShotBehavior:
 
 class TestPerTaskAdvantageNorm:
     def test_advantages_normalised_per_task(self):
-        from collections import defaultdict
-
         g_values = [1.0, 0.3, 0.7, 0.5, 0.9, 0.1]
         task_ids = ["A", "A", "A", "B", "B", "B"]
 
-        advantages = [0.0] * len(g_values)
-        by_task: dict[str, list[int]] = defaultdict(list)
-        for i, tid in enumerate(task_ids):
-            by_task[tid].append(i)
+        result = normalize_advantages_per_task(g_values, task_ids)
+        advantages = result.advantages
 
-        for tid, indices in by_task.items():
-            task_g = torch.tensor([g_values[i] for i in indices], dtype=torch.float32)
-            g_mean = task_g.mean()
-            g_std = task_g.std().clamp(min=1e-8)
-            task_adv = ((task_g - g_mean) / g_std).tolist()
-            for j, idx in enumerate(indices):
-                advantages[idx] = task_adv[j]
-
-        adv_a = [advantages[i] for i in by_task["A"]]
-        adv_b = [advantages[i] for i in by_task["B"]]
+        a_indices = [0, 1, 2]
+        b_indices = [3, 4, 5]
+        adv_a = [advantages[i] for i in a_indices]
+        adv_b = [advantages[i] for i in b_indices]
         assert abs(sum(adv_a) / len(adv_a)) < 0.01
         assert abs(sum(adv_b) / len(adv_b)) < 0.01
 
@@ -569,3 +560,20 @@ class TestPerTaskAdvantageNorm:
         assert advantages[1] < 0
         assert advantages[5] < 0
         assert advantages[4] > 0
+
+    def test_uniform_rewards_skipped(self):
+        g_values = [1.0, 1.0, 1.0, 0.5, 0.9, 0.1]
+        task_ids = ["A", "A", "A", "B", "B", "B"]
+
+        result = normalize_advantages_per_task(g_values, task_ids)
+        assert "A" in result.skipped_tasks
+        assert "B" not in result.skipped_tasks
+        assert all(result.advantages[i] == 0.0 for i in range(3))
+
+    def test_per_task_g_mean_reported(self):
+        g_values = [1.0, 0.0, 0.8, 0.2]
+        task_ids = ["X", "X", "Y", "Y"]
+
+        result = normalize_advantages_per_task(g_values, task_ids)
+        assert abs(result.per_task_g_mean["X"] - 0.5) < 0.01
+        assert abs(result.per_task_g_mean["Y"] - 0.5) < 0.01

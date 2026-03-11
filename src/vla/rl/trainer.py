@@ -33,6 +33,7 @@ import torch
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
+from vla.rl.advantage import normalize_advantages_per_task
 from vla.rl.rollout import ManiSkillRollout, RolloutEngine, Trajectory
 from vla.rl.srpo_reward import (
     MultiTaskWorldProgressReward,
@@ -433,24 +434,11 @@ def train_srpo(
             world_encoder.offload()
 
         # ── 3. Per-task advantage normalisation ──────────────────────────
-        advantages = [0.0] * len(all_trajectories)
-        by_task_indices: dict[str, list[int]] = defaultdict(list)
-        for i, t in enumerate(all_trajectories):
-            by_task_indices[t.task_id].append(i)
-
-        per_task_g_mean: dict[str, float] = {}
-        skipped_tasks: list[str] = []
-        for tid, indices in by_task_indices.items():
-            task_g = torch.tensor([g_values[i] for i in indices], dtype=torch.float32)
-            g_mean = task_g.mean()
-            g_std = task_g.std().clamp(min=1e-8)
-            per_task_g_mean[tid] = g_mean.item()
-            if g_std < 1e-6:
-                skipped_tasks.append(tid)
-                continue
-            task_adv = ((task_g - g_mean) / g_std).tolist()
-            for j, idx in enumerate(indices):
-                advantages[idx] = task_adv[j]
+        task_ids = [t.task_id for t in all_trajectories]
+        adv_result = normalize_advantages_per_task(g_values, task_ids)
+        advantages = adv_result.advantages
+        skipped_tasks = adv_result.skipped_tasks
+        per_task_g_mean = adv_result.per_task_g_mean
 
         skipped_task_set = set(skipped_tasks)
         if len(skipped_tasks) == len(task_specs):
