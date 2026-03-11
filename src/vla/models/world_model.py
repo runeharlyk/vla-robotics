@@ -285,6 +285,7 @@ class VJEPA2Encoder(WorldModelEncoder):
 
             state_dict = load_file(path)
         else:
+            # weights_only=False: raw timm checkpoints may wrap state dicts in plain Python dicts
             raw = torch.load(path, map_location="cpu", weights_only=False)
             if isinstance(raw, dict):
                 for key in ("model", "state_dict", "encoder", "target_encoder"):

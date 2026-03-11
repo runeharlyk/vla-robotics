@@ -737,6 +737,7 @@ class SmolVLAPolicy(nn.Module):
         """Load model weights and normalization statistics from a previously saved checkpoint.
         """
         path = Path(path)
+        # weights_only=False: policy.pt contains metadata dicts alongside the model state dict
         data = torch.load(path / "policy.pt", map_location=self.device, weights_only=False)
         self.model.load_state_dict(data["model_state_dict"])
         if "state_dim" in data:

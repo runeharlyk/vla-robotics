@@ -26,6 +26,7 @@ class ManiSkillDataset(Dataset):
         self._action_dim = action_dim
 
         if self._path.suffix == ".pt":
+            # weights_only=False: file contains Python dicts and lists alongside tensors
             raw = torch.load(self._path, weights_only=False)
             if isinstance(raw, dict) and "episodes" in raw:
                 self._samples = raw["episodes"]

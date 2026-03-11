@@ -97,6 +97,7 @@ def _load_training_state(
     state_path = resume_dir / TRAINING_STATE_FILE
     if not state_path.exists():
         raise FileNotFoundError(f"No training state at {state_path}. Cannot resume.")
+    # weights_only=False: optimizer and scheduler state dicts contain Python objects
     state = torch.load(state_path, map_location=device, weights_only=False)
     optimizer.load_state_dict(state["optimizer_state_dict"])
     scheduler.load_state_dict(state["scheduler_state_dict"])

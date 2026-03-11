@@ -72,6 +72,7 @@ def _load_smolvla(checkpoint: str, device: str) -> LoadedPolicy:
     p = Path(checkpoint)
 
     if p.is_dir() and (p / "policy.pt").exists():
+        # weights_only=False: policy.pt contains metadata dicts alongside the model state dict
         inner = torch.load(p / "policy.pt", map_location="cpu", weights_only=False)
         base_ckpt = inner["checkpoint"]
         action_dim = inner.get("action_dim", 8)
