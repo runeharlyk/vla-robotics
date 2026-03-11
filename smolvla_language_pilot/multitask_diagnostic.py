@@ -81,6 +81,8 @@ def _set_seed(seed: int) -> None:
     np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: dict, seed: int) -> torch.Tensor:
@@ -177,6 +179,7 @@ def run_sweep(args: argparse.Namespace) -> None:
     bundle = _load_policy(args.checkpoint, args.device)
 
     type_l2_curves: dict[str, list[torch.Tensor]] = defaultdict(list)
+    type_rel_l2_curves: dict[str, list[torch.Tensor]] = defaultdict(list)
     n_processed = 0
 
     for h5_path in h5_paths:
@@ -194,7 +197,10 @@ def run_sweep(args: argparse.Namespace) -> None:
                     variant_actions = _run(variant_text, images, states, bundle, args.seed)
                     T = min(base_actions.shape[0], variant_actions.shape[0])
                     l2 = torch.norm(variant_actions[:T] - base_actions[:T], dim=-1)
+                    base_norm = torch.norm(base_actions[:T], dim=-1).clamp(min=1e-8)
+                    rel_l2 = l2 / base_norm
                     type_l2_curves[variant_type].append(l2)
+                    type_rel_l2_curves[variant_type].append(rel_l2)
 
             n_processed += 1
 
@@ -224,6 +230,14 @@ def run_sweep(args: argparse.Namespace) -> None:
     all_curves = [c for curves in type_l2_curves.values() for c in curves]
     overall_mean, overall_std = _stack(all_curves)
 
+    type_rel_mean: dict[str, np.ndarray] = {}
+    type_rel_std: dict[str, np.ndarray] = {}
+    for vtype, curves in type_rel_l2_curves.items():
+        type_rel_mean[vtype], type_rel_std[vtype] = _stack(curves)
+
+    all_rel_curves = [c for curves in type_rel_l2_curves.values() for c in curves]
+    overall_rel_mean, overall_rel_std = _stack(all_rel_curves)
+
     # ------------------------------------------------------------------
     # Plot
     # ------------------------------------------------------------------
@@ -248,12 +262,31 @@ def run_sweep(args: argparse.Namespace) -> None:
     plt.close(fig)
     print(f"Saved plot → {out_path}")
 
+    fig2, ax2 = plt.subplots(figsize=(10, 6))
+    for vtype, mean in type_rel_mean.items():
+        x = np.arange(len(mean))
+        ax2.plot(x, mean, label=vtype)
+        ax2.fill_between(x, mean - type_rel_std[vtype], mean + type_rel_std[vtype], alpha=0.15)
+    x_all = np.arange(len(overall_rel_mean))
+    ax2.plot(x_all, overall_rel_mean, color="black", linewidth=2, linestyle="--", label="overall mean")
+    ax2.set_xlabel("Timestep")
+    ax2.set_ylabel("Mean Relative L2 Action Distance")
+    ax2.set_title(f"Average Relative L2 Action Distance per Variant Type\n({n_processed} demos × all variants)")
+    ax2.legend()
+    plt.tight_layout()
+    out_path_rel = output_dir / "variant_sweep_avg_rel_l2.png"
+    plt.savefig(out_path_rel, dpi=200)
+    plt.close(fig2)
+    print(f"Saved plot → {out_path_rel}")
+
     summary = {
         "n_demos_processed": n_processed,
         "variant_types": {
             vtype: {
                 "mean_l2_per_timestep": type_mean[vtype].tolist(),
                 "std_l2_per_timestep": type_std[vtype].tolist(),
+                "mean_rel_l2_per_timestep": type_rel_mean[vtype].tolist(),
+                "std_rel_l2_per_timestep": type_rel_std[vtype].tolist(),
                 "n_rollouts": len(type_l2_curves[vtype]),
             }
             for vtype in type_mean
@@ -261,6 +294,8 @@ def run_sweep(args: argparse.Namespace) -> None:
         "overall": {
             "mean_l2_per_timestep": overall_mean.tolist(),
             "std_l2_per_timestep": overall_std.tolist(),
+            "mean_rel_l2_per_timestep": overall_rel_mean.tolist(),
+            "std_rel_l2_per_timestep": overall_rel_std.tolist(),
         },
     }
     summary_path = output_dir / "variant_sweep_summary.json"
