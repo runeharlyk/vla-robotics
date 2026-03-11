@@ -41,6 +41,7 @@ from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def _discover_data(data_path: Path | None) -> Path:
@@ -53,7 +54,7 @@ def _discover_data(data_path: Path | None) -> Path:
         raise FileNotFoundError(f"No .pt files in {search}. Run preprocess_data.py first.")
     if len(pts) > 1:
         names = ", ".join(p.name for p in pts)
-        logging.warning("Multiple .pt files: %s. Using %s.", names, pts[0].name)
+        logger.warning("Multiple .pt files: %s. Using %s.", names, pts[0].name)
     return pts[0]
 
 
@@ -271,9 +272,9 @@ def main(
     env_meta: dict = {}
     if sft_checkpoint is not None:
         env_meta = policy.load_checkpoint(sft_checkpoint)
-        logging.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
+        logger.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
     else:
-        logging.info("No SFT checkpoint provided - using pretrained %s weights directly", checkpoint)
+        logger.info("No SFT checkpoint provided - using pretrained %s weights directly", checkpoint)
 
     resolved_env_id = env_id or env_meta.get("env_id") or dataset.metadata.get("env_id", "PickCube-v1")
     resolved_instruction = (
@@ -282,7 +283,7 @@ def main(
         or dataset.metadata.get("instruction", "complete the manipulation task")
     )
 
-    logging.info(
+    logger.info(
         "RL training: mode=%s  simulator=%s  env_id=%s  instruction=%r  max_steps=%d  num_rollout_envs=%d",
         mode,
         simulator,
@@ -309,7 +310,7 @@ def main(
         for t in raw_demos:
             t.task_id = task_tag
         demo_dict = {task_tag: raw_demos}
-        logging.info("Built %d demo trajectories for reference seeding", len(raw_demos))
+        logger.info("Built %d demo trajectories for reference seeding", len(raw_demos))
 
     config = SRPOConfig(
         lr=lr,
@@ -445,9 +446,9 @@ def _run_multitask(
 
     use_libero_suite = simulator == "libero" and libero_suite is not None and data_dir is None
     source_desc = libero_suite if use_libero_suite else str(data_dir or PREPROCESSED_DIR)
-    logging.info("Multi-task SRPO: %d tasks discovered from %s", len(task_specs), source_desc)
+    logger.info("Multi-task SRPO: %d tasks discovered from %s", len(task_specs), source_desc)
     for spec in task_specs:
-        logging.info("  [%s] instruction=%r  libero_idx=%d", spec.task_id, spec.instruction, spec.libero_task_idx)
+        logger.info("  [%s] instruction=%r  libero_idx=%d", spec.task_id, spec.instruction, spec.libero_task_idx)
 
     policy = SmolVLAPolicy(
         checkpoint=checkpoint,
@@ -457,13 +458,13 @@ def _run_multitask(
     )
     if sft_checkpoint is not None:
         env_meta = policy.load_checkpoint(sft_checkpoint)
-        logging.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
+        logger.info("Loaded SFT checkpoint from %s (env_metadata=%s)", sft_checkpoint, env_meta)
     else:
-        logging.info("No SFT checkpoint – using pretrained %s weights directly", checkpoint)
+        logger.info("No SFT checkpoint – using pretrained %s weights directly", checkpoint)
 
     if demo_trajectories is not None:
         for spec in task_specs:
-            logging.info(
+            logger.info(
                 "  [%s] %d demo trajectories for reference seeding",
                 spec.task_id,
                 len(demo_trajectories.get(spec.task_id, [])),

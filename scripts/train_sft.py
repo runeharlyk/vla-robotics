@@ -34,6 +34,7 @@ from vla.training.sft_smolvla import SFTConfig, train_sft
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def _discover_pt(data_paths: list[Path] | None) -> list[Path]:
@@ -51,7 +52,7 @@ def _discover_pt(data_paths: list[Path] | None) -> list[Path]:
             )
         if len(pts) > 1:
             names = ", ".join(p.name for p in pts)
-            logging.warning(
+            logger.warning(
                 "Multiple .pt files found (%s). Using %s. Pass --data explicitly to choose.",
                 names,
                 pts[0].name,
@@ -140,7 +141,7 @@ def main(
         if len(pt_paths) == 1:
             dataset: FewDemoDataset | ConcatFewDemoDataset = FewDemoDataset(pt_paths[0], num_demos=num_demos, seed=seed)
         else:
-            logging.info("Combining %d datasets: %s", len(pt_paths), [p.name for p in pt_paths])
+            logger.info("Combining %d datasets: %s", len(pt_paths), [p.name for p in pt_paths])
             dataset = ConcatFewDemoDataset(pt_paths, num_demos=num_demos, seed=seed)
         data_tag = "multi" if len(pt_paths) > 1 else pt_paths[0].stem
         default_simulator = "maniskill"
@@ -153,7 +154,7 @@ def main(
     resolved_max_steps = max_steps or meta.get("max_episode_steps") or 200
     resolved_control_mode = meta.get("control_mode", "pd_joint_delta_pos")
 
-    logging.info(
+    logger.info(
         "Dataset: %d episodes, %d timesteps\n"
         "  env_id=%s  instruction=%r\n"
         "  action_dim=%d  state_dim=%d  control_mode=%s\n"
@@ -177,7 +178,7 @@ def main(
     )
 
     if resume:
-        logging.info("Loading policy weights from %s", resume)
+        logger.info("Loading policy weights from %s", resume)
         policy.load_checkpoint(resume)
 
     task_tag = resolved_env_id.lower().replace("-", "_")
