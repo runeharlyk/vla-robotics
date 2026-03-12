@@ -345,8 +345,9 @@ def train_srpo(
             for i, t in enumerate(all_trajectories):
                 if t.success:
                     by_task_embs[t.task_id].append(traj_embs[i])
-            for tid, embs in by_task_embs.items():
-                reward_model.add_successful_embeddings(tid, embs)
+
+            # for tid, embs in by_task_embs.items():
+            #     reward_model.add_successful_embeddings(tid, embs)
         else:
             g_values = [1.0 if t.success else 0.0 for t in all_trajectories]
             all_diags = None
