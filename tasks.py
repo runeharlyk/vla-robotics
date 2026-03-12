@@ -46,8 +46,8 @@ def format(ctx: Context, check: bool = False) -> None:
 
 @task
 def type_check(ctx: Context) -> None:
-    """Run mypy type checking."""
-    ctx.run("uv run mypy src/", echo=True, pty=not WINDOWS)
+    """Run pyright type checking."""
+    ctx.run("uv run pyright", echo=True, pty=not WINDOWS)
 
 
 @task

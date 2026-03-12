@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import torch
 
+from vla.envs.base import SimEnv
 from vla.utils.tensor import to_float01
 
 _logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ else:
     )
 
 
-class ManiSkillEnv:
+class ManiSkillEnv(SimEnv):
     """Wraps a ManiSkill gymnasium environment to satisfy the :class:`SimEnv` protocol."""
 
     def __init__(

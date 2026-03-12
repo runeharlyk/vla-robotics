@@ -8,7 +8,7 @@ from scipy.ndimage import gaussian_filter
 from transformers import AutoProcessor
 
 from vla.constants import PROJECT_ROOT
-from vla.models.smolvla import smolvla
+from vla.models.smolvla import SmolVLAPolicy
 from vla.utils import get_device, seed_everything
 
 
@@ -406,7 +406,7 @@ if __name__ == "__main__":
     task_path = data_dir / episode_id / "task.txt"
 
     print(f"Loading model from checkpoint: {checkpoint} on device: {device}")
-    model, model_id, action_dim = smolvla(checkpoint, device)
+    model = SmolVLAPolicy(checkpoint, device)
 
     # Load Image
     img_path = "data/images/libero/spatial/ep0000_task_0/frame0000.png"

@@ -444,7 +444,7 @@ class SmolVLAPolicy(nn.Module):
             noise = fixed_noise[start:end].to(self.device, dtype=self.dtype)
             time = fixed_time[start:end].to(self.device, dtype=self.dtype)
 
-            with torch.amp.autocast("cuda", enabled=use_amp):
+            with torch.autocast("cuda", enabled=use_amp):  # type: ignore[attr-defined]
                 losses = self.model.forward(
                     img_list, mask_list, tokens, tmasks, state,
                     action_padded, noise=noise, time=time,

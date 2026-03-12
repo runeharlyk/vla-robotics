@@ -10,6 +10,7 @@ from lerobot.envs.libero import _get_suite
 from lerobot.processor.env_processor import LiberoProcessorStep
 
 from vla.constants import SUITE_MAP
+from vla.envs.base import SimEnv
 from vla.utils.tensor import to_float01
 
 _PROC = LiberoProcessorStep()
@@ -17,7 +18,7 @@ _PROC = LiberoProcessorStep()
 LIBERO_CAMERAS = "agentview_image,robot0_eye_in_hand_image"
 
 
-class LiberoEnv:
+class LiberoEnv(SimEnv):
     """Wraps LeRobot's LiberoEnv to satisfy the :class:`SimEnv` protocol."""
 
     def __init__(

@@ -410,7 +410,7 @@ class _ManiSkillSingleAdapter:
         for rgb in rgbs:
             pil = PILImage.fromarray(rgb).resize(
                 (self._r.image_size, self._r.image_size),
-                PILImage.BILINEAR,
+                PILImage.Resampling.BILINEAR,  # type: ignore[attr-defined]
             )
             img_np = np.array(pil, dtype=np.uint8)
             cam_tensors.append(torch.from_numpy(img_np).permute(2, 0, 1))

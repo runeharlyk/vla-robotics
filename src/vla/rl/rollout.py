@@ -57,6 +57,7 @@ class RolloutEngine(Protocol):
         instruction: str,
         num_trajectories: int = 16,
         seed: int | None = None,
+        policy_batch_fn: Any = None,
     ) -> list[Trajectory]: ...
 
     def close(self) -> None: ...

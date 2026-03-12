@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing as mp
+import multiprocessing.connection
 from typing import Any
 
 import numpy as np
@@ -40,7 +41,7 @@ _CMD_TASK_DESC = "task_desc"
 
 
 def _libero_worker(
-    pipe: mp.connection.Connection,
+    pipe: multiprocessing.connection.Connection,
     suite_name: str,
     task_id: int,
     obs_type: str,
@@ -101,7 +102,7 @@ def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
     if "pixels" in raw_obs and isinstance(raw_obs["pixels"], dict):
         for img_np in raw_obs["pixels"].values():
             flipped = np.flip(img_np, axis=(0, 1)).copy()
-            pil = PILImage.fromarray(flipped).resize((image_size, image_size), PILImage.BILINEAR)
+            pil = PILImage.fromarray(flipped).resize((image_size, image_size), PILImage.Resampling.BILINEAR)  # type: ignore[attr-defined]
             images.append(np.array(pil, dtype=np.uint8))
 
     state = np.zeros(state_dim, dtype=np.float32)
@@ -153,7 +154,7 @@ class LiberoVecEnv:
     ) -> None:
         self.num_envs = num_envs
         self.image_size = image_size
-        self._pipes: list[mp.connection.Connection] = []
+        self._pipes: list[multiprocessing.connection.Connection] = []
         self._procs: list[mp.Process] = []
 
         ctx = mp.get_context("spawn")
