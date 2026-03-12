@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -17,7 +18,37 @@ OUTPUTS_DIR = WORK_DIR / "outputs"
 
 ACTION_DIM = 7
 
-SIMULATORS = ("libero", "maniskill")
+
+@dataclass
+class WorldModelTypes:
+    dinov2: str = "dinov2"
+    vjepa2: str = "vjepa2"
+
+
+@dataclass
+class DistanceMetrics:
+    normalized_l2: str = "normalized_l2"
+    cosine: str = "cosine"
+    l2: str = "l2"
+
+
+@dataclass
+class UpdateMethods:
+    awr: str = "awr"
+    ppo: str = "ppo"
+
+
+@dataclass
+class Mode:
+    srpo: str = "srpo"
+    sparse_rl: str = "sparse_rl"
+
+
+@dataclass
+class Simulators:
+    libero: str = "libero"
+    maniskill: str = "maniskill"
+
 
 LIBERO_SUITES = {
     "spatial": "lerobot/libero_spatial_image",

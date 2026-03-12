@@ -22,6 +22,7 @@ import torch
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
 
+from vla.constants import DistanceMetrics
 from vla.models.world_model import WorldModelEncoder
 from vla.rl.rollout import Trajectory
 from vla.utils import to_float01
@@ -43,7 +44,7 @@ class SRPORewardConfig:
     eps: float = 1e-8
     max_references: int = 200
     ref_demo_ratio: float = 0.5
-    distance_metric: str = "cosine"
+    distance_metric: str = DistanceMetrics.normalized_l2
 
 
 @dataclass
@@ -154,12 +155,15 @@ class WorldProgressReward:
             self._online_embeddings = self._online_embeddings[-cap:]
             logger.info(
                 "Online slot full — evicted %d oldest (kept %d, demo=%d, total=%d)",
-                evicted, cap, len(self._demo_embeddings),
+                evicted,
+                cap,
+                len(self._demo_embeddings),
                 len(self._demo_embeddings) + cap,
             )
         logger.info(
             "Added %d online successes (demo=%d, online=%d, total=%d)",
-            len(embeddings), len(self._demo_embeddings),
+            len(embeddings),
+            len(self._demo_embeddings),
             len(self._online_embeddings),
             len(self._demo_embeddings) + len(self._online_embeddings),
         )
@@ -183,7 +187,7 @@ class WorldProgressReward:
         else:
             eps = self.cfg.dbscan_eps
 
-        db = DBSCAN(eps=eps, min_samples=k).fit(X)
+        db = DBSCAN(eps=eps, min_samples=k, metric="euclidean").fit(X)
         labels = db.labels_
         self._last_labels = labels.tolist()
         unique_labels = set(labels)
@@ -204,7 +208,9 @@ class WorldProgressReward:
         self.cluster_centers = torch.stack(centres, dim=0)
         logger.info(
             "DBSCAN fitted: %d clusters from %d references (eps=%.4f)",
-            len(centres), len(self.reference_embeddings), eps,
+            len(centres),
+            len(self.reference_embeddings),
+            eps,
         )
 
     def _encode_trajectories_batched(self, trajectories: list[Trajectory]) -> list[torch.Tensor]:
@@ -236,20 +242,18 @@ class WorldProgressReward:
             ``(K,)`` distance tensor — lower means closer to a success cluster.
         """
         metric = self.cfg.distance_metric
-        if metric == "cosine":
-            sims = torch.nn.functional.cosine_similarity(
-                centres, emb.unsqueeze(0).expand_as(centres), dim=-1
-            )
+        if metric == DistanceMetrics.cosine:
+            sims = torch.nn.functional.cosine_similarity(centres, emb.unsqueeze(0).expand_as(centres), dim=-1)
             return 1.0 - sims
-        if metric == "normalized_l2":
+        if metric == DistanceMetrics.normalized_l2:
             e = torch.nn.functional.normalize(emb.unsqueeze(0), dim=-1)
             c = torch.nn.functional.normalize(centres, dim=-1)
             return torch.norm(c - e, dim=-1)
-        if metric == "l2":
+        if metric == DistanceMetrics.l2:
             return torch.norm(centres - emb.unsqueeze(0), dim=-1)
         raise ValueError(
             f"Unknown distance_metric {metric!r}. "
-            "Choose from: 'cosine', 'normalized_l2', 'l2'."
+            f"Choose from: {DistanceMetrics.cosine}, {DistanceMetrics.normalized_l2}, {DistanceMetrics.l2}."
         )
 
     def compute_trajectory_rewards(

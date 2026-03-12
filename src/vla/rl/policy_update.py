@@ -78,11 +78,7 @@ def _merge_trajectory_data(
     merged = Trajectory(
         images=torch.cat([t.images[: t.length] for t in trajectories]),
         actions=torch.cat([t.actions[: t.length] for t in trajectories]),
-        states=(
-            torch.cat([t.states[: t.length] for t in trajectories])
-            if has_states
-            else trajectories[0].states
-        ),
+        states=(torch.cat([t.states[: t.length] for t in trajectories]) if has_states else trajectories[0].states),
         rewards=torch.zeros(1),
         dones=torch.zeros(1),
         success=False,
@@ -131,8 +127,11 @@ def awr_update(
         with torch.no_grad():
             for i, traj in enumerate(trajectories):
                 ref_loss = _compute_fm_loss_batched(
-                    ref_policy, traj, instrs_per_traj[i],
-                    fixed_noise[i], fixed_time[i],
+                    ref_policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
                     batch_size=B,
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
@@ -155,8 +154,11 @@ def awr_update(
             weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
 
             fm_loss = _compute_fm_loss_batched(
-                policy, traj, instrs_per_traj[i],
-                fixed_noise[i], fixed_time[i],
+                policy,
+                traj,
+                instrs_per_traj[i],
+                fixed_noise[i],
+                fixed_time[i],
                 batch_size=B,
             ).mean()
 
@@ -213,15 +215,21 @@ def ppo_update(
     with torch.no_grad():
         for i, traj in enumerate(trajectories):
             old_loss = _compute_fm_loss_batched(
-                policy, traj, instrs_per_traj[i],
-                fixed_noise[i], fixed_time[i],
+                policy,
+                traj,
+                instrs_per_traj[i],
+                fixed_noise[i],
+                fixed_time[i],
                 batch_size=B,
             )
             old_losses_per_traj.append(old_loss.detach())
 
             ref_loss = _compute_fm_loss_batched(
-                ref_policy, traj, instrs_per_traj[i],
-                fixed_noise[i], fixed_time[i],
+                ref_policy,
+                traj,
+                instrs_per_traj[i],
+                fixed_noise[i],
+                fixed_time[i],
                 batch_size=B,
             )
             ref_losses_per_traj.append(ref_loss.detach())
@@ -241,8 +249,11 @@ def ppo_update(
             ref_losses_t = ref_losses_per_traj[i]
 
             new_losses_t = _compute_fm_loss_batched(
-                policy, traj, instrs_per_traj[i],
-                fixed_noise[i], fixed_time[i],
+                policy,
+                traj,
+                instrs_per_traj[i],
+                fixed_noise[i],
+                fixed_time[i],
                 batch_size=B,
             )
 
@@ -262,7 +273,7 @@ def ppo_update(
             clip_loss = -torch.min(surr1, surr2).mean()
 
             log_ratio_ref = ref_losses_t - new_losses_t
-            kl_approx = 0.5 * (log_ratio_ref ** 2).mean()
+            kl_approx = 0.5 * (log_ratio_ref**2).mean()
             kl_penalty = config.kl_coeff * kl_approx
 
             traj_loss = (clip_loss + kl_penalty) / M

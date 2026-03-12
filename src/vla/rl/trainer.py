@@ -182,20 +182,15 @@ def evaluate_and_checkpoint(
                 metrics,
                 tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
             )
-            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = (
-                metrics.success_rate
-            )
-            log_data[f"{config.mode}/{spec.task_id}/eval/mean_reward"] = (
-                metrics.mean_reward
-            )
-            log_data[f"{config.mode}/{spec.task_id}/eval/mean_ep_len"] = (
-                metrics.mean_episode_length
-            )
+            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
+            log_data[f"{config.mode}/{spec.task_id}/eval/mean_reward"] = metrics.mean_reward
+            log_data[f"{config.mode}/{spec.task_id}/eval/mean_ep_len"] = metrics.mean_episode_length
             task_sr_sum += metrics.success_rate
         avg_sr = task_sr_sum / len(task_specs)
         log_data[f"{config.mode}/eval/success_rate"] = avg_sr
         best_success = save_best_checkpoint(
-            avg_sr, best_success,
+            avg_sr,
+            best_success,
             lambda: policy.save_checkpoint(save_path / "best"),
             tag=config.mode,
         )
@@ -215,13 +210,12 @@ def evaluate_and_checkpoint(
                 metrics,
                 tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
             )
-            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = (
-                metrics.success_rate
-            )
+            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
             task_sr_sum += metrics.success_rate
         avg_sr = task_sr_sum / len(task_specs)
         best_success = save_best_checkpoint(
-            avg_sr, best_success,
+            avg_sr,
+            best_success,
             lambda: policy.save_checkpoint(save_path / "best"),
             tag=config.mode,
         )
@@ -302,6 +296,8 @@ def train_srpo(
             subsample_every=config.subsample_every,
             dbscan_eps=config.dbscan_eps,
             dbscan_min_samples=config.dbscan_min_samples,
+            distance_metric=config.distance_metric,
+            dbscan_auto_eps=config.dbscan_auto_eps,
         )
         reward_model = MultiTaskWorldProgressReward(world_encoder, reward_cfg)
 
@@ -323,7 +319,12 @@ def train_srpo(
     for iteration in range(1, config.num_iterations + 1):
         # ── 1. Collect trajectories from all tasks ───────────────────────
         all_trajectories, per_task_successes = collect_all_trajectories(
-            policy, task_specs, rollout_engines, config, iteration, trajs_per_task_per_iter,
+            policy,
+            task_specs,
+            rollout_engines,
+            config,
+            iteration,
+            trajs_per_task_per_iter,
         )
 
         total_successes = sum(per_task_successes.values())
@@ -363,8 +364,7 @@ def train_srpo(
         skipped_task_set = set(skipped_tasks)
         if len(skipped_tasks) == len(task_specs):
             logger.info(
-                f"Iter {iteration}: skipping update — all tasks have uniform rewards "
-                f"(successes={total_successes})"
+                f"Iter {iteration}: skipping update — all tasks have uniform rewards (successes={total_successes})"
             )
             log_data: dict[str, Any] = {
                 f"{config.mode}/skipped_update": 1,
@@ -397,16 +397,29 @@ def train_srpo(
         # ── 5. Policy update ─────────────────────────────────────────────
         if config.update_method == "awr":
             update_metrics = awr_update(
-                policy, ref_policy, optimizer, trainable,
-                all_trajectories, advantages, instrs_per_traj,
-                fixed_noise_per_traj, fixed_time_per_traj,
-                skipped_task_set, config,
+                policy,
+                ref_policy,
+                optimizer,
+                trainable,
+                all_trajectories,
+                advantages,
+                instrs_per_traj,
+                fixed_noise_per_traj,
+                fixed_time_per_traj,
+                skipped_task_set,
+                config,
             )
         else:
             update_metrics = ppo_update(
-                policy, ref_policy, optimizer, trainable,
-                all_trajectories, advantages, instrs_per_traj,
-                fixed_noise_per_traj, fixed_time_per_traj,
+                policy,
+                ref_policy,
+                optimizer,
+                trainable,
+                all_trajectories,
+                advantages,
+                instrs_per_traj,
+                fixed_noise_per_traj,
+                fixed_time_per_traj,
                 config,
             )
 
@@ -439,15 +452,18 @@ def train_srpo(
             f"  successes={total_successes}/{M}"
         )
         for tid in per_task_successes:
-            logger.info(
-                f"  [{tid}] successes={per_task_successes[tid]}"
-                f"  g_mean={per_task_g_mean.get(tid, 0.0):.4f}"
-            )
+            logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
 
         # ── 7. Periodic evaluation ───────────────────────────────────────
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
             best_success = evaluate_and_checkpoint(
-                policy, config, task_specs, iteration, save_path, best_success, log_data,
+                policy,
+                config,
+                task_specs,
+                iteration,
+                save_path,
+                best_success,
+                log_data,
             )
 
         metrics_logger.log(log_data)

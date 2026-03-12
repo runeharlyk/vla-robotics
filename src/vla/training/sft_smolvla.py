@@ -330,7 +330,10 @@ def train_sft(
                 _save_training_state(save_path / "best", optimizer, scheduler, _epoch, _step, _best)
 
             best_success = save_best_checkpoint(
-                metrics.success_rate, best_success, _save, tag="SFT",
+                metrics.success_rate,
+                best_success,
+                _save,
+                tag="SFT",
             )
 
         policy.save_checkpoint(save_path / "last", env_metadata=_save_meta)

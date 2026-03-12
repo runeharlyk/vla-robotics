@@ -329,7 +329,11 @@ class ManiSkillRollout:
     ) -> Trajectory:
         """Roll out one episode using ``policy_fn`` and return a :class:`Trajectory`."""
         return collect_single_episode(
-            self._make_single_adapter(), policy_fn, instruction, self.max_steps, seed,
+            self._make_single_adapter(),
+            policy_fn,
+            instruction,
+            self.max_steps,
+            seed,
         )
 
     # ------------------------------------------------------------------
@@ -405,7 +409,8 @@ class _ManiSkillSingleAdapter:
         cam_tensors = []
         for rgb in rgbs:
             pil = PILImage.fromarray(rgb).resize(
-                (self._r.image_size, self._r.image_size), PILImage.BILINEAR,
+                (self._r.image_size, self._r.image_size),
+                PILImage.BILINEAR,
             )
             img_np = np.array(pil, dtype=np.uint8)
             cam_tensors.append(torch.from_numpy(img_np).permute(2, 0, 1))
@@ -429,8 +434,11 @@ class _ManiSkillSingleAdapter:
             succ = bool(s.item()) if hasattr(s, "item") else bool(s)
 
         return SingleStepResult(
-            raw_obs=obs, reward=rew_val,
-            terminated=done_t, truncated=done_tr, success=succ,
+            raw_obs=obs,
+            reward=rew_val,
+            terminated=done_t,
+            truncated=done_tr,
+            success=succ,
         )
 
 

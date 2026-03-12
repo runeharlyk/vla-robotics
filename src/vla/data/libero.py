@@ -123,13 +123,10 @@ def _load_libero_v2_from_hf(
     try:
         episodes_meta, episodes_meta_source = _first_available_jsonl(["meta/episodes.jsonl"])
     except EntryNotFoundError:
-        episode_parquets = sorted(
-            p for p in repo_files if p.startswith("meta/episodes/") and p.endswith(".parquet")
-        )
+        episode_parquets = sorted(p for p in repo_files if p.startswith("meta/episodes/") and p.endswith(".parquet"))
         if not episode_parquets:
             raise EntryNotFoundError(
-                "No episode metadata found. Expected one of: "
-                "meta/episodes.jsonl or meta/episodes/**/*.parquet"
+                "No episode metadata found. Expected one of: meta/episodes.jsonl or meta/episodes/**/*.parquet"
             )
         episodes_meta = _read_parquet_rows(episode_parquets)
         episodes_meta_source = "meta/episodes/**/*.parquet"
@@ -200,10 +197,7 @@ def _load_libero_v2_from_hf(
             for e in episodes_meta
             if "data/chunk_index" in e and "data/file_index" in e
         }
-        candidate_files = [
-            f"data/chunk-{ci:03d}/file-{fi:03d}.parquet"
-            for ci, fi in sorted(chunk_pairs)
-        ]
+        candidate_files = [f"data/chunk-{ci:03d}/file-{fi:03d}.parquet" for ci, fi in sorted(chunk_pairs)]
         data_files = [p for p in candidate_files if p in repo_files]
         if not data_files:
             data_files = chunk_files
@@ -533,9 +527,7 @@ class LiberoSFTDataset(Dataset):
                 )
             )
 
-        logger.info(
-            "Built %d demo trajectories from LeRobot (task_id=%s)", len(trajs), task_id
-        )
+        logger.info("Built %d demo trajectories from LeRobot (task_id=%s)", len(trajs), task_id)
         return trajs
 
 

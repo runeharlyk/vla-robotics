@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from vla.base_config import BaseTrainingConfig
+from vla.constants import DistanceMetrics, Mode, UpdateMethods, WorldModelTypes
 
 
 @dataclass
@@ -17,7 +18,7 @@ class SRPOConfig(BaseTrainingConfig):
     lr: float = 1e-5
     num_iterations: int = 100
     trajectories_per_iter: int = 16
-    update_method: str = "awr"
+    update_method: str = UpdateMethods.awr
     ppo_epochs: int = 4
     clip_epsilon: float = 0.2
     clip_epsilon_high: float = 0.2
@@ -26,8 +27,9 @@ class SRPOConfig(BaseTrainingConfig):
     awr_weight_clip: float = 20.0
     kl_coeff: float = 0.01
     save_dir: str = "checkpoints/srpo"
-    mode: str = "srpo"
-    world_model_type: str = "dinov2"
+    mode: str = Mode.srpo
+    world_model_type: str = WorldModelTypes.vjepa2
+    distance_metric: str = DistanceMetrics.normalized_l2
     subsample_every: int = 5
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2

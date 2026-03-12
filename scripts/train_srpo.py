@@ -189,23 +189,13 @@ def main(
         "--gradient-checkpointing/--no-gradient-checkpointing",
         help="Enable gradient checkpointing to reduce VRAM",
     ),
-    world_model: str = typer.Option("dinov2", "--world-model", help="dinov2 or vjepa2"),
+    world_model: str = typer.Option("vjepa2", "--world-model", help="dinov2 or vjepa2"),
     subsample_every: int = typer.Option(5, "--subsample-every"),
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
 ) -> None:
-    """Run SRPO or sparse-RL training starting from an SFT checkpoint.
-
-    ``env_id``, ``instruction``, and ``control_mode`` are loaded from the
-    SFT checkpoint's saved metadata unless explicitly overridden via CLI.
-
-    Use ``--num-rollout-envs N`` to enable vectorised parallel rollouts
-    (recommended: set equal to ``--trajs-per-iter`` for full parallelism).
-
-    Use ``--multitask`` with either ``--data-dir`` or ``--libero-suite`` to run
-    multi-task SRPO with per-task reward models.
-    """
+    """Run SRPO or sparse-RL training starting from an SFT checkpoint."""
     seed_everything(seed)
     device = get_device()
 

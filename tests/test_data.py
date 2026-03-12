@@ -1,11 +1,10 @@
 import torch
 from torch.utils.data import Subset, TensorDataset
 
+from tests.helpers import make_fake_pt
 from vla.constants import LIBERO_SUITES
 from vla.data import make_dataloader, split_dataset
 from vla.data.dataset import ConcatFewDemoDataset, FewDemoDataset
-
-from tests.helpers import make_fake_pt
 
 
 class TestLiberoSuites:

@@ -12,11 +12,9 @@ full pipeline works from a single demonstration per task.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 from types import ModuleType
 from unittest.mock import MagicMock
 
-import pytest
 import torch
 
 if "mani_skill" not in sys.modules:
@@ -38,10 +36,11 @@ if "transformers" not in sys.modules:
 if "wandb" not in sys.modules:
     sys.modules["wandb"] = MagicMock()
 
+from scripts.train_srpo import _load_multitask_data
 from tests.helpers import make_fake_pt
 from vla.data.dataset import FewDemoDataset
-from vla.rl.rollout import Trajectory
 from vla.rl.advantage import normalize_advantages_per_task
+from vla.rl.rollout import Trajectory
 from vla.rl.srpo_reward import (
     ClusterDiagnostics,
     MultiTaskWorldProgressReward,
@@ -49,8 +48,6 @@ from vla.rl.srpo_reward import (
     WorldProgressReward,
 )
 from vla.rl.trainer import TaskSpec
-from scripts.train_srpo import _load_multitask_data
-
 
 # ---------------------------------------------------------------------------
 # Helpers
