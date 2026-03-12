@@ -193,6 +193,8 @@ def main(
     subsample_every: int = typer.Option(5, "--subsample-every"),
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
+    distance_metric: str = typer.Option("normalized_l2", "--distance-metric", help="normalized_l2 or cosine or l2"),
+    dbscan_auto_eps: bool = typer.Option(True, "--dbscan-auto-eps", help="Auto-tune DBSCAN eps"),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
 ) -> None:
     """Run SRPO or sparse-RL training starting from an SFT checkpoint."""
@@ -232,6 +234,8 @@ def main(
                 subsample_every=subsample_every,
                 dbscan_eps=dbscan_eps,
                 dbscan_min_samples=dbscan_min_samples,
+                distance_metric=distance_metric,
+                dbscan_auto_eps=dbscan_auto_eps,
                 simulator=simulator,
                 suite=suite,
                 num_rollout_envs=num_rollout_envs,
@@ -332,6 +336,8 @@ def main(
         subsample_every=subsample_every,
         dbscan_eps=dbscan_eps,
         dbscan_min_samples=dbscan_min_samples,
+        distance_metric=distance_metric,
+        dbscan_auto_eps=dbscan_auto_eps,
         simulator=simulator,
         suite=suite,
         task_id=task_id,
