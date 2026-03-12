@@ -33,6 +33,7 @@ class SRPOConfig(BaseTrainingConfig):
     subsample_every: int = 5
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2
+    dbscan_auto_eps: bool = False
     num_fm_noise_samples: int = 4
     suite: str = "spatial"
     task_id: int = 0

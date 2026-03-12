@@ -47,7 +47,6 @@ uv run python scripts/train_srpo.py \
     --world-model vjepa2 \
     --distance-metric normalized_l2 \
     --dbscan-eps 0.5 \
-    --dbscan-auto-eps false \
     --dbscan-min-samples 2 \
     --subsample-every 5 \
     --gradient-checkpointing \

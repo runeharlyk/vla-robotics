@@ -194,7 +194,7 @@ def main(
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
     distance_metric: str = typer.Option("normalized_l2", "--distance-metric", help="normalized_l2 or cosine or l2"),
-    dbscan_auto_eps: bool = typer.Option(True, "--dbscan-auto-eps", help="Auto-tune DBSCAN eps"),
+    dbscan_auto_eps: bool = typer.Option(False, "--dbscan-auto-eps", help="Auto-tune DBSCAN eps"),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
 ) -> None:
     """Run SRPO or sparse-RL training starting from an SFT checkpoint."""

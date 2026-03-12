@@ -22,4 +22,3 @@ max_steps: 280
 world_model: vjepa2
 gradient_checkpointing: true
 distance_metric: normalized_l2
-dbscan_auto_eps: false
