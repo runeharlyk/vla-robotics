@@ -31,6 +31,9 @@ import torch
 from lerobot.policies.factory import make_pre_post_processors
 from vla.models.smolvla import smolvla
 
+# Timesteps to highlight in the per-timepoint frame plots.
+HIGHLIGHT_TIMESTEPS: list[int] = [14, 18, 50, 63, 95]
+
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -120,6 +123,52 @@ def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: d
 
 
 # ---------------------------------------------------------------------------
+# Timepoint frame visualization
+# ---------------------------------------------------------------------------
+
+def _plot_timepoint_frames(
+    l2_curve: np.ndarray,
+    images: torch.Tensor,          # (T, C, H, W) float [0, 1]
+    timepoints: list[int],
+    output_dir: Path,
+    demo_label: str = "demo0",
+) -> None:
+    """For each timepoint create a side-by-side figure:
+    left — the L2 curve with a vertical highlight at that step;
+    right — the camera frame at that step.
+    Saved to <output_dir>/timepoint_frames/<demo_label>_t<t>.png.
+    """
+    frame_dir = output_dir / "timepoint_frames"
+    frame_dir.mkdir(exist_ok=True)
+    T = len(l2_curve)
+    for t in timepoints:
+        if t >= T:
+            print(f"  Warning: timepoint t={t} >= trajectory length {T}, skipping.")
+            continue
+        fig, (ax_curve, ax_img) = plt.subplots(1, 2, figsize=(12, 4))
+        # ── L2 curve ──
+        x = np.arange(T)
+        ax_curve.plot(x, l2_curve, color="steelblue", linewidth=1.5)
+        ax_curve.axvline(x=t, color="red", linestyle="--", linewidth=1.5, label=f"t={t}")
+        ax_curve.scatter([t], [l2_curve[t]], color="red", s=60, zorder=5)
+        ax_curve.set_xlabel("Timestep")
+        ax_curve.set_ylabel("Mean L2 Action Distance")
+        ax_curve.set_title(f"L2 curve — t={t} highlighted")
+        ax_curve.legend()
+        # ── camera frame ──
+        frame = images[t].permute(1, 2, 0).numpy()   # (H, W, C)
+        frame = np.clip(frame, 0.0, 1.0)
+        ax_img.imshow(frame)
+        ax_img.axis("off")
+        ax_img.set_title(f"Camera frame at t={t}")
+        plt.tight_layout()
+        out_path = frame_dir / f"{demo_label}_t{t:03d}.png"
+        plt.savefig(out_path, dpi=200)
+        plt.close(fig)
+        print(f"  Saved timepoint plot → {out_path}")
+
+
+# ---------------------------------------------------------------------------
 # Data helpers
 # ---------------------------------------------------------------------------
 
@@ -188,6 +237,8 @@ def run_sweep(args: argparse.Namespace) -> None:
 
     type_l2_curves: dict[str, list[torch.Tensor]] = defaultdict(list)
     n_processed = 0
+    first_demo_images: torch.Tensor | None = None
+    first_demo_l2s: list[torch.Tensor] = []
 
     for h5_path in h5_paths:
         print(f"\nSweeping {h5_path} …")
@@ -195,6 +246,10 @@ def run_sweep(args: argparse.Namespace) -> None:
             variants_by_type = variants_map[task_instruction]
             n_variants = sum(len(v) for v in variants_by_type.values())
             print(f"  [task {task_index}] '{task_instruction}' — {images.shape[0]} steps, {n_variants} variants", flush=True)
+
+            is_first_demo = n_processed == 0
+            if is_first_demo:
+                first_demo_images = images
 
             base_actions = _run(task_instruction, images, states, bundle, args.seed)
 
@@ -205,8 +260,24 @@ def run_sweep(args: argparse.Namespace) -> None:
                     T = min(base_actions.shape[0], variant_actions.shape[0])
                     l2 = torch.norm(variant_actions[:T] - base_actions[:T], dim=-1)
                     type_l2_curves[variant_type].append(l2)
+                    if is_first_demo:
+                        first_demo_l2s.append(l2)
+
+            # After all variants of the first demo are done, generate timepoint plots.
+            if is_first_demo and first_demo_images is not None and first_demo_l2s:
+                max_T = max(c.shape[0] for c in first_demo_l2s)
+                padded = np.full((len(first_demo_l2s), max_T), np.nan, dtype=np.float32)
+                for idx, c in enumerate(first_demo_l2s):
+                    padded[idx, : c.shape[0]] = c.numpy()
+                demo0_mean_l2 = np.nanmean(padded, axis=0)
+                print("\nGenerating timepoint frame plots for first demo …")
+                _plot_timepoint_frames(demo0_mean_l2, first_demo_images, HIGHLIGHT_TIMESTEPS, output_dir)
 
             n_processed += 1
+            if args.max_demos is not None and n_processed >= args.max_demos:
+                break
+        if args.max_demos is not None and n_processed >= args.max_demos:
+            break
 
     print(f"\nProcessed {n_processed} demos.")
 
