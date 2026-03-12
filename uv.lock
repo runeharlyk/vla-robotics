@@ -1594,6 +1594,9 @@ cli = [
 hf-transfer = [
     { name = "hf-transfer" },
 ]
+hf-xet = [
+    { name = "hf-xet" },
+]
 
 [[package]]
 name = "hydra-core"
@@ -4538,6 +4541,7 @@ source = { editable = "." }
 dependencies = [
     { name = "dvc" },
     { name = "h5py" },
+    { name = "huggingface-hub", extra = ["hf-xet"] },
     { name = "lerobot", extra = ["smolvla"] },
     { name = "libero", marker = "sys_platform == 'linux'" },
     { name = "mani-skill" },
@@ -4583,6 +4587,7 @@ dev = [
 requires-dist = [
     { name = "dvc", extras = ["gcs"], specifier = ">=3.66.1" },
     { name = "h5py", specifier = ">=3.15.1" },
+    { name = "huggingface-hub", extras = ["hf-xet"], specifier = ">=0.35.3" },
     { name = "lerobot", extras = ["smolvla"], specifier = ">=0.4.3" },
     { name = "libero", marker = "sys_platform == 'linux'", specifier = ">=0.1.0" },
     { name = "mani-skill", specifier = ">=3.0.0b22" },
