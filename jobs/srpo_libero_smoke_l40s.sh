@@ -26,7 +26,7 @@ uv run python scripts/train_srpo.py \
     --multitask \
     --mode srpo \
     --update-method awr \
-    --num-demos 1 \
+    --num-demos 5 \
     --seed 42 \
     --lr 5e-06 \
     --max-grad-norm 10.0 \
@@ -45,7 +45,9 @@ uv run python scripts/train_srpo.py \
     --eval-episodes 10 \
     --max-steps 280 \
     --world-model vjepa2 \
-    --dbscan-eps 60 \
+    --distance-metric normalized_l2 \
+    --dbscan-eps 0.5 \
+    --dbscan-auto-eps false \
     --dbscan-min-samples 2 \
     --subsample-every 5 \
     --gradient-checkpointing \

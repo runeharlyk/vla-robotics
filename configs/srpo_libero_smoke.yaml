@@ -5,7 +5,7 @@ suite: spatial
 multitask_flag: --multitask
 trajs_per_task_flag: --trajs-per-task 4
 mode: srpo
-num_demos: 1
+num_demos: 5
 seed: 42
 lr: 5.0e-6
 num_iterations: 200
@@ -21,3 +21,5 @@ eval_episodes: 10
 max_steps: 280
 world_model: vjepa2
 gradient_checkpointing: true
+distance_metric: normalized_l2
+dbscan_auto_eps: false
