@@ -31,12 +31,12 @@ uv run python scripts/train_srpo.py \
     --lr 5e-06 \
     --max-grad-norm 10.0 \
     --iterations 200 \
-    --trajs-per-task 4 \
+    --trajs-per-task 8 \
     --trajs-per-iter 16 \
     --num-rollout-envs 8 \
     --fm-batch-size 64 \
     --awr-epochs 2 \
-    --awr-temperature 5.0 \
+    --awr-temperature 1.0 \
     --awr-weight-clip 20.0 \
     --ppo-epochs 1 \
     --clip-epsilon 0.2 \

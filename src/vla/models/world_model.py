@@ -115,13 +115,13 @@ class WorldModelEncoder(ABC):
             traj_sizes.append(frames.shape[0])
 
         mega_batch = torch.cat(all_frames, dim=0)  # (total_frames, C, H, W)
-        all_embs = self.encode_frames(mega_batch)   # (total_frames, D)
+        all_embs = self.encode_frames(mega_batch)  # (total_frames, D)
 
         # Mean-pool per trajectory
         results = []
         offset = 0
         for sz in traj_sizes:
-            results.append(all_embs[offset: offset + sz].mean(dim=0))
+            results.append(all_embs[offset : offset + sz].mean(dim=0))
             offset += sz
         return torch.stack(results, dim=0)
 
@@ -149,8 +149,7 @@ class DINOv2Encoder(WorldModelEncoder):
 
         logger.info("Loading DINOv2 encoder: %s", model_id)
         self.processor = AutoImageProcessor.from_pretrained(model_id)
-        self.model = AutoModel.from_pretrained(
-            model_id, torch_dtype=dtype).to(self.device)
+        self.model = AutoModel.from_pretrained(model_id, torch_dtype=dtype).to(self.device)
         self.model.eval()
         for p in self.model.parameters():
             p.requires_grad_(False)
@@ -165,11 +164,10 @@ class DINOv2Encoder(WorldModelEncoder):
         B = images.shape[0]
         all_embs = []
         for start in range(0, B, self.batch_size):
-            batch = images[start: start + self.batch_size]
+            batch = images[start : start + self.batch_size]
             batch_pil = [self._tensor_to_pil_format(img) for img in batch]
             inputs = self.processor(images=batch_pil, return_tensors="pt")
-            inputs = {k: v.to(self.device, dtype=self.dtype)
-                      for k, v in inputs.items()}
+            inputs = {k: v.to(self.device, dtype=self.dtype) for k, v in inputs.items()}
             outputs = self.model(**inputs)
             cls_emb = outputs.last_hidden_state[:, 0]
             all_embs.append(cls_emb.float())
@@ -245,8 +243,7 @@ class VJEPA2Encoder(WorldModelEncoder):
                 p.requires_grad_(False)
             self._embed_dim = self.model.config.hidden_size
             self._backend = "transformers"
-            logger.info(
-                "V-JEPA 2 loaded via AutoModel – embed_dim=%d", self._embed_dim)
+            logger.info("V-JEPA 2 loaded via AutoModel – embed_dim=%d", self._embed_dim)
             return True
         except Exception as e:
             logger.warning("AutoModel failed for %s: %s", model_id, e)
@@ -254,15 +251,12 @@ class VJEPA2Encoder(WorldModelEncoder):
 
     def _try_raw_checkpoint(self, model_id: str) -> bool:
         try:
-            logger.info(
-                "Trying raw checkpoint loading for %s via timm…", model_id)
+            logger.info("Trying raw checkpoint loading for %s via timm…", model_id)
             self._load_raw_checkpoint(model_id)
-            logger.info("V-JEPA 2 loaded via timm – embed_dim=%d",
-                        self._embed_dim)
+            logger.info("V-JEPA 2 loaded via timm – embed_dim=%d", self._embed_dim)
             return True
         except Exception as e:
-            logger.warning(
-                "Raw checkpoint loading failed for %s: %s", model_id, e)
+            logger.warning("Raw checkpoint loading failed for %s: %s", model_id, e)
             return False
 
     def _load_raw_checkpoint(self, model_id: str) -> None:
@@ -270,8 +264,7 @@ class VJEPA2Encoder(WorldModelEncoder):
         import timm
 
         files = list_repo_files(model_id)
-        weight_files = [f for f in files if any(
-            f.endswith(ext) for ext in self._WEIGHT_EXTENSIONS)]
+        weight_files = [f for f in files if any(f.endswith(ext) for ext in self._WEIGHT_EXTENSIONS)]
         if not weight_files:
             raise FileNotFoundError(
                 f"No weight files ({self._WEIGHT_EXTENSIONS}) in {model_id}. Repo contains: {files}"
@@ -296,14 +289,12 @@ class VJEPA2Encoder(WorldModelEncoder):
 
         embed_dim = self._infer_embed_dim(state_dict)
         timm_name = self._pick_timm_model(embed_dim)
-        logger.info("Creating timm model %s (embed_dim=%d)",
-                    timm_name, embed_dim)
+        logger.info("Creating timm model %s (embed_dim=%d)", timm_name, embed_dim)
         model = timm.create_model(timm_name, pretrained=False, num_classes=0)
 
         msg = model.load_state_dict(state_dict, strict=False)
         if msg.unexpected_keys:
-            logger.info("Unexpected keys (ignored, first 5): %s",
-                        msg.unexpected_keys[:5])
+            logger.info("Unexpected keys (ignored, first 5): %s", msg.unexpected_keys[:5])
         if msg.missing_keys:
             logger.info("Missing keys (first 5): %s", msg.missing_keys[:5])
 
@@ -340,7 +331,7 @@ class VJEPA2Encoder(WorldModelEncoder):
         B = images.shape[0]
         all_embs = []
         for start in range(0, B, self.batch_size):
-            batch = to_float01(images[start: start + self.batch_size], auto_scale=True)
+            batch = to_float01(images[start : start + self.batch_size], auto_scale=True)
 
             if self._backend == "timm":
                 batch = batch.to(self.device, dtype=self.dtype)
@@ -442,14 +433,13 @@ class VJEPA2Encoder(WorldModelEncoder):
             padded.append(c)
 
         # Stack: (N, F, C, H, W) – this is the pixel_values_videos format
-        batch_clips = torch.stack(padded, dim=0).to(
-            self.device, dtype=self.dtype)
+        batch_clips = torch.stack(padded, dim=0).to(self.device, dtype=self.dtype)
         N = batch_clips.shape[0]
 
         # Process in sub-batches of self.batch_size clips
         all_embs: list[torch.Tensor] = []
         for start in range(0, N, self.batch_size):
-            sub = batch_clips[start: start + self.batch_size]
+            sub = batch_clips[start : start + self.batch_size]
             outputs = self.model(pixel_values_videos=sub)
             hs = outputs.last_hidden_state
             if hs.ndim == 3:

@@ -549,16 +549,12 @@ class SmolVLMWithExpertModel(nn.Module):
         key_states = key_states[:, :, :, None, :].expand(
             batch_size, sequence_length, num_key_value_heads, num_key_value_groups, head_dim
         )
-        key_states = key_states.reshape(
-            batch_size, sequence_length, num_att_heads, head_dim
-        )
+        key_states = key_states.reshape(batch_size, sequence_length, num_att_heads, head_dim)
 
         value_states = value_states[:, :, :, None, :].expand(
             batch_size, sequence_length, num_key_value_heads, num_key_value_groups, head_dim
         )
-        value_states = value_states.reshape(
-            batch_size, sequence_length, num_att_heads, head_dim
-        )
+        value_states = value_states.reshape(batch_size, sequence_length, num_att_heads, head_dim)
 
         query_states = query_states.transpose(1, 2)
         key_states = key_states.transpose(1, 2)
@@ -571,7 +567,9 @@ class SmolVLMWithExpertModel(nn.Module):
         )
 
         att_output = F.scaled_dot_product_attention(
-            query_states, key_states, value_states,
+            query_states,
+            key_states,
+            value_states,
             attn_mask=attn_mask,
             is_causal=False,
         )

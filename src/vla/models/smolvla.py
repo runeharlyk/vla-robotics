@@ -364,7 +364,8 @@ class SmolVLAPolicy(nn.Module):
         self,
         images: torch.Tensor,
         instruction: str | list[str],
-        target_actions: torch.Tensor,
+        target_action_chunks: torch.Tensor,
+        target_action_mask: torch.Tensor,
         states: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         """Compute flow-matching MSE loss for behavior cloning.
@@ -384,13 +385,48 @@ class SmolVLAPolicy(nn.Module):
         img_list, mask_list = self._prepare_images(imgs)
         tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
         s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-        normalized_actions = self._normalize_action(target_actions.to(self.device, dtype=self.dtype))
-        actions_padded = self._prepare_action(normalized_actions)
-        actions_padded = actions_padded.unsqueeze(1).expand(-1, self.chunk_size, -1)
 
-        losses = self.model.forward(img_list, mask_list, tokens, tmasks, s, actions_padded)
-        loss = losses[:, :, : self.max_action_dim].mean()
+        chunks = target_action_chunks.to(self.device, dtype=self.dtype)
+        chunks = self._normalize_action(chunks)
+        chunks = _pad_vector(chunks, self.max_action_dim)
+
+        losses = self.model.forward(img_list, mask_list, tokens, tmasks, s, chunks)
+        losses = losses[:, :, : self.action_dim]
+
+        valid = target_action_mask.unsqueeze(-1).to(losses.dtype)
+        loss = (losses * valid).sum() / valid.sum().clamp(min=1.0)
+
         return {"loss": loss}
+
+    def _build_action_chunks(
+        self,
+        actions: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        T = actions.shape[0]
+        actions = self._normalize_action(actions)
+        actions = self._prepare_action(actions)
+
+        chunks = torch.zeros(
+            T,
+            self.chunk_size,
+            self.max_action_dim,
+            device=actions.device,
+            dtype=actions.dtype,
+        )
+        mask = torch.zeros(
+            T,
+            self.chunk_size,
+            device=actions.device,
+            dtype=torch.bool,
+        )
+
+        for t in range(T):
+            end = min(T, t + self.chunk_size)
+            n = end - t
+            chunks[t, :n] = actions[t:end]
+            mask[t, :n] = True
+
+        return chunks, mask
 
     def compute_fm_loss_batched(
         self,
@@ -424,6 +460,9 @@ class SmolVLAPolicy(nn.Module):
         all_losses: list[torch.Tensor] = []
         use_amp = self.device.type == "cuda"
 
+        actions = actions.to(self.device, dtype=self.dtype)
+        action_chunks, action_mask = self._build_action_chunks(actions)
+
         for start in range(0, T, batch_size):
             end = min(start + batch_size, T)
             B = end - start
@@ -435,21 +474,28 @@ class SmolVLAPolicy(nn.Module):
             state_raw = states[start:end] if states is not None else None
             state = self._prepare_state_input(state_raw, batch_size=B)
 
-            normalized_action = self._normalize_action(
-                actions[start:end].to(self.device, dtype=self.dtype)
-            )
-            action_padded = self._prepare_action(normalized_action)
-            action_padded = action_padded.unsqueeze(1).expand(-1, self.chunk_size, -1)
+            target_chunks = action_chunks[start:end]
+            target_mask = action_mask[start:end]
 
             noise = fixed_noise[start:end].to(self.device, dtype=self.dtype)
             time = fixed_time[start:end].to(self.device, dtype=self.dtype)
 
-            with torch.autocast("cuda", enabled=use_amp):  # type: ignore[attr-defined]
+            with torch.autocast("cuda", enabled=use_amp):
                 losses = self.model.forward(
-                    img_list, mask_list, tokens, tmasks, state,
-                    action_padded, noise=noise, time=time,
+                    img_list,
+                    mask_list,
+                    tokens,
+                    tmasks,
+                    state,
+                    target_chunks,
+                    noise=noise,
+                    time=time,
                 )
-            per_step = losses[:, :, : self.max_action_dim].mean(dim=(1, 2))
+
+            losses = losses[:, :, : self.action_dim]
+            valid = target_mask.unsqueeze(-1).to(losses.dtype)
+            denom = valid.sum(dim=(1, 2)).clamp(min=1.0)
+            per_step = (losses * valid).sum(dim=(1, 2)) / denom
             all_losses.append(per_step)
 
         return torch.cat(all_losses)
