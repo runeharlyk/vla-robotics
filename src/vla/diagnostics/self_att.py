@@ -5,7 +5,7 @@ from PIL import Image
 from transformers import AutoProcessor
 
 # Your custom imports
-from vla.models.smolvla import smolvla
+from vla.models.smolvla import SmolVLAPolicy
 
 
 def get_vision_encoder_attention(model, pil_image, device="cuda"):
@@ -110,8 +110,7 @@ if __name__ == "__main__":
 
     # --- MODEL DEFINITION ---
     print(f"Loading model from checkpoint: {checkpoint} on device: {device}")
-    model, model_id, action_dim = smolvla(checkpoint, device)
-    print(f"Model loaded: {model_id}, Action dim: {action_dim}")
+    model = SmolVLAPolicy(checkpoint, action_dim=7, device=device)
 
     # --- IMAGE LOADING ---
     img_path = "data/images/libero/spatial/ep0000_task_0/frame0000.png"

@@ -8,7 +8,7 @@ from transformers import AutoProcessor
 
 from vla.constants import PROJECT_ROOT
 from vla.diagnostics.self_att_llm import _add_contour, _find_token_indices, _normalize, _smooth_and_resize
-from vla.models.smolvla import smolvla
+from vla.models.smolvla import SmolVLAPolicy
 from vla.utils import get_device, seed_everything
 
 
@@ -806,7 +806,7 @@ if __name__ == "__main__":
 
     checkpoint = "HuggingFaceVLA/smolvla_libero"
     print(f"Loading model: {checkpoint}")
-    model, model_id, action_dim = smolvla(checkpoint, device)
+    model = SmolVLAPolicy(checkpoint)
 
     dog_cat_path = PROJECT_ROOT / "data/images/both.png"
     if dog_cat_path.exists():
@@ -816,7 +816,7 @@ if __name__ == "__main__":
         words = ["dog", "cat", "standing", "indoors"]
         print(f"Description: {description}")
         print(f"Words: {words}")
-        visualize_multi_word_grad_cam(model, dog_cat_image, description, words, device)
+        visualize_multi_word_grad_cam(model, dog_cat_image, description, words, str(device))
     else:
         sample_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/YellowLabradorLooking_new.jpg/1200px-YellowLabradorLooking_new.jpg"
         sample_path = PROJECT_ROOT / "data/images/samples/dog_grass.jpg"
@@ -825,4 +825,4 @@ if __name__ == "__main__":
         words = ["dog", "grass", "garden", "sitting"]
         print(f"\nDescription: {description}")
         print(f"Words: {words}")
-        visualize_multi_word_grad_cam(model, image, description, words, device)
+        visualize_multi_word_grad_cam(model, image, description, words, str(device))
