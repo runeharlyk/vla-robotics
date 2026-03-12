@@ -63,30 +63,6 @@ def _compute_fm_loss_batched(
     )
 
 
-def _merge_trajectory_data(
-    trajectories: list[Trajectory],
-    noise_list: list[torch.Tensor],
-    time_list: list[torch.Tensor],
-) -> tuple[Trajectory, torch.Tensor, torch.Tensor, list[int]]:
-    """Concatenate trajectory data for mega-batched FM-loss computation.
-
-    Returns a virtual merged ``Trajectory``, merged noise/time tensors,
-    and the per-trajectory lengths needed to split results back.
-    """
-    lengths = [t.length for t in trajectories]
-    has_states = trajectories[0].states is not None
-    merged = Trajectory(
-        images=torch.cat([t.images[: t.length] for t in trajectories]),
-        actions=torch.cat([t.actions[: t.length] for t in trajectories]),
-        states=(torch.cat([t.states[: t.length] for t in trajectories]) if has_states else trajectories[0].states),
-        rewards=torch.zeros(1),
-        dones=torch.zeros(1),
-        success=False,
-        length=sum(lengths),
-    )
-    return merged, torch.cat(noise_list), torch.cat(time_list), lengths
-
-
 # ---------------------------------------------------------------------------
 # Policy update algorithms
 # ---------------------------------------------------------------------------
@@ -120,7 +96,13 @@ def awr_update(
         :class:`UpdateMetrics` with average loss, KL, and weight.
     """
     B = config.fm_batch_size
-    M = len(trajectories)
+
+    active_indices = [
+        i for i, traj in enumerate(trajectories) if traj.task_id not in skipped_task_ids and advantages[i] > 0
+    ]
+    active_count = len(active_indices)
+    if active_count == 0:
+        return UpdateMetrics()
 
     ref_losses_per_traj: list[torch.Tensor] = []
     if config.kl_coeff > 0:
@@ -140,16 +122,17 @@ def awr_update(
     total_weighted_loss = 0.0
     total_kl = 0.0
     total_weight = 0.0
+    used_count_total = 0
 
-    for _epoch in range(config.awr_epochs):
+    for _ in range(config.awr_epochs):
         optimizer.zero_grad()
         epoch_loss = 0.0
         epoch_kl = 0.0
         epoch_weight = 0.0
+        used_count = 0
 
-        for i, traj in enumerate(trajectories):
-            if traj.task_id in skipped_task_ids:
-                continue
+        for i in active_indices:
+            traj = trajectories[i]
             adv_i = advantages[i]
             weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
 
@@ -162,17 +145,18 @@ def awr_update(
                 batch_size=B,
             ).mean()
 
-            traj_loss = weight * fm_loss / M
+            traj_loss = weight * fm_loss / active_count
 
             if config.kl_coeff > 0 and ref_losses_per_traj:
                 ref_fm = ref_losses_per_traj[i].mean()
                 kl_approx = 0.5 * (ref_fm - fm_loss) ** 2
-                traj_loss = traj_loss + config.kl_coeff * kl_approx / M
+                traj_loss = traj_loss + config.kl_coeff * kl_approx / active_count
                 epoch_kl += (config.kl_coeff * kl_approx).item()
 
             traj_loss.backward()
             epoch_loss += (weight * fm_loss).item()
             epoch_weight += weight
+            used_count += 1
 
         torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
         optimizer.step()
@@ -180,8 +164,9 @@ def awr_update(
         total_weighted_loss += epoch_loss
         total_kl += epoch_kl
         total_weight += epoch_weight
+        used_count_total += used_count
 
-    denom = max(config.awr_epochs * M, 1)
+    denom = max(used_count_total, 1)
     return UpdateMetrics(
         avg_loss=total_weighted_loss / denom,
         avg_kl=total_kl / denom,
