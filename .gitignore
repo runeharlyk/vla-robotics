@@ -102,7 +102,7 @@ dmypy.json
 # Project-specific
 data/raw/
 data/preprocessed/
-models/
+/models/
 videos/
 logs/
 wandb/
