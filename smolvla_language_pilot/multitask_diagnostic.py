@@ -51,6 +51,12 @@ def parse_args() -> argparse.Namespace:
         default="smolvla_language_pilot/outputs",
         help="Directory where the output plot is saved.",
     )
+    parser.add_argument(
+        "--max-demos",
+        type=int,
+        default=None,
+        help="Stop after processing this many demos in total. Useful for quick smoke-tests (e.g. --max-demos 1).",
+    )
     return parser.parse_args()
 
 
@@ -198,7 +204,7 @@ def run_sweep(args: argparse.Namespace) -> None:
                     variant_actions = _run(variant_text, images, states, bundle, args.seed)
                     T = min(base_actions.shape[0], variant_actions.shape[0])
                     l2 = torch.norm(variant_actions[:T] - base_actions[:T], dim=-1)
-   zzz                 type_l2_curves[variant_type].append(l2)
+                    type_l2_curves[variant_type].append(l2)
 
             n_processed += 1
 
@@ -247,7 +253,7 @@ def run_sweep(args: argparse.Namespace) -> None:
     ax.legend()
     plt.tight_layout()
 
-    out_path = output_dir / "variant_sweep_avg_l2.png"
+    out_path = output_dir / "multitask_avg_l2.png"
     plt.savefig(out_path, dpi=200)
     plt.close(fig)
     print(f"Saved plot → {out_path}")
@@ -267,7 +273,7 @@ def run_sweep(args: argparse.Namespace) -> None:
             "std_l2_per_timestep": overall_std.tolist(),
         },
     }
-    summary_path = output_dir / "variant_sweep_summary.json"
+    summary_path = output_dir / "multitask_summary.json"
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(f"Saved summary → {summary_path}")
 
