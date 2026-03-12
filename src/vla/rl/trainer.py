@@ -103,7 +103,8 @@ def build_rollout_engine(
             state_dim=config.state_dim,
         )
 
-    raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
+    raise ValueError(
+        f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
 
 
 # ---------------------------------------------------------------------------
@@ -133,7 +134,8 @@ def collect_all_trajectories(
     for spec in task_specs:
         if spec.task_id not in rollout_engines:
             logger.info(f"Creating rollout engine for {spec.task_id}")
-            rollout_engines[spec.task_id] = build_rollout_engine(config, spec=spec)
+            rollout_engines[spec.task_id] = build_rollout_engine(
+                config, spec=spec)
         use_vectorized = config.num_rollout_envs > 1
         trajs = rollout_engines[spec.task_id].collect_batch(
             policy_fn=policy.predict_action,
@@ -277,13 +279,13 @@ def train_srpo(
     for p in ref_policy.parameters():
         p.requires_grad_(False)
 
-    # ── Per-task rollout engines (created lazily to avoid OOM) ──────────
+    # -- Per-task rollout engines (created lazily to avoid OOM) ----------
     if rollout_engines is None:
         rollout_engines = {}
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
 
-    # ── Per-task reward model (works for single-task too: 1 key) ─────────
+    # -- Per-task reward model (works for single-task too: 1 key) ---------
     world_encoder: WorldModelEncoder | None = None
     reward_model: MultiTaskWorldProgressReward | None = None
 
@@ -317,8 +319,23 @@ def train_srpo(
         metrics_logger = MetricsLogger(jsonl_path=save_path / "metrics.jsonl")
     best_success = -1.0
 
+    log_data: dict[str, Any] = {
+        f"{config.mode}/iteration": 0,
+        f"{config.mode}/pre_rl_eval": 1,
+    }
+    best_success = evaluate_and_checkpoint(  # Evaluate for iteration 0 to get a baseline for improvements
+        policy,
+        config,
+        task_specs,
+        0,
+        save_path,
+        best_success,
+        log_data,
+    )
+    metrics_logger.log(log_data)
+
     for iteration in range(1, config.num_iterations + 1):
-        # ── 1. Collect trajectories from all tasks ───────────────────────
+        # -- 1. Collect trajectories from all tasks -----------------------
         all_trajectories, per_task_successes = collect_all_trajectories(
             policy,
             task_specs,
@@ -335,20 +352,21 @@ def train_srpo(
             f"({per_task_successes})"
         )
 
-        # ── 2. Per-task rewards g_i ──────────────────────────────────────
+        # -- 2. Per-task rewards g_i --------------------------------------
         if world_encoder is not None:
             world_encoder.reload(policy.device)
 
         if config.mode == "srpo" and reward_model is not None:
-            g_values, traj_embs = reward_model.compute_trajectory_rewards(all_trajectories)
+            g_values, traj_embs = reward_model.compute_trajectory_rewards(
+                all_trajectories)
             all_diags = reward_model.get_diagnostics()
             by_task_embs: dict[str, list[torch.Tensor]] = defaultdict(list)
             for i, t in enumerate(all_trajectories):
                 if t.success:
                     by_task_embs[t.task_id].append(traj_embs[i])
 
-            # for tid, embs in by_task_embs.items():
-            #     reward_model.add_successful_embeddings(tid, embs)
+            for tid, embs in by_task_embs.items():
+                reward_model.add_successful_embeddings(tid, embs)
         else:
             g_values = [1.0 if t.success else 0.0 for t in all_trajectories]
             all_diags = None
@@ -356,7 +374,7 @@ def train_srpo(
         if world_encoder is not None:
             world_encoder.offload()
 
-        # ── 3. Per-task advantage normalisation ──────────────────────────
+        # -- 3. Per-task advantage normalisation --------------------------
         task_ids = [t.task_id for t in all_trajectories]
         adv_result = normalize_advantages_per_task(g_values, task_ids)
         advantages = adv_result.advantages
@@ -384,7 +402,7 @@ def train_srpo(
                 f"with uniform rewards: {skipped_tasks}"
             )
 
-        # ── 4. Pre-sample fixed noise/time for FM loss computation ──────
+        # -- 4. Pre-sample fixed noise/time for FM loss computation ------
         policy.eval()
         fixed_noise_per_traj: list[torch.Tensor] = []
         fixed_time_per_traj: list[torch.Tensor] = []
@@ -396,7 +414,7 @@ def train_srpo(
             fixed_time_per_traj.append(time)
             instrs_per_traj.append(spec_lookup[traj.task_id].instruction)
 
-        # ── 5. Policy update ─────────────────────────────────────────────
+        # -- 5. Policy update ---------------------------------------------
         if config.update_method == "awr":
             update_metrics = awr_update(
                 policy,
@@ -411,7 +429,7 @@ def train_srpo(
                 skipped_task_set,
                 config,
             )
-        else:
+        elif config.update_method == "ppo":
             update_metrics = ppo_update(
                 policy,
                 ref_policy,
@@ -428,7 +446,7 @@ def train_srpo(
         fixed_noise_per_traj.clear()
         fixed_time_per_traj.clear()
 
-        # ── 6. Logging ───────────────────────────────────────────────────
+        # -- 6. Logging ---------------------------------------------------
         M = len(all_trajectories)
         loss_key = "awr_loss" if config.update_method == "awr" else "surrogate_loss"
         log_data = {
@@ -443,20 +461,23 @@ def train_srpo(
 
         for tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{tid}/successes"] = n_succ
-            log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean.get(tid, 0.0)
+            log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean.get(
+                tid, 0.0)
         if all_diags is not None:
             for tid, diag in all_diags.items():
                 if diag is not None:
-                    log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
+                    log_data.update(diag.as_dict(
+                        prefix=f"{config.mode}/{tid}/cluster"))
 
         logger.info(
             f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}  kl={update_metrics.avg_kl:.6f}"
             f"  successes={total_successes}/{M}"
         )
         for tid in per_task_successes:
-            logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
+            logger.info(
+                f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
 
-        # ── 7. Periodic evaluation ───────────────────────────────────────
+        # -- 7. Periodic evaluation ---------------------------------------
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
             best_success = evaluate_and_checkpoint(
                 policy,
