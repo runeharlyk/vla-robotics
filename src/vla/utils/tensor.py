@@ -30,7 +30,7 @@ def action_to_numpy(action: torch.Tensor | np.ndarray | list) -> np.ndarray:
     Handles torch tensors (detach + cpu), numpy arrays, and plain lists.
 
     Args:
-        action: Action from a policy — tensor, array, or list.
+        action: Action from a policy - tensor, array, or list.
 
     Returns:
         Flat ``float32`` numpy array.

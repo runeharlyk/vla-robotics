@@ -1,4 +1,4 @@
-"""Standalone VLAFlowMatching model — the core flow-matching architecture.
+"""Standalone VLAFlowMatching model - the core flow-matching architecture.
 
 This module contains the neural network itself (embedding, denoising,
 sampling).  The higher-level policy wrapper that handles normalization,

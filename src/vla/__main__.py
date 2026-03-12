@@ -7,7 +7,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
-    """Vision-Language-Action robotics CLI — SmolVLA training & evaluation."""
+    """Vision-Language-Action robotics CLI - SmolVLA training & evaluation."""
 
 
 @app.command()

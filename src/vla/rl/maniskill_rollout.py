@@ -348,7 +348,7 @@ class ManiSkillRollout:
         seed: int | None = None,
         policy_batch_fn: Any | None = None,
     ) -> list[Trajectory]:
-        """Collect trajectories — vectorised when ``num_envs > 1``.
+        """Collect trajectories - vectorised when ``num_envs > 1``.
 
         When ``policy_batch_fn`` is provided and ``self.num_envs > 1``,
         all environments are stepped in parallel with batched policy

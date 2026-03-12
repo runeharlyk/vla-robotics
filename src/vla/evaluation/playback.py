@@ -1,4 +1,4 @@
-"""Demo playback — replay recorded demonstrations as videos.
+"""Demo playback - replay recorded demonstrations as videos.
 
 Two modes:
 - ``replay``: Step through the simulator with recorded actions and capture live video.

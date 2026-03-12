@@ -155,7 +155,7 @@ class WorldProgressReward:
             evicted = len(self._online_embeddings) - cap
             self._online_embeddings = self._online_embeddings[-cap:]
             logger.info(
-                "Online slot full — evicted %d oldest (kept %d, demo=%d, total=%d)",
+                "Online slot full - evicted %d oldest (kept %d, demo=%d, total=%d)",
                 evicted,
                 cap,
                 len(self._demo_embeddings),
@@ -227,7 +227,7 @@ class WorldProgressReward:
         if self.cfg.activation == "sigmoid":
             return torch.sigmoid(-x)
         logger.warning(
-            "Unknown activation %r — falling back to 'sigmoid'. Choose from: 'sigmoid'.",
+            "Unknown activation %r - falling back to 'sigmoid'. Choose from: 'sigmoid'.",
             self.cfg.activation,
         )
         return torch.sigmoid(-x)
@@ -240,7 +240,7 @@ class WorldProgressReward:
             centres: ``(K, D)`` cluster centre embeddings.
 
         Returns:
-            ``(K,)`` distance tensor — lower means closer to a success cluster.
+            ``(K,)`` distance tensor - lower means closer to a success cluster.
         """
         metric = self.cfg.distance_metric
         if metric == DistanceMetrics.cosine:

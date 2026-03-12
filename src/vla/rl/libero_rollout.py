@@ -302,7 +302,7 @@ class LiberoRollout:
         seed: int | None = None,
         policy_batch_fn: Any | None = None,
     ) -> list[Trajectory]:
-        """Collect trajectories from LIBERO — vectorised when ``num_envs > 1``.
+        """Collect trajectories from LIBERO - vectorised when ``num_envs > 1``.
 
         Falls back to :func:`collect_batch_sequential` with the shared
         single-episode loop when vectorised collection is not available.

@@ -104,21 +104,21 @@ MANISKILL_TASKS: dict[str, dict] = {
     },
     # ── Articulated-object tasks (require PartNet Mobility assets) ──
     # Download with: python -m mani_skill.utils.download_asset <uid>
-    "OpenCabinetDoor-v1": {  # Fetch robot — cameras: fetch_head, fetch_hand (sensor_data)
+    "OpenCabinetDoor-v1": {  # Fetch robot - cameras: fetch_head, fetch_hand (sensor_data)
         "instruction": "open the cabinet door",
         "action_dim": 8,
         "max_episode_steps": 200,
         "num_cameras": 2,
         "requires_assets": True,
     },
-    "OpenCabinetDrawer-v1": {  # Fetch robot — cameras: fetch_head, fetch_hand (sensor_data)
+    "OpenCabinetDrawer-v1": {  # Fetch robot - cameras: fetch_head, fetch_hand (sensor_data)
         "instruction": "open the cabinet drawer",
         "action_dim": 8,
         "max_episode_steps": 200,
         "num_cameras": 2,
         "requires_assets": True,
     },
-    "TurnFaucet-v1": {  # Panda robot — cameras: base_camera, hand_camera (sensor_data)
+    "TurnFaucet-v1": {  # Panda robot - cameras: base_camera, hand_camera (sensor_data)
         "instruction": "turn on the faucet",
         "action_dim": 8,
         "max_episode_steps": 200,

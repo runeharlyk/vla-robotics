@@ -73,7 +73,8 @@ def grad_cam_vision_encoder(model, pil_image, task_description, target_word, dev
         hf_vlm.train()
 
     grad = gradients["value"]  # [batch*num_crops, patches_per_crop, channels]
-    act_val = activations["value"]  # [batch*num_crops, patches_per_crop, channels]
+    # [batch*num_crops, patches_per_crop, channels]
+    act_val = activations["value"]
 
     if grad.dtype == torch.bfloat16:
         grad = grad.float()
@@ -81,7 +82,8 @@ def grad_cam_vision_encoder(model, pil_image, task_description, target_word, dev
         act_val = act_val.float()
 
     weights = grad.mean(dim=1, keepdim=True)  # [batch*num_crops, 1, channels]
-    cam_all = (weights * act_val).sum(dim=-1)  # [batch*num_crops, patches_per_crop]
+    # [batch*num_crops, patches_per_crop]
+    cam_all = (weights * act_val).sum(dim=-1)
     cam_all = torch.relu(cam_all).detach().cpu().numpy()
 
     cam_global = cam_all[0]  # first crop (global view)
@@ -614,7 +616,7 @@ def visualize_saliency_comparison(
 
     for ri, word in enumerate(words):
         axes[ri, 0].imshow(pil_image)
-        axes[ri, 0].set_title(f'"{word}" — Original', fontsize=11, fontweight="bold")
+        axes[ri, 0].set_title(f'"{word}" - Original', fontsize=11, fontweight="bold")
         axes[ri, 0].axis("off")
 
         print(f'\n--- "{word}" ---')

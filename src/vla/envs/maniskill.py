@@ -28,7 +28,7 @@ if _has_pinocchio():
 else:
     DEFAULT_CONTROL_MODE = "pd_joint_delta_pos"
     _logger.warning(
-        "pinocchio (`pin`) is not installed — falling back to '%s' control mode. "
+        "pinocchio (`pin`) is not installed - falling back to '%s' control mode. "
         "On Linux, `uv sync` installs it automatically. "
         "On Windows, end-effector control (pd_ee_delta_pose) is not supported.",
         DEFAULT_CONTROL_MODE,
@@ -50,7 +50,7 @@ class ManiSkillEnv(SimEnv):
         shader: str = "default",
     ):
         import gymnasium as gym
-        import mani_skill.envs  # noqa: F401, I001 — must register envs before gym.make
+        import mani_skill.envs  # noqa: F401, I001 - must register envs before gym.make
 
         self._env = gym.make(
             env_id,

@@ -64,7 +64,7 @@ def export_images_from_suite(
 ) -> None:
     """Stream *repo_id* from HuggingFace and save frames as PNGs.
 
-    Only downloads the rows it actually needs — stops as soon as
+    Only downloads the rows it actually needs - stops as soon as
     *max_episodes* episodes have been fully saved.
 
     Directory layout per episode::
@@ -183,7 +183,7 @@ def export_images_from_suite(
         tqdm.write(f"    ep{current_ep:04d}: {frame_counter} frames saved")
         episodes_done.add(current_ep)
 
-    print(f"  Done — {len(episodes_done)} episode(s) exported to {output_dir}")
+    print(f"  Done - {len(episodes_done)} episode(s) exported to {output_dir}")
 
 
 # ---------------------------------------------------------------------------

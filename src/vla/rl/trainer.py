@@ -366,7 +366,7 @@ def train_srpo(
         skipped_task_set = set(skipped_tasks)
         if len(skipped_tasks) == len(task_specs):
             logger.info(
-                f"Iter {iteration}: skipping update — all tasks have uniform rewards (successes={total_successes})"
+                f"Iter {iteration}: skipping update - all tasks have uniform rewards (successes={total_successes})"
             )
             log_data: dict[str, Any] = {
                 f"{config.mode}/skipped_update": 1,
@@ -380,7 +380,7 @@ def train_srpo(
 
         if skipped_tasks:
             logger.info(
-                f"Iter {iteration}: dynamic rejection — skipped {len(skipped_tasks)} tasks "
+                f"Iter {iteration}: dynamic rejection - skipped {len(skipped_tasks)} tasks "
                 f"with uniform rewards: {skipped_tasks}"
             )
 

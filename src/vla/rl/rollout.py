@@ -3,16 +3,16 @@
 Defines the simulator-agnostic data types and protocols that all rollout
 backends (ManiSkill, LIBERO, …) share:
 
-* :class:`Trajectory` — a single episode's data.
-* :class:`RolloutEngine` — the ``collect_batch`` / ``close`` protocol.
-* :class:`SingleEnvAdapter` — single-env reset/step adapter.
-* :func:`collect_single_episode` — shared step loop.
-* :func:`collect_batch_sequential` — sequential fallback.
+* :class:`Trajectory` - a single episode's data.
+* :class:`RolloutEngine` - the ``collect_batch`` / ``close`` protocol.
+* :class:`SingleEnvAdapter` - single-env reset/step adapter.
+* :func:`collect_single_episode` - shared step loop.
+* :func:`collect_batch_sequential` - sequential fallback.
 
 Simulator-specific implementations live in their own modules:
 
-* :mod:`vla.rl.maniskill_rollout` — ManiSkill GPU-vectorised rollout.
-* :mod:`vla.rl.libero_rollout` — LIBERO subprocess-vectorised rollout.
+* :mod:`vla.rl.maniskill_rollout` - ManiSkill GPU-vectorised rollout.
+* :mod:`vla.rl.libero_rollout` - LIBERO subprocess-vectorised rollout.
 """
 
 from __future__ import annotations
@@ -171,7 +171,7 @@ def collect_batch_sequential(
     num_trajectories: int,
     seed: int | None,
 ) -> list[Trajectory]:
-    """Sequential fallback for ``collect_batch`` — shared across backends.
+    """Sequential fallback for ``collect_batch`` - shared across backends.
 
     Args:
         collect_fn: ``(seed) -> Trajectory`` callable.

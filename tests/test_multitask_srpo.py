@@ -2,7 +2,7 @@
 
 Verifies data loading, TaskSpec construction, Trajectory.task_id routing,
 MultiTaskWorldProgressReward grouping/reward logic, and per-task advantage
-normalisation — all without loading real models or touching GPU.
+normalisation - all without loading real models or touching GPU.
 
 Includes a dedicated TestOneShotBehavior suite that exercises every layer of
 the one-shot (num_demos=1) path, because the paper's key claim is that the
@@ -344,7 +344,7 @@ class TestMultiTaskWorldProgressReward:
 
 
 # ---------------------------------------------------------------------------
-# One-shot behaviour — the paper's core claim: num_demos=1 works end-to-end
+# One-shot behaviour - the paper's core claim: num_demos=1 works end-to-end
 # ---------------------------------------------------------------------------
 
 
