@@ -45,6 +45,7 @@ class SRPORewardConfig:
     max_references: int = 200
     ref_demo_ratio: float = 0.5
     distance_metric: str = DistanceMetrics.normalized_l2
+    use_failure_rewards: bool = True
 
 
 @dataclass
@@ -297,7 +298,7 @@ class WorldProgressReward:
                 failed_indices.append(i)
                 rewards.append(0.0)
 
-        if failed_distances:
+        if failed_distances and self.cfg.use_failure_rewards:
             d_all = torch.stack(failed_distances)
             d_mean = d_all.mean()
             d_std = d_all.std(correction=0).clamp(min=self.cfg.eps)

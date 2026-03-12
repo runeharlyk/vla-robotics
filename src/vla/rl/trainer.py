@@ -298,6 +298,7 @@ def train_srpo(
             dbscan_min_samples=config.dbscan_min_samples,
             distance_metric=config.distance_metric,
             dbscan_auto_eps=config.dbscan_auto_eps,
+            use_failure_rewards=config.use_failure_rewards,
         )
         reward_model = MultiTaskWorldProgressReward(world_encoder, reward_cfg)
 

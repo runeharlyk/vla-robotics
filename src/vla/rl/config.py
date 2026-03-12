@@ -42,6 +42,7 @@ class SRPOConfig(BaseTrainingConfig):
     num_eval_envs: int = 1
     fm_batch_size: int = 32
     gradient_checkpointing: bool = False
+    use_failure_rewards: bool = True
 
 
 @dataclass

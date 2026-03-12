@@ -195,6 +195,11 @@ def main(
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
     distance_metric: str = typer.Option("normalized_l2", "--distance-metric", help="normalized_l2 or cosine or l2"),
     dbscan_auto_eps: bool = typer.Option(False, "--dbscan-auto-eps", help="Auto-tune DBSCAN eps"),
+    use_failure_rewards: bool = typer.Option(
+        True,
+        "--failure-rewards/--no-failure-rewards",
+        help="Use distance-based failure rewards (SRPO). Disable for sparse-only rewards.",
+    ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
 ) -> None:
     """Run SRPO or sparse-RL training starting from an SFT checkpoint."""
@@ -236,6 +241,7 @@ def main(
                 dbscan_min_samples=dbscan_min_samples,
                 distance_metric=distance_metric,
                 dbscan_auto_eps=dbscan_auto_eps,
+                use_failure_rewards=use_failure_rewards,
                 simulator=simulator,
                 suite=suite,
                 num_rollout_envs=num_rollout_envs,
@@ -338,6 +344,7 @@ def main(
         dbscan_min_samples=dbscan_min_samples,
         distance_metric=distance_metric,
         dbscan_auto_eps=dbscan_auto_eps,
+        use_failure_rewards=use_failure_rewards,
         simulator=simulator,
         suite=suite,
         task_id=task_id,

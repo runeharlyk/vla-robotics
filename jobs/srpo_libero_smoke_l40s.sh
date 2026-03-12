@@ -50,4 +50,5 @@ uv run python scripts/train_srpo.py \
     --dbscan-min-samples 2 \
     --subsample-every 5 \
     --gradient-checkpointing \
+    --no-failure-rewards \
     --wandb
