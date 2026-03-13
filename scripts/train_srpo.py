@@ -33,6 +33,7 @@ import wandb
 from vla.constants import (
     CHECKPOINTS_DIR,
     PREPROCESSED_DIR,
+    AdvantageMode,
     DistanceMetric,
     LiberoSuite,
     Mode,
@@ -214,6 +215,9 @@ def main(
     num_iterations: int = typer.Option(100, "--iterations"),
     trajectories_per_iter: int = typer.Option(16, "--trajs-per-iter"),
     update_method: UpdateMethod = typer.Option("awr", "--update-method", help="Policy update: awr or ppo"),
+    advantage_mode: AdvantageMode = typer.Option(
+        AdvantageMode, "--advantage-mode", help="Advantage method: zscore or leave-one-out"
+    ),
     ppo_epochs: int = typer.Option(4, "--ppo-epochs"),
     clip_epsilon: float = typer.Option(0.2, "--clip-epsilon"),
     awr_epochs: int = typer.Option(2, "--awr-epochs", help="Regression epochs per iteration (AWR)"),
@@ -224,7 +228,7 @@ def main(
     adv_skip_threshold: float = typer.Option(1e-6, "--adv-skip-threshold"),
     eval_every: int = typer.Option(10, "--eval-every"),
     eval_episodes: int = typer.Option(50, "--eval-episodes"),
-    max_steps: int = typer.Option(None, "--max-steps", help="Override max steps (default: from checkpoint metadata)"),
+    max_steps: int = typer.Option(280, "--max-steps", help="Override max steps (default: from checkpoint metadata)"),
     seed: int = typer.Option(42, "--seed"),
     env_id: str = typer.Option(None, "--env", help="Override env id (default: from checkpoint metadata)"),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
@@ -305,6 +309,7 @@ def main(
         awr_epochs=awr_epochs,
         awr_temperature=awr_temperature,
         awr_weight_clip=awr_weight_clip,
+        advantage_mode=advantage_mode,
         kl_coeff=kl_coeff,
         adv_eps=adv_eps,
         adv_skip_threshold=adv_skip_threshold,
