@@ -30,7 +30,16 @@ from pathlib import Path
 import typer
 
 import wandb
-from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
+from vla.constants import (
+    CHECKPOINTS_DIR,
+    PREPROCESSED_DIR,
+    DistanceMetric,
+    LiberoSuite,
+    Mode,
+    Simulator,
+    UpdateMethod,
+    WorldModelType,
+)
 from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.rollout import Trajectory
@@ -72,11 +81,11 @@ def _build_tasks(
     *,
     data_path: Path | None,
     data_dir: Path | None,
-    libero_suite: str | None,
+    libero_suite: LiberoSuite | None,
     num_demos: int,
     seed: int,
-    simulator: str,
-    suite: str,
+    simulator: Simulator,
+    suite: LiberoSuite,
     task_ids: list[int] | None,
     include_demos: bool,
     env_id_override: str | None,
@@ -95,15 +104,12 @@ def _build_tasks(
 
     demo_trajectories: dict[str, list[Trajectory]] | None = {} if include_demos else None
 
-    if simulator == "libero" and libero_suite is not None and data_dir is None:
+    if simulator is Simulator.LIBERO and libero_suite is not None and data_dir is None:
         from vla.data.libero import LiberoSFTDataset
 
         if task_ids is None:
             catalog = LiberoSFTDataset(suite=libero_suite, num_demos=1, seed=seed)
-            task_map = {
-                int(idx): str(instr)
-                for idx, instr in sorted(getattr(catalog, "_task_map", {}).items())
-            }
+            task_map = {int(idx): str(instr) for idx, instr in sorted(getattr(catalog, "_task_map", {}).items())}
             if not task_map:
                 raise ValueError(f"No LIBERO tasks found for suite {libero_suite!r}")
             state_dim = catalog.state_dim
@@ -112,7 +118,8 @@ def _build_tasks(
             task_map = {}
             for tidx in task_ids:
                 ds = (
-                    first_ds if tidx == task_ids[0]
+                    first_ds
+                    if tidx == task_ids[0]
                     else LiberoSFTDataset(suite=libero_suite, num_demos=num_demos, seed=seed, task_id=tidx)
                 )
                 task_map[tidx] = ds.instruction
@@ -131,7 +138,10 @@ def _build_tasks(
             )
             if demo_trajectories is not None:
                 task_dataset = LiberoSFTDataset(
-                    suite=libero_suite, num_demos=num_demos, seed=seed, task_id=tidx,
+                    suite=libero_suite,
+                    num_demos=num_demos,
+                    seed=seed,
+                    task_id=tidx,
                 )
                 trajs = task_dataset.episodes_as_trajectories(task_id=tidx)
                 for traj in trajs:
@@ -183,13 +193,13 @@ def main(
     data_dir: Path = typer.Option(
         None, "--data-dir", path_type=Path, help="Directory of .pt files (one per task) for multi-task SRPO"
     ),
-    libero_suite: str = typer.Option(
+    libero_suite: LiberoSuite = typer.Option(
         None, "--libero-suite", help="Load demos from HuggingFace LeRobot dataset instead of .pt (e.g. spatial)"
     ),
     num_demos: int = typer.Option(5, "--num-demos", "-n"),
-    mode: str = typer.Option("srpo", "--mode", "-m", help="srpo or sparse_rl"),
-    simulator: str = typer.Option("maniskill", "--simulator", help="maniskill or libero"),
-    suite: str = typer.Option("spatial", "--suite", help="LIBERO suite (spatial, object, goal, long)"),
+    mode: Mode = typer.Option("srpo", "--mode", "-m", help="srpo or sparse_rl"),
+    simulator: Simulator = typer.Option("maniskill", "--simulator", help="maniskill or libero"),
+    suite: LiberoSuite = typer.Option("spatial", "--suite", help="LIBERO suite (spatial, object, goal, long)"),
     task_ids: str = typer.Option("0", "--task-ids", help="Comma-separated task indices (e.g. '0,2,5,7') or 'all'"),
     trajs_per_task: int = typer.Option(4, "--trajs-per-task", help="Trajectories per task per iteration"),
     num_rollout_envs: int = typer.Option(
@@ -203,13 +213,15 @@ def main(
     max_grad_norm: float = typer.Option(10.0, "--max-grad-norm", help="Max gradient norm for clipping"),
     num_iterations: int = typer.Option(100, "--iterations"),
     trajectories_per_iter: int = typer.Option(16, "--trajs-per-iter"),
-    update_method: str = typer.Option("awr", "--update-method", help="Policy update: awr or ppo"),
+    update_method: UpdateMethod = typer.Option("awr", "--update-method", help="Policy update: awr or ppo"),
     ppo_epochs: int = typer.Option(4, "--ppo-epochs"),
     clip_epsilon: float = typer.Option(0.2, "--clip-epsilon"),
     awr_epochs: int = typer.Option(2, "--awr-epochs", help="Regression epochs per iteration (AWR)"),
     awr_temperature: float = typer.Option(5.0, "--awr-temperature", help="AWR weight sharpness (beta)"),
     awr_weight_clip: float = typer.Option(20.0, "--awr-weight-clip", help="Max AWR weight"),
     kl_coeff: float = typer.Option(0.01, "--kl-coeff"),
+    adv_eps: float = typer.Option(1e-8, "--adv-eps"),
+    adv_skip_threshold: float = typer.Option(1e-6, "--adv-skip-threshold"),
     eval_every: int = typer.Option(10, "--eval-every"),
     eval_episodes: int = typer.Option(50, "--eval-episodes"),
     max_steps: int = typer.Option(None, "--max-steps", help="Override max steps (default: from checkpoint metadata)"),
@@ -221,11 +233,13 @@ def main(
         "--gradient-checkpointing/--no-gradient-checkpointing",
         help="Enable gradient checkpointing to reduce VRAM",
     ),
-    world_model: str = typer.Option("vjepa2", "--world-model", help="dinov2 or vjepa2"),
+    world_model: WorldModelType = typer.Option("vjepa2", "--world-model", help="dinov2 or vjepa2"),
     subsample_every: int = typer.Option(5, "--subsample-every"),
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
-    distance_metric: str = typer.Option("normalized_l2", "--distance-metric", help="normalized_l2 or cosine or l2"),
+    distance_metric: DistanceMetric = typer.Option(
+        "normalized_l2", "--distance-metric", help="normalized_l2 or cosine or l2"
+    ),
     dbscan_auto_eps: bool = typer.Option(False, "--dbscan-auto-eps", help="Auto-tune DBSCAN eps"),
     use_failure_rewards: bool = typer.Option(
         True,
@@ -271,7 +285,7 @@ def main(
             if spec.instruction == "complete the manipulation task" and env_meta.instruction:
                 spec.instruction = env_meta.instruction
     else:
-        logger.info("No SFT checkpoint – using pretrained %s weights directly", checkpoint)
+        logger.info("No SFT checkpoint - using pretrained %s weights directly", checkpoint)
 
     if len(task_specs) > 1:
         task_tag = f"{len(task_specs)}tasks_{suite}"
@@ -292,6 +306,8 @@ def main(
         awr_temperature=awr_temperature,
         awr_weight_clip=awr_weight_clip,
         kl_coeff=kl_coeff,
+        adv_eps=adv_eps,
+        adv_skip_threshold=adv_skip_threshold,
         eval_every=eval_every,
         eval_episodes=eval_episodes,
         max_steps=resolved_max_steps,
@@ -318,12 +334,21 @@ def main(
 
     logger.info(
         "RL training: mode=%s  simulator=%s  tasks=%d  max_steps=%d  num_rollout_envs=%d",
-        mode, simulator, len(task_specs), resolved_max_steps, num_rollout_envs,
+        mode,
+        simulator,
+        len(task_specs),
+        resolved_max_steps,
+        num_rollout_envs,
     )
     for spec in task_specs:
         n_demos = len(demo_trajectories.get(spec.task_id, [])) if demo_trajectories else 0
-        logger.info("  [%s] instruction=%r  libero_idx=%d  demos=%d",
-                     spec.task_id, spec.instruction, spec.libero_task_idx, n_demos)
+        logger.info(
+            "  [%s] instruction=%r  libero_idx=%d  demos=%d",
+            spec.task_id,
+            spec.instruction,
+            spec.libero_task_idx,
+            n_demos,
+        )
 
     run = None
     if use_wandb:

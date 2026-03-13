@@ -25,7 +25,8 @@ uv run python scripts/train_srpo.py \
     --libero-suite spatial \
     --task-ids all \
     --mode srpo \
-    --update-method awr \
+    --update-method fpo  \
+    --advantage-mode leave_one_out \
     --num-demos 5 \
     --seed 42 \
     --lr 5e-06 \
@@ -41,6 +42,8 @@ uv run python scripts/train_srpo.py \
     --ppo-epochs 1 \
     --clip-epsilon 0.2 \
     --kl-coeff 0.01 \
+    --adv-eps 1e-8 \
+    --adv-skip-threshold 1e-6 \
     --eval-every 20 \
     --eval-episodes 10 \
     --max-steps 280 \

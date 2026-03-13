@@ -154,7 +154,7 @@ class DINOv2Encoder(WorldModelEncoder):
         for p in self.model.parameters():
             p.requires_grad_(False)
         self._embed_dim = self.model.config.hidden_size
-        logger.info("DINOv2 loaded – embed_dim=%d", self._embed_dim)
+        logger.info("DINOv2 loaded - embed_dim=%d", self._embed_dim)
 
     def embed_dim(self) -> int:
         return self._embed_dim
@@ -243,7 +243,7 @@ class VJEPA2Encoder(WorldModelEncoder):
                 p.requires_grad_(False)
             self._embed_dim = self.model.config.hidden_size
             self._backend = "transformers"
-            logger.info("V-JEPA 2 loaded via AutoModel – embed_dim=%d", self._embed_dim)
+            logger.info("V-JEPA 2 loaded via AutoModel - embed_dim=%d", self._embed_dim)
             return True
         except Exception as e:
             logger.warning("AutoModel failed for %s: %s", model_id, e)
@@ -253,7 +253,7 @@ class VJEPA2Encoder(WorldModelEncoder):
         try:
             logger.info("Trying raw checkpoint loading for %s via timm…", model_id)
             self._load_raw_checkpoint(model_id)
-            logger.info("V-JEPA 2 loaded via timm – embed_dim=%d", self._embed_dim)
+            logger.info("V-JEPA 2 loaded via timm - embed_dim=%d", self._embed_dim)
             return True
         except Exception as e:
             logger.warning("Raw checkpoint loading failed for %s: %s", model_id, e)
@@ -432,7 +432,7 @@ class VJEPA2Encoder(WorldModelEncoder):
                 c = torch.cat([c, pad], dim=0)
             padded.append(c)
 
-        # Stack: (N, F, C, H, W) – this is the pixel_values_videos format
+        # Stack: (N, F, C, H, W) - this is the pixel_values_videos format
         batch_clips = torch.stack(padded, dim=0).to(self.device, dtype=self.dtype)
         N = batch_clips.shape[0]
 
