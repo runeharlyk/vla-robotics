@@ -22,7 +22,7 @@ import torch
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
 
-from vla.constants import DistanceMetrics
+from vla.constants import DistanceMetric
 from vla.models.world_model import WorldModelEncoder
 from vla.rl.rollout import Trajectory
 from vla.utils import to_float01
@@ -44,7 +44,7 @@ class SRPORewardConfig:
     eps: float = 1e-8
     max_references: int = 200
     ref_demo_ratio: float = 0.5
-    distance_metric: str = DistanceMetrics.normalized_l2
+    distance_metric: DistanceMetric = DistanceMetric.NORMALIZED_L2
     use_failure_rewards: bool = True
 
 
@@ -243,19 +243,16 @@ class WorldProgressReward:
             ``(K,)`` distance tensor - lower means closer to a success cluster.
         """
         metric = self.cfg.distance_metric
-        if metric == DistanceMetrics.cosine:
+        if metric is DistanceMetric.COSINE:
             sims = torch.nn.functional.cosine_similarity(centres, emb.unsqueeze(0).expand_as(centres), dim=-1)
             return 1.0 - sims
-        if metric == DistanceMetrics.normalized_l2:
+        if metric == DistanceMetric.NORMALIZED_L2:
             e = torch.nn.functional.normalize(emb.unsqueeze(0), dim=-1)
             c = torch.nn.functional.normalize(centres, dim=-1)
             return torch.norm(c - e, dim=-1)
-        if metric == DistanceMetrics.l2:
+        if metric == DistanceMetric.L2:
             return torch.norm(centres - emb.unsqueeze(0), dim=-1)
-        raise ValueError(
-            f"Unknown distance_metric {metric!r}. "
-            f"Choose from: {DistanceMetrics.cosine}, {DistanceMetrics.normalized_l2}, {DistanceMetrics.l2}."
-        )
+        raise ValueError(f"Unknown distance_metric {metric!r}. Choose from: l2, normalized_l2, cosine.")
 
     def compute_trajectory_rewards(
         self,

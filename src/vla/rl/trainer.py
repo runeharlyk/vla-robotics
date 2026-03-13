@@ -104,8 +104,7 @@ def build_rollout_engine(
             state_dim=config.state_dim,
         )
 
-    raise ValueError(
-        f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
+    raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
 
 
 # ---------------------------------------------------------------------------
@@ -135,8 +134,7 @@ def collect_all_trajectories(
     for spec in task_specs:
         if spec.task_id not in rollout_engines:
             logger.info(f"Creating rollout engine for {spec.task_id}")
-            rollout_engines[spec.task_id] = build_rollout_engine(
-                config, spec=spec)
+            rollout_engines[spec.task_id] = build_rollout_engine(config, spec=spec)
         use_vectorized = config.num_rollout_envs > 1
         trajs = rollout_engines[spec.task_id].collect_batch(
             policy_fn=policy.predict_action,
@@ -358,8 +356,7 @@ def train_srpo(
             world_encoder.reload(policy.device)
 
         if config.mode == "srpo" and reward_model is not None:
-            g_values, traj_embs = reward_model.compute_trajectory_rewards(
-                all_trajectories)
+            g_values, traj_embs = reward_model.compute_trajectory_rewards(all_trajectories)
             all_diags = reward_model.get_diagnostics()
             by_task_embs: dict[str, list[torch.Tensor]] = defaultdict(list)
             for i, t in enumerate(all_trajectories):
@@ -462,21 +459,18 @@ def train_srpo(
 
         for tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{tid}/successes"] = n_succ
-            log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean.get(
-                tid, 0.0)
+            log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean.get(tid, 0.0)
         if all_diags is not None:
             for tid, diag in all_diags.items():
                 if diag is not None:
-                    log_data.update(diag.as_dict(
-                        prefix=f"{config.mode}/{tid}/cluster"))
+                    log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
 
         logger.info(
             f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}  kl={update_metrics.avg_kl:.6f}"
             f"  successes={total_successes}/{M}"
         )
         for tid in per_task_successes:
-            logger.info(
-                f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
+            logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
 
         # -- 7. Periodic evaluation ---------------------------------------
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:

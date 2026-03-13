@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from vla.base_config import BaseTrainingConfig
-from vla.constants import DistanceMetrics, Mode, UpdateMethods, WorldModelTypes
+from vla.constants import AdvantageMode, DistanceMetric, LiberoSuite, Mode, UpdateMethod, WorldModelType
 
 
 @dataclass
@@ -18,7 +18,8 @@ class SRPOConfig(BaseTrainingConfig):
     lr: float = 1e-5
     num_iterations: int = 100
     trajectories_per_iter: int = 16
-    update_method: str = UpdateMethods.awr
+    update_method: UpdateMethod = UpdateMethod.AWR
+    advantage_mode: AdvantageMode = AdvantageMode.LEAVE_ONE_OUT
     ppo_epochs: int = 4
     clip_epsilon: float = 0.2
     clip_epsilon_high: float = 0.2
@@ -27,15 +28,15 @@ class SRPOConfig(BaseTrainingConfig):
     awr_weight_clip: float = 20.0
     kl_coeff: float = 0.01
     save_dir: str = "checkpoints/srpo"
-    mode: str = Mode.srpo
-    world_model_type: str = WorldModelTypes.vjepa2
-    distance_metric: str = DistanceMetrics.normalized_l2
+    mode: Mode = Mode.SRPO
+    world_model_type: WorldModelType = WorldModelType.VJEPA2
+    distance_metric: DistanceMetric = DistanceMetric.NORMALIZED_L2
     subsample_every: int = 5
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2
     dbscan_auto_eps: bool = False
     num_fm_noise_samples: int = 4
-    suite: str = "spatial"
+    suite: LiberoSuite = LiberoSuite.SPATIAL
     task_id: int = 0
     state_dim: int = 0
     num_rollout_envs: int = 1

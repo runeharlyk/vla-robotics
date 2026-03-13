@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -19,35 +19,43 @@ OUTPUTS_DIR = WORK_DIR / "outputs"
 ACTION_DIM = 7
 
 
-@dataclass
-class WorldModelTypes:
-    dinov2: str = "dinov2"
-    vjepa2: str = "vjepa2"
+class AdvantageMode(StrEnum):
+    SRPO_ZSCORE = "srpo_zscore"
+    LEAVE_ONE_OUT = "leave_one_out"
 
 
-@dataclass
-class DistanceMetrics:
-    normalized_l2: str = "normalized_l2"
-    cosine: str = "cosine"
-    l2: str = "l2"
+class UpdateMethod(StrEnum):
+    AWR = "awr"
+    FPO = "fpo"
+    PPO = "ppo"
 
 
-@dataclass
-class UpdateMethods:
-    awr: str = "awr"
-    ppo: str = "ppo"
+class WorldModelType(StrEnum):
+    DINOV2 = "dinov2"
+    VJEPA2 = "vjepa2"
 
 
-@dataclass
-class Mode:
-    srpo: str = "srpo"
-    sparse_rl: str = "sparse_rl"
+class DistanceMetric(StrEnum):
+    L2 = "l2"
+    NORMALIZED_L2 = "normalized_l2"
+    COSINE = "cosine"
 
 
-@dataclass
-class Simulators:
-    libero: str = "libero"
-    maniskill: str = "maniskill"
+class Mode(StrEnum):
+    SRPO = "srpo"
+    SPARSE_RL = "sparse_rl"
+
+
+class Simulator(StrEnum):
+    LIBERO = "libero"
+    MANISKILL = "maniskill"
+
+
+class LiberoSuite(StrEnum):
+    SPATIAL = "spatial"
+    OBJECT = "object"
+    GOAL = "goal"
+    LONG = "long"
 
 
 LIBERO_SUITES = {
