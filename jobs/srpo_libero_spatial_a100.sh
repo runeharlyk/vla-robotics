@@ -23,7 +23,7 @@ uv run python scripts/train_srpo.py \
     --sft-checkpoint /work3/s234814/vla-robotics/checkpoints/sft/best \
     --simulator libero \
     --suite spatial \
-    --task-id 0 \
+    --task-ids 0 \
     --data /work3/s234814/vla-robotics/data/preprocessed/spatial.pt \
     --mode srpo \
     --num-demos 50 \

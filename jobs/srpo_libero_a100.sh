@@ -41,7 +41,7 @@ uv run python scripts/train_srpo.py \
     --sft-checkpoint "$SFT_CKPT" \
     --simulator "$SIMULATOR" \
     --suite "$SUITE" \
-    --task-id "$TASK_ID" \
+    --task-ids "$TASK_ID" \
     --world-model "$WORLD_MODEL" \
     --iterations "$ITERS" \
     --trajs-per-iter "$TRAJS" \

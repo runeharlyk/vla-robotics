@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from tqdm import trange
 
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
@@ -334,7 +335,7 @@ def train_srpo(
     )
     metrics_logger.log(log_data)
 
-    for iteration in range(1, config.num_iterations + 1):
+    for iteration in trange(1, config.num_iterations + 1, desc="Training iterations"):
         # -- 1. Collect trajectories from all tasks -----------------------
         all_trajectories, per_task_successes = collect_all_trajectories(
             policy,

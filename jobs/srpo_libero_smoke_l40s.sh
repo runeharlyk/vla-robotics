@@ -23,7 +23,7 @@ uv run python scripts/train_srpo.py \
     --simulator libero \
     --suite spatial \
     --libero-suite spatial \
-    --multitask \
+    --task-ids all \
     --mode srpo \
     --update-method awr \
     --num-demos 5 \

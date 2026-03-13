@@ -60,7 +60,7 @@ train-srpo: |
       --sft-checkpoint {sft_checkpoint} \
       --simulator {simulator} \
       --suite {suite} \
-      --task-id {task_id} \
+      --task-ids {task_id} \
       --data {data} \
       --mode {mode} \
       --num-demos {num_demos} \
@@ -89,7 +89,7 @@ train-srpo-libero: |
       --sft-checkpoint {sft_checkpoint} \
       --simulator libero \
       --suite {suite} \
-      --task-id {task_id} \
+      --task-ids {task_id} \
       --data {data} \
       --mode {mode} \
       --num-demos {num_demos} \

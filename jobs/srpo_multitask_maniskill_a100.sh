@@ -26,7 +26,7 @@ uv run python scripts/train_srpo.py \
     --sft-checkpoint "$SFT_CKPT" \
     --checkpoint lerobot/smolvla_base \
     --simulator maniskill \
-    --multitask \
+    --task-ids all \
     --data-dir "$DATA_DIR" \
     --mode srpo \
     --world-model dinov2 \
