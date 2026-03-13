@@ -12,6 +12,8 @@ from typing import Any
 import torch
 import torch.nn as nn
 
+from vla.constants import Simulator
+
 
 @dataclass
 class BaseTrainingConfig:
@@ -31,7 +33,7 @@ class BaseTrainingConfig:
     save_dir: str = "checkpoints"
     env_id: str = "PickCube-v1"
     seed: int = 42
-    simulator: str = "maniskill"
+    simulator: Simulator = Simulator.MANISKILL
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize all fields to a plain dict (useful for W&B config)."""

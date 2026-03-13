@@ -28,18 +28,14 @@ from typing import Any
 import torch
 from tqdm import trange
 
+from vla.constants import AdvantageMode, Simulator, UpdateMethod
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
-from vla.rl.advantage import normalize_advantages_per_task
+from vla.rl.advantage import leave_one_out_advantages_per_task, normalize_advantages_per_task
 from vla.rl.config import SRPOConfig, TaskSpec
 from vla.rl.maniskill_rollout import ManiSkillRollout
-from vla.rl.policy_update import (
-    UpdateMetrics,
-    _sample_fixed_noise_time,
-    awr_update,
-    ppo_update,
-)
+from vla.rl.policy_update import UpdateMetrics, _sample_fixed_noise_time, awr_update, fpo_update, ppo_update
 from vla.rl.rollout import RolloutEngine, Trajectory
 from vla.rl.srpo_reward import (
     MultiTaskWorldProgressReward,
@@ -61,6 +57,7 @@ __all__ = [
     "collect_all_trajectories",
     "evaluate_and_checkpoint",
     "ppo_update",
+    "fpo_update",
     "train_srpo",
 ]
 
@@ -81,10 +78,10 @@ def build_rollout_engine(
     the values in *config*.  When *num_envs* is ``None``, defaults to
     ``config.num_rollout_envs``.
     """
-    sim = config.simulator.lower()
+    sim = config.simulator
     resolved_envs = num_envs if num_envs is not None else config.num_rollout_envs
 
-    if sim == "maniskill":
+    if sim is Simulator.MANISKILL:
         env_id = (spec.env_id or config.env_id) if spec else config.env_id
         return ManiSkillRollout(
             env_id=env_id,
@@ -92,7 +89,7 @@ def build_rollout_engine(
             max_steps=config.max_steps,
         )
 
-    if sim == "libero":
+    if sim is Simulator.LIBERO:
         from vla.rl.libero_rollout import LiberoRollout
 
         task_id = spec.libero_task_idx if spec else config.task_id
@@ -246,7 +243,7 @@ def train_srpo(
       1. Collects trajectories from every task via per-task rollout engines.
       2. Computes per-task world-progress rewards (DBSCAN clustering).
       3. Normalises advantages **per task** (with 1 task this equals global).
-      4. Runs the policy update (AWR or PPO).
+      4. Runs the policy update (AWR or PPO or FPO).
       5. Periodically evaluates and checkpoints.
 
     Args:
@@ -374,7 +371,21 @@ def train_srpo(
 
         # -- 3. Per-task advantage normalisation --------------------------
         task_ids = [t.task_id for t in all_trajectories]
-        adv_result = normalize_advantages_per_task(g_values, task_ids)
+        if config.advantage_mode == AdvantageMode.SRPO_ZSCORE:
+            adv_result = normalize_advantages_per_task(
+                g_values=g_values,
+                task_ids=task_ids,
+                eps=config.adv_eps,
+                skip_threshold=config.adv_skip_threshold,
+            )
+        elif config.advantage_mode == AdvantageMode.LEAVE_ONE_OUT:
+            adv_result = leave_one_out_advantages_per_task(
+                g_values=g_values,
+                task_ids=task_ids,
+                skip_threshold=config.adv_skip_threshold,
+            )
+        else:
+            raise ValueError(f"Unknown advantage_mode: {config.advantage_mode}")
         advantages = adv_result.advantages
         skipped_tasks = adv_result.skipped_tasks
         per_task_g_mean = adv_result.per_task_g_mean
@@ -413,7 +424,7 @@ def train_srpo(
             instrs_per_traj.append(spec_lookup[traj.task_id].instruction)
 
         # -- 5. Policy update ---------------------------------------------
-        if config.update_method == "awr":
+        if config.update_method is UpdateMethod.AWR:
             update_metrics = awr_update(
                 policy,
                 ref_policy,
@@ -427,7 +438,20 @@ def train_srpo(
                 skipped_task_set,
                 config,
             )
-        elif config.update_method == "ppo":
+        elif config.update_method is UpdateMethod.FPO:
+            update_metrics = fpo_update(
+                policy,
+                ref_policy,
+                optimizer,
+                trainable,
+                all_trajectories,
+                advantages,
+                instrs_per_traj,
+                fixed_noise_per_traj,
+                fixed_time_per_traj,
+                config,
+            )
+        elif config.update_method is UpdateMethod.PPO:
             update_metrics = ppo_update(
                 policy,
                 ref_policy,
@@ -446,7 +470,12 @@ def train_srpo(
 
         # -- 6. Logging ---------------------------------------------------
         M = len(all_trajectories)
-        loss_key = "awr_loss" if config.update_method == "awr" else "surrogate_loss"
+        if config.update_method == UpdateMethod.AWR:
+            loss_key = "awr_loss"
+        elif config.update_method == UpdateMethod.FPO:
+            loss_key = "fpo_loss"
+        else:
+            raise ValueError(f"Unknown update_method: {config.update_method}")
         log_data = {
             f"{config.mode}/{loss_key}": update_metrics.avg_loss,
             f"{config.mode}/kl_penalty": update_metrics.avg_kl,
@@ -454,7 +483,7 @@ def train_srpo(
             f"{config.mode}/skipped_tasks": len(skipped_tasks),
             f"{config.mode}/iteration": iteration,
         }
-        if config.update_method == "awr":
+        if config.update_method == UpdateMethod.AWR:
             log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
 
         for tid, n_succ in per_task_successes.items():

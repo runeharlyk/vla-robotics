@@ -20,9 +20,11 @@ class SRPOConfig(BaseTrainingConfig):
     trajectories_per_iter: int = 16
     update_method: UpdateMethod = UpdateMethod.AWR
     advantage_mode: AdvantageMode = AdvantageMode.LEAVE_ONE_OUT
+    adv_eps: float = 1e-8
+    adv_skip_threshold: float = 1e-6
     ppo_epochs: int = 4
     clip_epsilon: float = 0.2
-    clip_epsilon_high: float = 0.2
+    clip_epsilon_high: float = 0.28
     awr_epochs: int = 2
     awr_temperature: float = 5.0
     awr_weight_clip: float = 20.0

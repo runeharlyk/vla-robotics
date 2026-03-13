@@ -174,6 +174,89 @@ def awr_update(
     )
 
 
+def fpo_update(
+    policy: SmolVLAPolicy,
+    ref_policy: SmolVLAPolicy,
+    optimizer: torch.optim.Optimizer,
+    trainable: list[torch.nn.Parameter],
+    trajectories: list[Trajectory],
+    advantages: list[float],
+    instrs_per_traj: list[str],
+    fixed_noise: list[torch.Tensor],
+    fixed_time: list[torch.Tensor],
+    config: SRPOConfig,
+) -> UpdateMetrics:
+    del ref_policy
+
+    B = config.fm_batch_size
+    M = len(trajectories)
+
+    if M == 0:
+        return UpdateMetrics()
+
+    device = next(policy.parameters()).device
+
+    old_fm_per_traj: list[torch.Tensor] = []
+    with torch.no_grad():
+        for i, traj in enumerate(trajectories):
+            old_fm = _compute_fm_loss_batched(
+                policy,
+                traj,
+                instrs_per_traj[i],
+                fixed_noise[i],
+                fixed_time[i],
+                batch_size=B,
+            ).mean()
+            old_fm_per_traj.append(old_fm.detach())
+
+    adv = torch.tensor(advantages, dtype=torch.float32, device=device)
+    adv = (adv - adv.mean()) / adv.std(unbiased=False).clamp_min(1e-06) if adv.numel() > 1 else torch.zeros_like(adv)
+
+    total_loss = 0.0
+
+    for _ in range(config.ppo_epochs):
+        optimizer.zero_grad()
+        losses = []
+
+        for i, traj in enumerate(trajectories):
+            new_fm = _compute_fm_loss_batched(
+                policy,
+                traj,
+                instrs_per_traj[i],
+                fixed_noise[i],
+                fixed_time[i],
+                batch_size=B,
+            ).mean()
+
+            log_ratio = (old_fm_per_traj[i].to(device) - new_fm).clamp(-5.0, 5.0)
+            ratio = torch.exp(log_ratio)
+
+            surr1 = ratio * adv[i]
+            surr2 = (
+                torch.clamp(
+                    ratio,
+                    1.0 - config.clip_epsilon,
+                    1.0 + config.clip_epsilon_high,
+                )
+                * adv[i]
+            )
+
+            losses.append(-torch.min(surr1, surr2))
+
+        loss = torch.stack(losses).mean()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+        optimizer.step()
+
+        total_loss += loss.item()
+
+    return UpdateMetrics(
+        avg_loss=total_loss / max(config.ppo_epochs, 1),
+        avg_kl=0.0,
+        avg_weight=0.0,
+    )
+
+
 def ppo_update(
     policy: SmolVLAPolicy,
     ref_policy: SmolVLAPolicy,
