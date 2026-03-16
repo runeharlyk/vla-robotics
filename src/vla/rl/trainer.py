@@ -413,18 +413,22 @@ def train_srpo(
 
         # -- 4. Pre-sample fixed noise/time for FM loss computation ------
         policy.eval()
-        fixed_noise_per_traj: list[torch.Tensor] = []
-        fixed_time_per_traj: list[torch.Tensor] = []
         instrs_per_traj: list[str] = []
-
         for traj in all_trajectories:
-            noise, time = _sample_fixed_noise_time(traj, policy)
-            fixed_noise_per_traj.append(noise)
-            fixed_time_per_traj.append(time)
             instrs_per_traj.append(spec_lookup[traj.task_id].instruction)
+
+        n_noise_samples = config.num_fm_noise_samples if config.update_method is UpdateMethod.FPO else 1
+        fixed_noise_per_traj: list[list[torch.Tensor]] = []
+        fixed_time_per_traj: list[list[torch.Tensor]] = []
+        for traj in all_trajectories:
+            noise_list, time_list = _sample_fixed_noise_time(traj, policy, n_samples=n_noise_samples)
+            fixed_noise_per_traj.append(noise_list)
+            fixed_time_per_traj.append(time_list)
 
         # -- 5. Policy update ---------------------------------------------
         if config.update_method is UpdateMethod.AWR:
+            noise_single = [nl[0] for nl in fixed_noise_per_traj]
+            time_single = [tl[0] for tl in fixed_time_per_traj]
             update_metrics = awr_update(
                 policy,
                 ref_policy,
@@ -433,8 +437,8 @@ def train_srpo(
                 all_trajectories,
                 advantages,
                 instrs_per_traj,
-                fixed_noise_per_traj,
-                fixed_time_per_traj,
+                noise_single,
+                time_single,
                 skipped_task_set,
                 config,
             )
@@ -452,6 +456,8 @@ def train_srpo(
                 config,
             )
         elif config.update_method is UpdateMethod.PPO:
+            noise_single = [nl[0] for nl in fixed_noise_per_traj]
+            time_single = [tl[0] for tl in fixed_time_per_traj]
             update_metrics = ppo_update(
                 policy,
                 ref_policy,
@@ -460,8 +466,8 @@ def train_srpo(
                 all_trajectories,
                 advantages,
                 instrs_per_traj,
-                fixed_noise_per_traj,
-                fixed_time_per_traj,
+                noise_single,
+                time_single,
                 config,
             )
 
@@ -474,6 +480,8 @@ def train_srpo(
             loss_key = "awr_loss"
         elif config.update_method == UpdateMethod.FPO:
             loss_key = "fpo_loss"
+        elif config.update_method == UpdateMethod.PPO:
+            loss_key = "ppo_loss"
         else:
             raise ValueError(f"Unknown update_method: {config.update_method}")
         log_data = {
@@ -485,6 +493,8 @@ def train_srpo(
         }
         if config.update_method == UpdateMethod.AWR:
             log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
+        elif config.update_method == UpdateMethod.FPO:
+            log_data[f"{config.mode}/clip_frac"] = update_metrics.avg_weight
 
         for tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{tid}/successes"] = n_succ

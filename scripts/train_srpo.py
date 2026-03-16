@@ -220,6 +220,10 @@ def main(
     ),
     ppo_epochs: int = typer.Option(4, "--ppo-epochs"),
     clip_epsilon: float = typer.Option(0.2, "--clip-epsilon"),
+    clip_epsilon_high: float = typer.Option(0.28, "--clip-epsilon-high", help="Upper clip bound (asymmetric clipping)"),
+    num_fm_noise_samples: int = typer.Option(
+        4, "--num-fm-noise-samples", help="FPO: noise/time samples per action for variance reduction"
+    ),
     awr_epochs: int = typer.Option(2, "--awr-epochs", help="Regression epochs per iteration (AWR)"),
     awr_temperature: float = typer.Option(5.0, "--awr-temperature", help="AWR weight sharpness (beta)"),
     awr_weight_clip: float = typer.Option(20.0, "--awr-weight-clip", help="Max AWR weight"),
@@ -306,6 +310,8 @@ def main(
         update_method=update_method,
         ppo_epochs=ppo_epochs,
         clip_epsilon=clip_epsilon,
+        clip_epsilon_high=clip_epsilon_high,
+        num_fm_noise_samples=num_fm_noise_samples,
         awr_epochs=awr_epochs,
         awr_temperature=awr_temperature,
         awr_weight_clip=awr_weight_clip,

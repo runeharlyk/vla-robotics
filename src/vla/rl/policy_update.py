@@ -23,18 +23,27 @@ from vla.rl.rollout import Trajectory
 def _sample_fixed_noise_time(
     traj: Trajectory,
     policy: SmolVLAPolicy,
-) -> tuple[torch.Tensor, torch.Tensor]:
+    n_samples: int = 1,
+) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
     """Pre-sample noise and time tensors for an entire trajectory.
 
+    When *n_samples* > 1 (used by FPO for variance reduction), multiple
+    independent (noise, time) pairs are returned so the FM-loss ratio can
+    be averaged across samples before exponentiation, following the FPO
+    paper (Kanazawa et al., 2025).
+
     Returns:
-        noise: ``(T, chunk_size, max_action_dim)``
-        time:  ``(T,)``
+        noise_list: *n_samples* tensors of shape ``(T, chunk_size, max_action_dim)``
+        time_list:  *n_samples* tensors of shape ``(T,)``
     """
     T = traj.length
-    noise = torch.randn(T, policy.chunk_size, policy.max_action_dim)
+    noise_list: list[torch.Tensor] = []
+    time_list: list[torch.Tensor] = []
     beta = torch.distributions.Beta(1.5, 1.0)
-    time = beta.sample((T,)) * 0.999 + 0.001
-    return noise, time
+    for _ in range(n_samples):
+        noise_list.append(torch.randn(T, policy.chunk_size, policy.max_action_dim))
+        time_list.append(beta.sample((T,)) * 0.999 + 0.001)
+    return noise_list, time_list
 
 
 def _compute_fm_loss_batched(
@@ -174,6 +183,37 @@ def awr_update(
     )
 
 
+def _compute_fm_loss_multi_sample(
+    policy: SmolVLAPolicy,
+    traj: Trajectory,
+    instruction: str,
+    noise_list: list[torch.Tensor],
+    time_list: list[torch.Tensor],
+    batch_size: int,
+) -> torch.Tensor:
+    """Compute per-timestep FM loss averaged over N noise/time samples.
+
+    Following the FPO paper (Kanazawa et al., 2025), averaging multiple
+    CFM loss estimates per timestep before exponentiation drastically
+    reduces variance in the importance-sampling ratio.
+
+    Returns:
+        ``(T,)`` per-timestep loss averaged across samples.
+    """
+    losses = []
+    for noise, time in zip(noise_list, time_list, strict=True):
+        loss = _compute_fm_loss_batched(
+            policy,
+            traj,
+            instruction,
+            noise,
+            time,
+            batch_size=batch_size,
+        )
+        losses.append(loss)
+    return torch.stack(losses).mean(dim=0)
+
+
 def fpo_update(
     policy: SmolVLAPolicy,
     ref_policy: SmolVLAPolicy,
@@ -182,10 +222,17 @@ def fpo_update(
     trajectories: list[Trajectory],
     advantages: list[float],
     instrs_per_traj: list[str],
-    fixed_noise: list[torch.Tensor],
-    fixed_time: list[torch.Tensor],
+    fixed_noise: list[list[torch.Tensor]],
+    fixed_time: list[list[torch.Tensor]],
     config: SRPOConfig,
 ) -> UpdateMetrics:
+    """Run FPO (Flow Policy Optimization) clipped-surrogate update.
+
+    Follows the reference FPO implementation (Kanazawa et al., 2025):
+      - Per-timestep importance-sampling ratios (not per-trajectory mean).
+      - N noise/time samples averaged before exp for variance reduction.
+      - PPO-clip with a tight epsilon (paper default: 0.05).
+    """
     del ref_policy
 
     B = config.fm_batch_size
@@ -196,64 +243,73 @@ def fpo_update(
 
     device = next(policy.parameters()).device
 
+    adv = torch.tensor(advantages, dtype=torch.float32, device=device)
+
     old_fm_per_traj: list[torch.Tensor] = []
     with torch.no_grad():
         for i, traj in enumerate(trajectories):
-            old_fm = _compute_fm_loss_batched(
+            old_fm = _compute_fm_loss_multi_sample(
                 policy,
                 traj,
                 instrs_per_traj[i],
                 fixed_noise[i],
                 fixed_time[i],
                 batch_size=B,
-            ).mean()
+            )
             old_fm_per_traj.append(old_fm.detach())
 
-    adv = torch.tensor(advantages, dtype=torch.float32, device=device)
-    adv = (adv - adv.mean()) / adv.std(unbiased=False).clamp_min(1e-06) if adv.numel() > 1 else torch.zeros_like(adv)
-
-    total_loss = 0.0
+    policy.train()
+    total_surrogate = 0.0
+    total_kl = 0.0
+    total_clip_frac = 0.0
 
     for _ in range(config.ppo_epochs):
         optimizer.zero_grad()
-        losses = []
+        epoch_surrogate = 0.0
+        epoch_kl = 0.0
+        epoch_clip_frac = 0.0
 
         for i, traj in enumerate(trajectories):
-            new_fm = _compute_fm_loss_batched(
+            new_fm = _compute_fm_loss_multi_sample(
                 policy,
                 traj,
                 instrs_per_traj[i],
                 fixed_noise[i],
                 fixed_time[i],
                 batch_size=B,
-            ).mean()
+            )
 
-            log_ratio = (old_fm_per_traj[i].to(device) - new_fm).clamp(-5.0, 5.0)
-            ratio = torch.exp(log_ratio)
+            log_ratios = (old_fm_per_traj[i].to(device) - new_fm).clamp(-5.0, 5.0)
+            ratios = torch.exp(log_ratios)
 
-            surr1 = ratio * adv[i]
+            surr1 = ratios * adv[i]
             surr2 = (
                 torch.clamp(
-                    ratio,
+                    ratios,
                     1.0 - config.clip_epsilon,
                     1.0 + config.clip_epsilon_high,
                 )
                 * adv[i]
             )
 
-            losses.append(-torch.min(surr1, surr2))
+            traj_loss = -torch.min(surr1, surr2).mean() / M
+            traj_loss.backward()
+            epoch_surrogate += traj_loss.item()
+            epoch_kl += log_ratios.detach().abs().mean().item()
+            epoch_clip_frac += ((ratios.detach() - 1.0).abs() > config.clip_epsilon).float().mean().item()
 
-        loss = torch.stack(losses).mean()
-        loss.backward()
         torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
         optimizer.step()
 
-        total_loss += loss.item()
+        total_surrogate += epoch_surrogate
+        total_kl += epoch_kl
+        total_clip_frac += epoch_clip_frac
 
+    denom = max(config.ppo_epochs * M, 1)
     return UpdateMetrics(
-        avg_loss=total_loss / max(config.ppo_epochs, 1),
-        avg_kl=0.0,
-        avg_weight=0.0,
+        avg_loss=total_surrogate / max(config.ppo_epochs, 1),
+        avg_kl=total_kl / denom,
+        avg_weight=total_clip_frac / denom,
     )
 
 
