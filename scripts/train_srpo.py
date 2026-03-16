@@ -216,7 +216,7 @@ def main(
     trajectories_per_iter: int = typer.Option(16, "--trajs-per-iter"),
     update_method: UpdateMethod = typer.Option("awr", "--update-method", help="Policy update: awr or ppo"),
     advantage_mode: AdvantageMode = typer.Option(
-        AdvantageMode, "--advantage-mode", help="Advantage method: zscore or leave-one-out"
+        AdvantageMode.LEAVE_ONE_OUT, "--advantage-mode", help="Advantage method: zscore or leave-one-out"
     ),
     ppo_epochs: int = typer.Option(4, "--ppo-epochs"),
     clip_epsilon: float = typer.Option(0.2, "--clip-epsilon"),
