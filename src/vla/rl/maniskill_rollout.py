@@ -37,8 +37,7 @@ class ManiSkillRollout:
 
     Args:
         env_id: ManiSkill environment id (e.g. ``PickCube-v1``).
-        num_envs: Number of parallel environments.  Set this to
-            ``trajectories_per_iter`` for maximum throughput.
+        num_envs: Number of parallel environments.
         max_steps: Maximum steps per episode.
         image_size: Rendered image resolution.
         obs_mode: ManiSkill observation mode.

@@ -213,7 +213,6 @@ def main(
     lr: float = typer.Option(1e-5, "--lr"),
     max_grad_norm: float = typer.Option(10.0, "--max-grad-norm", help="Max gradient norm for clipping"),
     num_iterations: int = typer.Option(100, "--iterations"),
-    trajectories_per_iter: int = typer.Option(16, "--trajs-per-iter"),
     update_method: UpdateMethod = typer.Option("awr", "--update-method", help="Policy update: awr or ppo"),
     advantage_mode: AdvantageMode = typer.Option(
         AdvantageMode.LEAVE_ONE_OUT, "--advantage-mode", help="Advantage method: zscore or leave-one-out"
@@ -306,7 +305,6 @@ def main(
         lr=lr,
         max_grad_norm=max_grad_norm,
         num_iterations=num_iterations,
-        trajectories_per_iter=trajectories_per_iter,
         update_method=update_method,
         ppo_epochs=ppo_epochs,
         clip_epsilon=clip_epsilon,

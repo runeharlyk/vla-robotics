@@ -29,7 +29,6 @@ srpo:
   weight_decay: 1.0e-10
   max_grad_norm: 1.0
   num_iterations: 100
-  trajectories_per_iter: 16
   ppo_epochs: 1
   clip_epsilon: 0.2
   kl_coeff: 0.01
@@ -50,7 +49,6 @@ sparse_rl:
   weight_decay: 1.0e-10
   max_grad_norm: 1.0
   num_iterations: 100
-  trajectories_per_iter: 16
   ppo_epochs: 1
   clip_epsilon: 0.2
   kl_coeff: 0.01

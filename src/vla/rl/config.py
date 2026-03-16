@@ -17,7 +17,6 @@ class SRPOConfig(BaseTrainingConfig):
 
     lr: float = 1e-5
     num_iterations: int = 100
-    trajectories_per_iter: int = 16
     update_method: UpdateMethod = UpdateMethod.AWR
     advantage_mode: AdvantageMode = AdvantageMode.LEAVE_ONE_OUT
     adv_eps: float = 1e-8

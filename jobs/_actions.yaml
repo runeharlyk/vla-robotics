@@ -7,7 +7,6 @@ preprocess: |
       --num-cameras {num_cameras} \
       --image-size {image_size}
 
-
 # ── SFT on preprocessed .pt data (ManiSkill / any sim eval) ───────────
 train-sft: |
   uv run python scripts/train_sft.py \
@@ -67,7 +66,6 @@ train-srpo: |
       --seed {seed} \
       --lr {lr} \
       --iterations {num_iterations} \
-      --trajs-per-iter {trajectories_per_iter} \
       --num-rollout-envs {num_rollout_envs} \
       --fm-batch-size {fm_batch_size} \
       --ppo-epochs {ppo_epochs} \
@@ -96,7 +94,6 @@ train-srpo-libero: |
       --seed {seed} \
       --lr {lr} \
       --iterations {num_iterations} \
-      --trajs-per-iter {trajectories_per_iter} \
       --num-rollout-envs {num_rollout_envs} \
       --fm-batch-size {fm_batch_size} \
       --ppo-epochs {ppo_epochs} \
@@ -126,7 +123,6 @@ train-srpo-libero-hf: |
       --seed {seed} \
       --lr {lr} \
       --iterations {num_iterations} \
-      --trajs-per-iter {trajectories_per_iter} \
       --num-rollout-envs {num_rollout_envs} \
       --fm-batch-size {fm_batch_size} \
       --ppo-epochs {ppo_epochs} \

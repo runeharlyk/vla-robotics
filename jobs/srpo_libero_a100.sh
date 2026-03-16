@@ -44,7 +44,6 @@ uv run python scripts/train_srpo.py \
     --task-ids "$TASK_ID" \
     --world-model "$WORLD_MODEL" \
     --iterations "$ITERS" \
-    --trajs-per-iter "$TRAJS" \
     --num-rollout-envs "$ENVS" \
     --dbscan-eps 60 \
     --ppo-epochs 1 \

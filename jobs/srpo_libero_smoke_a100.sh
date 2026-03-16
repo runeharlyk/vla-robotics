@@ -33,7 +33,6 @@ uv run python scripts/train_srpo.py \
     --max-grad-norm 10.0 \
     --iterations 200 \
     --trajs-per-task 4 \
-    --trajs-per-iter 16 \
     --num-rollout-envs 8 \
     --fm-batch-size 128 \
     --awr-epochs 2 \

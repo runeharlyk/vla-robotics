@@ -9,7 +9,6 @@ num_demos: 50
 seed: 42
 lr: 5.0e-6
 num_iterations: 100
-trajectories_per_iter: 16
 num_rollout_envs: 8
 fm_batch_size: 32
 ppo_epochs: 1

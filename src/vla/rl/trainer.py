@@ -256,8 +256,7 @@ def train_srpo(
             persistence.  When ``None``, a JSONL-only logger is created
             from ``config.save_dir``.
         trajs_per_task_per_iter: Trajectories to collect **per task** each
-            iteration.  For single-task training, set this equal to
-            ``config.trajectories_per_iter``.
+            iteration.
         rollout_engines: Optional pre-built ``{task_id: RolloutEngine}`` map.
             When ``None``, engines are created from ``task_specs`` and
             ``config`` automatically.

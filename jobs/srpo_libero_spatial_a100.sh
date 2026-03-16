@@ -30,7 +30,6 @@ uv run python scripts/train_srpo.py \
     --seed 42 \
     --lr 1e-05 \
     --iterations 100 \
-    --trajs-per-iter 16 \
     --num-rollout-envs 8 \
     --fm-batch-size 128 \
     --gradient-checkpointing \
