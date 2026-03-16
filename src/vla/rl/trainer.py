@@ -270,10 +270,13 @@ def train_srpo(
 
     optimizer, trainable = config.build_optimizer(policy)
 
-    ref_policy = copy.deepcopy(policy)
-    ref_policy.eval()
-    for p in ref_policy.parameters():
-        p.requires_grad_(False)
+    needs_ref = config.update_method is not UpdateMethod.FPO
+    ref_policy: SmolVLAPolicy | None = None
+    if needs_ref:
+        ref_policy = copy.deepcopy(policy)
+        ref_policy.eval()
+        for p in ref_policy.parameters():
+            p.requires_grad_(False)
 
     # -- Per-task rollout engines (created lazily to avoid OOM) ----------
     if rollout_engines is None:
@@ -427,6 +430,7 @@ def train_srpo(
 
         # -- 5. Policy update ---------------------------------------------
         if config.update_method is UpdateMethod.AWR:
+            assert ref_policy is not None
             noise_single = [nl[0] for nl in fixed_noise_per_traj]
             time_single = [tl[0] for tl in fixed_time_per_traj]
             update_metrics = awr_update(
@@ -445,7 +449,6 @@ def train_srpo(
         elif config.update_method is UpdateMethod.FPO:
             update_metrics = fpo_update(
                 policy,
-                ref_policy,
                 optimizer,
                 trainable,
                 all_trajectories,
@@ -456,6 +459,7 @@ def train_srpo(
                 config,
             )
         elif config.update_method is UpdateMethod.PPO:
+            assert ref_policy is not None
             noise_single = [nl[0] for nl in fixed_noise_per_traj]
             time_single = [tl[0] for tl in fixed_time_per_traj]
             update_metrics = ppo_update(

@@ -216,7 +216,6 @@ def _compute_fm_loss_multi_sample(
 
 def fpo_update(
     policy: SmolVLAPolicy,
-    ref_policy: SmolVLAPolicy,
     optimizer: torch.optim.Optimizer,
     trainable: list[torch.nn.Parameter],
     trajectories: list[Trajectory],
@@ -233,8 +232,6 @@ def fpo_update(
       - N noise/time samples averaged before exp for variance reduction.
       - PPO-clip with a tight epsilon (paper default: 0.05).
     """
-    del ref_policy
-
     B = config.fm_batch_size
     M = len(trajectories)
 
