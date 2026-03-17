@@ -218,7 +218,7 @@ def main(
         AdvantageMode.LEAVE_ONE_OUT, "--advantage-mode", help="Advantage method: zscore or leave-one-out"
     ),
     ppo_epochs: int = typer.Option(4, "--ppo-epochs"),
-    ppo_minibatch_trajs: int = typer.Option(4, "ppo-minibatch-trajs"),
+    ppo_minibatch_trajs: int = typer.Option(4, "--ppo-minibatch-trajs"),
     clip_epsilon: float = typer.Option(0.2, "--clip-epsilon"),
     clip_epsilon_high: float = typer.Option(0.28, "--clip-epsilon-high", help="Upper clip bound (asymmetric clipping)"),
     num_fm_noise_samples: int = typer.Option(
