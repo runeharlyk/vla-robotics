@@ -398,6 +398,32 @@ class SmolVLAPolicy(nn.Module):
 
         return {"loss": loss}
 
+    def _build_rl_action_targets(
+        self,
+        actions: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        T = actions.shape[0]
+        actions = self._normalize_action(actions)
+        actions = self._prepare_action(actions)
+
+        chunks = torch.zeros(
+            T,
+            self.chunk_size,
+            self.max_action_dim,
+            device=actions.device,
+            dtype=actions.dtype,
+        )
+        mask = torch.zeros(
+            T,
+            self.chunk_size,
+            device=actions.device,
+            dtype=torch.bool,
+        )
+
+        chunks[:, 0] = actions
+        mask[:, 0] = True
+        return chunks, mask
+
     def _build_action_chunks(
         self,
         actions: torch.Tensor,
@@ -461,7 +487,7 @@ class SmolVLAPolicy(nn.Module):
         use_amp = self.device.type == "cuda"
 
         actions = actions.to(self.device, dtype=self.dtype)
-        action_chunks, action_mask = self._build_action_chunks(actions)
+        action_chunks, action_mask = self._build_rl_action_targets(actions)
 
         for start in range(0, T, batch_size):
             end = min(start + batch_size, T)
@@ -492,8 +518,9 @@ class SmolVLAPolicy(nn.Module):
                     time=time,
                 )
 
+            losses = losses.float()
             losses = losses[:, :, : self.action_dim]
-            valid = target_mask.unsqueeze(-1).to(losses.dtype)
+            valid = target_mask.unsqueeze(-1).float()
             denom = valid.sum(dim=(1, 2)).clamp(min=1.0)
             per_step = (losses * valid).sum(dim=(1, 2)) / denom
             all_losses.append(per_step)
