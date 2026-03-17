@@ -277,7 +277,8 @@ def fpo_update(
                     batch_size=B,
                 )
 
-                old_fm = old_fm_per_traj[i].to(device)
+                old_fm = old_fm_per_traj[i].to(device=device, dtype=torch.float32)
+                new_fm = new_fm.float()
                 log_ratio = old_fm - new_fm
                 ratio = torch.exp(log_ratio.clamp(-20.0, 20.0))
 
