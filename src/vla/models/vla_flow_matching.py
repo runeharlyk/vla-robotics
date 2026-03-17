@@ -214,10 +214,7 @@ class VLAFlowMatching(nn.Module):
             noise = self._sample_noise(actions.shape, actions.device).to(act_dtype)
         else:
             noise = noise.to(act_dtype)
-        if time is None:
-            time = self._sample_time(actions.shape[0], actions.device).to(act_dtype)
-        else:
-            time = time.to(act_dtype)
+        time = self._sample_time(actions.shape[0], actions.device).to(act_dtype) if time is None else time.to(act_dtype)
 
         t = time[:, None, None]
         x_t = t * noise + (1 - t) * actions
@@ -241,7 +238,14 @@ class VLAFlowMatching(nn.Module):
         )
         suffix_out = suffix_out[:, -self.chunk_size :]
         v_t = self.action_out_proj(suffix_out)
-        return F.mse_loss(u_t.float(), v_t.float(), reduction="none")
+
+        loss_type = self.cfg.get("fm_loss_type", "epsilon")
+
+        if loss_type == "epsilon":
+            eps_pred = x_t.float() + (1.0 - t.float()) * v_t.float()
+            return F.mse_loss(eps_pred, noise.float(), reduction="none")
+
+        return F.mse_loss(v_t.float(), u_t.float(), reduction="none")
 
     def sample_actions(
         self,

@@ -272,8 +272,8 @@ def fpo_update(
                     policy,
                     traj=trajectories[i],
                     instruction=instrs_per_traj[i],
-                    fixed_noise=fixed_noise[i],
-                    fixed_time=fixed_time[i],
+                    noise_list=fixed_noise[i],
+                    time_list=fixed_time[i],
                     batch_size=B,
                 )
 
