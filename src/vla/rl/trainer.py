@@ -471,6 +471,7 @@ def train_srpo(
                 instrs_per_traj,
                 noise_single,
                 time_single,
+                skipped_task_set,
                 config,
             )
         else:

@@ -325,6 +325,7 @@ def ppo_update(
     instrs_per_traj: list[str],
     fixed_noise: list[torch.Tensor],
     fixed_time: list[torch.Tensor],
+    skipped_task_ids: set[str],
     config: SRPOConfig,
 ) -> UpdateMetrics:
     """Run PPO clipped-surrogate policy update with KL regularisation.
@@ -333,13 +334,17 @@ def ppo_update(
         :class:`UpdateMetrics` with average surrogate loss and KL penalty.
     """
     B = config.fm_batch_size
-    M = len(trajectories)
+    active_indices = [i for i, traj in enumerate(trajectories) if traj.task_id not in skipped_task_ids]
+    active_count = len(active_indices)
+    if active_count == 0:
+        return UpdateMetrics()
 
-    old_losses_per_traj: list[torch.Tensor] = []
-    ref_losses_per_traj: list[torch.Tensor] = []
+    old_losses_per_traj: dict[int, torch.Tensor] = {}
+    ref_losses_per_traj: dict[int, torch.Tensor] = {}
 
     with torch.no_grad():
-        for i, traj in enumerate(trajectories):
+        for i in active_indices:
+            traj = trajectories[i]
             old_loss = _compute_fm_loss_batched(
                 policy,
                 traj,
@@ -348,7 +353,7 @@ def ppo_update(
                 fixed_time[i],
                 batch_size=B,
             )
-            old_losses_per_traj.append(old_loss.detach())
+            old_losses_per_traj[i] = old_loss.detach()
 
             ref_loss = _compute_fm_loss_batched(
                 ref_policy,
@@ -358,18 +363,21 @@ def ppo_update(
                 fixed_time[i],
                 batch_size=B,
             )
-            ref_losses_per_traj.append(ref_loss.detach())
+            ref_losses_per_traj[i] = ref_loss.detach()
 
     policy.train()
     total_surrogate = 0.0
     total_kl = 0.0
+    used_count_total = 0
 
     for _ppo_epoch in range(config.ppo_epochs):
         optimizer.zero_grad()
         epoch_clip_loss = 0.0
         epoch_kl = 0.0
+        used_count = 0
 
-        for i, traj in enumerate(trajectories):
+        for i in active_indices:
+            traj = trajectories[i]
             adv_i = advantages[i]
             old_losses_t = old_losses_per_traj[i]
             ref_losses_t = ref_losses_per_traj[i]
@@ -402,19 +410,21 @@ def ppo_update(
             kl_approx = 0.5 * (log_ratio_ref**2).mean()
             kl_penalty = config.kl_coeff * kl_approx
 
-            traj_loss = (clip_loss + kl_penalty) / M
+            traj_loss = (clip_loss + kl_penalty) / active_count
             traj_loss.backward()
 
             epoch_clip_loss += clip_loss.item()
             epoch_kl += kl_penalty.item()
+            used_count += 1
 
         torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
         optimizer.step()
 
         total_surrogate += epoch_clip_loss
         total_kl += epoch_kl
+        used_count_total += used_count
 
-    denom = max(config.ppo_epochs * M, 1)
+    denom = max(used_count_total, 1)
     return UpdateMetrics(
         avg_loss=total_surrogate / denom,
         avg_kl=total_kl / denom,
