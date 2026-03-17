@@ -420,8 +420,13 @@ class SmolVLAPolicy(nn.Module):
             dtype=torch.bool,
         )
 
-        chunks[:, 0] = actions
-        mask[:, 0] = True
+        for t in range(T):
+            end = min(T, t + self.chunk_size)
+            n = end - t
+            chunks[t, :n] = actions[t:end]
+            mask[t, :n] = True
+
+        mask[:, 1:] = False
         return chunks, mask
 
     def _build_action_chunks(
@@ -521,8 +526,8 @@ class SmolVLAPolicy(nn.Module):
             losses = losses.float()
             losses = losses[:, :, : self.action_dim]
             valid = target_mask.unsqueeze(-1).float()
-            denom = valid.sum(dim=(1, 2)).clamp(min=1.0)
-            per_step = (losses * valid).sum(dim=(1, 2)) / denom
+            n_valid_positions = target_mask.sum(dim=1).clamp(min=1.0)
+            per_step = (losses * valid).sum(dim=(1, 2)) / (n_valid_positions * self.action_dim)
             all_losses.append(per_step)
 
         return torch.cat(all_losses)
