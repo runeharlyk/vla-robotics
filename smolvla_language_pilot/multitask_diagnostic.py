@@ -31,9 +31,6 @@ import torch
 from lerobot.policies.factory import make_pre_post_processors
 from vla.models.smolvla import smolvla
 
-# Timesteps to highlight in the per-timepoint frame plots.
-HIGHLIGHT_TIMESTEPS: list[int] = [14, 18, 50, 63, 95]
-
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -90,6 +87,8 @@ def _set_seed(seed: int) -> None:
     np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: dict, seed: int) -> torch.Tensor:
@@ -120,52 +119,6 @@ def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: d
                 chunk = policy.predict_action_chunk(batch)   # (1, chunk_size, action_dim)
             actions.append(post(chunk[:, 0, :]).squeeze(0).cpu())
     return torch.stack(actions)
-
-
-# ---------------------------------------------------------------------------
-# Timepoint frame visualization
-# ---------------------------------------------------------------------------
-
-def _plot_timepoint_frames(
-    l2_curve: np.ndarray,
-    images: torch.Tensor,          # (T, C, H, W) float [0, 1]
-    timepoints: list[int],
-    output_dir: Path,
-    demo_label: str = "demo0",
-) -> None:
-    """For each timepoint create a side-by-side figure:
-    left — the L2 curve with a vertical highlight at that step;
-    right — the camera frame at that step.
-    Saved to <output_dir>/timepoint_frames/<demo_label>_t<t>.png.
-    """
-    frame_dir = output_dir / "timepoint_frames"
-    frame_dir.mkdir(exist_ok=True)
-    T = len(l2_curve)
-    for t in timepoints:
-        if t >= T:
-            print(f"  Warning: timepoint t={t} >= trajectory length {T}, skipping.")
-            continue
-        fig, (ax_curve, ax_img) = plt.subplots(1, 2, figsize=(12, 4))
-        # ── L2 curve ──
-        x = np.arange(T)
-        ax_curve.plot(x, l2_curve, color="steelblue", linewidth=1.5)
-        ax_curve.axvline(x=t, color="red", linestyle="--", linewidth=1.5, label=f"t={t}")
-        ax_curve.scatter([t], [l2_curve[t]], color="red", s=60, zorder=5)
-        ax_curve.set_xlabel("Timestep")
-        ax_curve.set_ylabel("Mean L2 Action Distance")
-        ax_curve.set_title(f"L2 curve — t={t} highlighted")
-        ax_curve.legend()
-        # ── camera frame ──
-        frame = images[t].permute(1, 2, 0).numpy()   # (H, W, C)
-        frame = np.clip(frame, 0.0, 1.0)
-        ax_img.imshow(frame)
-        ax_img.axis("off")
-        ax_img.set_title(f"Camera frame at t={t}")
-        plt.tight_layout()
-        out_path = frame_dir / f"{demo_label}_t{t:03d}.png"
-        plt.savefig(out_path, dpi=200)
-        plt.close(fig)
-        print(f"  Saved timepoint plot → {out_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -214,6 +167,38 @@ def _iter_demos(h5_path: str, keep_instructions: set[str] | None = None):
             yield task_index, task_instruction, images, states
 
 
+def _plot_l2_curves(
+    type_mean: dict[str, np.ndarray],
+    type_std: dict[str, np.ndarray],
+    overall_mean: np.ndarray,
+    out_path: Path,
+    title: str,
+    y_label: str,
+) -> None:
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for vtype, mean in type_mean.items():
+        x = np.arange(len(mean))
+        ax.plot(x, mean, label=vtype)
+        ax.fill_between(x, mean - type_std[vtype], mean + type_std[vtype], alpha=0.15)
+
+    x_all = np.arange(len(overall_mean))
+    ax.plot(x_all, overall_mean, color="black", linewidth=2, linestyle="--", label="overall mean")
+    ax.set_xlabel("Timestep")
+    ax.set_ylabel(y_label)
+    ax.set_title(title)
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=200)
+    plt.close(fig)
+    print(f"Saved plot → {out_path}")
+
+
+def _safe_task_dir_name(task_instruction: str) -> str:
+    task_name = task_instruction.strip().lower()
+    safe = "".join(ch if (ch.isalnum() or ch in ("_", "-")) else "_" for ch in task_name)
+    return safe[:80] if safe else "unknown_task"
+
+
 # ---------------------------------------------------------------------------
 # Sweep
 # ---------------------------------------------------------------------------
@@ -236,20 +221,16 @@ def run_sweep(args: argparse.Namespace) -> None:
     bundle = _load_policy(args.checkpoint, args.device)
 
     type_l2_curves: dict[str, list[torch.Tensor]] = defaultdict(list)
+    type_rel_l2_curves: dict[str, list[torch.Tensor]] = defaultdict(list)
+    task_type_l2_curves: dict[str, dict[str, list[torch.Tensor]]] = defaultdict(lambda: defaultdict(list))
+    task_type_rel_l2_curves: dict[str, dict[str, list[torch.Tensor]]] = defaultdict(lambda: defaultdict(list))
     n_processed = 0
-    first_demo_images: torch.Tensor | None = None
-    first_demo_l2s: list[torch.Tensor] = []
-
     for h5_path in h5_paths:
         print(f"\nSweeping {h5_path} …")
         for task_index, task_instruction, images, states in _iter_demos(h5_path, keep_instructions=set(variants_map)):
             variants_by_type = variants_map[task_instruction]
             n_variants = sum(len(v) for v in variants_by_type.values())
             print(f"  [task {task_index}] '{task_instruction}' — {images.shape[0]} steps, {n_variants} variants", flush=True)
-
-            is_first_demo = n_processed == 0
-            if is_first_demo:
-                first_demo_images = images
 
             base_actions = _run(task_instruction, images, states, bundle, args.seed)
 
@@ -259,19 +240,12 @@ def run_sweep(args: argparse.Namespace) -> None:
                     variant_actions = _run(variant_text, images, states, bundle, args.seed)
                     T = min(base_actions.shape[0], variant_actions.shape[0])
                     l2 = torch.norm(variant_actions[:T] - base_actions[:T], dim=-1)
+                    base_norm = torch.norm(base_actions[:T], dim=-1).clamp(min=1e-8)
+                    rel_l2 = l2 / base_norm
                     type_l2_curves[variant_type].append(l2)
-                    if is_first_demo:
-                        first_demo_l2s.append(l2)
-
-            # After all variants of the first demo are done, generate timepoint plots.
-            if is_first_demo and first_demo_images is not None and first_demo_l2s:
-                max_T = max(c.shape[0] for c in first_demo_l2s)
-                padded = np.full((len(first_demo_l2s), max_T), np.nan, dtype=np.float32)
-                for idx, c in enumerate(first_demo_l2s):
-                    padded[idx, : c.shape[0]] = c.numpy()
-                demo0_mean_l2 = np.nanmean(padded, axis=0)
-                print("\nGenerating timepoint frame plots for first demo …")
-                _plot_timepoint_frames(demo0_mean_l2, first_demo_images, HIGHLIGHT_TIMESTEPS, output_dir)
+                    type_rel_l2_curves[variant_type].append(rel_l2)
+                    task_type_l2_curves[task_instruction][variant_type].append(l2)
+                    task_type_rel_l2_curves[task_instruction][variant_type].append(rel_l2)
 
             n_processed += 1
             if args.max_demos is not None and n_processed >= args.max_demos:
@@ -305,29 +279,73 @@ def run_sweep(args: argparse.Namespace) -> None:
     all_curves = [c for curves in type_l2_curves.values() for c in curves]
     overall_mean, overall_std = _stack(all_curves)
 
+    type_rel_mean: dict[str, np.ndarray] = {}
+    type_rel_std: dict[str, np.ndarray] = {}
+    for vtype, curves in type_rel_l2_curves.items():
+        type_rel_mean[vtype], type_rel_std[vtype] = _stack(curves)
+
+    all_rel_curves = [c for curves in type_rel_l2_curves.values() for c in curves]
+    overall_rel_mean, overall_rel_std = _stack(all_rel_curves)
+
     # ------------------------------------------------------------------
     # Plot
     # ------------------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _plot_l2_curves(
+        type_mean=type_mean,
+        type_std=type_std,
+        overall_mean=overall_mean,
+        out_path=output_dir / "multitask_avg_l2.png",
+        title=f"Average L2 Action Distance per Variant Type\n({n_processed} demos × all variants)",
+        y_label="Mean L2 Action Distance",
+    )
 
-    for vtype, mean in type_mean.items():
-        x = np.arange(len(mean))
-        ax.plot(x, mean, label=vtype)
-        ax.fill_between(x, mean - type_std[vtype], mean + type_std[vtype], alpha=0.15)
+    _plot_l2_curves(
+        type_mean=type_rel_mean,
+        type_std=type_rel_std,
+        overall_mean=overall_rel_mean,
+        out_path=output_dir / "multitask_avg_rel_l2.png",
+        title=f"Average Relative L2 Action Distance per Variant Type\n({n_processed} demos × all variants)",
+        y_label="Mean Relative L2 Action Distance",
+    )
 
-    x_all = np.arange(len(overall_mean))
-    ax.plot(x_all, overall_mean, color="black", linewidth=2, linestyle="--", label="overall mean")
+    per_task_dir = output_dir / "per_task"
+    per_task_dir.mkdir(parents=True, exist_ok=True)
+    for task_instruction, by_type_abs in task_type_l2_curves.items():
+        by_type_rel = task_type_rel_l2_curves[task_instruction]
 
-    ax.set_xlabel("Timestep")
-    ax.set_ylabel("Mean L2 Action Distance")
-    ax.set_title(f"Average L2 Action Distance per Variant Type\n({n_processed} demos × all variants)")
-    ax.legend()
-    plt.tight_layout()
+        task_mean_abs: dict[str, np.ndarray] = {}
+        task_std_abs: dict[str, np.ndarray] = {}
+        for vtype, curves in by_type_abs.items():
+            task_mean_abs[vtype], task_std_abs[vtype] = _stack(curves)
 
-    out_path = output_dir / "multitask_avg_l2.png"
-    plt.savefig(out_path, dpi=200)
-    plt.close(fig)
-    print(f"Saved plot → {out_path}")
+        task_mean_rel: dict[str, np.ndarray] = {}
+        task_std_rel: dict[str, np.ndarray] = {}
+        for vtype, curves in by_type_rel.items():
+            task_mean_rel[vtype], task_std_rel[vtype] = _stack(curves)
+
+        task_all_abs = [c for curves in by_type_abs.values() for c in curves]
+        task_all_rel = [c for curves in by_type_rel.values() for c in curves]
+        task_overall_abs, _ = _stack(task_all_abs)
+        task_overall_rel, _ = _stack(task_all_rel)
+
+        task_dir = per_task_dir / _safe_task_dir_name(task_instruction)
+        task_dir.mkdir(parents=True, exist_ok=True)
+        _plot_l2_curves(
+            type_mean=task_mean_abs,
+            type_std=task_std_abs,
+            overall_mean=task_overall_abs,
+            out_path=task_dir / "task_avg_l2.png",
+            title=f"Task: {task_instruction}\nAverage L2 Action Distance per Variant Type",
+            y_label="Mean L2 Action Distance",
+        )
+        _plot_l2_curves(
+            type_mean=task_mean_rel,
+            type_std=task_std_rel,
+            overall_mean=task_overall_rel,
+            out_path=task_dir / "task_avg_rel_l2.png",
+            title=f"Task: {task_instruction}\nAverage Relative L2 Action Distance per Variant Type",
+            y_label="Mean Relative L2 Action Distance",
+        )
 
     summary = {
         "n_demos_processed": n_processed,
@@ -335,6 +353,8 @@ def run_sweep(args: argparse.Namespace) -> None:
             vtype: {
                 "mean_l2_per_timestep": type_mean[vtype].tolist(),
                 "std_l2_per_timestep": type_std[vtype].tolist(),
+                "mean_rel_l2_per_timestep": type_rel_mean[vtype].tolist(),
+                "std_rel_l2_per_timestep": type_rel_std[vtype].tolist(),
                 "n_rollouts": len(type_l2_curves[vtype]),
             }
             for vtype in type_mean
@@ -342,6 +362,23 @@ def run_sweep(args: argparse.Namespace) -> None:
         "overall": {
             "mean_l2_per_timestep": overall_mean.tolist(),
             "std_l2_per_timestep": overall_std.tolist(),
+            "mean_rel_l2_per_timestep": overall_rel_mean.tolist(),
+            "std_rel_l2_per_timestep": overall_rel_std.tolist(),
+        },
+        "per_task": {
+            task_instruction: {
+                "variant_types": {
+                    vtype: {
+                        "mean_l2_per_timestep": _stack(task_type_l2_curves[task_instruction][vtype])[0].tolist(),
+                        "std_l2_per_timestep": _stack(task_type_l2_curves[task_instruction][vtype])[1].tolist(),
+                        "mean_rel_l2_per_timestep": _stack(task_type_rel_l2_curves[task_instruction][vtype])[0].tolist(),
+                        "std_rel_l2_per_timestep": _stack(task_type_rel_l2_curves[task_instruction][vtype])[1].tolist(),
+                        "n_rollouts": len(task_type_l2_curves[task_instruction][vtype]),
+                    }
+                    for vtype in task_type_l2_curves[task_instruction]
+                }
+            }
+            for task_instruction in task_type_l2_curves
         },
     }
     summary_path = output_dir / "multitask_summary.json"
