@@ -126,7 +126,7 @@ def _load_libero_v2_from_hf(
     except EntryNotFoundError:
         episode_parquets = sorted(p for p in repo_files if p.startswith("meta/episodes/") and p.endswith(".parquet"))
         if not episode_parquets:
-            raise EntryNotFoundError(
+            raise EntryNotFoundError(  # noqa: B904
                 "No episode metadata found. Expected one of: meta/episodes.jsonl or meta/episodes/**/*.parquet"
             )
         episodes_meta = _read_parquet_rows(episode_parquets)

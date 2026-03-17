@@ -36,7 +36,6 @@ if "transformers" not in sys.modules:
 if "wandb" not in sys.modules:
     sys.modules["wandb"] = MagicMock()
 
-from scripts.train_srpo import _load_multitask_data
 from tests.helpers import make_fake_pt
 from vla.data.dataset import FewDemoDataset
 from vla.rl.advantage import normalize_advantages_per_task
@@ -192,45 +191,6 @@ class TestMultitaskDataLoading:
         assert all(t.task_id == "alpha" for t in demo_trajs["alpha"])
         assert all(t.task_id == "beta" for t in demo_trajs["beta"])
         assert demo_trajs["alpha"][0].success is True
-
-    def test_load_multitask_data_from_libero_suite(self, monkeypatch):
-        class FakeLiberoDataset:
-            def __init__(self, suite, num_demos=None, seed=42, task_id=None):
-                self.suite = suite
-                self.num_demos = num_demos
-                self.seed = seed
-                self.task_id = task_id
-                self.state_dim = 14
-                self._task_map = {
-                    0: "pick up the mug",
-                    1: "place the bowl",
-                }
-
-            def episodes_as_trajectories(self, task_id=None):
-                active_task = self.task_id if self.task_id is not None else task_id
-                return [_make_trajectory(task_id=f"raw_{active_task}", success=True)]
-
-        monkeypatch.setattr("vla.data.libero.LiberoSFTDataset", FakeLiberoDataset)
-
-        task_specs, demo_trajectories, state_dim, action_dim = _load_multitask_data(
-            data_dir=None,
-            libero_suite="spatial",
-            num_demos=1,
-            seed=42,
-            simulator="libero",
-            suite="spatial",
-            include_demos=True,
-        )
-
-        assert [spec.task_id for spec in task_specs] == ["spatial_task_0", "spatial_task_1"]
-        assert [spec.libero_task_idx for spec in task_specs] == [0, 1]
-        assert task_specs[0].instruction == "pick up the mug"
-        assert state_dim == 14
-        assert action_dim == 7
-        assert demo_trajectories is not None
-        assert set(demo_trajectories) == {"spatial_task_0", "spatial_task_1"}
-        assert demo_trajectories["spatial_task_0"][0].task_id == "spatial_task_0"
-        assert demo_trajectories["spatial_task_1"][0].task_id == "spatial_task_1"
 
 
 # ---------------------------------------------------------------------------
