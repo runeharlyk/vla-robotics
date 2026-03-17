@@ -2,7 +2,8 @@ import os
 import sys
 from pathlib import Path
 
-from invoke import Context, task
+from invoke.context import Context
+from invoke.tasks import task
 
 WINDOWS = os.name == "nt"
 PROJECT_NAME = "vla"
@@ -32,9 +33,10 @@ LSF_HEADER = """\
 
 
 @task
-def lint(ctx: Context) -> None:
+def lint(ctx: Context, fix: bool = False) -> None:
     """Run ruff linter."""
-    ctx.run("uv run ruff check src/ tests/", echo=True, pty=not WINDOWS)
+    flag = "--fix" if fix else ""
+    ctx.run(f"uv run ruff check {flag} src/ tests/", echo=True, pty=not WINDOWS)
 
 
 @task

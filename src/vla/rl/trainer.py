@@ -371,7 +371,7 @@ def train_srpo(
         if world_encoder is not None:
             world_encoder.offload()
 
-        # -- 3. Per-task advantage normalisation --------------------------
+        # -- 3. Per-task advantage normalization --------------------------
         task_ids = [t.task_id for t in all_trajectories]
         if config.advantage_mode == AdvantageMode.SRPO_ZSCORE:
             adv_result = normalize_advantages_per_task(
@@ -473,6 +473,8 @@ def train_srpo(
                 time_single,
                 config,
             )
+        else:
+            raise ValueError(f"Unknown update_method: {config.update_method}")
 
         fixed_noise_per_traj.clear()
         fixed_time_per_traj.clear()

@@ -260,8 +260,8 @@ class VJEPA2Encoder(WorldModelEncoder):
             return False
 
     def _load_raw_checkpoint(self, model_id: str) -> None:
-        from huggingface_hub import hf_hub_download, list_repo_files
         import timm
+        from huggingface_hub import hf_hub_download, list_repo_files
 
         files = list_repo_files(model_id)
         weight_files = [f for f in files if any(f.endswith(ext) for ext in self._WEIGHT_EXTENSIONS)]
@@ -442,10 +442,7 @@ class VJEPA2Encoder(WorldModelEncoder):
             sub = batch_clips[start : start + self.batch_size]
             outputs = self.model(pixel_values_videos=sub)
             hs = outputs.last_hidden_state
-            if hs.ndim == 3:
-                emb = hs[:, 0]  # (sub_N, D)
-            else:
-                emb = hs.mean(dim=1)  # (sub_N, D)
+            emb = hs[:, 0] if hs.ndim == 3 else hs.mean(dim=1)  # (sub_N, D)
             all_embs.append(emb.float())
 
         return torch.cat(all_embs, dim=0)  # (N, D)

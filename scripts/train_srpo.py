@@ -186,15 +186,35 @@ def _build_tasks(
 
 
 def main(
-    sft_checkpoint: Path = typer.Option(None, "--sft-checkpoint", "-s", path_type=Path),
+    sft_checkpoint: Path | None = typer.Option(
+        None,
+        "--sft-checkpoint",
+        "-s",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
-    data_path: Path = typer.Option(
-        None, "--data", "-d", path_type=Path, help="Preprocessed .pt file (for demo seeding, single-task)"
+    data_path: Path | None = typer.Option(
+        None,
+        "--data",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Preprocessed .pt file (for demo seeding, single-task)",
     ),
-    data_dir: Path = typer.Option(
-        None, "--data-dir", path_type=Path, help="Directory of .pt files (one per task) for multi-task SRPO"
+    data_dir: Path | None = typer.Option(
+        None,
+        "--data-dir",
+        exists=True,
+        dir_okay=True,
+        readable=True,
+        help="Directory of .pt files (one per task) for multi-task SRPO",
     ),
-    libero_suite: LiberoSuite = typer.Option(
+    libero_suite: LiberoSuite | None = typer.Option(
         None, "--libero-suite", help="Load demos from HuggingFace LeRobot dataset instead of .pt (e.g. spatial)"
     ),
     num_demos: int = typer.Option(5, "--num-demos", "-n"),

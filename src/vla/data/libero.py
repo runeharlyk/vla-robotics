@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import ConcatDataset, Dataset
+from tqdm import trange
 
 from vla.constants import ACTION_DIM, LIBERO_SUITES
 from vla.data.dataset import NormStats
@@ -465,7 +466,7 @@ class LiberoSFTDataset(Dataset):
         num_episodes = len(ep_index["from"])
         trajs: list[Trajectory] = []
 
-        for ep in range(num_episodes):
+        for ep in trange(num_episodes, desc="Converting episodes to trajectories"):
             start = ep_index["from"][ep].item()
             end = ep_index["to"][ep].item()
 
