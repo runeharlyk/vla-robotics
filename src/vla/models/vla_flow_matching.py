@@ -263,26 +263,56 @@ class VLAFlowMatching(nn.Module):
             noise = self._sample_noise((bsize, self.chunk_size, self.max_action_dim), device).to(mdtype)
 
         pre_embs, pre_pad, pre_att = self.embed_prefix(images, img_masks, lang_tokens, lang_masks, state)
-        pre_att_2d = _make_att_2d_masks(pre_pad, pre_att)
-        pre_pos = torch.cumsum(pre_pad, dim=1) - 1
+        past_kv: dict | None = None
+        if self.use_cache:
+            pre_att_2d = _make_att_2d_masks(pre_pad, pre_att)
+            pre_pos = torch.cumsum(pre_pad, dim=1) - 1
 
-        _, past_kv = self.vlm_with_expert.forward(
-            attention_mask=pre_att_2d,
-            position_ids=pre_pos,
-            past_key_values=None,
-            inputs_embeds=[pre_embs, None],
-            use_cache=self.use_cache,
-            fill_kv_cache=True,
-        )
+            _, past_kv = self.vlm_with_expert.forward(
+                attention_mask=pre_att_2d,
+                position_ids=pre_pos,
+                past_key_values=None,
+                inputs_embeds=[pre_embs, None],
+                use_cache=True,
+                fill_kv_cache=True,
+            )
 
         dt = -1.0 / self.num_steps
         x_t = noise
         for step in range(self.num_steps):
             t_val = 1.0 + step * dt
             t_tensor = torch.tensor(t_val, dtype=mdtype, device=device).expand(bsize)
-            v_t = self._denoise_step(x_t, pre_pad, past_kv, t_tensor)
+            if past_kv is None:
+                v_t = self._denoise_step_without_cache(x_t, pre_embs, pre_pad, pre_att, t_tensor)
+            else:
+                v_t = self._denoise_step(x_t, pre_pad, past_kv, t_tensor)
             x_t = x_t + dt * v_t
         return x_t
+
+    def _denoise_step_without_cache(
+        self,
+        x_t: torch.Tensor,
+        prefix_embs: torch.Tensor,
+        prefix_pad: torch.Tensor,
+        prefix_att: torch.Tensor,
+        timestep: torch.Tensor,
+    ) -> torch.Tensor:
+        suf_embs, suf_pad, suf_att = self.embed_suffix(x_t, timestep)
+        pad = torch.cat([prefix_pad, suf_pad], dim=1)
+        att = torch.cat([prefix_att, suf_att], dim=1)
+        att_2d = _make_att_2d_masks(pad, att)
+        pos_ids = torch.cumsum(pad, dim=1) - 1
+
+        (_, suffix_out), _ = self.vlm_with_expert.forward(
+            attention_mask=att_2d,
+            position_ids=pos_ids,
+            past_key_values=None,
+            inputs_embeds=[prefix_embs, suf_embs],
+            use_cache=False,
+            fill_kv_cache=False,
+        )
+        suffix_out = suffix_out[:, -self.chunk_size :]
+        return self.action_out_proj(suffix_out)
 
     def _denoise_step(
         self,
