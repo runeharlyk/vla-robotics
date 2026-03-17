@@ -22,6 +22,7 @@ class SRPOConfig(BaseTrainingConfig):
     adv_eps: float = 1e-8
     adv_skip_threshold: float = 1e-6
     ppo_epochs: int = 4
+    ppo_minibatch_trajs: int = 4
     clip_epsilon: float = 0.2
     clip_epsilon_high: float = 0.28
     awr_epochs: int = 2

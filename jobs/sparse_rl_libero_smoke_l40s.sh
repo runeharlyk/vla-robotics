@@ -27,6 +27,7 @@ uv run python scripts/train_srpo.py \
     --mode sparse_rl \
     --update-method fpo \
     --advantage-mode leave_one_out \
+    --num-fm-noise-samples 8 \
     --seed 42 \
     --lr 5e-06 \
     --max-grad-norm 10.0 \
@@ -34,9 +35,10 @@ uv run python scripts/train_srpo.py \
     --trajs-per-task 16 \
     --num-rollout-envs 8 \
     --fm-batch-size 64 \
-    --ppo-epochs 3 \
-    --clip-epsilon 0.1 \
-    --clip-epsilon-high 0.14 \
+    --ppo-epochs 4 \
+    --ppo-minibatch-trajs 4 \
+    --clip-epsilon 0.05 \
+    --clip-epsilon-high 0.05 \
     --kl-coeff 0.01 \
     --adv-eps 1e-8 \
     --adv-skip-threshold 1e-6 \
