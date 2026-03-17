@@ -95,7 +95,8 @@ class SmolVLMWithExpertModel(nn.Module):
         lm_expert_config.num_hidden_layers = self.num_vlm_layers
         if num_expert_layers > 0:
             assert len(self.get_vlm_model().text_model.layers) % num_expert_layers == 0, (
-                f"Number of layers in the VLM {len(self.get_vlm_model().text_model.layers)} are not multiple of num_expert_layers {num_expert_layers}"
+                f"Number of layers in the VLM {len(self.get_vlm_model().text_model.layers)} "
+                f"are not multiple of num_expert_layers {num_expert_layers}"
             )
             lm_expert_config.num_hidden_layers = num_expert_layers
         self.lm_expert = AutoModel.from_config(lm_expert_config)
@@ -256,7 +257,8 @@ class SmolVLMWithExpertModel(nn.Module):
                     "value_states": value_states,
                 }
             else:
-                # TODO here, some optimization can be done - similar to a `StaticCache` we can declare the `max_len` before.
+                # TODO here, some optimization can be done -
+                #  similar to a `StaticCache` we can declare the `max_len` before.
                 # so we create an empty cache, with just one cuda malloc, and if (in autoregressive case) we reach
                 # the max len, then we (for instance) double the cache size. This implementation already exists
                 # in `transformers`. (molbap)
@@ -327,7 +329,8 @@ class SmolVLMWithExpertModel(nn.Module):
                     "value_states": value_states,
                 }
             else:
-                # TODO here, some optimization can be done - similar to a `StaticCache` we can declare the `max_len` before.
+                # TODO here, some optimization can be done - similar to a `StaticCache`
+                # we can declare the `max_len` before.
                 # so we create an empty cache, with just one cuda malloc, and if (in autoregressive case) we reach
                 # the max len, then we (for instance) double the cache size. This implementation already exists
                 # in `transformers`. (molbap)

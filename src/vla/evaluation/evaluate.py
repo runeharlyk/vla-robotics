@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import torch
 import typer
+import wandb
 from tqdm import tqdm
 
-import wandb
 from vla.envs import SimEnvFactory, make_env_factory
 from vla.models import load_policy
 
