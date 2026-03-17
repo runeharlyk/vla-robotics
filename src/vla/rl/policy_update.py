@@ -260,12 +260,13 @@ def fpo_update(
 
         for start in range(0, M, minibatch_trajs):
             idxs = order[start : start + minibatch_trajs]
+            n_idxs = len(idxs)
 
             optimizer.zero_grad(set_to_none=True)
 
-            batch_losses = []
-            batch_kls = []
-            batch_clip_fracs = []
+            mb_loss = 0.0
+            mb_kl = 0.0
+            mb_clip_frac = 0.0
 
             for i in idxs:
                 new_fm = _compute_fm_loss_multi_sample(
@@ -278,8 +279,8 @@ def fpo_update(
                 )
 
                 old_fm = old_fm_per_traj[i].to(device=device, dtype=torch.float32)
-                new_fm = new_fm.float()
-                log_ratio = old_fm - new_fm
+                new_fm_f = new_fm.float()
+                log_ratio = old_fm - new_fm_f
                 ratio = torch.exp(log_ratio.clamp(-20.0, 20.0))
 
                 clipped_ratio = torch.clamp(
@@ -291,20 +292,19 @@ def fpo_update(
                 surr1 = ratio * adv[i]
                 surr2 = clipped_ratio * adv[i]
 
-                loss_i = -torch.min(surr1, surr2).mean()
-                batch_losses.append(loss_i)
+                loss_i = -torch.min(surr1, surr2).mean() / n_idxs
+                loss_i.backward()
 
-                batch_kls.append((new_fm.detach() - old_fm).abs().mean())
-                batch_clip_fracs.append(((ratio.detach() - 1.0).abs() > config.clip_epsilon).float().mean())
+                mb_loss += loss_i.item()
+                mb_kl += (new_fm_f.detach() - old_fm).abs().mean().item() / n_idxs
+                mb_clip_frac += ((ratio.detach() - 1.0).abs() > config.clip_epsilon).float().mean().item() / n_idxs
 
-            loss = torch.stack(batch_losses).mean()
-            loss.backward()
             torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
             optimizer.step()
 
-            total_loss += loss.item()
-            total_kl += torch.stack(batch_kls).mean().item()
-            total_clip_frac += torch.stack(batch_clip_fracs).mean().item()
+            total_loss += mb_loss
+            total_kl += mb_kl
+            total_clip_frac += mb_clip_frac
             num_updates += 1
 
     denom = max(num_updates, 1)
