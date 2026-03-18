@@ -275,6 +275,12 @@ def main(
         help="Use distance-based failure rewards (SRPO). Disable for sparse-only rewards.",
     ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
+    fpo_full_chunk_target: bool = typer.Option(True, "--fpo-full-chunk-target/--no-fpo-full-chunk-target"),
+    fpo_loss_reduction: str = typer.Option("sum", "--fpo-loss-reduction"),
+    fpo_positive_adv_only: bool = typer.Option(False, "--fpo-positive-adv-only/--no-fpo-positive-adv-only"),
+    fpo_negative_adv_scale: float = typer.Option(0.25, "--fpo-negative-adv-scale"),
+    fpo_log_ratio_clip: float = typer.Option(5.0, "--fpo-log-ratio-clip"),
+    eval_zero_sample: bool = typer.Option(True, "--eval-zero-sample/--no-eval-zero-sample"),
 ) -> None:
     """Run SRPO or sparse-RL training starting from an SFT checkpoint."""
     seed_everything(seed)
@@ -361,6 +367,12 @@ def main(
         num_eval_envs=resolved_eval_envs,
         fm_batch_size=fm_batch_size,
         gradient_checkpointing=gradient_checkpointing,
+        fpo_full_chunk_target=fpo_full_chunk_target,
+        fpo_loss_reduction=fpo_loss_reduction,
+        fpo_positive_adv_only=fpo_positive_adv_only,
+        fpo_negative_adv_scale=fpo_negative_adv_scale,
+        fpo_log_ratio_clip=fpo_log_ratio_clip,
+        eval_zero_sample=eval_zero_sample,
     )
 
     logger.info(

@@ -53,6 +53,8 @@ def _compute_fm_loss_batched(
     fixed_noise: torch.Tensor,
     fixed_time: torch.Tensor,
     batch_size: int = 32,
+    full_chunk_target: bool = False,
+    reduction: str = "mean",
 ) -> torch.Tensor:
     """Compute per-timestep FM loss in mini-batches.
 
@@ -69,6 +71,8 @@ def _compute_fm_loss_batched(
         fixed_noise=fixed_noise[:T],
         fixed_time=fixed_time[:T],
         batch_size=batch_size,
+        full_chunk_target=full_chunk_target,
+        reduction=reduction,
     )
 
 
@@ -190,6 +194,8 @@ def _compute_fm_loss_multi_sample(
     noise_list: list[torch.Tensor],
     time_list: list[torch.Tensor],
     batch_size: int,
+    full_chunk_target: bool = False,
+    reduction: str = "mean",
 ) -> torch.Tensor:
     """Compute per-timestep FM loss averaged over N noise/time samples.
 
@@ -209,6 +215,8 @@ def _compute_fm_loss_multi_sample(
             noise,
             time,
             batch_size=batch_size,
+            full_chunk_target=full_chunk_target,
+            reduction=reduction,
         )
         losses.append(loss)
     return torch.stack(losses).mean(dim=0)
@@ -232,7 +240,11 @@ def fpo_update(
         return UpdateMetrics()
 
     device = next(policy.parameters()).device
-    adv = torch.tensor(advantages, dtype=torch.float32, device=device)
+    full_chunk_target = bool(getattr(config, "fpo_full_chunk_target", True))
+    reduction = getattr(config, "fpo_loss_reduction", "sum")
+    positive_only = bool(getattr(config, "fpo_positive_adv_only", False))
+    negative_scale = float(getattr(config, "fpo_negative_adv_scale", 0.25))
+    log_ratio_clip = float(getattr(config, "fpo_log_ratio_clip", 5.0))
 
     with torch.no_grad():
         old_fm_per_traj = []
@@ -244,6 +256,8 @@ def fpo_update(
                 fixed_noise[i],
                 fixed_time[i],
                 batch_size=B,
+                full_chunk_target=full_chunk_target,
+                reduction=reduction,
             )
             old_fm_per_traj.append(old_fm.detach())
 
@@ -251,7 +265,7 @@ def fpo_update(
 
     minibatch_trajs = min(getattr(config, "ppo_minibatch_trajs", 4), M)
     total_loss = 0.0
-    total_kl = 0.0
+    total_shift = 0.0
     total_clip_frac = 0.0
     num_updates = 0
 
@@ -265,10 +279,21 @@ def fpo_update(
             optimizer.zero_grad(set_to_none=True)
 
             mb_loss = 0.0
-            mb_kl = 0.0
+            mb_shift = 0.0
             mb_clip_frac = 0.0
+            used = 0
 
             for i in idxs:
+                adv_i = float(advantages[i])
+
+                if adv_i <= 0.0 and positive_only:
+                    continue
+
+                if adv_i < 0.0:
+                    adv_i *= negative_scale
+                    if adv_i == 0.0:
+                        continue
+
                 new_fm = _compute_fm_loss_multi_sample(
                     policy,
                     traj=trajectories[i],
@@ -276,12 +301,15 @@ def fpo_update(
                     noise_list=fixed_noise[i],
                     time_list=fixed_time[i],
                     batch_size=B,
+                    full_chunk_target=full_chunk_target,
+                    reduction=reduction,
                 )
 
                 old_fm = old_fm_per_traj[i].to(device=device, dtype=torch.float32)
                 new_fm_f = new_fm.float()
-                log_ratio = old_fm - new_fm_f
-                ratio = torch.exp(log_ratio.clamp(-20.0, 20.0))
+
+                log_ratio = (old_fm - new_fm_f).clamp(-log_ratio_clip, log_ratio_clip)
+                ratio = torch.exp(log_ratio)
 
                 clipped_ratio = torch.clamp(
                     ratio,
@@ -289,28 +317,35 @@ def fpo_update(
                     1.0 + config.clip_epsilon_high,
                 )
 
-                surr1 = ratio * adv[i]
-                surr2 = clipped_ratio * adv[i]
+                adv_t = torch.full_like(ratio, adv_i)
+                surr1 = ratio * adv_t
+                surr2 = clipped_ratio * adv_t
 
                 loss_i = -torch.min(surr1, surr2).mean() / n_idxs
                 loss_i.backward()
 
                 mb_loss += loss_i.item()
-                mb_kl += (new_fm_f.detach() - old_fm).abs().mean().item() / n_idxs
-                mb_clip_frac += ((ratio.detach() - 1.0).abs() > config.clip_epsilon).float().mean().item() / n_idxs
+                mb_shift += (new_fm_f.detach().mean() - old_fm.mean()).abs().item() / n_idxs
+                mb_clip_frac += (
+                    (ratio.detach() < 1.0 - config.clip_epsilon) | (ratio.detach() > 1.0 + config.clip_epsilon_high)
+                ).float().mean().item() / n_idxs
+                used += 1
+
+            if used == 0:
+                continue
 
             torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
             optimizer.step()
 
             total_loss += mb_loss
-            total_kl += mb_kl
+            total_shift += mb_shift
             total_clip_frac += mb_clip_frac
             num_updates += 1
 
     denom = max(num_updates, 1)
     return UpdateMetrics(
         avg_loss=total_loss / denom,
-        avg_kl=total_kl / denom,
+        avg_kl=total_shift / denom,
         avg_weight=total_clip_frac / denom,
     )
 

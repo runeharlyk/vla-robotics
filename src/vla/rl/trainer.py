@@ -162,61 +162,66 @@ def evaluate_and_checkpoint(
     Returns:
         Updated best success rate.
     """
-    if config.simulator == "libero":
-        task_sr_sum = 0.0
-        for spec in task_specs:
-            metrics = evaluate_smolvla(
-                policy,
-                instruction=spec.instruction,
-                simulator="libero",
-                num_episodes=config.eval_episodes,
-                max_steps=config.max_steps,
-                seed=config.seed + 20000,
-                suite=config.suite,
-                task_id=spec.libero_task_idx,
-                num_eval_envs=config.num_eval_envs,
+    prev_eval_zero_sample = policy.eval_zero_sample
+    policy.eval_zero_sample = True
+    try:
+        if config.simulator == "libero":
+            task_sr_sum = 0.0
+            for spec in task_specs:
+                metrics = evaluate_smolvla(
+                    policy,
+                    instruction=spec.instruction,
+                    simulator="libero",
+                    num_episodes=config.eval_episodes,
+                    max_steps=config.max_steps,
+                    seed=config.seed + 20000,
+                    suite=config.suite,
+                    task_id=spec.libero_task_idx,
+                    num_eval_envs=config.num_eval_envs,
+                )
+                print_metrics(
+                    metrics,
+                    tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
+                )
+                log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
+                log_data[f"{config.mode}/{spec.task_id}/eval/mean_reward"] = metrics.mean_reward
+                log_data[f"{config.mode}/{spec.task_id}/eval/mean_ep_len"] = metrics.mean_episode_length
+                task_sr_sum += metrics.success_rate
+            avg_sr = task_sr_sum / len(task_specs)
+            log_data[f"{config.mode}/eval/success_rate"] = avg_sr
+            best_success = save_best_checkpoint(
+                avg_sr,
+                best_success,
+                lambda: policy.save_checkpoint(save_path / "best"),
+                tag=config.mode,
             )
-            print_metrics(
-                metrics,
-                tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
+        else:
+            task_sr_sum = 0.0
+            for spec in task_specs:
+                metrics = evaluate_smolvla(
+                    policy,
+                    instruction=spec.instruction,
+                    simulator=config.simulator,
+                    env_id=spec.env_id or config.env_id,
+                    num_episodes=config.eval_episodes,
+                    max_steps=config.max_steps,
+                    seed=config.seed + 20000,
+                )
+                print_metrics(
+                    metrics,
+                    tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
+                )
+                log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
+                task_sr_sum += metrics.success_rate
+            avg_sr = task_sr_sum / len(task_specs)
+            best_success = save_best_checkpoint(
+                avg_sr,
+                best_success,
+                lambda: policy.save_checkpoint(save_path / "best"),
+                tag=config.mode,
             )
-            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
-            log_data[f"{config.mode}/{spec.task_id}/eval/mean_reward"] = metrics.mean_reward
-            log_data[f"{config.mode}/{spec.task_id}/eval/mean_ep_len"] = metrics.mean_episode_length
-            task_sr_sum += metrics.success_rate
-        avg_sr = task_sr_sum / len(task_specs)
-        log_data[f"{config.mode}/eval/success_rate"] = avg_sr
-        best_success = save_best_checkpoint(
-            avg_sr,
-            best_success,
-            lambda: policy.save_checkpoint(save_path / "best"),
-            tag=config.mode,
-        )
-    else:
-        task_sr_sum = 0.0
-        for spec in task_specs:
-            metrics = evaluate_smolvla(
-                policy,
-                instruction=spec.instruction,
-                simulator=config.simulator,
-                env_id=spec.env_id or config.env_id,
-                num_episodes=config.eval_episodes,
-                max_steps=config.max_steps,
-                seed=config.seed + 20000,
-            )
-            print_metrics(
-                metrics,
-                tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
-            )
-            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
-            task_sr_sum += metrics.success_rate
-        avg_sr = task_sr_sum / len(task_specs)
-        best_success = save_best_checkpoint(
-            avg_sr,
-            best_success,
-            lambda: policy.save_checkpoint(save_path / "best"),
-            tag=config.mode,
-        )
+    finally:
+        policy.eval_zero_sample = prev_eval_zero_sample
 
     return best_success
 

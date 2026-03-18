@@ -78,6 +78,7 @@ class SmolVLAPolicy(nn.Module):
         self.device = torch.device(device)
         self.dtype = dtype
         self.checkpoint = checkpoint
+        self.eval_zero_sample = False
 
         ckpt_config = self._load_ckpt_config(checkpoint)
         self.ckpt_config = ckpt_config
@@ -331,7 +332,10 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
             s = self._prepare_state_input(state, batch_size=1)
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            noise = None
+            if self.eval_zero_sample:
+                noise = torch.zeros((1, self.chunk_size, self.max_action_dim), device=self.device, dtype=self.dtype)
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[0, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
 
@@ -356,7 +360,14 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
             s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            noise = None
+            if self.eval_zero_sample:
+                noise = torch.zeros(
+                    (imgs.shape[0], self.chunk_size, self.max_action_dim),
+                    device=self.device,
+                    dtype=self.dtype,
+                )
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[:, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
 
@@ -468,6 +479,8 @@ class SmolVLAPolicy(nn.Module):
         fixed_noise: torch.Tensor,
         fixed_time: torch.Tensor,
         batch_size: int = 32,
+        full_chunk_target: bool = False,
+        reduction: str = "mean",
     ) -> torch.Tensor:
         """Compute per-timestep flow-matching loss in mini-batches.
 
@@ -492,7 +505,10 @@ class SmolVLAPolicy(nn.Module):
         use_amp = self.device.type == "cuda"
 
         actions = actions.to(self.device, dtype=self.dtype)
-        action_chunks, action_mask = self._build_rl_action_targets(actions)
+        if full_chunk_target:
+            action_chunks, action_mask = self._build_action_chunks(actions)
+        else:
+            action_chunks, action_mask = self._build_rl_action_targets(actions)
 
         for start in range(0, T, batch_size):
             end = min(start + batch_size, T)
@@ -523,11 +539,18 @@ class SmolVLAPolicy(nn.Module):
                     time=time,
                 )
 
-            losses = losses.float()
-            losses = losses[:, :, : self.action_dim]
+            losses = losses.float()[:, :, : self.action_dim]
             valid = target_mask.unsqueeze(-1).float()
-            n_valid_positions = target_mask.sum(dim=1).clamp(min=1.0)
-            per_step = (losses * valid).sum(dim=(1, 2)) / (n_valid_positions * self.action_dim)
+            per_pos = (losses * valid).mean(dim=2)
+
+            if reduction == "sum":
+                per_step = per_pos.sum(dim=1)
+            elif reduction == "mean":
+                n_valid_positions = target_mask.sum(dim=1).clamp(min=1.0)
+                per_step = per_pos.sum(dim=1) / n_valid_positions
+            else:
+                raise ValueError(f"Unknown reduction: {reduction}")
+
             all_losses.append(per_step)
 
         return torch.cat(all_losses)
