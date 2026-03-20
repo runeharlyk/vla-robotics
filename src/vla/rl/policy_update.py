@@ -111,7 +111,7 @@ def awr_update(
     B = config.fm_batch_size
 
     active_indices = [
-        i for i, traj in enumerate(trajectories) if traj.task_id not in skipped_task_ids and advantages[i] > 0
+        i for i, traj in enumerate(trajectories) if traj.task_id not in skipped_task_ids
     ]
     active_count = len(active_indices)
     if active_count == 0:

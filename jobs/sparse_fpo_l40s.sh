@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
-#BSUB -J sparse_awr_l40s
+#BSUB -J sparse_fpo_l40s
 #BSUB -q gpul40s
 #BSUB -W 24:00
 #BSUB -n 8
@@ -11,7 +11,7 @@
 #BSUB -u s234814@dtu.dk
 #BSUB -B
 #BSUB -N
-#BSUB -oo logs/sparse_awr_l40s/%J.out
+#BSUB -oo logs/sparse_fpo_l40s/%J.out
 # -------------------------------------------------
 . jobs/_env.sh
 
@@ -25,7 +25,7 @@ uv run python scripts/train_srpo.py \
   --libero-suite spatial \
   --task-ids 2 \
   --mode sparse_rl \
-  --update-method awr \
+  --update-method fpo \
   --advantage-mode leave_one_out \
   --seed 42 \
   --lr 5e-06 \
@@ -34,9 +34,11 @@ uv run python scripts/train_srpo.py \
   --trajs-per-task 32 \
   --num-rollout-envs 8 \
   --fm-batch-size 64 \
-  --awr-epochs 3 \
-  --awr-temperature 2.0 \
-  --kl-coeff 0.01 \
+  --ppo-epochs 2 \
+  --clip-epsilon 0.2 \
+  --clip-epsilon-high 0.28 \
+  --num-fm-noise-samples 4 \
+  --fpo-negative-adv-scale 0.25 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
   --eval-every 5 \
