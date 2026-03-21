@@ -23,8 +23,11 @@ class SRPOConfig(BaseTrainingConfig):
     adv_skip_threshold: float = 1e-6
     ppo_epochs: int = 4
     ppo_minibatch_trajs: int = 4
-    clip_epsilon: float = 0.2
-    clip_epsilon_high: float = 0.28
+    # FPO paper ablation (Kanazawa et al., 2025) shows ε=0.05 achieves
+    # 759.3 avg reward (best) vs ε=0.2 at 526.4 (worst, 31% degradation).
+    # Asymmetric high clip (SimpleVLA-RL / DAPO) uses a small margin above.
+    clip_epsilon: float = 0.05
+    clip_epsilon_high: float = 0.08
     awr_epochs: int = 2
     awr_temperature: float = 5.0
     awr_weight_clip: float = 20.0

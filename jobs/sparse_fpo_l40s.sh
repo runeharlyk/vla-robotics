@@ -28,17 +28,18 @@ uv run python scripts/train_srpo.py \
   --update-method fpo \
   --advantage-mode leave_one_out \
   --seed 42 \
-  --lr 5e-06 \
+  --lr 3e-06 \
   --max-grad-norm 10.0 \
-  --iterations 30 \
+  --iterations 50 \
   --trajs-per-task 32 \
   --num-rollout-envs 8 \
   --fm-batch-size 64 \
-  --ppo-epochs 2 \
-  --clip-epsilon 0.2 \
-  --clip-epsilon-high 0.28 \
+  --ppo-epochs 1 \
+  --clip-epsilon 0.05 \
+  --clip-epsilon-high 0.08 \
   --num-fm-noise-samples 4 \
-  --fpo-negative-adv-scale 0.25 \
+  --fpo-negative-adv-scale 1.0 \
+  --kl-coeff 0.01 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
   --eval-every 5 \

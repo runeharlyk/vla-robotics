@@ -274,9 +274,14 @@ def train_srpo(
 
     optimizer, trainable = config.build_optimizer(policy)
 
-    needs_ref = config.update_method is not UpdateMethod.FPO
+    # Create a reference policy for KL regularisation.
+    # For AWR and PPO this anchors the trust region.
+    # For FPO this prevents unbounded cumulative drift across iterations
+    # which caused catastrophic policy collapse (90% → 0% success rate).
+    # The ref_policy is refreshed each iteration (θ_old ← θ) at the
+    # top of the training loop.
     ref_policy: SmolVLAPolicy | None = None
-    if needs_ref:
+    if config.kl_coeff > 0 or config.update_method is not UpdateMethod.FPO:
         ref_policy = copy.deepcopy(policy)
         ref_policy.eval()
         for p in ref_policy.parameters():
@@ -338,6 +343,16 @@ def train_srpo(
     metrics_logger.log(log_data)
 
     for iteration in trange(1, config.num_iterations + 1, desc="Training iterations"):
+        # -- 0. Refresh reference policy: θ_old ← θ  --------------------
+        #    Per RIPT-VLA (Algorithm 1: "Set sampling policy π_ψ ← π_θ")
+        #    and SimpleVLA-RL's GRPO loop, the reference/old policy must
+        #    be refreshed each iteration so that KL regularisation anchors
+        #    to the *previous* iteration rather than to the stale initial
+        #    checkpoint.  Without this, KL ≈ 0 and the trust region is
+        #    meaningless.
+        if ref_policy is not None:
+            ref_policy.load_state_dict(policy.state_dict())
+
         # -- 1. Collect trajectories from all tasks -----------------------
         all_trajectories, per_task_successes = collect_all_trajectories(
             policy,
@@ -461,6 +476,7 @@ def train_srpo(
                 fixed_noise_per_traj,
                 fixed_time_per_traj,
                 config,
+                ref_policy=ref_policy,
             )
         elif config.update_method is UpdateMethod.PPO:
             assert ref_policy is not None

@@ -95,8 +95,19 @@ def leave_one_out_advantages_per_task(
             skipped_tasks.append(tid)
             continue
 
+        # Leave-one-out baseline: b_k = (1/(K-1)) * Σ_{j≠k} R_j
+        # Advantage: A_k = R_k - b_k
+        # Per RIPT-VLA (Section 3.2) and SimpleVLA-RL's GRPO formulation.
         baselines = (task_g.sum() - task_g) / (m - 1)
-        task_adv = (task_g - baselines).tolist()
+        raw_adv = task_g - baselines
+
+        # Z-score normalisation: Â_k = (A_k - μ_A) / σ_A
+        # Per GRPO (SimpleVLA-RL Eq. 5) and RIPT-VLA, advantages must be
+        # normalised to zero mean and unit variance.  Without this, binary
+        # rewards yield tiny raw advantages (e.g. 0.33 for success) that
+        # barely affect AWR weights (exp(0.33/5) ≈ 1.07) or FPO gradients.
+        adv_std = raw_adv.std().clamp(min=1e-8)
+        task_adv = ((raw_adv - raw_adv.mean()) / adv_std).tolist()
 
         for j, idx in enumerate(indices):
             advantages[idx] = task_adv[j]

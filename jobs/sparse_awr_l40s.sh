@@ -30,13 +30,13 @@ uv run python scripts/train_srpo.py \
   --seed 42 \
   --lr 5e-06 \
   --max-grad-norm 10.0 \
-  --iterations 30 \
+  --iterations 50 \
   --trajs-per-task 32 \
   --num-rollout-envs 8 \
   --fm-batch-size 64 \
   --awr-epochs 3 \
-  --awr-temperature 2.0 \
-  --kl-coeff 0.01 \
+  --awr-temperature 1.0 \
+  --kl-coeff 0.0 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
   --eval-every 5 \

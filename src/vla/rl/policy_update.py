@@ -105,6 +105,15 @@ def awr_update(
 ) -> UpdateMetrics:
     """Run advantage-weighted regression (AWR) policy update.
 
+    AWR weights each trajectory's FM loss by exp(advantage / β) and
+    optionally adds a per-timestep KL penalty against the reference
+    policy (refreshed each iteration in the training loop).
+
+    The KL approximation follows the FPO paper (Kanazawa et al., 2025):
+    the FM loss difference is a proxy for log-likelihood ratio, so the
+    squared per-timestep difference provides a Taylor-expansion KL
+    estimate: KL ≈ 0.5 * E[(L_ref(t) - L_θ(t))²].
+
     Returns:
         :class:`UpdateMetrics` with average loss, KL, and weight.
     """
@@ -117,6 +126,10 @@ def awr_update(
     if active_count == 0:
         return UpdateMetrics()
 
+    # Cache per-timestep ref FM losses for KL computation.
+    # These are compared per-timestep against current-policy losses,
+    # not reduced to scalar means — the old code used scalar-mean
+    # comparison which collapsed to ≈0.
     ref_losses_per_traj: list[torch.Tensor] = []
     if config.kl_coeff > 0:
         with torch.no_grad():
@@ -160,9 +173,25 @@ def awr_update(
 
             traj_loss = weight * fm_loss / active_count
 
+            # Per-timestep KL approximation:
+            #   KL ≈ 0.5 * E_t[(L_ref(t) - L_θ(t))²]
+            # This uses the FPO paper's insight that FM loss differences
+            # proxy log-likelihood ratios. Computing this per-timestep
+            # (not from scalar means) gives a meaningful divergence
+            # signal. The old code computed 0.5*(mean_ref - mean_cur)²
+            # which was always ≈ 0 due to Jensen's inequality.
             if config.kl_coeff > 0 and ref_losses_per_traj:
-                ref_fm = ref_losses_per_traj[i].mean()
-                kl_approx = 0.5 * (ref_fm - fm_loss) ** 2
+                ref_fm_t = ref_losses_per_traj[i]  # (T,) per-timestep
+                cur_fm_t = _compute_fm_loss_batched(
+                    policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
+                ).detach()  # detach: KL is a penalty, not main gradient
+                kl_per_step = 0.5 * (ref_fm_t - cur_fm_t) ** 2
+                kl_approx = kl_per_step.mean()
                 traj_loss = traj_loss + config.kl_coeff * kl_approx / active_count
                 epoch_kl += (config.kl_coeff * kl_approx).item()
 
@@ -232,7 +261,24 @@ def fpo_update(
     fixed_noise: list[list[torch.Tensor]],
     fixed_time: list[list[torch.Tensor]],
     config: SRPOConfig,
+    ref_policy: SmolVLAPolicy | None = None,
 ) -> UpdateMetrics:
+    """FPO (Flow Policy Optimization) update with PPO-clip objective.
+
+    Computes the FPO ratio r = exp(L_old - L_new) as a proxy for the
+    likelihood ratio, following Kanazawa et al., 2025. Uses asymmetric
+    clipping (SimpleVLA-RL / DAPO) and optional KL regularization.
+
+    KL regularization (controlled by ``config.kl_coeff``) prevents
+    catastrophic policy collapse by penalizing deviation from the
+    reference policy. Without this, the cumulative drift across
+    iterations is unconstrained and the policy can rapidly degrade
+    after initial improvement — the exact failure mode observed in
+    the FPO training run that collapsed from 90% to 0%.
+
+    Returns:
+        :class:`UpdateMetrics` with avg surrogate loss, KL shift, and clip fraction.
+    """
     B = config.fm_batch_size
     M = len(trajectories)
 
@@ -260,6 +306,24 @@ def fpo_update(
                 reduction=reduction,
             )
             old_fm_per_traj.append(old_fm.detach())
+
+    # Cache reference-policy FM losses for KL penalty.
+    # This prevents unbounded cumulative drift across iterations.
+    ref_fm_per_traj: list[torch.Tensor] = []
+    if config.kl_coeff > 0 and ref_policy is not None:
+        with torch.no_grad():
+            for i, traj in enumerate(trajectories):
+                ref_fm = _compute_fm_loss_multi_sample(
+                    ref_policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
+                    full_chunk_target=full_chunk_target,
+                    reduction=reduction,
+                )
+                ref_fm_per_traj.append(ref_fm.detach())
 
     policy.train()
 
@@ -322,6 +386,18 @@ def fpo_update(
                 surr2 = clipped_ratio * adv_t
 
                 loss_i = -torch.min(surr1, surr2).mean() / n_idxs
+
+                # KL penalty: prevents unbounded cumulative drift.
+                # Per-timestep: KL ≈ 0.5 * (L_ref(t) - L_θ(t))²
+                # This is the same Taylor-expansion approximation used
+                # in the PPO update. Without it, FPO can collapse
+                # catastrophically after a few good iterations.
+                if ref_fm_per_traj:
+                    ref_fm = ref_fm_per_traj[i].to(device=device, dtype=torch.float32)
+                    kl_per_step = 0.5 * (ref_fm - new_fm_f) ** 2
+                    kl_penalty = config.kl_coeff * kl_per_step.mean() / n_idxs
+                    loss_i = loss_i + kl_penalty
+
                 loss_i.backward()
 
                 mb_loss += loss_i.item()
