@@ -128,6 +128,9 @@ def awr_update(
     # These are compared per-timestep against current-policy losses,
     # not reduced to scalar means — the old code used scalar-mean
     # comparison which collapsed to ≈0.
+    # NOTE: _compute_fm_loss_batched always returns a (T,) tensor natively.
+    # The `reduction="mean"` argument reduces the chunk_size dimension,
+    # not the time dimension. Do not set to "none" as that throws a ValueError.
     ref_losses_per_traj: list[torch.Tensor] = []
     if config.kl_coeff > 0:
         with torch.no_grad():
@@ -139,7 +142,7 @@ def awr_update(
                     fixed_noise[i],
                     fixed_time[i],
                     batch_size=B,
-                    reduction="none",
+                    reduction="mean",
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
 
@@ -161,7 +164,9 @@ def awr_update(
             adv_i = advantages[i]
             weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
 
-            # Request per-timestep loss by using reduction="none"
+            # Compute per-timestep loss (returns (T,) natively).
+            # The `reduction="mean"` arg reduces the action chunk dimension,
+            # NOT the sequence time dimension. Setting it to "none" will crash.
             fm_loss_t = _compute_fm_loss_batched(
                 policy,
                 traj,
@@ -169,7 +174,7 @@ def awr_update(
                 fixed_noise[i],
                 fixed_time[i],
                 batch_size=B,
-                reduction="none",
+                reduction="mean",
             )
             
             fm_loss = fm_loss_t.mean()
