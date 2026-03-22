@@ -409,37 +409,6 @@ class SmolVLAPolicy(nn.Module):
 
         return {"loss": loss}
 
-    def _build_rl_action_targets(
-        self,
-        actions: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        T = actions.shape[0]
-        actions = self._normalize_action(actions)
-        actions = self._prepare_action(actions)
-
-        chunks = torch.zeros(
-            T,
-            self.chunk_size,
-            self.max_action_dim,
-            device=actions.device,
-            dtype=actions.dtype,
-        )
-        mask = torch.zeros(
-            T,
-            self.chunk_size,
-            device=actions.device,
-            dtype=torch.bool,
-        )
-
-        for t in range(T):
-            end = min(T, t + self.chunk_size)
-            n = end - t
-            chunks[t, :n] = actions[t:end]
-            mask[t, :n] = True
-
-        mask[:, 1:] = False
-        return chunks, mask
-
     def _build_action_chunks(
         self,
         actions: torch.Tensor,
@@ -468,6 +437,9 @@ class SmolVLAPolicy(nn.Module):
             chunks[t, :n] = actions[t:end]
             mask[t, :n] = True
 
+        # NOTE: The full causal mask is preserved for all RL algorithms.
+        # An earlier version zeroed out positions 1..C-1 with `mask[:, 1:] = False`
+        # for AWR, which starved the model of 90% of its learning signal.
         return chunks, mask
 
     def compute_fm_loss_batched(
@@ -479,7 +451,6 @@ class SmolVLAPolicy(nn.Module):
         fixed_noise: torch.Tensor,
         fixed_time: torch.Tensor,
         batch_size: int = 32,
-        full_chunk_target: bool = False,
         reduction: str = "mean",
     ) -> torch.Tensor:
         """Compute per-timestep flow-matching loss in mini-batches.
@@ -505,10 +476,7 @@ class SmolVLAPolicy(nn.Module):
         use_amp = self.device.type == "cuda"
 
         actions = actions.to(self.device, dtype=self.dtype)
-        if full_chunk_target:
-            action_chunks, action_mask = self._build_action_chunks(actions)
-        else:
-            action_chunks, action_mask = self._build_rl_action_targets(actions)
+        action_chunks, action_mask = self._build_action_chunks(actions)
 
         for start in range(0, T, batch_size):
             end = min(start + batch_size, T)

@@ -35,12 +35,13 @@ uv run python scripts/train_srpo.py \
   --num-rollout-envs 8 \
   --fm-batch-size 64 \
   --awr-epochs 3 \
-  --awr-temperature 1.0 \
-  --kl-coeff 0.0 \
+  --awr-temperature 0.5 \
+  --kl-coeff 0.01 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
   --eval-every 5 \
   --eval-episodes 50 \
   --max-steps 280 \
   --gradient-checkpointing \
+  --wandb-name "v2_awr_fixed" \
   --wandb

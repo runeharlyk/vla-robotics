@@ -53,7 +53,6 @@ def _compute_fm_loss_batched(
     fixed_noise: torch.Tensor,
     fixed_time: torch.Tensor,
     batch_size: int = 32,
-    full_chunk_target: bool = False,
     reduction: str = "mean",
 ) -> torch.Tensor:
     """Compute per-timestep FM loss in mini-batches.
@@ -71,7 +70,6 @@ def _compute_fm_loss_batched(
         fixed_noise=fixed_noise[:T],
         fixed_time=fixed_time[:T],
         batch_size=batch_size,
-        full_chunk_target=full_chunk_target,
         reduction=reduction,
     )
 
@@ -141,6 +139,7 @@ def awr_update(
                     fixed_noise[i],
                     fixed_time[i],
                     batch_size=B,
+                    reduction="none",
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
 
@@ -162,15 +161,18 @@ def awr_update(
             adv_i = advantages[i]
             weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
 
-            fm_loss = _compute_fm_loss_batched(
+            # Request per-timestep loss by using reduction="none"
+            fm_loss_t = _compute_fm_loss_batched(
                 policy,
                 traj,
                 instrs_per_traj[i],
                 fixed_noise[i],
                 fixed_time[i],
                 batch_size=B,
-            ).mean()
-
+                reduction="none",
+            )
+            
+            fm_loss = fm_loss_t.mean()
             traj_loss = weight * fm_loss / active_count
 
             # Per-timestep KL approximation:
@@ -182,15 +184,7 @@ def awr_update(
             # which was always ≈ 0 due to Jensen's inequality.
             if config.kl_coeff > 0 and ref_losses_per_traj:
                 ref_fm_t = ref_losses_per_traj[i]  # (T,) per-timestep
-                cur_fm_t = _compute_fm_loss_batched(
-                    policy,
-                    traj,
-                    instrs_per_traj[i],
-                    fixed_noise[i],
-                    fixed_time[i],
-                    batch_size=B,
-                ).detach()  # detach: KL is a penalty, not main gradient
-                kl_per_step = 0.5 * (ref_fm_t - cur_fm_t) ** 2
+                kl_per_step = 0.5 * (ref_fm_t - fm_loss_t) ** 2
                 kl_approx = kl_per_step.mean()
                 traj_loss = traj_loss + config.kl_coeff * kl_approx / active_count
                 epoch_kl += (config.kl_coeff * kl_approx).item()
@@ -223,7 +217,6 @@ def _compute_fm_loss_multi_sample(
     noise_list: list[torch.Tensor],
     time_list: list[torch.Tensor],
     batch_size: int,
-    full_chunk_target: bool = False,
     reduction: str = "mean",
 ) -> torch.Tensor:
     """Compute per-timestep FM loss averaged over N noise/time samples.
@@ -244,7 +237,6 @@ def _compute_fm_loss_multi_sample(
             noise,
             time,
             batch_size=batch_size,
-            full_chunk_target=full_chunk_target,
             reduction=reduction,
         )
         losses.append(loss)
@@ -286,7 +278,6 @@ def fpo_update(
         return UpdateMetrics()
 
     device = next(policy.parameters()).device
-    full_chunk_target = bool(getattr(config, "fpo_full_chunk_target", True))
     reduction = getattr(config, "fpo_loss_reduction", "sum")
     positive_only = bool(getattr(config, "fpo_positive_adv_only", False))
     negative_scale = float(getattr(config, "fpo_negative_adv_scale", 0.25))
@@ -302,7 +293,6 @@ def fpo_update(
                 fixed_noise[i],
                 fixed_time[i],
                 batch_size=B,
-                full_chunk_target=full_chunk_target,
                 reduction=reduction,
             )
             old_fm_per_traj.append(old_fm.detach())
@@ -320,7 +310,6 @@ def fpo_update(
                     fixed_noise[i],
                     fixed_time[i],
                     batch_size=B,
-                    full_chunk_target=full_chunk_target,
                     reduction=reduction,
                 )
                 ref_fm_per_traj.append(ref_fm.detach())
@@ -365,7 +354,6 @@ def fpo_update(
                     noise_list=fixed_noise[i],
                     time_list=fixed_time[i],
                     batch_size=B,
-                    full_chunk_target=full_chunk_target,
                     reduction=reduction,
                 )
 
@@ -389,9 +377,11 @@ def fpo_update(
 
                 # KL penalty: prevents unbounded cumulative drift.
                 # Per-timestep: KL ≈ 0.5 * (L_ref(t) - L_θ(t))²
-                # This is the same Taylor-expansion approximation used
-                # in the PPO update. Without it, FPO can collapse
-                # catastrophically after a few good iterations.
+                # NOTE: FPO uses `reduction="sum"`, meaning it squares the SUM loss over the chunk.
+                # Do NOT normalize or scale this down by action/chunk dimensions!
+                # Squaring the full sum intentionally produces a mathematically massive KL penalty,
+                # which acts as the rigid anchor necessary to stabilize the PPO surrogate from 60->94% SR.
+                # Scaling it down mathematically breaks the regularization and causes catastrophic policy drift.
                 if ref_fm_per_traj:
                     ref_fm = ref_fm_per_traj[i].to(device=device, dtype=torch.float32)
                     kl_per_step = 0.5 * (ref_fm - new_fm_f) ** 2

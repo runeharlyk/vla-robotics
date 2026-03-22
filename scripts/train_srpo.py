@@ -275,6 +275,7 @@ def main(
         help="Use distance-based failure rewards (SRPO). Disable for sparse-only rewards.",
     ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
+    wandb_name: str = typer.Option(None, "--wandb-name", help="Optional prefix for the wandb run name"),
     fpo_full_chunk_target: bool = typer.Option(True, "--fpo-full-chunk-target/--no-fpo-full-chunk-target"),
     fpo_loss_reduction: str = typer.Option("sum", "--fpo-loss-reduction"),
     fpo_positive_adv_only: bool = typer.Option(False, "--fpo-positive-adv-only/--no-fpo-positive-adv-only"),
@@ -405,9 +406,10 @@ def main(
             num_demos=num_demos,
             trajs_per_task_per_iter=trajs_per_task,
         )
+        final_name = f"{wandb_name}_{mode}_{run_tag}" if wandb_name else f"{mode}_{run_tag}"
         run = wandb.init(
             project="srpo-smolvla",
-            name=f"{mode}_{run_tag}",
+            name=final_name,
             config=wb_config,
         )
 

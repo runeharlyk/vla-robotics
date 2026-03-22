@@ -23,7 +23,7 @@ uv run python scripts/train_srpo.py \
   --simulator libero \
   --suite spatial \
   --libero-suite spatial \
-  --task-ids 2 \
+  --task-ids 5 \
   --mode sparse_rl \
   --update-method fpo \
   --advantage-mode leave_one_out \
@@ -46,4 +46,5 @@ uv run python scripts/train_srpo.py \
   --eval-episodes 50 \
   --max-steps 280 \
   --gradient-checkpointing \
+  --wandb-name "v2_fpo_fixed" \
   --wandb
