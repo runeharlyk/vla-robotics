@@ -404,6 +404,7 @@ def train_srpo(
             adv_result = leave_one_out_advantages_per_task(
                 g_values=g_values,
                 task_ids=task_ids,
+                update_method=config.update_method,
                 skip_threshold=config.adv_skip_threshold,
             )
         else:
