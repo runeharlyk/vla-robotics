@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
-#BSUB -J smolvla_eval_libero_all_l40s
-#BSUB -q gpul40s
+#BSUB -J smolvla_eval_libero_all_a100
+#BSUB -q gpua100
 #BSUB -W 6:00
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
@@ -11,7 +11,7 @@
 #BSUB -u s234814@dtu.dk
 #BSUB -B
 #BSUB -N
-#BSUB -oo logs/smolvla_eval_libero_all_l40s/%J.out
+#BSUB -oo logs/smolvla_eval_libero_all_a100/%J.out
 # -------------------------------------------------
 . jobs/_env.sh
 

@@ -23,14 +23,14 @@ uv run python scripts/train_srpo.py \
   --simulator libero \
   --suite spatial \
   --libero-suite spatial \
-  --task-ids 5 \
+  --task-ids 2 \
   --mode sparse_rl \
   --update-method fpo \
   --advantage-mode leave_one_out \
   --seed 42 \
   --lr 3e-06 \
   --max-grad-norm 10.0 \
-  --iterations 50 \
+  --iterations 35 \
   --trajs-per-task 32 \
   --num-rollout-envs 8 \
   --fm-batch-size 64 \
@@ -38,13 +38,13 @@ uv run python scripts/train_srpo.py \
   --clip-epsilon 0.05 \
   --clip-epsilon-high 0.08 \
   --num-fm-noise-samples 4 \
-  --fpo-negative-adv-scale 1.0 \
+  --fpo-negative-adv-scale 0.5 \
   --kl-coeff 0.01 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
-  --eval-every 5 \
+  --eval-every 10 \
   --eval-episodes 50 \
-  --max-steps 280 \
+  --max-steps 220 \
   --gradient-checkpointing \
-  --wandb-name "v2_fpo_fixed" \
+  --wandb-name "fix-rl-neg-adv-0.5-max-steps-220" \
   --wandb
