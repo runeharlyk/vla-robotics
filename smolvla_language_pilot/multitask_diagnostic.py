@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
         default="smolvla_language_pilot/instruction_variants.json",
         help="Path to the instruction_variants.json produced by instruction_variants.py.",
     )
-    parser.add_argument("--checkpoint", default="lerobot/smolvla_base")
+    parser.add_argument("--checkpoint", default="HuggingFaceVLA/smolvla_libero")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(

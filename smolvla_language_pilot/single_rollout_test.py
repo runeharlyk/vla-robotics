@@ -20,7 +20,7 @@ from vla.models.smolvla import SmolVLAPolicy
 # CONFIG
 # ------------------------------------------------
 
-CHECKPOINT = "lerobot/smolvla_base"
+CHECKPOINT = "HuggingFaceVLA/smolvla_libero"
 DEVICE = "cuda"
 
 LLM_MODEL = "Qwen/Qwen2.5-3B-Instruct"

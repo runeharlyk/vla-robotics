@@ -45,7 +45,7 @@ def _load_rollout(path: str) -> tuple[torch.Tensor, torch.Tensor, str]:
 
 
 def load_policy_bundle(
-    checkpoint: str = "lerobot/smolvla_base",
+    checkpoint: str = "HuggingFaceVLA/smolvla_libero",
     device: str = "cuda",
 ) -> dict:
     policy_device = torch.device(device if (device == "cuda" and torch.cuda.is_available()) else "cpu")
