@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from vla.utils.seed import seed_everything
 
 try:
     from tqdm.auto import tqdm
@@ -194,13 +195,6 @@ def print_variants(result: InstructionVariants) -> None:
     print(json.dumps(result.as_dict(), indent=2, ensure_ascii=False))
 
 
-def _set_seed(seed: int) -> None:
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-
-
 def load_llm_bundle(llm_model: str = "Qwen/Qwen2.5-3B-Instruct") -> dict:
     tokenizer = AutoTokenizer.from_pretrained(llm_model)
     if tokenizer.pad_token is None:
@@ -295,7 +289,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    _set_seed(args.seed)
+    seed_everything(args.seed)
     llm_bundle = load_llm_bundle(llm_model=args.llm_model)
 
     rollouts = [str(Path(r).as_posix()) for r in args.rollouts]

@@ -29,6 +29,8 @@ import numpy as np
 import torch
 
 from vla.models.smolvla import SmolVLAPolicy
+from vla.utils.device import get_device
+from vla.utils.seed import seed_everything
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +66,7 @@ def parse_args() -> argparse.Namespace:
 # ---------------------------------------------------------------------------
 
 def _load_policy(checkpoint: str, device: str) -> dict:
-    policy_device = torch.device(device if (device == "cuda" and torch.cuda.is_available()) else "cpu")
+    policy_device = get_device(device)
     policy = SmolVLAPolicy(checkpoint, action_dim=7, device=str(policy_device))
     policy.eval()
     return {
@@ -74,14 +76,6 @@ def _load_policy(checkpoint: str, device: str) -> dict:
     }
 
 
-def _set_seed(seed: int) -> None:
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
 
 def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: dict, seed: int) -> torch.Tensor:
     """Run the policy on a trajectory, re-querying at every timestep and taking only the
@@ -90,7 +84,7 @@ def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: d
     The model sees a fresh observation at every step — eliminating the chunking sawtooth
     and giving a pure measure of how the language instruction affects the immediate next action.
     """
-    _set_seed(seed)
+    seed_everything(seed)
     policy = bundle["policy"]
     device = bundle["device"]
 

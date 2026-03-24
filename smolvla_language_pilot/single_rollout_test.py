@@ -12,6 +12,8 @@ except Exception:
     tqdm = None
 
 from vla.models.smolvla import SmolVLAPolicy
+from vla.utils.device import get_device
+from vla.utils.seed import seed_everything
 
 
 
@@ -76,11 +78,7 @@ CONTROLLED_VARIANTS = {
 # ------------------------------------------------
 SEED = 0
 
-torch.manual_seed(SEED)
-np.random.seed(SEED)
-
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(SEED)
+seed_everything(SEED)
 
 # ------------------------------------------------
 # Load rollout
@@ -96,7 +94,7 @@ print("Images:", images.shape)
 print("States:", states.shape)
 print("Instruction:", base_instruction)
 
-device_obj = torch.device(DEVICE if torch.cuda.is_available() else "cpu")
+device_obj = get_device(DEVICE)
 
 
 # ------------------------------------------------
@@ -282,11 +280,7 @@ for l, v in zip(labels, variants):
 
 def run_with_instruction(instruction):
 
-    torch.manual_seed(0)
-    np.random.seed(0)
-
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(0)
+    seed_everything(0)
 
     if hasattr(policy, "reset"):
         policy.reset()

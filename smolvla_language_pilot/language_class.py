@@ -9,6 +9,7 @@ import numpy as np
 import torch
 
 from vla.models.smolvla import SmolVLAPolicy
+from vla.utils.seed import seed_everything
 
 
 @dataclass
@@ -27,13 +28,6 @@ class LanguageRunResult:
     overall_mean_curve: torch.Tensor
     peak_timestep: int
     peak_frame: np.ndarray
-
-
-def _set_seed(seed: int) -> None:
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
 
 
 def _load_rollout(path: str) -> tuple[torch.Tensor, torch.Tensor, str]:
@@ -66,7 +60,7 @@ def run_with_instruction(
     policy_bundle: dict,
     seed: int = 0,
 ) -> torch.Tensor:
-    _set_seed(seed)
+    seed_everything(seed)
 
     policy = policy_bundle["policy"]
     device_obj = policy_bundle["device"]
