@@ -28,8 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from lerobot.policies.factory import make_pre_post_processors
-from vla.models.smolvla import smolvla
+from vla.models.smolvla import SmolVLAPolicy
 
 
 # ---------------------------------------------------------------------------
@@ -66,19 +65,12 @@ def parse_args() -> argparse.Namespace:
 
 def _load_policy(checkpoint: str, device: str) -> dict:
     policy_device = torch.device(device if (device == "cuda" and torch.cuda.is_available()) else "cpu")
-    policy, model_id, _ = smolvla(checkpoint, str(policy_device))
+    policy = SmolVLAPolicy(checkpoint, action_dim=7, device=str(policy_device))
     policy.eval()
-    preprocessor, postprocessor = make_pre_post_processors(
-        policy.config,
-        model_id,
-        preprocessor_overrides={"device_processor": {"device": str(policy_device)}},
-    )
     return {
         "policy": policy,
-        "preprocessor": preprocessor,
-        "postprocessor": postprocessor,
         "device": policy_device,
-        "dtype": next(policy.parameters()).dtype,
+        "dtype": policy.dtype,
     }
 
 
@@ -100,24 +92,13 @@ def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: d
     """
     _set_seed(seed)
     policy = bundle["policy"]
-    pre = bundle["preprocessor"]
-    post = bundle["postprocessor"]
     device = bundle["device"]
-    dtype = bundle["dtype"]
-    use_amp = device.type == "cuda"
 
     actions = []
     with torch.inference_mode():
         for img, state in zip(images, states):
-            batch = {"observation.state": state.unsqueeze(0).to(device, dtype=dtype), "task": [instruction]}
-            for key in policy.config.input_features:
-                if key.startswith("observation.images."):
-                    batch[key] = img.unsqueeze(0).to(device, dtype=dtype)
-            batch = pre(batch)
-            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
-                # Fresh forward pass at every step; only the first action of the chunk is used.
-                chunk = policy.predict_action_chunk(batch)   # (1, chunk_size, action_dim)
-            actions.append(post(chunk[:, 0, :]).squeeze(0).cpu())
+            action = policy.predict_action(img, instruction, state)
+            actions.append(action.cpu())
     return torch.stack(actions)
 
 

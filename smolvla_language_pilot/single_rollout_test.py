@@ -11,8 +11,7 @@ try:
 except Exception:
     tqdm = None
 
-from lerobot.policies.factory import make_pre_post_processors
-from vla.models.smolvla import smolvla
+from vla.models.smolvla import SmolVLAPolicy
 
 
 
@@ -104,16 +103,10 @@ device_obj = torch.device(DEVICE if torch.cuda.is_available() else "cpu")
 # Load VLA policy
 # ------------------------------------------------
 
-policy, model_id, _ = smolvla(CHECKPOINT, str(device_obj))
+policy = SmolVLAPolicy(CHECKPOINT, action_dim=7, device=str(device_obj))
 policy.eval()
 
-preprocessor, postprocessor = make_pre_post_processors(
-    policy.config,
-    model_id,
-    preprocessor_overrides={"device_processor": {"device": str(device_obj)}},
-)
-
-model_dtype = next(policy.parameters()).dtype
+model_dtype = policy.dtype
 
 
 # ------------------------------------------------
@@ -306,26 +299,9 @@ def run_with_instruction(instruction):
 
         for img, state in zip(images, states):
 
-            batch = {
-                "observation.state": state.unsqueeze(0).to(device_obj, dtype=model_dtype),
-                "task": [instruction],
-            }
+            action = policy.predict_action(img, instruction, state)
 
-            for key in policy.config.input_features:
-
-                if key.startswith("observation.images."):
-
-                    batch[key] = img.unsqueeze(0).to(device_obj, dtype=model_dtype)
-
-            batch = preprocessor(batch)
-
-            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
-
-                action = policy.select_action(batch)
-
-            action = postprocessor(action)
-
-            actions.append(action.squeeze(0).cpu())
+            actions.append(action.cpu())
 
     return torch.stack(actions)
 

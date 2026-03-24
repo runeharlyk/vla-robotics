@@ -8,8 +8,7 @@ import h5py
 import numpy as np
 import torch
 
-from lerobot.policies.factory import make_pre_post_processors
-from vla.models.smolvla import smolvla
+from vla.models.smolvla import SmolVLAPolicy
 
 
 @dataclass
@@ -50,22 +49,13 @@ def load_policy_bundle(
     device: str = "cuda",
 ) -> dict:
     policy_device = torch.device(device if (device == "cuda" and torch.cuda.is_available()) else "cpu")
-    policy, model_id, _ = smolvla(checkpoint, str(policy_device))
+    policy = SmolVLAPolicy(checkpoint, action_dim=7, device=str(policy_device))
     policy.eval()
-
-    preprocessor, postprocessor = make_pre_post_processors(
-        policy.config,
-        model_id,
-        preprocessor_overrides={"device_processor": {"device": str(policy_device)}},
-    )
 
     return {
         "policy": policy,
-        "model_id": model_id,
-        "preprocessor": preprocessor,
-        "postprocessor": postprocessor,
         "device": policy_device,
-        "model_dtype": next(policy.parameters()).dtype,
+        "model_dtype": policy.dtype,
     }
 
 
@@ -79,35 +69,17 @@ def run_with_instruction(
     _set_seed(seed)
 
     policy = policy_bundle["policy"]
-    preprocessor = policy_bundle["preprocessor"]
-    postprocessor = policy_bundle["postprocessor"]
     device_obj = policy_bundle["device"]
-    model_dtype = policy_bundle["model_dtype"]
 
     if hasattr(policy, "reset"):
         policy.reset()
 
     actions = []
-    use_amp = device_obj.type == "cuda"
 
     with torch.inference_mode():
         for img, state in zip(images, states):
-            batch = {
-                "observation.state": state.unsqueeze(0).to(device_obj, dtype=model_dtype),
-                "task": [instruction],
-            }
-
-            for key in policy.config.input_features:
-                if key.startswith("observation.images."):
-                    batch[key] = img.unsqueeze(0).to(device_obj, dtype=model_dtype)
-
-            batch = preprocessor(batch)
-
-            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
-                action = policy.select_action(batch)
-
-            action = postprocessor(action)
-            actions.append(action.squeeze(0).cpu())
+            action = policy.predict_action(img, instruction, state)
+            actions.append(action.cpu())
 
     return torch.stack(actions)
 
