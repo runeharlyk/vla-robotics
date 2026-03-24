@@ -3,10 +3,10 @@
 # ---------------- LSF directives ----------------
 #BSUB -J sparse_fpo_l40s
 #BSUB -q gpul40s
-#BSUB -W 24:00
-#BSUB -n 8
+#BSUB -W 16:00
+#BSUB -n 16
 #BSUB -R "span[hosts=1]"
-#BSUB -R "rusage[mem=8GB]"
+#BSUB -R "rusage[mem=4GB]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -u s234814@dtu.dk
 #BSUB -B
@@ -38,13 +38,13 @@ uv run python scripts/train_srpo.py \
   --clip-epsilon 0.05 \
   --clip-epsilon-high 0.08 \
   --num-fm-noise-samples 4 \
-  --fpo-negative-adv-scale 0.5 \
+  --fpo-negative-adv-scale 0.75 \
   --kl-coeff 0.01 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
   --eval-every 10 \
   --eval-episodes 50 \
   --max-steps 220 \
-  --gradient-checkpointing \
-  --wandb-name "fix-rl-neg-adv-0.5-max-steps-220" \
+  --no-gradient-checkpointing \
+  --wandb-name "v5-t2-fpo-no-checkpoint-neg-adv-0.75" \
   --wandb
