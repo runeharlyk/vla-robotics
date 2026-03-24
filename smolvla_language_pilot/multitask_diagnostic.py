@@ -33,6 +33,9 @@ from vla.utils.device import get_device
 from vla.utils.seed import seed_everything
 
 
+device = get_device()
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -61,23 +64,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# ---------------------------------------------------------------------------
-# Policy
-# ---------------------------------------------------------------------------
-
-def _load_policy(checkpoint: str, device: str) -> dict:
-    policy_device = get_device(device)
-    policy = SmolVLAPolicy(checkpoint, action_dim=7, device=str(policy_device))
-    policy.eval()
-    return {
-        "policy": policy,
-        "device": policy_device,
-        "dtype": policy.dtype,
-    }
-
-
-
-def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: dict, seed: int) -> torch.Tensor:
+def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, policy: SmolVLAPolicy, seed: int) -> torch.Tensor:
     """Run the policy on a trajectory, re-querying at every timestep and taking only the
     first predicted action from each chunk (receding-horizon, window=1).
 
@@ -85,8 +72,6 @@ def _run(instruction: str, images: torch.Tensor, states: torch.Tensor, bundle: d
     and giving a pure measure of how the language instruction affects the immediate next action.
     """
     seed_everything(seed)
-    policy = bundle["policy"]
-    device = bundle["device"]
 
     actions = []
     with torch.inference_mode():
@@ -193,7 +178,8 @@ def run_sweep(args: argparse.Namespace) -> None:
     print(f"  H5 files to sweep: {h5_paths}")
 
     print("Loading policy …")
-    bundle = _load_policy(args.checkpoint, args.device)
+    policy = SmolVLAPolicy(args.checkpoint, action_dim=7, device=str(device))
+    policy.eval()
 
     type_l2_curves: dict[str, list[torch.Tensor]] = defaultdict(list)
     type_rel_l2_curves: dict[str, list[torch.Tensor]] = defaultdict(list)
@@ -207,12 +193,12 @@ def run_sweep(args: argparse.Namespace) -> None:
             n_variants = sum(len(v) for v in variants_by_type.values())
             print(f"  [task {task_index}] '{task_instruction}' — {images.shape[0]} steps, {n_variants} variants", flush=True)
 
-            base_actions = _run(task_instruction, images, states, bundle, args.seed)
+            base_actions = _run(task_instruction, images, states, policy, args.seed)
 
             for variant_type, variant_list in variants_by_type.items():
                 for i, variant_text in enumerate(variant_list):
                     print(f"    [{variant_type} {i+1}/{len(variant_list)}] '{variant_text}'", flush=True)
-                    variant_actions = _run(variant_text, images, states, bundle, args.seed)
+                    variant_actions = _run(variant_text, images, states, policy, args.seed)
                     T = min(base_actions.shape[0], variant_actions.shape[0])
                     l2 = torch.norm(variant_actions[:T] - base_actions[:T], dim=-1)
                     base_norm = torch.norm(base_actions[:T], dim=-1).clamp(min=1e-8)
