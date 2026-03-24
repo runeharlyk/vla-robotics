@@ -163,7 +163,7 @@ def evaluate_and_checkpoint(
         Updated best success rate.
     """
     prev_eval_zero_sample = policy.eval_zero_sample
-    policy.eval_zero_sample = True
+    policy.eval_zero_sample = False
     try:
         if config.simulator == "libero":
             task_sr_sum = 0.0
