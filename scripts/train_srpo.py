@@ -41,9 +41,7 @@ from vla.constants import (
     UpdateMethod,
     WorldModelType,
 )
-from vla.data.dataset import FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
-from vla.rl.rollout import Trajectory
 from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo
 from vla.training.metrics_logger import MetricsLogger
 from vla.utils import get_device, run_id, seed_everything
@@ -150,6 +148,8 @@ def _build_tasks(
                 demo_trajectories[task_key] = trajs
 
         return task_specs, demo_trajectories, state_dim, ACTION_DIM
+
+    from vla.data.dataset import FewDemoDataset
 
     if task_ids is None:
         search_dir = data_dir or PREPROCESSED_DIR
