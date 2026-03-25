@@ -1,6 +1,5 @@
 from vla.rl.advantage import normalize_advantages_per_task  # noqa: F401
 from vla.rl.config import SRPOConfig, TaskSpec  # noqa: F401
-from vla.rl.maniskill_rollout import ManiSkillRollout  # noqa: F401
 from vla.rl.policy_update import (  # noqa: F401
     UpdateMetrics,
     awr_update,
