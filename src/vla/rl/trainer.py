@@ -165,13 +165,13 @@ def evaluate_and_checkpoint(
     prev_eval_zero_sample = policy.eval_zero_sample
     policy.eval_zero_sample = False
     try:
-        if config.simulator == "libero":
+        if config.simulator is Simulator.LIBERO:
             task_sr_sum = 0.0
             for spec in task_specs:
                 metrics = evaluate_smolvla(
                     policy,
                     instruction=spec.instruction,
-                    simulator="libero",
+                    simulator=config.simulator,
                     num_episodes=config.eval_episodes,
                     max_steps=config.max_steps,
                     seed=config.seed + 20000,
