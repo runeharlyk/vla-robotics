@@ -34,7 +34,6 @@ from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.advantage import leave_one_out_advantages_per_task, normalize_advantages_per_task
 from vla.rl.config import SRPOConfig, TaskSpec
-from vla.rl.maniskill_rollout import ManiSkillRollout
 from vla.rl.policy_update import UpdateMetrics, _sample_fixed_noise_time, awr_update, fpo_update, ppo_update
 from vla.rl.rollout import RolloutEngine, Trajectory
 from vla.rl.srpo_reward import (
@@ -82,6 +81,7 @@ def build_rollout_engine(
     resolved_envs = num_envs if num_envs is not None else config.num_rollout_envs
 
     if sim is Simulator.MANISKILL:
+        from vla.rl.maniskill_rollout import ManiSkillRollout
         env_id = (spec.env_id or config.env_id) if spec else config.env_id
         return ManiSkillRollout(
             env_id=env_id,
