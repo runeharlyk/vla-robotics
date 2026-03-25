@@ -29,28 +29,28 @@ uv run python scripts/train_srpo.py \
     --advantage-mode leave_one_out \
     --num-demos 5 \
     --seed 42 \
-    --lr 5e-06 \
+    --lr 3e-06 \
     --max-grad-norm 10.0 \
-    --iterations 200 \
-    --trajs-per-task 8 \
+    --iterations 35 \
+    --trajs-per-task 32 \
     --num-rollout-envs 8 \
     --fm-batch-size 64 \
-    --awr-epochs 2 \
-    --awr-temperature 1.0 \
-    --awr-weight-clip 20.0 \
     --ppo-epochs 1 \
-    --clip-epsilon 0.2 \
+    --clip-epsilon 0.05 \
+    --clip-epsilon-high 0.08 \
+    --num-fm-noise-samples 4 \
+    --fpo-negative-adv-scale 0.75 \
     --kl-coeff 0.01 \
     --adv-eps 1e-8 \
     --adv-skip-threshold 1e-6 \
-    --eval-every 20 \
-    --eval-episodes 10 \
-    --max-steps 280 \
     --world-model vjepa2 \
     --distance-metric normalized_l2 \
     --dbscan-eps 0.5 \
     --dbscan-min-samples 2 \
     --subsample-every 5 \
+    --eval-every 10 \
+    --eval-episodes 50 \
+    --max-steps 220 \
     --gradient-checkpointing \
-    --no-failure-rewards \
+    --wandb-name "srpo_t_all_smoke_v1" \
     --wandb
