@@ -34,11 +34,6 @@ _CMD_STEP = "step"
 _CMD_CLOSE = "close"
 _CMD_TASK_DESC = "task_desc"
 
-
-# https://github.com/Lifelong-Robot-Learning/LIBERO/issues/3
-if mp.get_start_method(allow_none=True) != "spawn":
-    mp.set_start_method("spawn", force=True)
-
 # ---------------------------------------------------------------------------
 # Subprocess worker
 # ---------------------------------------------------------------------------
