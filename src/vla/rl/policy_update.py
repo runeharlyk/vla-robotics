@@ -258,7 +258,6 @@ def fpo_update(
     fixed_noise: list[list[torch.Tensor]],
     fixed_time: list[list[torch.Tensor]],
     config: SRPOConfig,
-    ref_policy: SmolVLAPolicy | None = None,
 ) -> UpdateMetrics:
     """FPO (Flow Policy Optimization) update with PPO-clip objective.
 
@@ -268,10 +267,10 @@ def fpo_update(
 
     KL regularization (controlled by ``config.kl_coeff``) prevents
     catastrophic policy collapse by penalizing deviation from the
-    reference policy. Without this, the cumulative drift across
-    iterations is unconstrained and the policy can rapidly degrade
-    after initial improvement — the exact failure mode observed in
-    the FPO training run that collapsed from 90% to 0%.
+    start-of-iteration policy. The ``old_fm`` losses (computed before
+    any gradient steps) serve double duty as both the FPO ratio
+    denominator and the KL anchor, since ``ref_policy`` is refreshed
+    to match the current policy at the start of each iteration.
 
     Returns:
         :class:`UpdateMetrics` with avg surrogate loss, KL shift, and clip fraction.
@@ -302,22 +301,7 @@ def fpo_update(
             )
             old_fm_per_traj.append(old_fm.detach())
 
-    # Cache reference-policy FM losses for KL penalty.
-    # This prevents unbounded cumulative drift across iterations.
-    ref_fm_per_traj: list[torch.Tensor] = []
-    if config.kl_coeff > 0 and ref_policy is not None:
-        with torch.no_grad():
-            for i, traj in enumerate(trajectories):
-                ref_fm = _compute_fm_loss_multi_sample(
-                    ref_policy,
-                    traj,
-                    instrs_per_traj[i],
-                    fixed_noise[i],
-                    fixed_time[i],
-                    batch_size=B,
-                    reduction=reduction,
-                )
-                ref_fm_per_traj.append(ref_fm.detach())
+    use_kl = config.kl_coeff > 0
 
     policy.train()
 
@@ -380,16 +364,8 @@ def fpo_update(
 
                 loss_i = -torch.min(surr1, surr2).mean() / n_idxs
 
-                # KL penalty: prevents unbounded cumulative drift.
-                # Per-timestep: KL ≈ 0.5 * (L_ref(t) - L_θ(t))²
-                # NOTE: FPO uses `reduction="sum"`, meaning it squares the SUM loss over the chunk.
-                # Do NOT normalize or scale this down by action/chunk dimensions!
-                # Squaring the full sum intentionally produces a mathematically massive KL penalty,
-                # which acts as the rigid anchor necessary to stabilize the PPO surrogate from 60->94% SR.
-                # Scaling it down mathematically breaks the regularization and causes catastrophic policy drift.
-                if ref_fm_per_traj:
-                    ref_fm = ref_fm_per_traj[i].to(device=device, dtype=torch.float32)
-                    kl_per_step = 0.5 * (ref_fm - new_fm_f) ** 2
+                if use_kl:
+                    kl_per_step = 0.5 * (old_fm - new_fm_f) ** 2
                     kl_penalty = config.kl_coeff * kl_per_step.mean() / n_idxs
                     loss_i = loss_i + kl_penalty
 

@@ -344,14 +344,16 @@ def train_srpo(
 
     optimizer, trainable = config.build_optimizer(policy)
 
-    # Create a reference policy for KL regularisation.
-    # For AWR and PPO this anchors the trust region.
-    # For FPO this prevents unbounded cumulative drift across iterations
-    # which caused catastrophic policy collapse (90% → 0% success rate).
+    # Create a reference policy for KL regularisation (AWR and PPO only).
     # The ref_policy is refreshed each iteration (θ_old ← θ) at the
     # top of the training loop.
+    # FPO does not need a separate ref_policy: its KL penalty uses the
+    # cached old_fm losses (computed before gradient steps each iteration),
+    # which are identical to what ref_policy would produce since
+    # ref_policy.load_state_dict(policy.state_dict()) runs at iteration
+    # start.  Eliminating ref_policy for FPO saves ~8 GB VRAM.
     ref_policy: SmolVLAPolicy | None = None
-    if config.kl_coeff > 0 or config.update_method is not UpdateMethod.FPO:
+    if config.update_method is not UpdateMethod.FPO:
         ref_policy = copy.deepcopy(policy)
         ref_policy.eval()
         for p in ref_policy.parameters():
@@ -548,7 +550,6 @@ def train_srpo(
                 fixed_noise_per_traj,
                 fixed_time_per_traj,
                 config,
-                ref_policy=ref_policy,
             )
         elif config.update_method is UpdateMethod.PPO:
             assert ref_policy is not None
