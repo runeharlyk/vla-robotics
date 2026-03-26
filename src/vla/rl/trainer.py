@@ -483,36 +483,34 @@ def train_srpo(
                 f"with uniform rewards: {skipped_tasks}"
             )
 
-        # -- 4. Pre-sample fixed noise/time for FM loss computation ------
-        policy.eval()
-        instrs_per_traj: list[str] = []
-        for traj in all_trajectories:
-            instrs_per_traj.append(spec_lookup[traj.task_id].instruction)
+        # -- 4. Filter skipped-task trajectories & pre-sample noise ------
+        active_mask = [t.task_id not in skipped_task_set for t in all_trajectories]
+        active_trajs = [t for t, keep in zip(all_trajectories, active_mask) if keep]
+        active_advs = [a for a, keep in zip(advantages, active_mask) if keep]
+        active_instrs = [spec_lookup[t.task_id].instruction for t in active_trajs]
 
+        policy.eval()
         n_noise_samples = config.num_fm_noise_samples if config.update_method is UpdateMethod.FPO else 1
-        fixed_noise_per_traj: list[list[torch.Tensor]] = []
-        fixed_time_per_traj: list[list[torch.Tensor]] = []
-        for traj in all_trajectories:
+        active_noise: list[list[torch.Tensor]] = []
+        active_time: list[list[torch.Tensor]] = []
+        for traj in active_trajs:
             noise_list, time_list = _sample_fixed_noise_time(traj, policy, n_samples=n_noise_samples)
-            fixed_noise_per_traj.append(noise_list)
-            fixed_time_per_traj.append(time_list)
+            active_noise.append(noise_list)
+            active_time.append(time_list)
 
         # -- 5. Policy update ---------------------------------------------
         if config.update_method is UpdateMethod.AWR:
             assert ref_policy is not None
-            noise_single = [nl[0] for nl in fixed_noise_per_traj]
-            time_single = [tl[0] for tl in fixed_time_per_traj]
             update_metrics = awr_update(
                 policy,
                 ref_policy,
                 optimizer,
                 trainable,
-                all_trajectories,
-                advantages,
-                instrs_per_traj,
-                noise_single,
-                time_single,
-                skipped_task_set,
+                active_trajs,
+                active_advs,
+                active_instrs,
+                [nl[0] for nl in active_noise],
+                [tl[0] for tl in active_time],
                 config,
             )
         elif config.update_method is UpdateMethod.FPO:
@@ -520,35 +518,32 @@ def train_srpo(
                 policy,
                 optimizer,
                 trainable,
-                all_trajectories,
-                advantages,
-                instrs_per_traj,
-                fixed_noise_per_traj,
-                fixed_time_per_traj,
+                active_trajs,
+                active_advs,
+                active_instrs,
+                active_noise,
+                active_time,
                 config,
             )
         elif config.update_method is UpdateMethod.PPO:
             assert ref_policy is not None
-            noise_single = [nl[0] for nl in fixed_noise_per_traj]
-            time_single = [tl[0] for tl in fixed_time_per_traj]
             update_metrics = ppo_update(
                 policy,
                 ref_policy,
                 optimizer,
                 trainable,
-                all_trajectories,
-                advantages,
-                instrs_per_traj,
-                noise_single,
-                time_single,
-                skipped_task_set,
+                active_trajs,
+                active_advs,
+                active_instrs,
+                [nl[0] for nl in active_noise],
+                [tl[0] for tl in active_time],
                 config,
             )
         else:
             raise ValueError(f"Unknown update_method: {config.update_method}")
 
-        fixed_noise_per_traj.clear()
-        fixed_time_per_traj.clear()
+        active_noise.clear()
+        active_time.clear()
 
         # -- 6. Logging ---------------------------------------------------
         M = len(all_trajectories)

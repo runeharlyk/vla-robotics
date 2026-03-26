@@ -98,7 +98,6 @@ def awr_update(
     instrs_per_traj: list[str],
     fixed_noise: list[torch.Tensor],
     fixed_time: list[torch.Tensor],
-    skipped_task_ids: set[str],
     config: SRPOConfig,
 ) -> UpdateMetrics:
     """Run advantage-weighted regression (AWR) policy update.
@@ -116,12 +115,8 @@ def awr_update(
         :class:`UpdateMetrics` with average loss, KL, and weight.
     """
     B = config.fm_batch_size
-
-    active_indices = [
-        i for i, traj in enumerate(trajectories) if traj.task_id not in skipped_task_ids
-    ]
-    active_count = len(active_indices)
-    if active_count == 0:
+    M = len(trajectories)
+    if M == 0:
         return UpdateMetrics()
 
     # Cache per-timestep ref FM losses for KL computation.
@@ -159,7 +154,7 @@ def awr_update(
         epoch_weight = 0.0
         used_count = 0
 
-        for i in active_indices:
+        for i in range(M):
             traj = trajectories[i]
             adv_i = advantages[i]
             weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
@@ -176,10 +171,8 @@ def awr_update(
                 batch_size=B,
                 reduction="mean",
             )
-            
-            fm_loss = fm_loss_t.mean()
-            traj_loss = weight * fm_loss / active_count
 
+            fm_loss = fm_loss_t.mean()
             # Per-timestep KL approximation:
             #   KL ≈ 0.5 * E_t[(L_ref(t) - L_θ(t))²]
             # This uses the FPO paper's insight that FM loss differences
@@ -187,11 +180,13 @@ def awr_update(
             # (not from scalar means) gives a meaningful divergence
             # signal. The old code computed 0.5*(mean_ref - mean_cur)²
             # which was always ≈ 0 due to Jensen's inequality.
+            traj_loss = weight * fm_loss / M
+
             if config.kl_coeff > 0 and ref_losses_per_traj:
-                ref_fm_t = ref_losses_per_traj[i]  # (T,) per-timestep
+                ref_fm_t = ref_losses_per_traj[i]
                 kl_per_step = 0.5 * (ref_fm_t - fm_loss_t) ** 2
                 kl_approx = kl_per_step.mean()
-                traj_loss = traj_loss + config.kl_coeff * kl_approx / active_count
+                traj_loss = traj_loss + config.kl_coeff * kl_approx / M
                 epoch_kl += (config.kl_coeff * kl_approx).item()
 
             traj_loss.backward()
@@ -409,7 +404,6 @@ def ppo_update(
     instrs_per_traj: list[str],
     fixed_noise: list[torch.Tensor],
     fixed_time: list[torch.Tensor],
-    skipped_task_ids: set[str],
     config: SRPOConfig,
 ) -> UpdateMetrics:
     """Run PPO clipped-surrogate policy update with KL regularisation.
@@ -418,16 +412,15 @@ def ppo_update(
         :class:`UpdateMetrics` with average surrogate loss and KL penalty.
     """
     B = config.fm_batch_size
-    active_indices = [i for i, traj in enumerate(trajectories) if traj.task_id not in skipped_task_ids]
-    active_count = len(active_indices)
-    if active_count == 0:
+    M = len(trajectories)
+    if M == 0:
         return UpdateMetrics()
 
-    old_losses_per_traj: dict[int, torch.Tensor] = {}
-    ref_losses_per_traj: dict[int, torch.Tensor] = {}
+    old_losses_per_traj: list[torch.Tensor] = []
+    ref_losses_per_traj: list[torch.Tensor] = []
 
     with torch.no_grad():
-        for i in active_indices:
+        for i in range(M):
             traj = trajectories[i]
             old_loss = _compute_fm_loss_batched(
                 policy,
@@ -437,7 +430,7 @@ def ppo_update(
                 fixed_time[i],
                 batch_size=B,
             )
-            old_losses_per_traj[i] = old_loss.detach()
+            old_losses_per_traj.append(old_loss.detach())
 
             ref_loss = _compute_fm_loss_batched(
                 ref_policy,
@@ -447,7 +440,7 @@ def ppo_update(
                 fixed_time[i],
                 batch_size=B,
             )
-            ref_losses_per_traj[i] = ref_loss.detach()
+            ref_losses_per_traj.append(ref_loss.detach())
 
     policy.train()
     total_surrogate = 0.0
@@ -460,7 +453,7 @@ def ppo_update(
         epoch_kl = 0.0
         used_count = 0
 
-        for i in active_indices:
+        for i in range(M):
             traj = trajectories[i]
             adv_i = advantages[i]
             old_losses_t = old_losses_per_traj[i]
@@ -494,7 +487,7 @@ def ppo_update(
             kl_approx = 0.5 * (log_ratio_ref**2).mean()
             kl_penalty = config.kl_coeff * kl_approx
 
-            traj_loss = (clip_loss + kl_penalty) / active_count
+            traj_loss = (clip_loss + kl_penalty) / M
             traj_loss.backward()
 
             epoch_clip_loss += clip_loss.item()
