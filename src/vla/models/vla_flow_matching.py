@@ -316,7 +316,7 @@ class VLAFlowMatching(nn.Module):
             position_ids=pos_ids,
             past_key_values=past_kv,
             inputs_embeds=[None, suf_embs],
-            use_cache=False,
+            use_cache=True,
             fill_kv_cache=False,
         )
         suffix_out = out[1][:, -self.chunk_size :]
