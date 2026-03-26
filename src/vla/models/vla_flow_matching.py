@@ -247,6 +247,97 @@ class VLAFlowMatching(nn.Module):
 
         return F.mse_loss(v_t.float(), u_t.float(), reduction="none")
 
+    def cache_prefix(
+        self,
+        images: list[torch.Tensor],
+        img_masks: list[torch.Tensor],
+        lang_tokens: torch.Tensor,
+        lang_masks: torch.Tensor,
+        state: torch.Tensor,
+    ) -> dict[str, torch.Tensor]:
+        """Pre-compute everything that is constant across noise samples.
+
+        This includes prefix embeddings (ViT + connector + language +
+        state), the full 2-D attention mask, and position IDs.  Only the
+        suffix *embeddings* change per noise/time sample; the suffix
+        padding and attention-type masks are always all-ones.
+
+        Returns a dict suitable for :meth:`forward_with_cached_prefix`.
+        """
+        pre_embs, pre_pad, pre_att = self.embed_prefix(
+            images, img_masks, lang_tokens, lang_masks, state,
+        )
+        bsize = pre_embs.shape[0]
+        device = pre_embs.device
+
+        suf_pad = torch.ones(bsize, self.chunk_size, dtype=torch.bool, device=device)
+        suf_att = torch.ones(bsize, self.chunk_size, dtype=pre_att.dtype, device=device)
+
+        pad = torch.cat([pre_pad, suf_pad], dim=1)
+        att = torch.cat([pre_att, suf_att], dim=1)
+        att_2d = _make_att_2d_masks(pad, att)
+        pos_ids = torch.cumsum(pad, dim=1) - 1
+
+        return {
+            "pre_embs": pre_embs,
+            "att_2d": att_2d,
+            "pos_ids": pos_ids,
+        }
+
+    def forward_with_cached_prefix(
+        self,
+        cache: dict[str, torch.Tensor],
+        actions: torch.Tensor,
+        noise: torch.Tensor,
+        time: torch.Tensor,
+    ) -> torch.Tensor:
+        """Compute FM loss reusing cached prefix and masks.
+
+        Same result as :meth:`forward` but skips ``embed_prefix`` and
+        attention-mask construction, which are identical across noise
+        samples for the same observation batch.
+        """
+        act_dtype = actions.dtype
+        noise = noise.to(act_dtype)
+        time = time.to(act_dtype)
+
+        t = time[:, None, None]
+        x_t = t * noise + (1 - t) * actions
+        u_t = noise - actions
+
+        suf_embs = self._embed_suffix_fast(x_t, time)
+
+        (_, suffix_out), _ = self.vlm_with_expert.forward(
+            attention_mask=cache["att_2d"],
+            position_ids=cache["pos_ids"],
+            past_key_values=None,
+            inputs_embeds=[cache["pre_embs"], suf_embs],
+            use_cache=False,
+            fill_kv_cache=False,
+        )
+        suffix_out = suffix_out[:, -self.chunk_size :]
+        v_t = self.action_out_proj(suffix_out)
+
+        loss_type = self.cfg.get("fm_loss_type", "epsilon")
+        if loss_type == "epsilon":
+            eps_pred = x_t.float() + (1.0 - t.float()) * v_t.float()
+            return F.mse_loss(eps_pred, noise.float(), reduction="none")
+        return F.mse_loss(v_t.float(), u_t.float(), reduction="none")
+
+    def _embed_suffix_fast(
+        self, noisy_actions: torch.Tensor, timestep: torch.Tensor,
+    ) -> torch.Tensor:
+        """Return only the suffix embeddings (skip constant mask creation)."""
+        action_emb = self.action_in_proj(noisy_actions)
+        dtype = action_emb.dtype
+        time_emb = _create_sinusoidal_pos_embedding(
+            timestep, self.vlm_with_expert.expert_hidden_size,
+            self.min_period, self.max_period, action_emb.device,
+        ).to(dtype)
+        time_emb = time_emb[:, None, :].expand_as(action_emb)
+        at_emb = F.silu(self.action_time_mlp_in(torch.cat([action_emb, time_emb], dim=2)))
+        return self.action_time_mlp_out(at_emb)
+
     def compute_prefix_cache(
         self,
         images: list[torch.Tensor],
