@@ -184,21 +184,20 @@ def _get_or_build_engine(
     return rollout_engines[spec.task_id]
 
 
-def _evaluate_libero_task(
+def _evaluate_task(
     policy: SmolVLAPolicy,
     config: SRPOConfig,
     spec: TaskSpec,
     rollout_engines: dict[str, RolloutEngine] | None,
 ) -> EvalMetrics:
-    """Evaluate a single LIBERO task, reusing the shared engine when available."""
-    if rollout_engines is not None and _SHARED_LIBERO_KEY in rollout_engines:
-        from vla.rl.libero_rollout import LiberoRollout
-
-        engine = rollout_engines[_SHARED_LIBERO_KEY]
-        assert isinstance(engine, LiberoRollout)
-        engine.reconfigure(config.suite, spec.libero_task_idx)
-
-        use_vec = engine.num_envs > 1
+    """Evaluate a single task, reusing the shared LIBERO engine when available."""
+    if (
+        config.simulator is Simulator.LIBERO
+        and rollout_engines is not None
+        and _SHARED_LIBERO_KEY in rollout_engines
+    ):
+        engine = _get_or_build_engine(rollout_engines, config, spec)
+        use_vec = config.num_rollout_envs > 1
         trajs = engine.collect_batch(
             policy_fn=policy.predict_action,
             instruction=spec.instruction,
@@ -208,17 +207,18 @@ def _evaluate_libero_task(
         )
         return metrics_from_trajectories(trajs, expected_episodes=config.eval_episodes)
 
-    return evaluate_smolvla(
-        policy,
+    kwargs: dict[str, Any] = dict(
         instruction=spec.instruction,
         simulator=config.simulator,
         num_episodes=config.eval_episodes,
         max_steps=config.max_steps,
         seed=config.seed + 20000,
-        suite=config.suite,
-        task_id=spec.libero_task_idx,
-        num_eval_envs=config.num_eval_envs,
     )
+    if config.simulator is Simulator.LIBERO:
+        kwargs.update(suite=config.suite, task_id=spec.libero_task_idx, num_eval_envs=config.num_eval_envs)
+    else:
+        kwargs.update(env_id=spec.env_id or config.env_id)
+    return evaluate_smolvla(policy, **kwargs)
 
 
 def evaluate_and_checkpoint(
@@ -243,53 +243,26 @@ def evaluate_and_checkpoint(
     prev_eval_zero_sample = policy.eval_zero_sample
     policy.eval_zero_sample = False
     try:
-        if config.simulator is Simulator.LIBERO:
-            task_sr_sum = 0.0
-            for spec in task_specs:
-                metrics = _evaluate_libero_task(
-                    policy, config, spec, rollout_engines,
-                )
-                print_metrics(
-                    metrics,
-                    tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
-                )
-                log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
-                log_data[f"{config.mode}/{spec.task_id}/eval/mean_reward"] = metrics.mean_reward
-                log_data[f"{config.mode}/{spec.task_id}/eval/mean_ep_len"] = metrics.mean_episode_length
-                task_sr_sum += metrics.success_rate
-            avg_sr = task_sr_sum / len(task_specs)
-            log_data[f"{config.mode}/eval/success_rate"] = avg_sr
-            best_success = save_best_checkpoint(
-                avg_sr,
-                best_success,
-                lambda: policy.save_checkpoint(save_path / "best"),
-                tag=config.mode,
+        task_sr_sum = 0.0
+        for spec in task_specs:
+            metrics = _evaluate_task(policy, config, spec, rollout_engines)
+            print_metrics(
+                metrics,
+                tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
             )
-        else:
-            task_sr_sum = 0.0
-            for spec in task_specs:
-                metrics = evaluate_smolvla(
-                    policy,
-                    instruction=spec.instruction,
-                    simulator=config.simulator,
-                    env_id=spec.env_id or config.env_id,
-                    num_episodes=config.eval_episodes,
-                    max_steps=config.max_steps,
-                    seed=config.seed + 20000,
-                )
-                print_metrics(
-                    metrics,
-                    tag=f"{config.mode} iter {iteration} [{spec.task_id}]",
-                )
-                log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
-                task_sr_sum += metrics.success_rate
-            avg_sr = task_sr_sum / len(task_specs)
-            best_success = save_best_checkpoint(
-                avg_sr,
-                best_success,
-                lambda: policy.save_checkpoint(save_path / "best"),
-                tag=config.mode,
-            )
+            log_data[f"{config.mode}/{spec.task_id}/eval/success_rate"] = metrics.success_rate
+            log_data[f"{config.mode}/{spec.task_id}/eval/mean_reward"] = metrics.mean_reward
+            log_data[f"{config.mode}/{spec.task_id}/eval/mean_ep_len"] = metrics.mean_episode_length
+            task_sr_sum += metrics.success_rate
+
+        avg_sr = task_sr_sum / len(task_specs)
+        log_data[f"{config.mode}/eval/success_rate"] = avg_sr
+        best_success = save_best_checkpoint(
+            avg_sr,
+            best_success,
+            lambda: policy.save_checkpoint(save_path / "best"),
+            tag=config.mode,
+        )
     finally:
         policy.eval_zero_sample = prev_eval_zero_sample
 
