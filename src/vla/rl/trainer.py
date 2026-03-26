@@ -332,9 +332,12 @@ def train_srpo(
         for p in ref_policy.parameters():
             p.requires_grad_(False)
 
-    # -- Per-task rollout engines (created lazily to avoid OOM) ----------
+    # -- Per-task rollout engines -----------------------------------------
     if rollout_engines is None:
         rollout_engines = {}
+
+    if config.simulator is Simulator.LIBERO and _SHARED_LIBERO_KEY not in rollout_engines:
+        _get_or_build_engine(rollout_engines, config, task_specs[0])
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
 
