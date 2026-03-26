@@ -114,6 +114,18 @@ def _libero_worker(
             pipe.send(RuntimeError(f"LIBERO worker crashed:\n{traceback.format_exc()}"))
 
 
+_cached_libero_processor: object | None = None
+
+
+def _get_libero_processor() -> object:
+    global _cached_libero_processor
+    if _cached_libero_processor is None:
+        from lerobot.processor.env_processor import LiberoProcessorStep
+
+        _cached_libero_processor = LiberoProcessorStep()
+    return _cached_libero_processor
+
+
 def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
     """Convert raw LIBERO obs into a compact dict of numpy arrays.
 
@@ -121,20 +133,19 @@ def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
         Dict with ``images`` (list of ``(H, W, 3)`` uint8) and
         ``state`` (``(state_dim,)`` float32).
     """
-    from lerobot.processor.env_processor import LiberoProcessorStep
-    from PIL import Image as PILImage
+    import cv2
 
     images: list[np.ndarray] = []
     if "pixels" in raw_obs and isinstance(raw_obs["pixels"], dict):
         for img_np in raw_obs["pixels"].values():
             flipped = np.flip(img_np, axis=(0, 1)).copy()
-            pil = PILImage.fromarray(flipped).resize((image_size, image_size), PILImage.Resampling.BILINEAR)  # type: ignore[attr-defined]
-            images.append(np.array(pil, dtype=np.uint8))
+            resized = cv2.resize(flipped, (image_size, image_size), interpolation=cv2.INTER_LINEAR)
+            images.append(resized.astype(np.uint8))
 
     state = np.zeros(state_dim, dtype=np.float32)
     if "robot_state" in raw_obs:
         rs = raw_obs["robot_state"]
-        proc = LiberoProcessorStep()
+        proc = _get_libero_processor()
         eef_pos = np.asarray(rs["eef"]["pos"], dtype=np.float32).flatten()
         eef_quat = torch.from_numpy(np.asarray(rs["eef"]["quat"], dtype=np.float32)).float().unsqueeze(0)
         eef_aa = proc._quat2axisangle(eef_quat).squeeze(0).numpy()
