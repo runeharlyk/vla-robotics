@@ -523,6 +523,104 @@ class SmolVLAPolicy(nn.Module):
 
         return torch.cat(all_losses)
 
+    def compute_fm_loss_multi_sample(
+        self,
+        images: torch.Tensor,
+        actions: torch.Tensor,
+        states: torch.Tensor | None,
+        instruction: str,
+        noise_list: list[torch.Tensor],
+        time_list: list[torch.Tensor],
+        batch_size: int = 32,
+        reduction: str = "mean",
+    ) -> torch.Tensor:
+        """Compute per-timestep FM loss averaged over multiple noise samples.
+
+        Uses KV-cache to compute the VLM prefix once per mini-batch and
+        reuse it for each noise sample, saving ``(N-1)/N`` of the prefix
+        transformer compute where N = ``len(noise_list)``.
+
+        Falls back to the non-cached path when ``N == 1``.
+
+        Args:
+            images: ``(T, [V,] C, H, W)`` observation images.
+            actions: ``(T, action_dim)`` actions (unnormalized).
+            states: ``(T, state_dim)`` or ``None``.
+            instruction: Language instruction (shared across all steps).
+            noise_list: N tensors of shape ``(T, chunk_size, max_action_dim)``.
+            time_list: N tensors of shape ``(T,)``.
+            batch_size: Number of timesteps per forward pass.
+            reduction: ``"mean"`` or ``"sum"`` across chunk positions.
+
+        Returns:
+            ``(T,)`` per-step mean FM loss (averaged over noise samples).
+        """
+        N = len(noise_list)
+        if N == 1:
+            return self.compute_fm_loss_batched(
+                images, actions, states, instruction,
+                noise_list[0], time_list[0], batch_size, reduction,
+            )
+
+        T = images.shape[0]
+        use_amp = self.device.type == "cuda"
+
+        actions_dev = actions.to(self.device, dtype=self.dtype)
+        action_chunks, action_mask = self._build_action_chunks(actions_dev)
+
+        tokens, tmasks = self._tokenize(instruction, batch_size=batch_size)
+
+        all_losses: list[torch.Tensor] = []
+
+        for start in range(0, T, batch_size):
+            end = min(start + batch_size, T)
+            B = end - start
+
+            imgs = self._to_float01(images[start:end]).to(self.device, dtype=self.dtype)
+            img_list, mask_list = self._prepare_images(imgs)
+
+            tok = tokens[:B] if B < tokens.shape[0] else tokens
+            tmsk = tmasks[:B] if B < tmasks.shape[0] else tmasks
+
+            state_raw = states[start:end] if states is not None else None
+            state = self._prepare_state_input(state_raw, batch_size=B)
+
+            target_chunks = action_chunks[start:end]
+            target_mask = action_mask[start:end]
+
+            with torch.no_grad():
+                past_kv, pre_pad = self.model.compute_prefix_cache(
+                    img_list, mask_list, tok, tmsk, state,
+                )
+
+            sample_losses: list[torch.Tensor] = []
+            for noise_t, time_t in zip(noise_list, time_list):
+                noise = noise_t[start:end].to(self.device, dtype=self.dtype)
+                time_val = time_t[start:end].to(self.device, dtype=self.dtype)
+
+                with torch.autocast("cuda", enabled=use_amp):
+                    losses = self.model.forward_cached(
+                        pre_pad, past_kv, target_chunks, noise, time_val,
+                    )
+
+                losses = losses.float()[:, :, : self.action_dim]
+                valid = target_mask.unsqueeze(-1).float()
+                per_pos = (losses * valid).mean(dim=2)
+
+                if reduction == "sum":
+                    per_step = per_pos.sum(dim=1)
+                elif reduction == "mean":
+                    n_valid = target_mask.sum(dim=1).clamp(min=1.0)
+                    per_step = per_pos.sum(dim=1) / n_valid
+                else:
+                    raise ValueError(f"Unknown reduction: {reduction}")
+
+                sample_losses.append(per_step)
+
+            all_losses.append(torch.stack(sample_losses).mean(dim=0))
+
+        return torch.cat(all_losses)
+
     def get_embedding(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Return the VLM backbone embedding for a single observation (for Tier B SRPO).
 

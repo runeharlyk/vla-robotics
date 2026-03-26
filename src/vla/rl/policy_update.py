@@ -230,22 +230,24 @@ def _compute_fm_loss_multi_sample(
     CFM loss estimates per timestep before exponentiation drastically
     reduces variance in the importance-sampling ratio.
 
+    When N > 1, uses :meth:`SmolVLAPolicy.compute_fm_loss_multi_sample`
+    with KV-cache to compute the VLM prefix once per mini-batch and
+    reuse it for each noise sample.
+
     Returns:
         ``(T,)`` per-timestep loss averaged across samples.
     """
-    losses = []
-    for noise, time in zip(noise_list, time_list, strict=True):
-        loss = _compute_fm_loss_batched(
-            policy,
-            traj,
-            instruction,
-            noise,
-            time,
-            batch_size=batch_size,
-            reduction=reduction,
-        )
-        losses.append(loss)
-    return torch.stack(losses).mean(dim=0)
+    T = traj.length
+    return policy.compute_fm_loss_multi_sample(
+        images=traj.images[:T],
+        actions=traj.actions[:T],
+        states=traj.states[:T] if traj.states is not None else None,
+        instruction=instruction,
+        noise_list=[n[:T] for n in noise_list],
+        time_list=[t[:T] for t in time_list],
+        batch_size=batch_size,
+        reduction=reduction,
+    )
 
 
 def fpo_update(
