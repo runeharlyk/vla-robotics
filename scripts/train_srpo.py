@@ -29,7 +29,6 @@ from pathlib import Path
 
 import typer
 
-import wandb
 from vla.constants import (
     CHECKPOINTS_DIR,
     PREPROCESSED_DIR,
@@ -41,9 +40,8 @@ from vla.constants import (
     UpdateMethod,
     WorldModelType,
 )
-from vla.models.smolvla import SmolVLAPolicy
-from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo
-from vla.training.metrics_logger import MetricsLogger
+from vla.rl.config import SRPOConfig, TaskSpec
+from vla.rl.rollout import Trajectory
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -283,6 +281,11 @@ def main(
     fpo_log_ratio_clip: float = typer.Option(5.0, "--fpo-log-ratio-clip"),
     eval_zero_sample: bool = typer.Option(True, "--eval-zero-sample/--no-eval-zero-sample"),
 ) -> None:
+    import wandb
+    from vla.models.smolvla import SmolVLAPolicy
+    from vla.rl.trainer import train_srpo
+    from vla.training.metrics_logger import MetricsLogger
+
     """Run SRPO or sparse-RL training starting from an SFT checkpoint."""
     seed_everything(seed)
     device = get_device()

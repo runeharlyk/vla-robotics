@@ -80,11 +80,19 @@ def _libero_worker(
                 env.close()
                 pipe.send(None)
                 break
+    except EOFError:
+        try:
+            env.close()
+        except Exception:
+            pass
+        return
     except Exception:
         import traceback
-
         logger.exception("LIBERO worker crashed")
-        pipe.send(RuntimeError(f"LIBERO worker crashed:\n{traceback.format_exc()}"))
+        try:
+            pipe.send(RuntimeError(f"LIBERO worker crashed:\n{traceback.format_exc()}"))
+        except (BrokenPipeError, OSError):
+            pass
 
 
 def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
