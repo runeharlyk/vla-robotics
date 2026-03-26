@@ -29,7 +29,7 @@ import torch
 from tqdm import trange
 
 from vla.constants import AdvantageMode, Simulator, UpdateMethod
-from vla.diagnostics.eval import evaluate_smolvla, print_metrics
+from vla.diagnostics.eval import EvalMetrics, evaluate_smolvla, metrics_from_trajectories, print_metrics
 from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.advantage import leave_one_out_advantages_per_task, normalize_advantages_per_task
@@ -109,6 +109,9 @@ def build_rollout_engine(
 # ---------------------------------------------------------------------------
 
 
+_SHARED_LIBERO_KEY = "_shared_libero"
+
+
 def collect_all_trajectories(
     policy: SmolVLAPolicy,
     task_specs: list[TaskSpec],
@@ -119,7 +122,12 @@ def collect_all_trajectories(
 ) -> tuple[list[Trajectory], dict[str, int]]:
     """Collect rollout trajectories from all tasks.
 
-    Creates rollout engines lazily if they are missing from the map.
+    For LIBERO, uses a **single shared** rollout engine that reconfigures
+    between tasks (RLinf pattern), keeping only ``num_rollout_envs``
+    subprocesses alive at any time regardless of the number of tasks.
+
+    For ManiSkill, creates per-task engines lazily (GPU-batched, no
+    subprocess overhead).
 
     Returns:
         Tuple of (all_trajectories, per_task_successes).
@@ -127,13 +135,11 @@ def collect_all_trajectories(
     policy.eval()
     all_trajectories: list[Trajectory] = []
     per_task_successes: dict[str, int] = {}
+    use_vectorized = config.num_rollout_envs > 1
 
     for spec in task_specs:
-        if spec.task_id not in rollout_engines:
-            logger.info(f"Creating rollout engine for {spec.task_id}")
-            rollout_engines[spec.task_id] = build_rollout_engine(config, spec=spec)
-        use_vectorized = config.num_rollout_envs > 1
-        trajs = rollout_engines[spec.task_id].collect_batch(
+        engine = _get_or_build_engine(rollout_engines, config, spec)
+        trajs = engine.collect_batch(
             policy_fn=policy.predict_action,
             instruction=spec.instruction,
             num_trajectories=trajs_per_task,
@@ -148,6 +154,73 @@ def collect_all_trajectories(
     return all_trajectories, per_task_successes
 
 
+def _get_or_build_engine(
+    rollout_engines: dict[str, RolloutEngine],
+    config: SRPOConfig,
+    spec: TaskSpec,
+) -> RolloutEngine:
+    """Return a rollout engine for *spec*, reusing/reconfiguring when possible.
+
+    For LIBERO: maintains a single shared ``LiberoRollout`` under the key
+    ``_SHARED_LIBERO_KEY`` and hot-swaps its task via ``reconfigure()``.
+    For ManiSkill: creates per-task engines lazily (no subprocess overhead).
+    """
+    if config.simulator is Simulator.LIBERO:
+        from vla.rl.libero_rollout import LiberoRollout
+
+        if _SHARED_LIBERO_KEY in rollout_engines:
+            engine = rollout_engines[_SHARED_LIBERO_KEY]
+            assert isinstance(engine, LiberoRollout)
+            engine.reconfigure(config.suite, spec.libero_task_idx)
+            return engine
+        logger.info("Creating shared LIBERO rollout engine (%d envs)", config.num_rollout_envs)
+        engine = build_rollout_engine(config, spec=spec)
+        rollout_engines[_SHARED_LIBERO_KEY] = engine
+        return engine
+
+    if spec.task_id not in rollout_engines:
+        logger.info(f"Creating rollout engine for {spec.task_id}")
+        rollout_engines[spec.task_id] = build_rollout_engine(config, spec=spec)
+    return rollout_engines[spec.task_id]
+
+
+def _evaluate_libero_task(
+    policy: SmolVLAPolicy,
+    config: SRPOConfig,
+    spec: TaskSpec,
+    rollout_engines: dict[str, RolloutEngine] | None,
+) -> EvalMetrics:
+    """Evaluate a single LIBERO task, reusing the shared engine when available."""
+    if rollout_engines is not None and _SHARED_LIBERO_KEY in rollout_engines:
+        from vla.rl.libero_rollout import LiberoRollout
+
+        engine = rollout_engines[_SHARED_LIBERO_KEY]
+        assert isinstance(engine, LiberoRollout)
+        engine.reconfigure(config.suite, spec.libero_task_idx)
+
+        use_vec = engine.num_envs > 1
+        trajs = engine.collect_batch(
+            policy_fn=policy.predict_action,
+            instruction=spec.instruction,
+            num_trajectories=config.eval_episodes,
+            seed=config.seed + 20000,
+            policy_batch_fn=policy.predict_action_batch if use_vec else None,
+        )
+        return metrics_from_trajectories(trajs, expected_episodes=config.eval_episodes)
+
+    return evaluate_smolvla(
+        policy,
+        instruction=spec.instruction,
+        simulator=config.simulator,
+        num_episodes=config.eval_episodes,
+        max_steps=config.max_steps,
+        seed=config.seed + 20000,
+        suite=config.suite,
+        task_id=spec.libero_task_idx,
+        num_eval_envs=config.num_eval_envs,
+    )
+
+
 def evaluate_and_checkpoint(
     policy: SmolVLAPolicy,
     config: SRPOConfig,
@@ -156,8 +229,13 @@ def evaluate_and_checkpoint(
     save_path: Path,
     best_success: float,
     log_data: dict[str, Any],
+    rollout_engines: dict[str, RolloutEngine] | None = None,
 ) -> float:
     """Run periodic evaluation and save the best checkpoint.
+
+    When *rollout_engines* is provided and contains a shared LIBERO
+    engine, it is reused for evaluation (reconfigured per task) instead
+    of spawning new subprocess environments each time.
 
     Returns:
         Updated best success rate.
@@ -168,16 +246,8 @@ def evaluate_and_checkpoint(
         if config.simulator is Simulator.LIBERO:
             task_sr_sum = 0.0
             for spec in task_specs:
-                metrics = evaluate_smolvla(
-                    policy,
-                    instruction=spec.instruction,
-                    simulator=config.simulator,
-                    num_episodes=config.eval_episodes,
-                    max_steps=config.max_steps,
-                    seed=config.seed + 20000,
-                    suite=config.suite,
-                    task_id=spec.libero_task_idx,
-                    num_eval_envs=config.num_eval_envs,
+                metrics = _evaluate_libero_task(
+                    policy, config, spec, rollout_engines,
                 )
                 print_metrics(
                     metrics,
@@ -339,6 +409,7 @@ def train_srpo(
         save_path,
         best_success,
         log_data,
+        rollout_engines=rollout_engines,
     )
     metrics_logger.log(log_data)
 
@@ -549,6 +620,7 @@ def train_srpo(
                 save_path,
                 best_success,
                 log_data,
+                rollout_engines=rollout_engines,
             )
 
         metrics_logger.log(log_data)
