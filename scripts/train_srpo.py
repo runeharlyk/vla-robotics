@@ -279,6 +279,11 @@ def main(
     fpo_positive_adv_only: bool = typer.Option(False, "--fpo-positive-adv-only/--no-fpo-positive-adv-only"),
     fpo_negative_adv_scale: float = typer.Option(0.25, "--fpo-negative-adv-scale"),
     fpo_log_ratio_clip: float = typer.Option(5.0, "--fpo-log-ratio-clip"),
+    fpo_use_ref_policy_kl: bool = typer.Option(
+        False,
+        "--fpo-use-ref-policy-kl/--no-fpo-use-ref-policy-kl",
+        help="For FPO, anchor the KL penalty to an explicit start-of-iteration reference policy instead of cached old_fm losses.",
+    ),
     eval_zero_sample: bool = typer.Option(True, "--eval-zero-sample/--no-eval-zero-sample"),
 ) -> None:
     import wandb
@@ -376,6 +381,7 @@ def main(
         fpo_positive_adv_only=fpo_positive_adv_only,
         fpo_negative_adv_scale=fpo_negative_adv_scale,
         fpo_log_ratio_clip=fpo_log_ratio_clip,
+        fpo_use_ref_policy_kl=fpo_use_ref_policy_kl,
         eval_zero_sample=eval_zero_sample,
     )
 

@@ -317,16 +317,12 @@ def train_srpo(
 
     optimizer, trainable = config.build_optimizer(policy)
 
-    # Create a reference policy for KL regularisation (AWR and PPO only).
-    # The ref_policy is refreshed each iteration (θ_old ← θ) at the
-    # top of the training loop.
-    # FPO does not need a separate ref_policy: its KL penalty uses the
-    # cached old_fm losses (computed before gradient steps each iteration),
-    # which are identical to what ref_policy would produce since
-    # ref_policy.load_state_dict(policy.state_dict()) runs at iteration
-    # start.  Eliminating ref_policy for FPO saves ~8 GB VRAM.
+    # Create a reference policy for KL regularisation.
+    # AWR/PPO always use it. FPO only uses it when explicitly requested
+    # for debugging, since the default FPO path reuses cached old_fm
+    # losses as the KL anchor.
     ref_policy: SmolVLAPolicy | None = None
-    if config.update_method is not UpdateMethod.FPO:
+    if config.update_method is not UpdateMethod.FPO or getattr(config, "fpo_use_ref_policy_kl", False):
         ref_policy = copy.deepcopy(policy)
         ref_policy.eval()
         for p in ref_policy.parameters():
@@ -535,6 +531,7 @@ def train_srpo(
                 update_noise,
                 update_time,
                 config,
+                ref_policy=ref_policy,
             )
         elif config.update_method is UpdateMethod.PPO:
             assert ref_policy is not None

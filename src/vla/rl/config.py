@@ -54,6 +54,7 @@ class SRPOConfig(BaseTrainingConfig):
     fpo_positive_adv_only: bool = False
     fpo_negative_adv_scale: float = 0.25
     fpo_log_ratio_clip: float = 5.0
+    fpo_use_ref_policy_kl: bool = False
     eval_zero_sample: bool = True
 
 

@@ -39,6 +39,7 @@ uv run python scripts/train_srpo.py \
   --clip-epsilon-high 0.08 \
   --num-fm-noise-samples 4 \
   --fpo-negative-adv-scale 1.0 \
+  --fpo-use-ref-policy-kl \
   --kl-coeff 0.01 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
@@ -46,5 +47,5 @@ uv run python scripts/train_srpo.py \
   --eval-episodes 50 \
   --max-steps 280 \
   --gradient-checkpointing \
-  --wandb-name "v3_srpo_fpo" \
+  --wandb-name "v3_srpo_fpo_refkl" \
   --wandb
