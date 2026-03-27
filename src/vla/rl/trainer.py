@@ -489,14 +489,25 @@ def train_srpo(
         active_advs = [a for a, keep in zip(advantages, active_mask) if keep]
         active_instrs = [spec_lookup[t.task_id].instruction for t in active_trajs]
 
+        # FPO must process ALL trajectories, not just active ones.
+        # Zero-advantage (skipped-task) trajectories produce zero surrogate
+        # loss but non-zero KL penalty, which prevents catastrophic
+        # forgetting on solved tasks.  AWR/PPO only need active trajectories.
         policy.eval()
-        n_noise_samples = config.num_fm_noise_samples if config.update_method is UpdateMethod.FPO else 1
-        active_noise: list[list[torch.Tensor]] = []
-        active_time: list[list[torch.Tensor]] = []
-        for traj in active_trajs:
+        is_fpo = config.update_method is UpdateMethod.FPO
+        n_noise_samples = config.num_fm_noise_samples if is_fpo else 1
+        update_trajs = all_trajectories if is_fpo else active_trajs
+        update_advs = advantages if is_fpo else active_advs
+        update_instrs = (
+            [spec_lookup[t.task_id].instruction for t in all_trajectories]
+            if is_fpo else active_instrs
+        )
+        update_noise: list[list[torch.Tensor]] = []
+        update_time: list[list[torch.Tensor]] = []
+        for traj in update_trajs:
             noise_list, time_list = _sample_fixed_noise_time(traj, policy, n_samples=n_noise_samples)
-            active_noise.append(noise_list)
-            active_time.append(time_list)
+            update_noise.append(noise_list)
+            update_time.append(time_list)
 
         # -- 5. Policy update ---------------------------------------------
         if config.update_method is UpdateMethod.AWR:
@@ -506,11 +517,11 @@ def train_srpo(
                 ref_policy,
                 optimizer,
                 trainable,
-                active_trajs,
-                active_advs,
-                active_instrs,
-                [nl[0] for nl in active_noise],
-                [tl[0] for tl in active_time],
+                update_trajs,
+                update_advs,
+                update_instrs,
+                [nl[0] for nl in update_noise],
+                [tl[0] for tl in update_time],
                 config,
             )
         elif config.update_method is UpdateMethod.FPO:
@@ -518,11 +529,11 @@ def train_srpo(
                 policy,
                 optimizer,
                 trainable,
-                active_trajs,
-                active_advs,
-                active_instrs,
-                active_noise,
-                active_time,
+                update_trajs,
+                update_advs,
+                update_instrs,
+                update_noise,
+                update_time,
                 config,
             )
         elif config.update_method is UpdateMethod.PPO:
@@ -532,18 +543,18 @@ def train_srpo(
                 ref_policy,
                 optimizer,
                 trainable,
-                active_trajs,
-                active_advs,
-                active_instrs,
-                [nl[0] for nl in active_noise],
-                [tl[0] for tl in active_time],
+                update_trajs,
+                update_advs,
+                update_instrs,
+                [nl[0] for nl in update_noise],
+                [tl[0] for tl in update_time],
                 config,
             )
         else:
             raise ValueError(f"Unknown update_method: {config.update_method}")
 
-        active_noise.clear()
-        active_time.clear()
+        update_noise.clear()
+        update_time.clear()
 
         # -- 6. Logging ---------------------------------------------------
         M = len(all_trajectories)
