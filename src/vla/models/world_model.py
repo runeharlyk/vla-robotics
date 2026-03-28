@@ -421,14 +421,18 @@ class VJEPA2Encoder(WorldModelEncoder):
             frames = to_float01(frames, auto_scale=True)
             clips.append(frames)  # (F_i, C, H, W)
 
-        # Pad to the same temporal length so we can stack into one tensor
-        max_frames = max(c.shape[0] for c in clips)
+        # Force exactly 64 frames per trajectory (SRPO repo standard)
+        target_frames = 64
         padded: list[torch.Tensor] = []
-        lengths: list[int] = []
         for c in clips:
-            lengths.append(c.shape[0])
-            if c.shape[0] < max_frames:
-                pad = c[-1:].expand(max_frames - c.shape[0], -1, -1, -1)
+            T = c.shape[0]
+            if T > target_frames:
+                # Evenly sample exactly 64 frames
+                indices = torch.linspace(0, T - 1, target_frames).long()
+                c = c[indices]
+            elif T < target_frames:
+                # Pad by repeating the last frame
+                pad = c[-1:].expand(target_frames - T, -1, -1, -1)
                 c = torch.cat([c, pad], dim=0)
             padded.append(c)
 

@@ -98,25 +98,27 @@ class WorldProgressReward:
         return max(self.cfg.max_references - demo_slots, 0)
 
     def add_demo_trajectories(self, demo_images: list[torch.Tensor]) -> None:
-        """Encode demonstration trajectory images and add to the reference set.
+        """Encode demonstration frame observations and add to the reference set.
 
-        Demo embeddings are permanent and never evicted.
+        Per the SRPO paper (§3.2), each frame observation is encoded
+        individually and clustered.  Demo frame embeddings are permanent
+        and never evicted.
 
         Args:
             demo_images: List of ``(T_i, C, H, W)`` image tensors (one per demo).
         """
         if demo_images:
-            embs = self.encoder.encode_trajectories(demo_images, self.cfg.subsample_every)
-            self._demo_embeddings.extend(embs.unbind(0))
+            frame_embs = self._encode_all_frames(demo_images)
+            self._demo_embeddings.extend(frame_embs)
         logger.info(
-            "Reference set seeded with %d demo trajectories (demo_slots=%d)",
+            "Reference set seeded with %d demo trajectories (%d frame embeddings)",
             len(demo_images),
             len(self._demo_embeddings),
         )
         self._refit_clusters()
 
     def add_successful_trajectories(self, trajectories: list[Trajectory]) -> None:
-        """Encode and add newly successful rollout trajectories to the reference set.
+        """Encode and add newly successful rollout frame embeddings to the reference set.
 
         Prefer :meth:`add_successful_embeddings` when embeddings have already
         been computed (e.g. from :meth:`compute_trajectory_rewards`) to avoid
@@ -125,23 +127,23 @@ class WorldProgressReward:
         Args:
             trajectories: List of successful :class:`Trajectory` objects.
         """
-        new_embs = []
+        success_imgs = []
         for traj in trajectories:
             if not traj.success:
                 continue
-            imgs = to_float01(traj.images[: traj.length])
-            new_embs.append(self.encoder.encode_trajectory(imgs, self.cfg.subsample_every))
-        if new_embs:
-            self._insert_online(new_embs)
+            success_imgs.append(to_float01(traj.images[: traj.length]))
+        if success_imgs:
+            frame_embs = self._encode_all_frames(success_imgs)
+            self._insert_online(frame_embs)
 
     def add_successful_embeddings(self, embeddings: list[torch.Tensor]) -> None:
-        """Add pre-computed embeddings of successful trajectories to the reference set.
+        """Add pre-computed per-frame embeddings of successful trajectories.
 
         This avoids re-encoding trajectories that were already encoded
         during :meth:`compute_trajectory_rewards`.
 
         Args:
-            embeddings: List of ``(D,)`` trajectory embeddings.
+            embeddings: List of ``(D,)`` per-frame embeddings.
         """
         if not embeddings:
             return
@@ -214,13 +216,45 @@ class WorldProgressReward:
             eps,
         )
 
-    def _encode_trajectories_batched(self, trajectories: list[Trajectory]) -> list[torch.Tensor]:
-        """Encode all trajectories in a single batched pass."""
-        all_imgs = []
+    def _encode_all_frames(self, image_sequences: list[torch.Tensor]) -> list[torch.Tensor]:
+        """Encode all frames from multiple trajectories, returning per-frame embeddings."""
+        all_frames: list[torch.Tensor] = []
+        for imgs in image_sequences:
+            indices = list(range(0, imgs.shape[0], self.cfg.subsample_every))
+            frames = to_float01(imgs[indices])
+            if frames.ndim == 5:  # (T, V, C, H, W) -> (T*V, C, H, W)
+                t, v, c, h, w = frames.shape
+                frames = frames.reshape(t * v, c, h, w)
+            all_frames.append(frames)
+        mega_batch = torch.cat(all_frames, dim=0)
+        all_embs = self.encoder.encode_frames(mega_batch)  # (total_frames, D)
+        return list(all_embs.unbind(0))
+
+    def _encode_trajectories_per_frame(
+        self, trajectories: list[Trajectory],
+    ) -> list[list[torch.Tensor]]:
+        """Encode trajectories, returning per-frame embeddings grouped by trajectory."""
+        all_frames: list[torch.Tensor] = []
+        frame_counts: list[int] = []
         for traj in trajectories:
-            all_imgs.append(to_float01(traj.images[: traj.length]))
-        embs = self.encoder.encode_trajectories(all_imgs, self.cfg.subsample_every)
-        return list(embs.unbind(0))
+            imgs = to_float01(traj.images[: traj.length])
+            indices = list(range(0, imgs.shape[0], self.cfg.subsample_every))
+            frames = imgs[indices]
+            if frames.ndim == 5:
+                t, v, c, h, w = frames.shape
+                frames = frames.reshape(t * v, c, h, w)
+            all_frames.append(frames)
+            frame_counts.append(frames.shape[0])
+        mega_batch = torch.cat(all_frames, dim=0)
+        all_embs = self.encoder.encode_frames(mega_batch)  # (total_frames, D)
+
+        # Group by trajectory
+        result: list[list[torch.Tensor]] = []
+        offset = 0
+        for count in frame_counts:
+            result.append(list(all_embs[offset : offset + count].unbind(0)))
+            offset += count
+        return result
 
     def _activation(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the activation function φ(·) mapping to (0, 1)."""
@@ -257,40 +291,45 @@ class WorldProgressReward:
     def compute_trajectory_rewards(
         self,
         trajectories: list[Trajectory],
-    ) -> tuple[list[float], list[torch.Tensor]]:
-        """Compute per-trajectory SRPO rewards g_i.
+    ) -> tuple[list[float], list[list[torch.Tensor]]]:
+        """Compute per-trajectory SRPO rewards g_i using per-frame distances.
 
         Following Section 3.2 of the paper:
         - Successful trajectories: g_i = 1.0
-        - Failed trajectories: g_i = α · φ((d_i - d̄) / σ_d)  (α=0.8 by default)
+        - Failed trajectories: g_i = α · φ((d_i - d̄) / σ_d)
+          where d_i is the mean per-frame distance to the nearest cluster center.
 
         Args:
             trajectories: Batch of trajectories from the current iteration.
 
         Returns:
-            Tuple of (rewards, embeddings) where rewards is a list of scalar
-            rewards and embeddings is the list of trajectory-level embeddings
-            (one per trajectory), allowing the caller to pass successful
-            embeddings to :meth:`add_successful_embeddings` without
-            re-encoding.
+            Tuple of (rewards, per_frame_embeddings) where rewards is a list
+            of scalar rewards and per_frame_embeddings is a list of lists of
+            per-frame ``(D,)`` embeddings (one list per trajectory), allowing
+            the caller to pass successful frame embeddings to
+            :meth:`add_successful_embeddings` without re-encoding.
         """
+        per_traj_frame_embs = self._encode_trajectories_per_frame(trajectories)
+
         if self.cluster_centers is None or len(self.cluster_centers) == 0:
-            traj_embeddings = self._encode_trajectories_batched(trajectories)
             rewards = [1.0 if t.success else 0.0 for t in trajectories]
-            return rewards, traj_embeddings
+            return rewards, per_traj_frame_embs
 
-        traj_embeddings = self._encode_trajectories_batched(trajectories)
-
-        centres = self.cluster_centers.to(traj_embeddings[0].device)
+        centres = self.cluster_centers.to(per_traj_frame_embs[0][0].device)
         rewards: list[float] = []
         failed_distances: list[torch.Tensor] = []
         failed_indices: list[int] = []
 
-        for i, (traj, emb) in enumerate(zip(trajectories, traj_embeddings, strict=True)):
+        for i, (traj, frame_embs) in enumerate(zip(trajectories, per_traj_frame_embs, strict=True)):
             if traj.success:
                 rewards.append(1.0)
             else:
-                d_i = self._distances_to_centres(emb, centres).min()
+                # Per-frame: compute min distance to any cluster center for each frame
+                frame_stack = torch.stack(frame_embs, dim=0)  # (F, D)
+                # (F, K) distances
+                per_frame_dists = torch.cdist(frame_stack.unsqueeze(0), centres.unsqueeze(0)).squeeze(0)
+                min_per_frame = per_frame_dists.min(dim=1).values  # (F,) min over clusters
+                d_i = min_per_frame.mean()  # mean over frames
                 failed_distances.append(d_i)
                 failed_indices.append(i)
                 rewards.append(0.0)
@@ -305,7 +344,7 @@ class WorldProgressReward:
                 rewards[fi] = activated[idx].item()
 
         self._last_diagnostics = self._build_diagnostics(rewards, failed_distances)
-        return rewards, traj_embeddings
+        return rewards, per_traj_frame_embs
 
     def _build_diagnostics(
         self,
@@ -402,7 +441,7 @@ class MultiTaskWorldProgressReward:
     def compute_trajectory_rewards(
         self,
         trajectories: list[Trajectory],
-    ) -> tuple[list[float], list[torch.Tensor]]:
+    ) -> tuple[list[float], list[list[torch.Tensor]]]:
         """Compute rewards with per-task clustering and normalisation.
 
         Trajectories are grouped by ``task_id``, each group is scored
@@ -410,10 +449,10 @@ class MultiTaskWorldProgressReward:
         z-scoring is computed within each task independently.
 
         Returns:
-            Tuple of (rewards, embeddings) aligned with the input order.
+            Tuple of (rewards, per_frame_embeddings) aligned with the input order.
         """
         rewards = [0.0] * len(trajectories)
-        embeddings: list[torch.Tensor | None] = [None] * len(trajectories)
+        per_frame_embs: list[list[torch.Tensor]] = [[] for _ in trajectories]
 
         by_task: dict[str, list[int]] = defaultdict(list)
         for i, t in enumerate(trajectories):
@@ -421,12 +460,12 @@ class MultiTaskWorldProgressReward:
 
         for tid, indices in by_task.items():
             task_trajs = [trajectories[i] for i in indices]
-            task_rewards, task_embs = self._get_or_create(tid).compute_trajectory_rewards(task_trajs)
+            task_rewards, task_frame_embs = self._get_or_create(tid).compute_trajectory_rewards(task_trajs)
             for j, idx in enumerate(indices):
                 rewards[idx] = task_rewards[j]
-                embeddings[idx] = task_embs[j]
+                per_frame_embs[idx] = task_frame_embs[j]
 
-        return rewards, embeddings  # type: ignore[return-value]
+        return rewards, per_frame_embs
 
     def get_diagnostics(self) -> dict[str, ClusterDiagnostics | None]:
         return {tid: rm.get_diagnostics() for tid, rm in self._per_task.items()}
