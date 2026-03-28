@@ -290,8 +290,10 @@ class VJEPA2Encoder(WorldModelEncoder):
         if self._backend != "transformers":
             return super().encode_trajectories(trajectories_images, subsample_every)
 
-        # Batch video clips for transformers backend
-        clips: list[torch.Tensor] = []
+        # Preprocess clips on CPU to avoid GPU OOM from materializing
+        # all trajectories at once; only move sub-batches to GPU for inference.
+        target = 64
+        padded: list[torch.Tensor] = []
         for imgs in trajectories_images:
             indices = list(range(0, imgs.shape[0], subsample_every))
             frames = imgs[indices]
@@ -299,33 +301,30 @@ class VJEPA2Encoder(WorldModelEncoder):
                 t, v, c, h, w = frames.shape
                 frames = frames.reshape(t * v, c, h, w)
             frames = to_float01(frames, auto_scale=True)
-            frames = self._normalize(frames.to(self.device, dtype=self.dtype))
-            clips.append(frames)
+            frames = self._normalize(frames.to(dtype=self.dtype))
 
-        # Resample to exactly 64 frames (Paper standard)
-        target = 64
-        padded: list[torch.Tensor] = []
-        for c in clips:
-            T = c.shape[0]
-            if T > target:
-                indices = torch.linspace(0, T - 1, target).long()
-                c = c[indices]
-            elif T < target:
-                pad = c[-1:].expand(target - T, -1, -1, -1)
-                c = torch.cat([c, pad], dim=0)
-            padded.append(c)
+            T = frames.shape[0]
+            if target < T:
+                idx = torch.linspace(0, T - 1, target).long()
+                frames = frames[idx]
+            elif target > T:
+                pad = frames[-1:].expand(target - T, -1, -1, -1)
+                frames = torch.cat([frames, pad], dim=0)
+            padded.append(frames)
 
-        batch_clips = torch.stack(padded, dim=0)
+        batch_clips = torch.stack(padded, dim=0)  # (N, 64, C, H, W) on CPU
         N = batch_clips.shape[0]
         all_embs: list[torch.Tensor] = []
         for start in range(0, N, self.batch_size):
-            sub = batch_clips[start : start + self.batch_size]
+            sub = batch_clips[start : start + self.batch_size].to(self.device)
             outputs = self.model(pixel_values_videos=sub)
             hs = outputs.last_hidden_state
             emb = hs[:, 0] if hs.ndim == 3 else hs.mean(dim=1)
-            all_embs.append(emb.float())
+            all_embs.append(emb.float().cpu())
+            del sub, outputs, hs, emb
+            torch.cuda.empty_cache()
 
-        return torch.cat(all_embs, dim=0)
+        return torch.cat(all_embs, dim=0).to(self.device)
 
     # ── Fallback Loading ──────────────────────────────────────────────
 
