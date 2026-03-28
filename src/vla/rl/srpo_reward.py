@@ -21,6 +21,7 @@ import numpy as np
 import torch
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import StandardScaler
 
 from vla.constants import DistanceMetric
 from vla.models.world_model import WorldModelEncoder
@@ -46,6 +47,7 @@ class SRPORewardConfig:
     ref_demo_ratio: float = 0.5
     distance_metric: DistanceMetric = DistanceMetric.NORMALIZED_L2
     use_failure_rewards: bool = True
+    use_standard_scaler: bool = False
 
 
 @dataclass
@@ -85,6 +87,7 @@ class WorldProgressReward:
         self._demo_embeddings: list[torch.Tensor] = []
         self._online_embeddings: list[torch.Tensor] = []
         self.cluster_centers: torch.Tensor | None = None
+        self._scaler: StandardScaler | None = None
         self._last_labels: list[int] | None = None
         self._last_diagnostics: ClusterDiagnostics | None = None
 
@@ -173,7 +176,15 @@ class WorldProgressReward:
         self._refit_clusters()
 
     def _refit_clusters(self) -> None:
-        """Run DBSCAN on the current reference embeddings to update cluster centres."""
+        """Run DBSCAN on the current reference embeddings to update cluster centres.
+
+        When ``use_standard_scaler`` is enabled in the config, embeddings are
+        standardised before DBSCAN (matching the siiRL production code) and
+        cluster centres are inverse-transformed back to original space.
+        The fitted scaler is stored for consistent distance queries.
+        """
+        self._scaler = None
+
         if len(self.reference_embeddings) < self.cfg.dbscan_min_samples:
             self.cluster_centers = torch.stack(self.reference_embeddings, dim=0)
             self._last_labels = [0] * len(self.reference_embeddings)
@@ -183,14 +194,21 @@ class WorldProgressReward:
         ref_matrix = torch.stack(self.reference_embeddings, dim=0)
         X = ref_matrix.cpu().numpy()
 
+        if self.cfg.use_standard_scaler:
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
+            self._scaler = scaler
+        else:
+            X_scaled = X
+
         k = self.cfg.dbscan_min_samples
-        if self.cfg.dbscan_auto_eps and len(X) > k:
-            kth_dists = NearestNeighbors(n_neighbors=k).fit(X).kneighbors()[0][:, -1]
+        if self.cfg.dbscan_auto_eps and len(X_scaled) > k:
+            kth_dists = NearestNeighbors(n_neighbors=k).fit(X_scaled).kneighbors()[0][:, -1]
             eps = float(np.percentile(kth_dists, self.cfg.dbscan_percentile))
         else:
             eps = self.cfg.dbscan_eps
 
-        db = DBSCAN(eps=eps, min_samples=k, metric="euclidean").fit(X)
+        db = DBSCAN(eps=eps, min_samples=k, metric="euclidean").fit(X_scaled)
         labels = db.labels_
         self._last_labels = labels.tolist()
         unique_labels = set(labels)
@@ -204,16 +222,26 @@ class WorldProgressReward:
             )
             return
 
-        centres = []
-        for label in sorted(unique_labels):
-            mask = labels == label
-            centres.append(ref_matrix[mask].mean(dim=0))
+        if self.cfg.use_standard_scaler and self._scaler is not None:
+            centres = []
+            for label in sorted(unique_labels):
+                mask = labels == label
+                center_scaled = X_scaled[mask].mean(axis=0, keepdims=True)
+                center = self._scaler.inverse_transform(center_scaled).flatten()
+                centres.append(torch.from_numpy(center).float())
+        else:
+            centres = []
+            for label in sorted(unique_labels):
+                mask = labels == label
+                centres.append(ref_matrix[mask].mean(dim=0))
+
         self.cluster_centers = torch.stack(centres, dim=0)
         logger.info(
-            "DBSCAN fitted: %d clusters from %d references (eps=%.4f)",
+            "DBSCAN fitted: %d clusters from %d references (eps=%.4f, scaler=%s)",
             len(centres),
             len(self.reference_embeddings),
             eps,
+            "on" if self.cfg.use_standard_scaler else "off",
         )
 
     def _encode_all_frames(self, image_sequences: list[torch.Tensor]) -> list[torch.Tensor]:
@@ -269,6 +297,11 @@ class WorldProgressReward:
     def _distances_to_centres(self, emb: torch.Tensor, centres: torch.Tensor) -> torch.Tensor:
         """Compute distances from a single embedding to all cluster centres.
 
+        When ``use_standard_scaler`` is active, both the query embedding and
+        cluster centres are transformed into the scaler's standardised space
+        before computing distances.  This matches the siiRL production pipeline
+        where DBSCAN operates in scaled space.
+
         Args:
             emb: ``(D,)`` trajectory embedding.
             centres: ``(K, D)`` cluster centre embeddings.
@@ -276,6 +309,14 @@ class WorldProgressReward:
         Returns:
             ``(K,)`` distance tensor - lower means closer to a success cluster.
         """
+        if self._scaler is not None:
+            emb_np = emb.detach().cpu().numpy().reshape(1, -1)
+            centres_np = centres.detach().cpu().numpy()
+            emb_scaled = torch.from_numpy(self._scaler.transform(emb_np)).float().squeeze(0).to(emb.device)
+            centres_scaled = torch.from_numpy(self._scaler.transform(centres_np)).float().to(centres.device)
+            emb = emb_scaled
+            centres = centres_scaled
+
         metric = self.cfg.distance_metric
         if metric is DistanceMetric.COSINE:
             sims = torch.nn.functional.cosine_similarity(centres, emb.unsqueeze(0).expand_as(centres), dim=-1)
