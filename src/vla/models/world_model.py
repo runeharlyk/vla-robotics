@@ -127,14 +127,7 @@ class WorldModelEncoder(ABC):
 
 
 class DINOv2Encoder(WorldModelEncoder):
-    """Frozen DINOv2 ViT-L encoder (1024-dim embeddings).
-
-    Args:
-        model_id: HuggingFace model id.
-        device: Torch device.
-        dtype: Model precision.
-        batch_size: Max batch size for frame encoding (to limit VRAM).
-    """
+    """Frozen DINOv2 ViT-L encoder (1024-dim embeddings)."""
 
     def __init__(
         self,
@@ -165,44 +158,17 @@ class DINOv2Encoder(WorldModelEncoder):
         all_embs = []
         for start in range(0, B, self.batch_size):
             batch = images[start : start + self.batch_size]
-            batch_pil = [self._tensor_to_pil_format(img) for img in batch]
-            inputs = self.processor(images=batch_pil, return_tensors="pt")
+            batch = to_float01(batch)
+            inputs = self.processor(images=batch, return_tensors="pt")
             inputs = {k: v.to(self.device, dtype=self.dtype) for k, v in inputs.items()}
             outputs = self.model(**inputs)
             cls_emb = outputs.last_hidden_state[:, 0]
             all_embs.append(cls_emb.float())
         return torch.cat(all_embs, dim=0)
 
-    @staticmethod
-    def _tensor_to_pil_format(img: torch.Tensor) -> torch.Tensor:
-        """Ensure image is float in [0,1] with shape (C,H,W)."""
-        return to_float01(img)
-
 
 class VJEPA2Encoder(WorldModelEncoder):
-    """Frozen V-JEPA 2 ViT-G encoder for SRPO trajectory embedding.
-
-    Loading strategy (tried in order):
-
-    1. ``AutoModel.from_pretrained`` with the official Facebook HF
-       checkpoint (``facebook/vjepa2-vitg-fpc64-384-ssv2``).  Works
-       out-of-the-box with ``transformers >= 4.52``.
-    2. Raw ``.pt`` checkpoint from ``Sylvest/vjepa2-vit-g`` loaded into a
-       ``timm`` ViT-G model.  This is the checkpoint format used by the
-       original SRPO codebase (siiRL).
-
-    Raises ``RuntimeError`` if all loading attempts fail.
-
-    When loaded via ``transformers``, :meth:`encode_trajectory` passes the
-    subsampled frames as a single video clip ``(B, C, T, H, W)`` so V-JEPA
-    2 can leverage temporal context.
-
-    Args:
-        model_id: HuggingFace model id for V-JEPA 2.
-        device: Torch device.
-        dtype: Model precision.
-        batch_size: Max clips / frame-batches per forward pass.
-    """
+    """Frozen V-JEPA 2 ViT-G encoder for SRPO trajectory embedding."""
 
     _WEIGHT_EXTENSIONS = (".safetensors", ".pt", ".pth", ".bin")
 
@@ -225,18 +191,13 @@ class VJEPA2Encoder(WorldModelEncoder):
         if model_id != VJEPA2_SRPO_RAW_ID and self._try_raw_checkpoint(VJEPA2_SRPO_RAW_ID):
             return
 
-        raise RuntimeError(
-            f"All V-JEPA 2 loading attempts failed for {model_id!r}. "
-            "Ensure transformers >= 4.52 is installed or the raw checkpoint is accessible."
-        )
+        raise RuntimeError(f"All V-JEPA 2 loading attempts failed for {model_id!r}")
 
     def _try_automodel(self, model_id: str) -> bool:
         try:
             logger.info("Trying AutoModel for V-JEPA 2: %s", model_id)
             self.model = AutoModel.from_pretrained(
-                model_id,
-                torch_dtype=self.dtype,
-                trust_remote_code=True,
+                model_id, torch_dtype=self.dtype, trust_remote_code=True
             ).to(self.device)
             self.model.eval()
             for p in self.model.parameters():
@@ -249,82 +210,29 @@ class VJEPA2Encoder(WorldModelEncoder):
             logger.warning("AutoModel failed for %s: %s", model_id, e)
             return False
 
-    def _try_raw_checkpoint(self, model_id: str) -> bool:
-        try:
-            logger.info("Trying raw checkpoint loading for %s via timm…", model_id)
-            self._load_raw_checkpoint(model_id)
-            logger.info("V-JEPA 2 loaded via timm - embed_dim=%d", self._embed_dim)
-            return True
-        except Exception as e:
-            logger.warning("Raw checkpoint loading failed for %s: %s", model_id, e)
-            return False
+    def _normalize(self, x: torch.Tensor) -> torch.Tensor:
+        """siiRL Public Spec: Resize short side to 438px, then Center-Crop 384x384.
+        
+        Reference: 
+        - img_size = 384
+        - short_side = int(256 / 224 * img_size) = 438
+        - ImageNet Normalization
+        """
+        from torchvision.transforms.functional import center_crop, resize
 
-    def _load_raw_checkpoint(self, model_id: str) -> None:
-        import timm
-        from huggingface_hub import hf_hub_download, list_repo_files
+        if x.shape[-2:] != (384, 384):
+            h, w = x.shape[-2:]
+            short = min(h, w)
+            # Alignment: siiRL uses 256/224 scaling factor for the short side
+            img_size = 384
+            scale = (256 / 224) * img_size / short
+            new_size = [int(h * scale), int(w * scale)]
+            x = resize(x, new_size, antialias=True)
+            x = center_crop(x, [img_size, img_size])
 
-        files = list_repo_files(model_id)
-        weight_files = [f for f in files if any(f.endswith(ext) for ext in self._WEIGHT_EXTENSIONS)]
-        if not weight_files:
-            raise FileNotFoundError(
-                f"No weight files ({self._WEIGHT_EXTENSIONS}) in {model_id}. Repo contains: {files}"
-            )
-
-        logger.info("Found weight files in %s: %s", model_id, weight_files)
-        path = hf_hub_download(model_id, weight_files[0])
-
-        if weight_files[0].endswith(".safetensors"):
-            from safetensors.torch import load_file
-
-            state_dict = load_file(path)
-        else:
-            # weights_only=False: raw timm checkpoints may wrap state dicts in plain Python dicts
-            raw = torch.load(path, map_location="cpu", weights_only=False)
-            if isinstance(raw, dict):
-                for key in ("model", "state_dict", "encoder", "target_encoder"):
-                    if key in raw:
-                        raw = raw[key]
-                        break
-            state_dict = raw if isinstance(raw, dict) else raw.state_dict()
-
-        embed_dim = self._infer_embed_dim(state_dict)
-        timm_name = self._pick_timm_model(embed_dim)
-        logger.info("Creating timm model %s (embed_dim=%d)", timm_name, embed_dim)
-        model = timm.create_model(timm_name, pretrained=False, num_classes=0)
-
-        msg = model.load_state_dict(state_dict, strict=False)
-        if msg.unexpected_keys:
-            logger.info("Unexpected keys (ignored, first 5): %s", msg.unexpected_keys[:5])
-        if msg.missing_keys:
-            logger.info("Missing keys (first 5): %s", msg.missing_keys[:5])
-
-        self.model = model.to(self.device, dtype=self.dtype)
-        self.model.eval()
-        for p in self.model.parameters():
-            p.requires_grad_(False)
-        self._embed_dim = embed_dim
-        self._backend = "timm"
-
-    @staticmethod
-    def _infer_embed_dim(state_dict: dict) -> int:
-        for key in ("cls_token", "pos_embed", "patch_embed.proj.bias"):
-            if key in state_dict:
-                return state_dict[key].shape[-1]
-        for key, val in state_dict.items():
-            if "norm" in key and "weight" in key and val.ndim == 1:
-                return val.shape[0]
-        raise ValueError("Cannot infer embed_dim from state dict keys")
-
-    @staticmethod
-    def _pick_timm_model(embed_dim: int) -> str:
-        if embed_dim == 1536:
-            return "vit_giant_patch14_dinov2.lvd142m"
-        if embed_dim == 1408:
-            return "vit_giant_patch14_clip_224.laion2b"
-        return "vit_giant_patch14_dinov2.lvd142m"
-
-    def embed_dim(self) -> int:
-        return self._embed_dim
+        mean = torch.tensor([0.485, 0.456, 0.406], device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225], device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
+        return (x - mean) / std
 
     @torch.no_grad()
     def encode_frames(self, images: torch.Tensor) -> torch.Tensor:
@@ -332,16 +240,17 @@ class VJEPA2Encoder(WorldModelEncoder):
         all_embs = []
         for start in range(0, B, self.batch_size):
             batch = to_float01(images[start : start + self.batch_size], auto_scale=True)
+            batch = self._normalize(batch.to(self.device, dtype=self.dtype))
 
             if self._backend == "timm":
-                batch = batch.to(self.device, dtype=self.dtype)
                 out = self.model.forward_features(batch)
                 emb = out[:, 0] if out.ndim == 3 else out
             else:
-                batch = batch.to(self.device, dtype=self.dtype)
+                # Video backend expects (B, C, T, H, W) -> T=1 for single frames
                 batch_video = batch.unsqueeze(1)
                 outputs = self.model(pixel_values_videos=batch_video)
                 hs = outputs.last_hidden_state
+                # Average pooling over temporal/spatial tokens if needed
                 emb = hs[:, 0] if hs.ndim == 3 else hs.mean(dim=1)
 
             all_embs.append(emb.float())
@@ -353,20 +262,6 @@ class VJEPA2Encoder(WorldModelEncoder):
         images: torch.Tensor,
         subsample_every: int = 5,
     ) -> torch.Tensor:
-        """Encode a full trajectory, leveraging temporal context when possible.
-
-        With the ``transformers`` backend the subsampled frames are passed
-        as a single video clip ``(1, C, T, H, W)`` so V-JEPA 2 sees
-        temporal structure.  With the ``timm`` backend (raw checkpoint)
-        frames are encoded independently and mean-pooled.
-
-        Args:
-            images: ``(T, 3, H, W)`` or ``(T, V, 3, H, W)`` float tensor.
-            subsample_every: Take every *k*-th frame.
-
-        Returns:
-            ``(D,)`` trajectory embedding.
-        """
         indices = list(range(0, images.shape[0], subsample_every))
         frames = images[indices]
         if frames.ndim == 5:
@@ -374,10 +269,11 @@ class VJEPA2Encoder(WorldModelEncoder):
             frames = frames.reshape(t * v, c, h, w)
 
         frames = to_float01(frames, auto_scale=True)
+        frames = self._normalize(frames.to(self.device, dtype=self.dtype))
 
         if self._backend == "transformers":
+            # Pass as a single clip (1, F, C, H, W)
             clip = frames.unsqueeze(0)
-            clip = clip.to(self.device, dtype=self.dtype)
             outputs = self.model(pixel_values_videos=clip)
             hs = outputs.last_hidden_state
             return hs[0, 0].float() if hs.ndim == 3 else hs[0].mean(dim=0).float()
@@ -391,65 +287,99 @@ class VJEPA2Encoder(WorldModelEncoder):
         trajectories_images: list[torch.Tensor],
         subsample_every: int = 5,
     ) -> torch.Tensor:
-        """Encode multiple trajectories with batched video-clip inference.
-
-        For the ``transformers`` backend, packs multiple trajectory clips
-        into a single ``(N, C, T, H, W)`` batch (preserving temporal
-        context within each clip).  For ``timm`` / fallback, delegates to
-        the base class which flattens all frames into one mega-batch.
-
-        Args:
-            trajectories_images: List of ``(T_i, [V,] 3, H, W)`` tensors.
-            subsample_every: Take every *k*-th frame per trajectory.
-
-        Returns:
-            ``(N, D)`` tensor of trajectory embeddings.
-        """
         if self._backend != "transformers":
-            # timm backend: use the base-class mega-batch strategy
             return super().encode_trajectories(trajectories_images, subsample_every)
 
-        # ── transformers backend: batch video clips ──────────────────────
-        # Subsample each trajectory and normalise to (T_sub*V, C, H, W)
+        # Batch video clips for transformers backend
         clips: list[torch.Tensor] = []
         for imgs in trajectories_images:
             indices = list(range(0, imgs.shape[0], subsample_every))
             frames = imgs[indices]
-            if frames.ndim == 5:  # (T, V, C, H, W)
+            if frames.ndim == 5:
                 t, v, c, h, w = frames.shape
                 frames = frames.reshape(t * v, c, h, w)
             frames = to_float01(frames, auto_scale=True)
-            clips.append(frames)  # (F_i, C, H, W)
+            frames = self._normalize(frames.to(self.device, dtype=self.dtype))
+            clips.append(frames)
 
-        # Force exactly 64 frames per trajectory (SRPO repo standard)
-        target_frames = 64
+        # Resample to exactly 64 frames (Paper standard)
+        target = 64
         padded: list[torch.Tensor] = []
         for c in clips:
             T = c.shape[0]
-            if T > target_frames:
-                # Evenly sample exactly 64 frames
-                indices = torch.linspace(0, T - 1, target_frames).long()
+            if T > target:
+                indices = torch.linspace(0, T - 1, target).long()
                 c = c[indices]
-            elif T < target_frames:
-                # Pad by repeating the last frame
-                pad = c[-1:].expand(target_frames - T, -1, -1, -1)
+            elif T < target:
+                pad = c[-1:].expand(target - T, -1, -1, -1)
                 c = torch.cat([c, pad], dim=0)
             padded.append(c)
 
-        # Stack: (N, F, C, H, W) - this is the pixel_values_videos format
-        batch_clips = torch.stack(padded, dim=0).to(self.device, dtype=self.dtype)
+        batch_clips = torch.stack(padded, dim=0)
         N = batch_clips.shape[0]
-
-        # Process in sub-batches of self.batch_size clips
         all_embs: list[torch.Tensor] = []
         for start in range(0, N, self.batch_size):
             sub = batch_clips[start : start + self.batch_size]
             outputs = self.model(pixel_values_videos=sub)
             hs = outputs.last_hidden_state
-            emb = hs[:, 0] if hs.ndim == 3 else hs.mean(dim=1)  # (sub_N, D)
+            emb = hs[:, 0] if hs.ndim == 3 else hs.mean(dim=1)
             all_embs.append(emb.float())
 
-        return torch.cat(all_embs, dim=0)  # (N, D)
+        return torch.cat(all_embs, dim=0)
+
+    # ── Fallback Loading ──────────────────────────────────────────────
+
+    def _try_raw_checkpoint(self, model_id: str) -> bool:
+        try:
+            logger.info("Trying raw checkpoint loading for %s via timm…", model_id)
+            import timm
+            from huggingface_hub import hf_hub_download, list_repo_files
+
+            files = list_repo_files(model_id)
+            weight_files = [f for f in files if any(f.endswith(ext) for ext in self._WEIGHT_EXTENSIONS)]
+            if not weight_files: return False
+            path = hf_hub_download(model_id, weight_files[0])
+
+            if weight_files[0].endswith(".safetensors"):
+                from safetensors.torch import load_file
+                state_dict = load_file(path)
+            else:
+                raw = torch.load(path, map_location="cpu", weights_only=False)
+                if isinstance(raw, dict):
+                    for key in ("model", "state_dict", "encoder"):
+                        if key in raw: raw = raw[key]; break
+                state_dict = raw if isinstance(raw, dict) else raw.state_dict()
+
+            embed_dim = self._infer_embed_dim(state_dict)
+            timm_name = self._pick_timm_model(embed_dim)
+            model = timm.create_model(timm_name, pretrained=False, num_classes=0)
+            model.load_state_dict(state_dict, strict=False)
+            self.model = model.to(self.device, dtype=self.dtype).eval()
+            for p in self.model.parameters(): p.requires_grad_(False)
+            self._embed_dim = embed_dim
+            self._backend = "timm"
+            logger.info("V-JEPA 2 loaded via timm - embed_dim=%d", self._embed_dim)
+            return True
+        except Exception as e:
+            logger.warning("Raw checkpoint failed for %s: %s", model_id, e)
+            return False
+
+    @staticmethod
+    def _infer_embed_dim(state_dict: dict) -> int:
+        for key in ("cls_token", "pos_embed", "patch_embed.proj.bias"):
+            if key in state_dict: return state_dict[key].shape[-1]
+        for key, val in state_dict.items():
+            if "norm" in key and "weight" in key and val.ndim == 1: return val.shape[0]
+        raise ValueError("Cannot infer embed_dim")
+
+    @staticmethod
+    def _pick_timm_model(embed_dim: int) -> str:
+        if embed_dim == 1536: return "vit_giant_patch14_dinov2.lvd142m"
+        if embed_dim == 1408: return "vit_giant_patch14_clip_224.laion2b"
+        return "vit_giant_patch14_dinov2.lvd142m"
+
+    def embed_dim(self) -> int:
+        return self._embed_dim
 
 
 def build_world_model(
@@ -458,17 +388,7 @@ def build_world_model(
     dtype: torch.dtype = torch.float16,
     batch_size: int = 32,
 ) -> WorldModelEncoder:
-    """Factory for world model encoders.
-
-    Args:
-        model_type: ``"dinov2"`` or ``"vjepa2"``.
-        device: Torch device string.
-        dtype: Model precision.
-        batch_size: Max encoding batch size.
-
-    Returns:
-        A frozen :class:`WorldModelEncoder`.
-    """
+    """Factory for world model encoders."""
     if model_type == "vjepa2":
         return VJEPA2Encoder(device=device, dtype=dtype, batch_size=batch_size)
     return DINOv2Encoder(device=device, dtype=dtype, batch_size=batch_size)

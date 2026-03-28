@@ -40,7 +40,7 @@ class CollectionConfig:
     action_dim: int = 7
     state_dim: int = 8
     num_demos: int = 100
-    num_rollouts: int = 24
+    num_rollouts: int = 100
     num_envs: int = 4
     max_steps: int = 300
     seed: int = 42
