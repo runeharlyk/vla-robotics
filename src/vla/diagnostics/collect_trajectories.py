@@ -1,11 +1,13 @@
 """Trajectory collection utilities for clustering analysis.
 
-Provides functions to collect and cache trajectories from three sources:
+Provides functions to collect and cache trajectories from four sources:
 
 1. **Demo trajectories** — loaded from the HuggingFace LeRobot dataset.
 2. **SFT rollouts** — collected using the SmolVLA SFT checkpoint, split
    into success and failure buffers.
 3. **Random-action rollouts** — collected with a random policy.
+4. **Progress trajectories** — replay the first N% of a reference
+   trajectory's actions, then random for the remainder.
 
 All buffers are cached to ``.pt`` files for fast re-loading.
 """
@@ -249,3 +251,120 @@ def collect_rollouts(
 
     rollout.close()
     return sft_success, sft_failed, random_failed
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Progress-level trajectories (action replay + random tail)
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _make_replay_policy(
+    recorded_actions: torch.Tensor,
+    cutoff_step: int,
+    action_dim: int,
+):
+    """Build a policy that replays recorded actions up to cutoff, then random."""
+    step_counter = [0]
+
+    def policy_fn(image, instruction, state=None):
+        t = step_counter[0]
+        step_counter[0] += 1
+        if t < cutoff_step and t < len(recorded_actions):
+            return recorded_actions[t]
+        return torch.randn(action_dim) * 0.5
+
+    return policy_fn, step_counter
+
+
+def collect_progress_trajectories(
+    cfg: CollectionConfig,
+    reference_trajs: list[Trajectory],
+    progress_levels: list[float] | None = None,
+    source_name: str = "demos",
+) -> dict[float, list[Trajectory]]:
+    """Collect trajectories at varying progress levels via action replay.
+
+    For each reference trajectory and each progress level, replays the
+    first ``N%`` of the recorded actions in the environment, then switches
+    to random actions for the remaining steps.
+
+    Results are cached per level as
+    ``{suite}_task{task_id}_progress_{pct}_from_{source}.pt``.
+
+    Args:
+        cfg: Collection configuration (suite, task, cache dir, etc.).
+        reference_trajs: Successful trajectories whose actions we replay.
+        progress_levels: Fractions of the trajectory to replay (default
+            ``[1.0, 0.75, 0.5, 0.25, 0.0]``).
+        source_name: Label for cache keys (``"demos"`` or ``"sft_success"``).
+
+    Returns:
+        ``{level: [Trajectory, ...]}`` dict, one list per progress level.
+    """
+    from vla.rl.libero_rollout import LiberoRollout
+    from vla.rl.rollout import collect_single_episode
+
+    if progress_levels is None:
+        progress_levels = [1.0, 0.75, 0.5, 0.25, 0.0]
+
+    result: dict[float, list[Trajectory]] = {}
+    all_cached = True
+
+    for level in progress_levels:
+        pct = int(level * 100)
+        cache_name = f"progress_{pct}_from_{source_name}"
+        cached = load_trajectories(cfg, cache_name)
+        if cached is not None:
+            result[level] = cached
+        else:
+            all_cached = False
+            result[level] = []
+
+    if all_cached:
+        return result
+
+    rollout = LiberoRollout(
+        suite_name=cfg.libero_suite,
+        task_id=cfg.task_id,
+        num_envs=1,
+        max_steps=cfg.max_steps,
+        image_size=256,
+        state_dim=cfg.state_dim,
+    )
+
+    from vla.rl.libero_rollout import _LiberoSingleAdapter
+    adapter = _LiberoSingleAdapter(rollout)
+    instruction = rollout.task_description
+
+    for level in progress_levels:
+        pct = int(level * 100)
+        cache_name = f"progress_{pct}_from_{source_name}"
+        if result[level]:
+            continue
+
+        logger.info(
+            "Collecting progress trajectories: level=%d%% from %s (%d refs)",
+            pct, source_name, len(reference_trajs),
+        )
+
+        trajs: list[Trajectory] = []
+        for ref_idx, ref_traj in enumerate(reference_trajs):
+            cutoff = int(ref_traj.length * level)
+            policy_fn, counter = _make_replay_policy(
+                ref_traj.actions, cutoff, cfg.action_dim,
+            )
+            traj = collect_single_episode(
+                adapter=adapter,
+                policy_fn=policy_fn,
+                instruction=instruction,
+                max_steps=cfg.max_steps,
+                seed=cfg.seed + ref_idx + pct * 1000,
+            )
+            traj.task_id = cfg.task_key
+            trajs.append(traj)
+
+        result[level] = trajs
+        save_trajectories(trajs, cfg, cache_name)
+
+    rollout.close()
+    return result
