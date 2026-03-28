@@ -269,14 +269,16 @@ class VJEPA2Encoder(WorldModelEncoder):
             frames = frames.reshape(t * v, c, h, w)
 
         frames = to_float01(frames, auto_scale=True)
-        frames = self._normalize(frames.to(self.device, dtype=self.dtype))
+        frames = self._normalize(frames.to(dtype=self.dtype))
 
         if self._backend == "transformers":
-            # Pass as a single clip (1, F, C, H, W)
-            clip = frames.unsqueeze(0)
+            clip = frames.unsqueeze(0).to(self.device)
             outputs = self.model(pixel_values_videos=clip)
             hs = outputs.last_hidden_state
-            return hs[0, 0].float() if hs.ndim == 3 else hs[0].mean(dim=0).float()
+            emb = hs[0, 0].float() if hs.ndim == 3 else hs[0].mean(dim=0).float()
+            del clip, outputs, hs
+            torch.cuda.empty_cache()
+            return emb
 
         frame_embs = self.encode_frames(frames)
         return frame_embs.mean(dim=0)
@@ -312,19 +314,17 @@ class VJEPA2Encoder(WorldModelEncoder):
                 frames = torch.cat([frames, pad], dim=0)
             padded.append(frames)
 
-        batch_clips = torch.stack(padded, dim=0)  # (N, 64, C, H, W) on CPU
-        N = batch_clips.shape[0]
         all_embs: list[torch.Tensor] = []
-        for start in range(0, N, self.batch_size):
-            sub = batch_clips[start : start + self.batch_size].to(self.device)
-            outputs = self.model(pixel_values_videos=sub)
+        for clip_cpu in padded:
+            clip = clip_cpu.unsqueeze(0).to(self.device)  # (1, 64, C, H, W)
+            outputs = self.model(pixel_values_videos=clip)
             hs = outputs.last_hidden_state
-            emb = hs[:, 0] if hs.ndim == 3 else hs.mean(dim=1)
-            all_embs.append(emb.float().cpu())
-            del sub, outputs, hs, emb
+            emb = hs[0, 0].float() if hs.ndim == 3 else hs[0].mean(dim=0).float()
+            all_embs.append(emb.cpu())
+            del clip, outputs, hs, emb
             torch.cuda.empty_cache()
 
-        return torch.cat(all_embs, dim=0).to(self.device)
+        return torch.stack(all_embs, dim=0).to(self.device)
 
     # ── Fallback Loading ──────────────────────────────────────────────
 

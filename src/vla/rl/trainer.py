@@ -528,13 +528,12 @@ def train_srpo(
             world_encoder.reload(policy.device)
 
         if config.mode == "srpo" and reward_model is not None:
-            g_values, per_traj_frame_embs = reward_model.compute_trajectory_rewards(all_trajectories)
+            g_values, traj_embs = reward_model.compute_trajectory_rewards(all_trajectories)
             all_diags = reward_model.get_diagnostics()
-            # Flatten per-frame embeddings from successful trajectories by task
             by_task_embs: dict[str, list[torch.Tensor]] = defaultdict(list)
             for i, t in enumerate(all_trajectories):
                 if t.success:
-                    by_task_embs[t.task_id].extend(per_traj_frame_embs[i])
+                    by_task_embs[t.task_id].append(traj_embs[i])
 
             for tid, embs in by_task_embs.items():
                 reward_model.add_successful_embeddings(tid, embs)
