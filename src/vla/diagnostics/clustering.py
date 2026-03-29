@@ -46,7 +46,7 @@ class ClusteringConfig:
     """Configuration for the clustering analysis (not collection)."""
 
     # Embedding
-    subsample_every: int = 5
+    subsample_every: int = 1
 
     # DBSCAN
     dbscan_eps: float = 0.5

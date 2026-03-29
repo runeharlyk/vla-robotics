@@ -265,11 +265,29 @@ class VJEPA2Encoder(WorldModelEncoder):
             all_embs.append(emb.float())
         return torch.cat(all_embs, dim=0)
 
+    def _prepare_clip(self, images: torch.Tensor, target_frames: int = 64) -> torch.Tensor:
+        """Subsample/pad images to ``target_frames`` on CPU in fp16, normalized."""
+        frames = images
+        if frames.ndim == 5:
+            t, v, c, h, w = frames.shape
+            frames = frames.reshape(t * v, c, h, w)
+        frames = to_float01(frames, auto_scale=True)
+        frames = self._normalize(frames.to(dtype=self.dtype))
+
+        T = frames.shape[0]
+        if target_frames < T:
+            idx = torch.linspace(0, T - 1, target_frames).long()
+            frames = frames[idx]
+        elif target_frames > T:
+            pad = frames[-1:].expand(target_frames - T, -1, -1, -1)
+            frames = torch.cat([frames, pad], dim=0)
+        return frames
+
     @torch.no_grad()
     def encode_trajectory(
         self,
         images: torch.Tensor,
-        subsample_every: int = 5,
+        subsample_every: int = 1,
     ) -> torch.Tensor:
         """Encode a full trajectory, leveraging temporal context when possible.
 
@@ -293,6 +311,7 @@ class VJEPA2Encoder(WorldModelEncoder):
         frames = self._normalize(frames.to(dtype=self.dtype))
 
         if self._backend == "transformers":
+            frames = self._prepare_clip(images)
             clip = frames.unsqueeze(0).to(self.device)
             outputs = self.model(pixel_values_videos=clip)
             hs = outputs.last_hidden_state
@@ -301,6 +320,8 @@ class VJEPA2Encoder(WorldModelEncoder):
             torch.cuda.empty_cache()
             return emb
 
+        frames = to_float01(images, auto_scale=True)
+        frames = self._normalize(frames.to(dtype=self.dtype))
         frame_embs = self.encode_frames(frames)
         return frame_embs.mean(dim=0)
 
@@ -308,7 +329,7 @@ class VJEPA2Encoder(WorldModelEncoder):
     def encode_trajectories(
         self,
         trajectories_images: list[torch.Tensor],
-        subsample_every: int = 5,
+        subsample_every: int = 1,
     ) -> torch.Tensor:
         if self._backend != "transformers":
             return super().encode_trajectories(trajectories_images, subsample_every)
@@ -337,8 +358,12 @@ class VJEPA2Encoder(WorldModelEncoder):
             padded.append(frames)
 
         all_embs: list[torch.Tensor] = []
-        for clip_cpu in padded:
-            clip = clip_cpu.unsqueeze(0).to(self.device)  # (1, 64, C, H, W)
+        for imgs in trajectories_images:
+            if subsample_every > 1:
+                indices = list(range(0, imgs.shape[0], subsample_every))
+                imgs = imgs[indices]
+            clip_cpu = self._prepare_clip(imgs)
+            clip = clip_cpu.unsqueeze(0).to(self.device)
             outputs = self.model(pixel_values_videos=clip)
             hs = outputs.last_hidden_state
             emb = hs[0, 0].float() if hs.ndim == 3 else hs[0].mean(dim=0).float()

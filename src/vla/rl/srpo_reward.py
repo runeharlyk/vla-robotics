@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class SRPORewardConfig:
     """Hyperparameters for the SRPO world-progress reward model."""
 
-    subsample_every: int = 5
+    subsample_every: int = 1
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2
     dbscan_auto_eps: bool = True
