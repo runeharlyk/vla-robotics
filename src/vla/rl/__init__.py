@@ -14,12 +14,6 @@ from vla.rl.rollout import (  # noqa: F401
     collect_single_episode,
 )
 from vla.rl.srpo_reward import WorldProgressReward  # noqa: F401
-from vla.rl.trainer import (  # noqa: F401
-    build_rollout_engine,
-    collect_all_trajectories,
-    evaluate_and_checkpoint,
-    train_srpo,
-)
 from vla.rl.vec_env import (  # noqa: F401
     StepResult,
     VecEnvAdapter,
@@ -27,3 +21,16 @@ from vla.rl.vec_env import (  # noqa: F401
     collect_wave,
 )
 from vla.training.checkpoint import save_best_checkpoint  # noqa: F401
+
+
+def __getattr__(name: str):
+    _trainer_names = {
+        "build_rollout_engine",
+        "collect_all_trajectories",
+        "evaluate_and_checkpoint",
+        "train_srpo",
+    }
+    if name in _trainer_names:
+        from vla.rl import trainer
+        return getattr(trainer, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
