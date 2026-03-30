@@ -588,8 +588,8 @@ def train_srpo(
 
         # -- 4. Filter skipped-task trajectories & pre-sample noise ------
         active_mask = [t.task_id not in skipped_task_set for t in all_trajectories]
-        active_trajs = [t for t, keep in zip(all_trajectories, active_mask) if keep]
-        active_advs = [a for a, keep in zip(advantages, active_mask) if keep]
+        active_trajs = [t for t, keep in zip(all_trajectories, active_mask, strict=True) if keep]
+        active_advs = [a for a, keep in zip(advantages, active_mask, strict=True) if keep]
         active_instrs = [spec_lookup[t.task_id].instruction for t in active_trajs]
 
         # FPO must process ALL trajectories, not just active ones.
