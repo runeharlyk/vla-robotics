@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import subprocess
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -55,10 +56,113 @@ __all__ = [
     "build_rollout_engine",
     "collect_all_trajectories",
     "evaluate_and_checkpoint",
+    "log_training_config",
     "ppo_update",
     "fpo_update",
     "train_srpo",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Config logging
+# ---------------------------------------------------------------------------
+
+
+def log_training_config(
+    config: SRPOConfig,
+    task_specs: list[TaskSpec],
+    trajs_per_task_per_iter: int,
+) -> None:
+    """Print all training parameters to the log at the start of a run.
+
+    Produces a single structured block that makes it easy to reproduce
+    the run from logs alone (mirroring the CLI lines in job logs).
+    """
+    sep = "=" * 72
+    lines = [sep, "SRPO TRAINING CONFIGURATION", sep]
+
+    try:
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, text=True,
+        ).strip()
+        branch = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL, text=True,
+        ).strip()
+        lines.append(f"  git_commit:            {commit}")
+        lines.append(f"  git_branch:            {branch}")
+        lines.append("")
+    except Exception:
+        pass
+
+    lines.append(f"  mode:                  {config.mode}")
+    lines.append(f"  simulator:             {config.simulator}")
+    lines.append(f"  suite:                 {config.suite}")
+    lines.append(f"  num_tasks:             {len(task_specs)}")
+    for spec in task_specs:
+        lines.append(f"    [{spec.task_id}] libero_idx={spec.libero_task_idx}  instruction={spec.instruction!r}")
+
+    lines.append("")
+    lines.append("  Policy update:")
+    lines.append(f"    update_method:       {config.update_method}")
+    lines.append(f"    advantage_mode:      {config.advantage_mode}")
+    lines.append(f"    lr:                  {config.lr}")
+    lines.append(f"    max_grad_norm:       {config.max_grad_norm}")
+    lines.append(f"    clip_epsilon:        {config.clip_epsilon}")
+    lines.append(f"    clip_epsilon_high:   {config.clip_epsilon_high}")
+    lines.append(f"    kl_coeff:            {config.kl_coeff}")
+    lines.append(f"    adaptive_kl:         {config.adaptive_kl}")
+    if config.adaptive_kl:
+        lines.append(f"    kl_target:           {config.kl_target}")
+        lines.append(f"    kl_adapt_factor:     {config.kl_adapt_factor}")
+    lines.append(f"    ppo_epochs:          {config.ppo_epochs}")
+    lines.append(f"    ppo_minibatch_trajs: {config.ppo_minibatch_trajs}")
+    lines.append(f"    awr_epochs:          {config.awr_epochs}")
+    lines.append(f"    awr_temperature:     {config.awr_temperature}")
+    lines.append(f"    awr_weight_clip:     {config.awr_weight_clip}")
+    lines.append(f"    adv_eps:             {config.adv_eps}")
+    lines.append(f"    adv_skip_threshold:  {config.adv_skip_threshold}")
+
+    lines.append("")
+    lines.append("  FPO-specific:")
+    lines.append(f"    num_fm_noise_samples:    {config.num_fm_noise_samples}")
+    lines.append(f"    fpo_negative_adv_scale:  {config.fpo_negative_adv_scale}")
+    lines.append(f"    fpo_positive_adv_only:   {config.fpo_positive_adv_only}")
+    lines.append(f"    fpo_log_ratio_clip:      {config.fpo_log_ratio_clip}")
+    lines.append(f"    fpo_loss_reduction:      {config.fpo_loss_reduction}")
+    lines.append(f"    fpo_full_chunk_target:   {config.fpo_full_chunk_target}")
+    lines.append(f"    fpo_use_ref_policy_kl:   {config.fpo_use_ref_policy_kl}")
+
+    lines.append("")
+    lines.append("  Rollout & eval:")
+    lines.append(f"    num_iterations:      {config.num_iterations}")
+    lines.append(f"    trajs_per_task:      {trajs_per_task_per_iter}")
+    lines.append(f"    num_rollout_envs:    {config.num_rollout_envs}")
+    lines.append(f"    num_eval_envs:       {config.num_eval_envs}")
+    lines.append(f"    max_steps:           {config.max_steps}")
+    lines.append(f"    eval_every:          {config.eval_every}")
+    lines.append(f"    eval_episodes:       {config.eval_episodes}")
+    lines.append(f"    eval_zero_sample:    {config.eval_zero_sample}")
+    lines.append(f"    fm_batch_size:       {config.fm_batch_size}")
+    lines.append(f"    seed:                {config.seed}")
+
+    lines.append("")
+    lines.append("  SRPO reward (world-model):")
+    lines.append(f"    world_model_type:    {config.world_model_type}")
+    lines.append(f"    distance_metric:     {config.distance_metric}")
+    lines.append(f"    subsample_every:     {config.subsample_every}")
+    lines.append(f"    dbscan_eps:          {config.dbscan_eps}")
+    lines.append(f"    dbscan_min_samples:  {config.dbscan_min_samples}")
+    lines.append(f"    dbscan_auto_eps:     {config.dbscan_auto_eps}")
+    lines.append(f"    use_failure_rewards:  {config.use_failure_rewards}")
+    lines.append(f"    use_standard_scaler: {config.use_standard_scaler}")
+
+    lines.append("")
+    lines.append("  Infrastructure:")
+    lines.append(f"    gradient_checkpointing: {config.gradient_checkpointing}")
+    lines.append(f"    save_dir:            {config.save_dir}")
+
+    lines.append(sep)
+    logger.info("\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +457,7 @@ def train_srpo(
             distance_metric=config.distance_metric,
             dbscan_auto_eps=config.dbscan_auto_eps,
             use_failure_rewards=config.use_failure_rewards,
+            use_standard_scaler=config.use_standard_scaler,
         )
         reward_model = MultiTaskWorldProgressReward(world_encoder, reward_cfg)
 
@@ -370,6 +475,8 @@ def train_srpo(
     if metrics_logger is None:
         metrics_logger = MetricsLogger(jsonl_path=save_path / "metrics.jsonl")
     best_success = -1.0
+
+    log_training_config(config, task_specs, trajs_per_task_per_iter)
 
     log_data: dict[str, Any] = {
         f"{config.mode}/iteration": 0,
@@ -553,7 +660,21 @@ def train_srpo(
         update_noise.clear()
         update_time.clear()
 
-        # -- 6. Logging ---------------------------------------------------
+        # -- 6. Adaptive KL adjustment ------------------------------------
+        if config.adaptive_kl and config.update_method is UpdateMethod.FPO and update_metrics.raw_kl > 0:
+            old_kl_coeff = config.kl_coeff
+            if update_metrics.raw_kl > 2.0 * config.kl_target:
+                config.kl_coeff = min(config.kl_coeff * config.kl_adapt_factor, 1.0)
+            elif update_metrics.raw_kl < 0.5 * config.kl_target:
+                config.kl_coeff = max(config.kl_coeff / config.kl_adapt_factor, 1e-6)
+            if config.kl_coeff != old_kl_coeff:
+                logger.info(
+                    f"Iter {iteration}: adaptive KL adjusted kl_coeff "
+                    f"{old_kl_coeff:.6f} → {config.kl_coeff:.6f} "
+                    f"(raw_kl={update_metrics.raw_kl:.6f}, target={config.kl_target:.4f})"
+                )
+
+        # -- 7. Logging ---------------------------------------------------
         M = len(all_trajectories)
         if config.update_method == UpdateMethod.AWR:
             loss_key = "awr_loss"
@@ -574,6 +695,10 @@ def train_srpo(
             log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
         elif config.update_method == UpdateMethod.FPO:
             log_data[f"{config.mode}/clip_frac"] = update_metrics.avg_weight
+            log_data[f"{config.mode}/raw_kl"] = update_metrics.raw_kl
+            log_data[f"{config.mode}/mean_ratio"] = update_metrics.mean_ratio
+            log_data[f"{config.mode}/max_log_ratio"] = update_metrics.max_log_ratio
+            log_data[f"{config.mode}/kl_coeff"] = config.kl_coeff
 
         for tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{tid}/successes"] = n_succ
@@ -583,14 +708,22 @@ def train_srpo(
                 if diag is not None:
                     log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
 
+        ratio_info = ""
+        if config.update_method is UpdateMethod.FPO:
+            ratio_info = (
+                f"  raw_kl={update_metrics.raw_kl:.6f}"
+                f"  mean_r={update_metrics.mean_ratio:.4f}"
+                f"  max_lr={update_metrics.max_log_ratio:.4f}"
+                f"  kl_c={config.kl_coeff:.6f}"
+            )
         logger.info(
             f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}  kl={update_metrics.avg_kl:.6f}"
-            f"  successes={total_successes}/{M}"
+            f"  successes={total_successes}/{M}{ratio_info}"
         )
         for tid in per_task_successes:
             logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
 
-        # -- 7. Periodic evaluation ---------------------------------------
+        # -- 8. Periodic evaluation ---------------------------------------
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
             best_success = evaluate_and_checkpoint(
                 policy,

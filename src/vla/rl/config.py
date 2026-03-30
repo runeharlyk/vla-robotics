@@ -56,6 +56,9 @@ class SRPOConfig(BaseTrainingConfig):
     fpo_log_ratio_clip: float = 5.0
     fpo_use_ref_policy_kl: bool = False
     eval_zero_sample: bool = True
+    adaptive_kl: bool = False
+    kl_target: float = 0.01
+    kl_adapt_factor: float = 1.5
 
 
 @dataclass

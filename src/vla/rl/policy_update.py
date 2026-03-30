@@ -86,6 +86,9 @@ class UpdateMetrics:
     avg_loss: float = 0.0
     avg_kl: float = 0.0
     avg_weight: float = 0.0
+    raw_kl: float = 0.0
+    mean_ratio: float = 1.0
+    max_log_ratio: float = 0.0
 
 
 def awr_update(
@@ -325,6 +328,9 @@ def fpo_update(
     total_loss = 0.0
     total_shift = 0.0
     total_clip_frac = 0.0
+    total_raw_kl = 0.0
+    total_mean_ratio = 0.0
+    total_max_log_ratio = 0.0
     num_updates = 0
 
     for _ in range(max(config.ppo_epochs, 1)):
@@ -339,6 +345,9 @@ def fpo_update(
             mb_loss = 0.0
             mb_shift = 0.0
             mb_clip_frac = 0.0
+            mb_raw_kl = 0.0
+            mb_max_log_ratio = 0.0
+            mb_sum_ratio = 0.0
             used = 0
 
             for i in idxs:
@@ -388,11 +397,20 @@ def fpo_update(
 
                 loss_i.backward()
 
+                with torch.no_grad():
+                    det_log_ratio = log_ratio.detach()
+                    det_ratio = ratio.detach()
+
                 mb_loss += loss_i.item()
                 mb_shift += (new_fm_f.detach().mean() - old_fm.mean()).abs().item() / n_idxs
                 mb_clip_frac += (
-                    (ratio.detach() < 1.0 - config.clip_epsilon) | (ratio.detach() > 1.0 + config.clip_epsilon_high)
+                    (det_ratio < 1.0 - config.clip_epsilon) | (det_ratio > 1.0 + config.clip_epsilon_high)
                 ).float().mean().item() / n_idxs
+                mb_max_log_ratio = max(mb_max_log_ratio, det_log_ratio.abs().max().item())
+                mb_sum_ratio += det_ratio.mean().item() / n_idxs
+                if use_kl:
+                    kl_anchor = ref_fm_per_traj[i].to(device=device, dtype=torch.float32) if ref_fm_per_traj else old_fm
+                    mb_raw_kl += (0.5 * (kl_anchor - new_fm_f.detach()) ** 2).mean().item() / n_idxs
                 used += 1
 
             if used == 0:
@@ -404,6 +422,9 @@ def fpo_update(
             total_loss += mb_loss
             total_shift += mb_shift
             total_clip_frac += mb_clip_frac
+            total_raw_kl += mb_raw_kl
+            total_mean_ratio += mb_sum_ratio
+            total_max_log_ratio = max(total_max_log_ratio, mb_max_log_ratio)
             num_updates += 1
 
     denom = max(num_updates, 1)
@@ -411,6 +432,9 @@ def fpo_update(
         avg_loss=total_loss / denom,
         avg_kl=total_shift / denom,
         avg_weight=total_clip_frac / denom,
+        raw_kl=total_raw_kl / denom,
+        mean_ratio=total_mean_ratio / denom,
+        max_log_ratio=total_max_log_ratio,
     )
 
 

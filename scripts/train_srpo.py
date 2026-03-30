@@ -260,7 +260,7 @@ def main(
         help="Enable gradient checkpointing to reduce VRAM",
     ),
     world_model: WorldModelType = typer.Option("vjepa2", "--world-model", help="dinov2 or vjepa2"),
-    subsample_every: int = typer.Option(5, "--subsample-every"),
+    subsample_every: int = typer.Option(1, "--subsample-every"),
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
     distance_metric: DistanceMetric = typer.Option(
@@ -271,6 +271,11 @@ def main(
         True,
         "--failure-rewards/--no-failure-rewards",
         help="Use distance-based failure rewards (SRPO). Disable for sparse-only rewards.",
+    ),
+    use_standard_scaler: bool = typer.Option(
+        False,
+        "--standard-scaler/--no-standard-scaler",
+        help="Apply StandardScaler before DBSCAN (matches siiRL production code).",
     ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
     wandb_name: str = typer.Option(None, "--wandb-name", help="Optional prefix for the wandb run name"),
@@ -285,6 +290,13 @@ def main(
         help="For FPO, anchor the KL penalty to an explicit start-of-iteration reference policy instead of cached old_fm losses.",
     ),
     eval_zero_sample: bool = typer.Option(True, "--eval-zero-sample/--no-eval-zero-sample"),
+    adaptive_kl: bool = typer.Option(
+        False,
+        "--adaptive-kl/--no-adaptive-kl",
+        help="Adaptively adjust kl_coeff each iteration to track kl_target",
+    ),
+    kl_target: float = typer.Option(0.01, "--kl-target", help="Target KL for adaptive adjustment"),
+    kl_adapt_factor: float = typer.Option(1.5, "--kl-adapt-factor", help="Multiplicative factor for adaptive KL"),
 ) -> None:
     import wandb
     from vla.models.smolvla import SmolVLAPolicy
@@ -368,6 +380,7 @@ def main(
         distance_metric=distance_metric,
         dbscan_auto_eps=dbscan_auto_eps,
         use_failure_rewards=use_failure_rewards,
+        use_standard_scaler=use_standard_scaler,
         simulator=simulator,
         suite=suite,
         task_id=task_specs[0].libero_task_idx,
@@ -383,6 +396,9 @@ def main(
         fpo_log_ratio_clip=fpo_log_ratio_clip,
         fpo_use_ref_policy_kl=fpo_use_ref_policy_kl,
         eval_zero_sample=eval_zero_sample,
+        adaptive_kl=adaptive_kl,
+        kl_target=kl_target,
+        kl_adapt_factor=kl_adapt_factor,
     )
 
     logger.info(
