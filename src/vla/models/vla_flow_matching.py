@@ -265,7 +265,11 @@ class VLAFlowMatching(nn.Module):
         Returns a dict suitable for :meth:`forward_with_cached_prefix`.
         """
         pre_embs, pre_pad, pre_att = self.embed_prefix(
-            images, img_masks, lang_tokens, lang_masks, state,
+            images,
+            img_masks,
+            lang_tokens,
+            lang_masks,
+            state,
         )
         bsize = pre_embs.shape[0]
         device = pre_embs.device
@@ -325,14 +329,19 @@ class VLAFlowMatching(nn.Module):
         return F.mse_loss(v_t.float(), u_t.float(), reduction="none")
 
     def _embed_suffix_fast(
-        self, noisy_actions: torch.Tensor, timestep: torch.Tensor,
+        self,
+        noisy_actions: torch.Tensor,
+        timestep: torch.Tensor,
     ) -> torch.Tensor:
         """Return only the suffix embeddings (skip constant mask creation)."""
         action_emb = self.action_in_proj(noisy_actions)
         dtype = action_emb.dtype
         time_emb = _create_sinusoidal_pos_embedding(
-            timestep, self.vlm_with_expert.expert_hidden_size,
-            self.min_period, self.max_period, action_emb.device,
+            timestep,
+            self.vlm_with_expert.expert_hidden_size,
+            self.min_period,
+            self.max_period,
+            action_emb.device,
         ).to(dtype)
         time_emb = time_emb[:, None, :].expand_as(action_emb)
         at_emb = F.silu(self.action_time_mlp_in(torch.cat([action_emb, time_emb], dim=2)))

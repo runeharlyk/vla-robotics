@@ -111,8 +111,8 @@ def leave_one_out_advantages_per_task(
             adv_std = raw_adv.std().clamp(min=1e-8)
             task_adv = ((raw_adv - raw_adv.mean()) / adv_std).tolist()
         else:
-            # Per RIPT-VLA (Section 3.2) and CombinedVLA-RL, RLOO advantages 
-            # for PPO are NOT Z-score normalised (unlike GRPO). This keeps advantages 
+            # Per RIPT-VLA (Section 3.2) and CombinedVLA-RL, RLOO advantages
+            # for PPO are NOT Z-score normalised (unlike GRPO). This keeps advantages
             # bounded in [-1, +1] and prevents gradient explosions.
             task_adv = raw_adv.tolist()
 

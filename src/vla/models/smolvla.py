@@ -557,25 +557,45 @@ class SmolVLAPolicy(nn.Module):
         N = len(noise_list)
         if N == 1:
             return self.compute_fm_loss_batched(
-                images, actions, states, instruction,
-                noise_list[0], time_list[0], batch_size, reduction,
+                images,
+                actions,
+                states,
+                instruction,
+                noise_list[0],
+                time_list[0],
+                batch_size,
+                reduction,
             )
 
         try:
             return self._multi_sample_kv_cache(
-                images, actions, states, instruction,
-                noise_list, time_list, batch_size, reduction,
+                images,
+                actions,
+                states,
+                instruction,
+                noise_list,
+                time_list,
+                batch_size,
+                reduction,
             )
         except RuntimeError as exc:
             if "mask/KV mismatch" not in str(exc) and "expanded size" not in str(exc):
                 raise
             import logging
+
             logging.getLogger(__name__).warning(
-                "KV-cache path failed (%s), falling back to prefix-embedding cache", exc,
+                "KV-cache path failed (%s), falling back to prefix-embedding cache",
+                exc,
             )
             return self._multi_sample_prefix_cache(
-                images, actions, states, instruction,
-                noise_list, time_list, batch_size, reduction,
+                images,
+                actions,
+                states,
+                instruction,
+                noise_list,
+                time_list,
+                batch_size,
+                reduction,
             )
 
     def _multi_sample_kv_cache(
@@ -614,7 +634,11 @@ class SmolVLAPolicy(nn.Module):
 
             with torch.no_grad():
                 past_kv, pre_pad = self.model.compute_prefix_cache(
-                    img_list, mask_list, tokens, tmasks, state,
+                    img_list,
+                    mask_list,
+                    tokens,
+                    tmasks,
+                    state,
                 )
 
             sample_losses: list[torch.Tensor] = []
@@ -624,7 +648,11 @@ class SmolVLAPolicy(nn.Module):
 
                 with torch.autocast("cuda", enabled=use_amp):
                     losses = self.model.forward_cached(
-                        pre_pad, past_kv, target_chunks, noise, time_val,
+                        pre_pad,
+                        past_kv,
+                        target_chunks,
+                        noise,
+                        time_val,
                     )
 
                 losses = losses.float()[:, :, : self.action_dim]
@@ -681,7 +709,11 @@ class SmolVLAPolicy(nn.Module):
 
             with torch.no_grad():
                 cache = self.model.cache_prefix(
-                    img_list, mask_list, tokens, tmasks, state,
+                    img_list,
+                    mask_list,
+                    tokens,
+                    tmasks,
+                    state,
                 )
 
             sample_losses: list[torch.Tensor] = []
@@ -691,7 +723,10 @@ class SmolVLAPolicy(nn.Module):
 
                 with torch.autocast("cuda", enabled=use_amp):
                     losses = self.model.forward_with_cached_prefix(
-                        cache, target_chunks, noise, time_val,
+                        cache,
+                        target_chunks,
+                        noise,
+                        time_val,
                     )
 
                 losses = losses.float()[:, :, : self.action_dim]

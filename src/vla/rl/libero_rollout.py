@@ -109,6 +109,7 @@ def _libero_worker(
         return
     except Exception:
         import traceback
+
         logger.exception("LIBERO worker crashed")
         with contextlib.suppress(BrokenPipeError, OSError):
             pipe.send(RuntimeError(f"LIBERO worker crashed:\n{traceback.format_exc()}"))
@@ -218,7 +219,9 @@ class LiberoVecEnv:
         elapsed = time.monotonic() - t0
         logger.info(
             "LiberoVecEnv created: %d envs for task %d in %.1fs",
-            num_envs, task_id, elapsed,
+            num_envs,
+            task_id,
+            elapsed,
         )
 
     def reconfigure(self, suite_name: str, task_id: int) -> None:
@@ -244,7 +247,9 @@ class LiberoVecEnv:
         elapsed = time.monotonic() - t0
         logger.info(
             "LiberoVecEnv reconfigured: %d envs to task %d in %.1fs",
-            self.num_envs, task_id, elapsed,
+            self.num_envs,
+            task_id,
+            elapsed,
         )
 
     def reset(self, seeds: list[int | None]) -> list[dict]:

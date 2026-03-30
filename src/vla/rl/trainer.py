@@ -83,10 +83,14 @@ def log_training_config(
 
     try:
         commit = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, text=True,
+            ["git", "rev-parse", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
         ).strip()
         branch = subprocess.check_output(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL, text=True,
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
         ).strip()
         lines.append(f"  git_commit:            {commit}")
         lines.append(f"  git_branch:            {branch}")
@@ -186,6 +190,7 @@ def build_rollout_engine(
 
     if sim is Simulator.MANISKILL:
         from vla.rl.maniskill_rollout import ManiSkillRollout
+
         env_id = (spec.env_id or config.env_id) if spec else config.env_id
         return ManiSkillRollout(
             env_id=env_id,
@@ -295,11 +300,7 @@ def _evaluate_task(
     rollout_engines: dict[str, RolloutEngine] | None,
 ) -> EvalMetrics:
     """Evaluate a single task, reusing the shared LIBERO engine when available."""
-    if (
-        config.simulator is Simulator.LIBERO
-        and rollout_engines is not None
-        and _SHARED_LIBERO_KEY in rollout_engines
-    ):
+    if config.simulator is Simulator.LIBERO and rollout_engines is not None and _SHARED_LIBERO_KEY in rollout_engines:
         engine = _get_or_build_engine(rollout_engines, config, spec)
         use_vec = config.num_rollout_envs > 1
         trajs = engine.collect_batch(
@@ -601,10 +602,7 @@ def train_srpo(
         n_noise_samples = config.num_fm_noise_samples if is_fpo else 1
         update_trajs = all_trajectories if is_fpo else active_trajs
         update_advs = advantages if is_fpo else active_advs
-        update_instrs = (
-            [spec_lookup[t.task_id].instruction for t in all_trajectories]
-            if is_fpo else active_instrs
-        )
+        update_instrs = [spec_lookup[t.task_id].instruction for t in all_trajectories] if is_fpo else active_instrs
         update_noise: list[list[torch.Tensor]] = []
         update_time: list[list[torch.Tensor]] = []
         for traj in update_trajs:
