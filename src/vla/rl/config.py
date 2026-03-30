@@ -49,6 +49,7 @@ class SRPOConfig(BaseTrainingConfig):
     fm_batch_size: int = 32
     gradient_checkpointing: bool = False
     use_failure_rewards: bool = True
+    use_standard_scaler: bool = False
     fpo_full_chunk_target: bool = True
     fpo_loss_reduction: str = "sum"
     fpo_positive_adv_only: bool = False
