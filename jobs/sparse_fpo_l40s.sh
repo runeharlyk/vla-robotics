@@ -29,14 +29,12 @@ uv run python scripts/train_srpo.py \
   --advantage-mode leave_one_out \
   --seed 42 \
   --lr 5e-06 \
-  --adaptive-kl \
-  --kl-target 0.01 \
   --max-grad-norm 10.0 \
   --iterations 100 \
-  --trajs-per-task 32 \
+  --trajs-per-task 48 \
   --num-rollout-envs 8 \
   --fm-batch-size 64 \
-  --ppo-epochs 1 \
+  --ppo-epochs 2 \
   --clip-epsilon 0.05 \
   --clip-epsilon-high 0.08 \
   --num-fm-noise-samples 4 \
@@ -48,5 +46,5 @@ uv run python scripts/train_srpo.py \
   --eval-episodes 100 \
   --max-steps 220 \
   --gradient-checkpointing \
-  --wandb-name "v12-t2-adaptive-kl-lr5e6" \
+  --wandb-name "v14-t2-epochs2-trajs48" \
   --wandb
