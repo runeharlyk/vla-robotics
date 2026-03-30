@@ -29,7 +29,6 @@ from pathlib import Path
 
 import typer
 
-import wandb
 from vla.constants import (
     CHECKPOINTS_DIR,
     PREPROCESSED_DIR,
@@ -41,11 +40,8 @@ from vla.constants import (
     UpdateMethod,
     WorldModelType,
 )
-from vla.data.dataset import FewDemoDataset
-from vla.models.smolvla import SmolVLAPolicy
+from vla.rl.config import SRPOConfig, TaskSpec
 from vla.rl.rollout import Trajectory
-from vla.rl.trainer import SRPOConfig, TaskSpec, train_srpo
-from vla.training.metrics_logger import MetricsLogger
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -150,6 +146,8 @@ def _build_tasks(
                 demo_trajectories[task_key] = trajs
 
         return task_specs, demo_trajectories, state_dim, ACTION_DIM
+
+    from vla.data.dataset import FewDemoDataset
 
     if task_ids is None:
         search_dir = data_dir or PREPROCESSED_DIR
@@ -262,7 +260,7 @@ def main(
         help="Enable gradient checkpointing to reduce VRAM",
     ),
     world_model: WorldModelType = typer.Option("vjepa2", "--world-model", help="dinov2 or vjepa2"),
-    subsample_every: int = typer.Option(5, "--subsample-every"),
+    subsample_every: int = typer.Option(1, "--subsample-every"),
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
     distance_metric: DistanceMetric = typer.Option(
@@ -274,8 +272,37 @@ def main(
         "--failure-rewards/--no-failure-rewards",
         help="Use distance-based failure rewards (SRPO). Disable for sparse-only rewards.",
     ),
+    use_standard_scaler: bool = typer.Option(
+        False,
+        "--standard-scaler/--no-standard-scaler",
+        help="Apply StandardScaler before DBSCAN (matches siiRL production code).",
+    ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
+    wandb_name: str = typer.Option(None, "--wandb-name", help="Optional prefix for the wandb run name"),
+    fpo_full_chunk_target: bool = typer.Option(True, "--fpo-full-chunk-target/--no-fpo-full-chunk-target"),
+    fpo_loss_reduction: str = typer.Option("sum", "--fpo-loss-reduction"),
+    fpo_positive_adv_only: bool = typer.Option(False, "--fpo-positive-adv-only/--no-fpo-positive-adv-only"),
+    fpo_negative_adv_scale: float = typer.Option(0.25, "--fpo-negative-adv-scale"),
+    fpo_log_ratio_clip: float = typer.Option(5.0, "--fpo-log-ratio-clip"),
+    fpo_use_ref_policy_kl: bool = typer.Option(
+        False,
+        "--fpo-use-ref-policy-kl/--no-fpo-use-ref-policy-kl",
+        help="For FPO, anchor the KL penalty to an explicit start-of-iteration reference policy instead of cached old_fm losses.",
+    ),
+    eval_zero_sample: bool = typer.Option(True, "--eval-zero-sample/--no-eval-zero-sample"),
+    adaptive_kl: bool = typer.Option(
+        False,
+        "--adaptive-kl/--no-adaptive-kl",
+        help="Adaptively adjust kl_coeff each iteration to track kl_target",
+    ),
+    kl_target: float = typer.Option(0.01, "--kl-target", help="Target KL for adaptive adjustment"),
+    kl_adapt_factor: float = typer.Option(1.5, "--kl-adapt-factor", help="Multiplicative factor for adaptive KL"),
 ) -> None:
+    import wandb
+    from vla.models.smolvla import SmolVLAPolicy
+    from vla.rl.trainer import train_srpo
+    from vla.training.metrics_logger import MetricsLogger
+
     """Run SRPO or sparse-RL training starting from an SFT checkpoint."""
     seed_everything(seed)
     device = get_device()
@@ -353,6 +380,7 @@ def main(
         distance_metric=distance_metric,
         dbscan_auto_eps=dbscan_auto_eps,
         use_failure_rewards=use_failure_rewards,
+        use_standard_scaler=use_standard_scaler,
         simulator=simulator,
         suite=suite,
         task_id=task_specs[0].libero_task_idx,
@@ -361,6 +389,16 @@ def main(
         num_eval_envs=resolved_eval_envs,
         fm_batch_size=fm_batch_size,
         gradient_checkpointing=gradient_checkpointing,
+        fpo_full_chunk_target=fpo_full_chunk_target,
+        fpo_loss_reduction=fpo_loss_reduction,
+        fpo_positive_adv_only=fpo_positive_adv_only,
+        fpo_negative_adv_scale=fpo_negative_adv_scale,
+        fpo_log_ratio_clip=fpo_log_ratio_clip,
+        fpo_use_ref_policy_kl=fpo_use_ref_policy_kl,
+        eval_zero_sample=eval_zero_sample,
+        adaptive_kl=adaptive_kl,
+        kl_target=kl_target,
+        kl_adapt_factor=kl_adapt_factor,
     )
 
     logger.info(
@@ -393,9 +431,10 @@ def main(
             num_demos=num_demos,
             trajs_per_task_per_iter=trajs_per_task,
         )
+        final_name = f"{wandb_name}_{mode}_{run_tag}" if wandb_name else f"{mode}_{run_tag}"
         run = wandb.init(
             project="srpo-smolvla",
-            name=f"{mode}_{run_tag}",
+            name=final_name,
             config=wb_config,
         )
 

@@ -39,6 +39,7 @@ uv run python scripts/train_srpo.py \
     --ppo-minibatch-trajs 4 \
     --clip-epsilon 0.05 \
     --clip-epsilon-high 0.05 \
+    --fpo-use-ref-policy-kl \
     --kl-coeff 0.01 \
     --adv-eps 1e-8 \
     --adv-skip-threshold 1e-6 \
@@ -46,4 +47,5 @@ uv run python scripts/train_srpo.py \
     --eval-episodes 10 \
     --max-steps 280 \
     --gradient-checkpointing \
+    --wandb-name "sparse_smoke_t5_refkl" \
     --wandb

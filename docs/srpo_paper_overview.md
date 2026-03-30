@@ -373,9 +373,415 @@ An alternative reward shaping strategy uses pixel-level world models (e.g., vide
 
 ---
 
-## Additional Findings from SiiRL Repository
+## Implementation Analysis: Paper vs siiRL Production Code
 
-The SiiRL training code and launch scripts reveal several practical implementation details that are not explicit in the paper text:
+We performed a detailed code audit of the siiRL repository (`sii-research/siiRL`) — the official training framework referenced in the paper — and compared the three sources of truth: the paper text, the siiRL production code, and our local reimplementation.
+The sections below document every detail needed to reconstruct the method.
+
+### V-JEPA 2 Embedding: Exact Computation
+
+#### What the paper says (Section 3.2, Equation 2)
+
+A world-model encoder $\mathcal{W}$ encodes each trajectory's full observation sequence into a single embedding vector:
+
+$$h_i = \mathcal{W}(o_{0:T}^{(i)})$$
+
+No further details about frame sampling, pooling, or normalization are given.
+
+#### What siiRL actually does (`siirl/utils/embodied/video_emb.py`)
+
+The `VideoEmbeddingModel` class loads V-JEPA 2 as a `vit_giant_xformers_rope` model (ViT-G architecture from the `vjepa2` repository) with `num_frames=64` and `img_size=384`.
+
+**Step 1 — Frame sampling.**
+Exactly 64 frames are selected per trajectory:
+
+- If the trajectory has $\geq 64$ frames: `np.linspace(0, total_frames - 1, num=64, dtype=int)` — evenly spaced indices.
+- If fewer than 64 frames: `np.resize(indices, 64)` — the index array is cyclically repeated to fill 64 slots.
+
+**Step 2 — Preprocessing.**
+Frames are converted from `(T, H, W, C)` uint8 numpy arrays to `(T, C, H, W)` torch tensors, then passed through a `video_transforms` pipeline:
+
+1. `Resize(short_side_size)` where `short_side_size = int(256.0 / 224 * 384) = 438`, using bilinear interpolation.
+2. `CenterCrop(384, 384)`.
+3. `ClipToTensor()` — converts to float in $[0, 1]$.
+4. `Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))` — ImageNet normalization.
+
+**Step 3 — Forward pass.**
+The 64-frame clip is passed as a single video input `(1, C, T, H, W)` through the V-JEPA 2 encoder.
+
+**Step 4 — Pooling.**
+The output is `embedding.mean(dim=1)` — mean-pooling over all spatial + temporal patch tokens.
+This produces one 1536-dimensional vector per trajectory.
+
+**Key detail — the embedding is produced during rollout**, not during reward computation.
+The `EmbodiedHFRollout` class calls `self.embedding_model.get_embeddings(batch_names, batch_frames)` at the end of each rollout chunk, storing the result as `vjepa_embedding` in the `TensorDict` batch.
+The reward function then reads these pre-computed embeddings — it never touches the V-JEPA model itself.
+
+#### Summary: one trajectory = one 1536-dim vector
+
+Each trajectory is reduced to a single point in $\mathbb{R}^{1536}$ via:
+*64 evenly-sampled frames → ImageNet-normalised 384×384 centre crops → V-JEPA 2 ViT-G → mean pool over patch tokens.*
+
+---
+
+### DBSCAN Clustering: Exact Computation
+
+#### What the paper says (Section 3.2, Equation 3)
+
+$$C = \text{DBSCAN}(\mathcal{S})$$
+
+No hyperparameters, preprocessing, or fallback behaviour are specified.
+
+#### What siiRL actually does (`siirl/utils/reward_score/embodied.py`)
+
+The `_compute_cluster_centers` function performs three steps:
+
+**Step 1 — StandardScaler.**
+Before DBSCAN, embeddings are standardised to zero mean and unit variance per dimension:
+
+```python
+scaler = StandardScaler()
+scaled_embeddings = scaler.fit_transform(embeddings)
+```
+
+This is critical because V-JEPA 2 ViT-G produces 1536-dim embeddings where different dimensions can have very different magnitudes.
+Standardisation ensures DBSCAN's $\varepsilon$ parameter is meaningful across all dimensions.
+
+**Step 2 — DBSCAN.**
+DBSCAN runs on the scaled embeddings with fixed hyperparameters:
+
+- $\varepsilon = 0.5$ (on the standardised space)
+- `min_samples = 2`
+- Metric: Euclidean
+
+```python
+clustering = DBSCAN(eps=0.5, min_samples=2).fit(scaled_embeddings)
+```
+
+**Step 3 — Cluster centres.**
+For each non-noise cluster label, the mean of the scaled points is computed and then **inverse-transformed** back to original embedding space:
+
+```python
+for label in set(clustering.labels_) - {-1}:
+    cluster_points = scaled_embeddings[clustering.labels_ == label]
+    center = scaler.inverse_transform(
+        cluster_points.mean(axis=0, keepdims=True)
+    ).flatten()
+    cluster_centers.append(center)
+```
+
+**Fallback — if DBSCAN finds no clusters** (all points classified as noise):
+
+```python
+if not cluster_centers:
+    cluster_centers = [embeddings.mean(axis=0)]
+```
+
+A single centre equal to the mean of all success embeddings is used.
+
+#### Key detail: clustering is per-task
+
+The reward function groups all samples by `task_name` (extracted from `task_file_name`), then runs clustering independently per task.
+Only successful trajectories within that task form the reference set.
+This means cluster centres are task-specific, not shared across tasks.
+
+---
+
+### Distance Computation and Reward: Exact Steps
+
+#### What the paper says (Equations 4–5)
+
+$$d_i = \min\left(\{ \|h_i - h_j\|_2 \;;\; h_j \in C \}\right)$$
+
+$$g_i = \begin{cases} 1.0 & \text{success} \\ \phi\!\left(\dfrac{d_i - \bar{d}}{\sigma_d}\right) & \text{failure} \end{cases}$$
+
+where $\phi(\cdot)$ is sigmoid, $\bar{d}$ and $\sigma_d$ are the mean/std of failed trajectory distances.
+
+#### What siiRL actually does (`siirl/utils/reward_score/embodied.py`)
+
+The production code uses a substantially different normalisation and activation than described in the paper.
+
+**Step 1 — Distance matrix.**
+Euclidean distance from each failed trajectory embedding to every cluster centre (in original, unscaled space):
+
+```python
+distance_matrix = cdist(fail_emb, cluster_centers, "euclidean")
+min_distances = distance_matrix.min(axis=1)
+```
+
+**Step 2 — Min-max normalisation (NOT z-score).**
+Distances are normalised to $[0, 1]$ using min-max within the current task's failed batch:
+
+```python
+min_dist, max_dist = min_distances.min(), min_distances.max()
+dist_range = max_dist - min_dist
+if dist_range < 1e-6:
+    normalized_dists = np.full_like(min_distances, 0.5)
+else:
+    normalized_dists = (min_distances - min_dist) / dist_range
+```
+
+**Step 3 — Sigmoid mapping with fixed parameters.**
+
+```python
+sigmoid_steepness = 10.0
+sigmoid_offset = 0.5
+sigmoid_inputs = sigmoid_steepness * (sigmoid_offset - normalized_dists)
+reward_values = 0.6 * special.expit(sigmoid_inputs)
+```
+
+This maps:
+- A failed trajectory at the minimum distance (closest to success): `sigmoid(10 * 0.5) ≈ 0.6 * 0.993 ≈ 0.596`
+- A failed trajectory at the maximum distance (furthest from success): `sigmoid(10 * -0.5) ≈ 0.6 * 0.007 ≈ 0.004`
+- A failed trajectory at the midpoint: `sigmoid(0) = 0.6 * 0.5 = 0.3`
+
+**Step 4 — Final reward assembly.**
+
+```python
+final_rewards[success_indices] = 1.0
+final_rewards[fail_indices] = reward_values  # in [0, 0.6]
+```
+
+Failed trajectory rewards are capped at 0.6 — there is no configurable $\alpha$ parameter in the production code.
+
+---
+
+### Paper vs siiRL Code: Differences Summary
+
+| Aspect | Paper (Section 3.2) | siiRL Production Code |
+|---|---|---|
+| **Embedding granularity** | One vector per trajectory (implied) | One vector per trajectory (confirmed) |
+| **Frame sampling** | Not specified | Exactly 64 frames, evenly spaced (`np.linspace`) |
+| **Preprocessing** | Not specified | Resize → CenterCrop(384) → ImageNet normalisation |
+| **Pooling** | Not specified | Mean over all patch tokens (`embedding.mean(dim=1)`) |
+| **Pre-DBSCAN scaling** | Not mentioned | `StandardScaler` (zero mean, unit variance) — critical |
+| **DBSCAN $\varepsilon$** | Not specified | 0.5 (on standardised space) |
+| **DBSCAN `min_samples`** | Not specified | 2 |
+| **DBSCAN fallback** | Not mentioned | Mean of all success embeddings if no clusters found |
+| **Distance normalisation** | Z-score: $(d_i - \bar{d}) / \sigma_d$ | Min-max: $(d_i - d_\text{min}) / (d_\text{max} - d_\text{min})$ |
+| **Activation** | $\phi(\cdot)$ — sigmoid | $0.6 \times \text{sigmoid}(10 \times (0.5 - d_\text{norm}))$ |
+| **Reward range (failures)** | $(0, \alpha)$ with $\alpha=0.8$ | $(0, 0.6)$ — hardcoded |
+| **$\alpha$ parameter** | 0.8, ablated in Appendix D | Not present — the 0.6 cap is baked in |
+| **Clustering scope** | "Successful trajectories" (ambiguous) | Per-task: only successes for the same task |
+| **Self-referential set** | In-batch successes | In-batch successes (confirmed — no persistent reference set across iterations) |
+| **Distributed handling** | Not discussed | All-gather across DP ranks, rank-0 computes, broadcast |
+
+### Key Insight: The StandardScaler Is Essential
+
+The paper describes DBSCAN as if it runs directly on raw embeddings.
+The production code reveals that **standardisation before DBSCAN is critical** for V-JEPA 2 embeddings.
+Without it, the fixed $\varepsilon = 0.5$ would be meaningless in the raw 1536-dim space where L2 distances can be much larger.
+
+The scaler fits on the current batch's success embeddings, so the $\varepsilon$ threshold adapts implicitly to the embedding magnitude — which varies across tasks and training stages.
+
+### Key Insight: Min-Max vs Z-Score Changes Reward Semantics
+
+The paper's z-score normalisation (`(d - mean) / std`) produces a distribution centred around 0, then sigmoid maps it.
+This means roughly half of failed trajectories get rewards above `sigmoid(0) * α = 0.4` and half below.
+
+The production code's min-max normalisation (`(d - min) / (max - min)`) compresses all distances to $[0, 1]$, then the fixed sigmoid curve assigns:
+- The closest failure: reward ≈ 0.596
+- The furthest failure: reward ≈ 0.004
+
+This gives a wider reward spread and is less sensitive to outlier distances than z-score.
+
+---
+
+## Our Local Reimplementation: Deviations from siiRL
+
+Our codebase (`vla/rl/srpo_reward.py`) reimplements the SRPO reward with several intentional and unintentional differences from the siiRL production code.
+
+### Embedding: Per-Frame vs Per-Trajectory
+
+| | siiRL Production | Our Code (Reward Path) | Our Code (Diagnostics) |
+|---|---|---|---|
+| **Granularity** | 1 embedding per trajectory | Per-frame embeddings, grouped by trajectory | 1 embedding per trajectory |
+| **Frame sampling** | 64 evenly-spaced frames | Every $k$-th frame (`subsample_every`, default 5) | Every $k$-th frame |
+| **Encoding** | 64-frame video clip → V-JEPA 2 → mean pool | Each frame independently → `encode_frames` | 64-frame clip (transformers) or mega-batch (timm) |
+
+Our reward code in `_encode_trajectories_per_frame` encodes each subsampled frame **independently** through `encode_frames`, producing a list of per-frame `(D,)` vectors per trajectory.
+The siiRL code encodes the full 64-frame clip as a single video, getting temporal context from V-JEPA 2's spatiotemporal attention.
+
+This means our per-frame embeddings lack temporal context that V-JEPA 2 is designed to exploit.
+
+### Distance: Per-Frame Aggregation
+
+Our code computes the distance $d_i$ differently:
+
+```python
+frame_stack = torch.stack(frame_embs, dim=0)         # (F, D)
+per_frame_dists = torch.cdist(frame_stack, centres)   # (F, K)
+min_per_frame = per_frame_dists.min(dim=1).values     # (F,) min over clusters
+d_i = min_per_frame.mean()                            # scalar: mean over frames
+```
+
+For each frame: find the nearest cluster centre.
+Then average those per-frame minimum distances across the trajectory.
+
+The siiRL code simply computes `cdist(trajectory_embedding, cluster_centers).min()` — one distance per trajectory.
+
+### DBSCAN: No StandardScaler
+
+Our code runs DBSCAN directly on raw embeddings without standardisation:
+
+```python
+db = DBSCAN(eps=eps, min_samples=k, metric="euclidean").fit(X)
+```
+
+This means the `eps` parameter has a completely different meaning than in siiRL.
+Our code compensates with an auto-eps feature that picks eps from the k-th nearest neighbour distance percentile:
+
+```python
+if self.cfg.dbscan_auto_eps and len(X) > k:
+    kth_dists = NearestNeighbors(n_neighbors=k).fit(X).kneighbors()[0][:, -1]
+    eps = float(np.percentile(kth_dists, self.cfg.dbscan_percentile))
+```
+
+### Reward Normalisation: Z-Score (Matches Paper, Not siiRL)
+
+Our code uses the paper's z-score normalisation:
+
+```python
+d_mean = d_all.mean()
+d_std = d_all.std(correction=0).clamp(min=eps)
+normalised = (d_all - d_mean) / d_std
+activated = self._activation(normalised) * self.cfg.alpha
+```
+
+With `sigmoid(-z_score) * alpha` where `alpha = 0.8`.
+
+### Reference Set: Persistent with Demo Seeding
+
+Our code maintains a **persistent reference set** across training iterations:
+
+- Demo embeddings are added once and never evicted (`_demo_embeddings`).
+- Online success embeddings are added with FIFO eviction (`_online_embeddings`, capped at `max_references`).
+- Clusters are re-fitted after each insertion.
+
+The siiRL code uses only **in-batch successes** — no persistence across iterations.
+The paper describes self-referential learning as using "successful trajectories generated within the current training batch," matching the siiRL approach.
+
+### Deviations Summary
+
+| Aspect | siiRL (Authoritative) | Our Code | Action Needed |
+|---|---|---|---|
+| StandardScaler before DBSCAN | Yes | No | Should add |
+| Per-trajectory vs per-frame distance | Per-trajectory | Per-frame mean | Design choice — per-frame gives denser signal |
+| 64-frame video clip encoding | Yes (temporal context) | Per-frame independently | Consider switching to clip mode |
+| Reward normalisation | Min-max → fixed sigmoid | Z-score → sigmoid × α | Both valid, different semantics |
+| Reward cap | 0.6 | 0.8 (alpha) | Matches paper, not siiRL |
+| Persistent reference set | No (in-batch only) | Yes (demo + FIFO online) | Intentional improvement for low-success-rate scenarios |
+| Auto-eps for DBSCAN | No (fixed 0.5 on scaled space) | Yes (k-NN percentile) | Good addition — compensates for lack of StandardScaler |
+
+---
+
+## Reconstructing SRPO: Minimal Recipe
+
+Based on the code analysis above, these are the exact steps to reproduce the siiRL production reward:
+
+### 1. Encode Trajectories
+
+```python
+# For each trajectory with frames (T, H, W, C) as uint8 numpy arrays:
+total_frames = len(frames)
+if total_frames >= 64:
+    indices = np.linspace(0, total_frames - 1, num=64, dtype=int)
+else:
+    indices = np.resize(np.arange(total_frames), 64)
+sampled = [frames[i] for i in indices]
+
+# Convert to (T, C, H, W) tensor
+video_tensor = torch.from_numpy(np.stack(sampled)).permute(0, 3, 1, 2)
+
+# Preprocess: resize, center crop, normalise
+short_side = int(256.0 / 224 * 384)  # = 438
+transform = Compose([
+    Resize(short_side, interpolation="bilinear"),
+    CenterCrop((384, 384)),
+    ClipToTensor(),  # -> float [0, 1]
+    Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+])
+x = transform(video_tensor).unsqueeze(0)  # (1, C, 64, 384, 384)
+
+# Forward through V-JEPA 2 ViT-G
+with torch.inference_mode(), torch.amp.autocast("cuda", dtype=torch.float16):
+    output = vjepa2_model(x)  # (1, num_patches, 1536)
+
+embedding = output.mean(dim=1).float().squeeze(0)  # (1536,)
+```
+
+### 2. Cluster Successful Embeddings (Per Task)
+
+```python
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import DBSCAN
+
+# success_embeddings: (N_success, 1536) numpy array
+scaler = StandardScaler()
+scaled = scaler.fit_transform(success_embeddings)
+
+db = DBSCAN(eps=0.5, min_samples=2).fit(scaled)
+
+centers = []
+for label in set(db.labels_) - {-1}:
+    cluster_scaled = scaled[db.labels_ == label]
+    center = scaler.inverse_transform(
+        cluster_scaled.mean(axis=0, keepdims=True)
+    ).flatten()
+    centers.append(center)
+
+if not centers:
+    centers = [success_embeddings.mean(axis=0)]
+centers = np.array(centers)  # (K, 1536)
+```
+
+### 3. Compute Rewards for Failed Trajectories
+
+```python
+from scipy.spatial.distance import cdist
+from scipy.special import expit  # sigmoid
+
+# fail_embeddings: (N_fail, 1536) numpy array
+distances = cdist(fail_embeddings, centers, "euclidean")  # (N_fail, K)
+min_dists = distances.min(axis=1)                          # (N_fail,)
+
+# Min-max normalise
+d_min, d_max = min_dists.min(), min_dists.max()
+d_range = d_max - d_min
+if d_range < 1e-6:
+    normed = np.full_like(min_dists, 0.5)
+else:
+    normed = (min_dists - d_min) / d_range
+
+# Sigmoid mapping
+rewards = 0.6 * expit(10.0 * (0.5 - normed))
+
+# Final: success = 1.0, failure = rewards ∈ [~0, ~0.6]
+```
+
+### 4. GRPO Advantage Estimation
+
+```python
+# Group rewards by prompt (task + trial):
+# For each group of M samples with rewards [r_1, ..., r_M]:
+group_mean = mean(rewards_in_group)
+group_std = std(rewards_in_group)
+advantages = (rewards - group_mean) / (group_std + 1e-6)
+```
+
+### 5. PPO Clipped Policy Update
+
+Standard PPO with asymmetric clipping:
+- `clip_ratio_low = 0.2`
+- `clip_ratio_high = 0.28`
+- No critic network
+- `ppo_epochs = 1`
+- `learning_rate = 5e-6`
+- `temperature = 1.6` for rollout sampling
+
+---
+
+## Additional Findings from siiRL Repository
 
 ### Reward Pipeline Details
 
@@ -385,17 +791,24 @@ The SiiRL training code and launch scripts reveal several practical implementati
 
 ### Sampling and Filtering Logic
 
-- Embodied training supports prompt-group filtering via `algorithm.filter_groups.enable=True`.
-- Accuracy filtering keeps only prompt groups with mean success in a bounded range (example script values: `0.1 <= acc <= 0.9`).
+- Accuracy filtering keeps only prompt groups with mean success in a bounded range: `0.1 <= acc <= 0.9`.
 - Optional truncation filtering removes groups that hit `max_steps`, based on `finish_step`.
+- An `oversample_factor` parameter allows over-sampling to compensate for filtered-out prompts.
 
 ### Policy Optimization Details
 
-- PPO implementation includes **dual-clip logic** with asymmetric clip ranges (`clip_ratio_low`, `clip_ratio_high`) and an extra `clip_ratio_c` term.
-- KL control supports both **fixed** and **adaptive** controllers (`target_kl`, `horizon`).
+- PPO implementation includes **dual-clip logic** with asymmetric clip ranges (`clip_ratio_low`, `clip_ratio_high`) and an extra `clip_ratio_c` term for negative advantages.
 - GRPO advantage computation in embodied mode uses a finish-step-derived mask over action tokens.
+- The response tensor is 3D `(batch, traj_len, action_token_len)` and is flattened for the loss.
 
 ### Script-Level Defaults Observed
 
 - Common SRPO launch settings include: `ppo_epochs=1`, `grad_clip=1.0`, `clip_ratio_low=0.2`, `clip_ratio_high=0.28`, `num_envs=16`, `max_steps=512`, and rollout sampling with `temperature=1.6`.
 - Critic is disabled in SRPO runs (`critic.use_critic_model=False`) with `adv_estimator=grpo`.
+
+### Distributed Training
+
+- The reward computation supports multi-GPU data-parallel training.
+- All ranks participate in `all_gather_object` to collect embeddings from all DP ranks.
+- Only rank 0 computes rewards, then broadcasts the result back to all ranks.
+- Data is sorted by `dp_rank` after gathering to ensure deterministic ordering.

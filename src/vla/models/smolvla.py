@@ -78,6 +78,7 @@ class SmolVLAPolicy(nn.Module):
         self.device = torch.device(device)
         self.dtype = dtype
         self.checkpoint = checkpoint
+        self.eval_zero_sample = False
 
         ckpt_config = self._load_ckpt_config(checkpoint)
         self.ckpt_config = ckpt_config
@@ -331,7 +332,10 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
             s = self._prepare_state_input(state, batch_size=1)
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            noise = None
+            if self.eval_zero_sample:
+                noise = torch.zeros((1, self.chunk_size, self.max_action_dim), device=self.device, dtype=self.dtype)
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[0, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
 
@@ -356,7 +360,14 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
             s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s)
+            noise = None
+            if self.eval_zero_sample:
+                noise = torch.zeros(
+                    (imgs.shape[0], self.chunk_size, self.max_action_dim),
+                    device=self.device,
+                    dtype=self.dtype,
+                )
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[:, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
 
@@ -398,37 +409,6 @@ class SmolVLAPolicy(nn.Module):
 
         return {"loss": loss}
 
-    def _build_rl_action_targets(
-        self,
-        actions: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        T = actions.shape[0]
-        actions = self._normalize_action(actions)
-        actions = self._prepare_action(actions)
-
-        chunks = torch.zeros(
-            T,
-            self.chunk_size,
-            self.max_action_dim,
-            device=actions.device,
-            dtype=actions.dtype,
-        )
-        mask = torch.zeros(
-            T,
-            self.chunk_size,
-            device=actions.device,
-            dtype=torch.bool,
-        )
-
-        for t in range(T):
-            end = min(T, t + self.chunk_size)
-            n = end - t
-            chunks[t, :n] = actions[t:end]
-            mask[t, :n] = True
-
-        mask[:, 1:] = False
-        return chunks, mask
-
     def _build_action_chunks(
         self,
         actions: torch.Tensor,
@@ -457,6 +437,9 @@ class SmolVLAPolicy(nn.Module):
             chunks[t, :n] = actions[t:end]
             mask[t, :n] = True
 
+        # NOTE: The full causal mask is preserved for all RL algorithms.
+        # An earlier version zeroed out positions 1..C-1 with `mask[:, 1:] = False`
+        # for AWR, which starved the model of 90% of its learning signal.
         return chunks, mask
 
     def compute_fm_loss_batched(
@@ -468,6 +451,7 @@ class SmolVLAPolicy(nn.Module):
         fixed_noise: torch.Tensor,
         fixed_time: torch.Tensor,
         batch_size: int = 32,
+        reduction: str = "mean",
     ) -> torch.Tensor:
         """Compute per-timestep flow-matching loss in mini-batches.
 
@@ -492,7 +476,7 @@ class SmolVLAPolicy(nn.Module):
         use_amp = self.device.type == "cuda"
 
         actions = actions.to(self.device, dtype=self.dtype)
-        action_chunks, action_mask = self._build_rl_action_targets(actions)
+        action_chunks, action_mask = self._build_action_chunks(actions)
 
         for start in range(0, T, batch_size):
             end = min(start + batch_size, T)
@@ -523,12 +507,243 @@ class SmolVLAPolicy(nn.Module):
                     time=time,
                 )
 
-            losses = losses.float()
-            losses = losses[:, :, : self.action_dim]
+            losses = losses.float()[:, :, : self.action_dim]
             valid = target_mask.unsqueeze(-1).float()
-            n_valid_positions = target_mask.sum(dim=1).clamp(min=1.0)
-            per_step = (losses * valid).sum(dim=(1, 2)) / (n_valid_positions * self.action_dim)
+            per_pos = (losses * valid).mean(dim=2)
+
+            if reduction == "sum":
+                per_step = per_pos.sum(dim=1)
+            elif reduction == "mean":
+                n_valid_positions = target_mask.sum(dim=1).clamp(min=1.0)
+                per_step = per_pos.sum(dim=1) / n_valid_positions
+            else:
+                raise ValueError(f"Unknown reduction: {reduction}")
+
             all_losses.append(per_step)
+
+        return torch.cat(all_losses)
+
+    def compute_fm_loss_multi_sample(
+        self,
+        images: torch.Tensor,
+        actions: torch.Tensor,
+        states: torch.Tensor | None,
+        instruction: str,
+        noise_list: list[torch.Tensor],
+        time_list: list[torch.Tensor],
+        batch_size: int = 32,
+        reduction: str = "mean",
+    ) -> torch.Tensor:
+        """Compute per-timestep FM loss averaged over multiple noise samples.
+
+        Tries the KV-cache path first (caches the full VLM transformer
+        forward, maximum speed).  Falls back to prefix-embedding cache
+        (caches ViT + connector + masks only) if the KV-cache raises a
+        shape error in the vendor attention layers.
+
+        Args:
+            images: ``(T, [V,] C, H, W)`` observation images.
+            actions: ``(T, action_dim)`` actions (unnormalized).
+            states: ``(T, state_dim)`` or ``None``.
+            instruction: Language instruction (shared across all steps).
+            noise_list: N tensors of shape ``(T, chunk_size, max_action_dim)``.
+            time_list: N tensors of shape ``(T,)``.
+            batch_size: Number of timesteps per forward pass.
+            reduction: ``"mean"`` or ``"sum"`` across chunk positions.
+
+        Returns:
+            ``(T,)`` per-step mean FM loss (averaged over noise samples).
+        """
+        N = len(noise_list)
+        if N == 1:
+            return self.compute_fm_loss_batched(
+                images,
+                actions,
+                states,
+                instruction,
+                noise_list[0],
+                time_list[0],
+                batch_size,
+                reduction,
+            )
+
+        try:
+            return self._multi_sample_kv_cache(
+                images,
+                actions,
+                states,
+                instruction,
+                noise_list,
+                time_list,
+                batch_size,
+                reduction,
+            )
+        except RuntimeError as exc:
+            if "mask/KV mismatch" not in str(exc) and "expanded size" not in str(exc):
+                raise
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "KV-cache path failed (%s), falling back to prefix-embedding cache",
+                exc,
+            )
+            return self._multi_sample_prefix_cache(
+                images,
+                actions,
+                states,
+                instruction,
+                noise_list,
+                time_list,
+                batch_size,
+                reduction,
+            )
+
+    def _multi_sample_kv_cache(
+        self,
+        images: torch.Tensor,
+        actions: torch.Tensor,
+        states: torch.Tensor | None,
+        instruction: str,
+        noise_list: list[torch.Tensor],
+        time_list: list[torch.Tensor],
+        batch_size: int,
+        reduction: str,
+    ) -> torch.Tensor:
+        """KV-cache path: caches full VLM transformer forward per mini-batch."""
+        T = images.shape[0]
+        use_amp = self.device.type == "cuda"
+
+        actions_dev = actions.to(self.device, dtype=self.dtype)
+        action_chunks, action_mask = self._build_action_chunks(actions_dev)
+
+        all_losses: list[torch.Tensor] = []
+
+        for start in range(0, T, batch_size):
+            end = min(start + batch_size, T)
+            B = end - start
+
+            imgs = self._to_float01(images[start:end]).to(self.device, dtype=self.dtype)
+            img_list, mask_list = self._prepare_images(imgs)
+            tokens, tmasks = self._tokenize(instruction, batch_size=B)
+
+            state_raw = states[start:end] if states is not None else None
+            state = self._prepare_state_input(state_raw, batch_size=B)
+
+            target_chunks = action_chunks[start:end]
+            target_mask = action_mask[start:end]
+
+            with torch.no_grad():
+                past_kv, pre_pad = self.model.compute_prefix_cache(
+                    img_list,
+                    mask_list,
+                    tokens,
+                    tmasks,
+                    state,
+                )
+
+            sample_losses: list[torch.Tensor] = []
+            for noise_t, time_t in zip(noise_list, time_list, strict=True):
+                noise = noise_t[start:end].to(self.device, dtype=self.dtype)
+                time_val = time_t[start:end].to(self.device, dtype=self.dtype)
+
+                with torch.autocast("cuda", enabled=use_amp):
+                    losses = self.model.forward_cached(
+                        pre_pad,
+                        past_kv,
+                        target_chunks,
+                        noise,
+                        time_val,
+                    )
+
+                losses = losses.float()[:, :, : self.action_dim]
+                valid = target_mask.unsqueeze(-1).float()
+                per_pos = (losses * valid).mean(dim=2)
+
+                if reduction == "sum":
+                    per_step = per_pos.sum(dim=1)
+                elif reduction == "mean":
+                    n_valid = target_mask.sum(dim=1).clamp(min=1.0)
+                    per_step = per_pos.sum(dim=1) / n_valid
+                else:
+                    raise ValueError(f"Unknown reduction: {reduction}")
+
+                sample_losses.append(per_step)
+
+            all_losses.append(torch.stack(sample_losses).mean(dim=0))
+
+        return torch.cat(all_losses)
+
+    def _multi_sample_prefix_cache(
+        self,
+        images: torch.Tensor,
+        actions: torch.Tensor,
+        states: torch.Tensor | None,
+        instruction: str,
+        noise_list: list[torch.Tensor],
+        time_list: list[torch.Tensor],
+        batch_size: int,
+        reduction: str,
+    ) -> torch.Tensor:
+        """Prefix-embedding-cache fallback: caches ViT + masks per mini-batch."""
+        T = images.shape[0]
+        use_amp = self.device.type == "cuda"
+
+        actions_dev = actions.to(self.device, dtype=self.dtype)
+        action_chunks, action_mask = self._build_action_chunks(actions_dev)
+
+        all_losses: list[torch.Tensor] = []
+
+        for start in range(0, T, batch_size):
+            end = min(start + batch_size, T)
+            B = end - start
+
+            imgs = self._to_float01(images[start:end]).to(self.device, dtype=self.dtype)
+            img_list, mask_list = self._prepare_images(imgs)
+            tokens, tmasks = self._tokenize(instruction, batch_size=B)
+
+            state_raw = states[start:end] if states is not None else None
+            state = self._prepare_state_input(state_raw, batch_size=B)
+
+            target_chunks = action_chunks[start:end]
+            target_mask = action_mask[start:end]
+
+            with torch.no_grad():
+                cache = self.model.cache_prefix(
+                    img_list,
+                    mask_list,
+                    tokens,
+                    tmasks,
+                    state,
+                )
+
+            sample_losses: list[torch.Tensor] = []
+            for noise_t, time_t in zip(noise_list, time_list, strict=True):
+                noise = noise_t[start:end].to(self.device, dtype=self.dtype)
+                time_val = time_t[start:end].to(self.device, dtype=self.dtype)
+
+                with torch.autocast("cuda", enabled=use_amp):
+                    losses = self.model.forward_with_cached_prefix(
+                        cache,
+                        target_chunks,
+                        noise,
+                        time_val,
+                    )
+
+                losses = losses.float()[:, :, : self.action_dim]
+                valid = target_mask.unsqueeze(-1).float()
+                per_pos = (losses * valid).mean(dim=2)
+
+                if reduction == "sum":
+                    per_step = per_pos.sum(dim=1)
+                elif reduction == "mean":
+                    n_valid = target_mask.sum(dim=1).clamp(min=1.0)
+                    per_step = per_pos.sum(dim=1) / n_valid
+                else:
+                    raise ValueError(f"Unknown reduction: {reduction}")
+
+                sample_losses.append(per_step)
+
+            all_losses.append(torch.stack(sample_losses).mean(dim=0))
 
         return torch.cat(all_losses)
 

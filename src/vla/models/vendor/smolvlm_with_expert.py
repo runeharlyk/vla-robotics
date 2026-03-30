@@ -257,13 +257,21 @@ class SmolVLMWithExpertModel(nn.Module):
                     "value_states": value_states,
                 }
             else:
-                # TODO here, some optimization can be done -
-                #  similar to a `StaticCache` we can declare the `max_len` before.
-                # so we create an empty cache, with just one cuda malloc, and if (in autoregressive case) we reach
-                # the max len, then we (for instance) double the cache size. This implementation already exists
-                # in `transformers`. (molbap)
-                key_states = torch.cat([past_key_values[layer_idx]["key_states"], key_states], dim=1)
-                value_states = torch.cat([past_key_values[layer_idx]["value_states"], value_states], dim=1)
+                cached_k = past_key_values[layer_idx]["key_states"]
+                cached_v = past_key_values[layer_idx]["value_states"]
+                key_states = torch.cat([cached_k, key_states], dim=1)
+                value_states = torch.cat([cached_v, value_states], dim=1)
+
+        kv_len = key_states.shape[1]
+        mask_kv_len = attention_mask_.shape[-1]
+        if kv_len != mask_kv_len:
+            raise RuntimeError(
+                f"forward_attn_layer mask/KV mismatch at layer {layer_idx}: "
+                f"key_states {key_states.shape}, query_states {query_states.shape}, "
+                f"attention_mask {attention_mask_.shape}, "
+                f"use_cache={use_cache}, fill_kv_cache={fill_kv_cache}, "
+                f"cached_k={'N/A' if fill_kv_cache else cached_k.shape}"
+            )
 
         attention_interface = self.get_attention_interface()
 

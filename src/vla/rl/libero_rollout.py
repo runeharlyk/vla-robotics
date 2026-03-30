@@ -4,6 +4,10 @@ Follows the RLinf pattern (``ReconfigureSubprocEnv``):
 each LIBERO environment runs in its own subprocess to bypass the GIL, and
 the main process coordinates batched policy inference + action distribution.
 
+Supports hot-swapping the LIBERO task within each subprocess via
+:meth:`LiberoVecEnv.reconfigure`, avoiding costly process teardown and
+respawn when switching between tasks during multi-task training.
+
 References:
     - https://github.com/RLinf/RLinf/blob/main/rlinf/envs/libero/libero_env.py
     - https://github.com/RLinf/RLinf/blob/main/rlinf/envs/libero/venv.py
@@ -11,9 +15,11 @@ References:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import multiprocessing as mp
 import multiprocessing.connection
+import time
 from typing import Any
 
 import numpy as np
@@ -33,11 +39,7 @@ _CMD_RESET = "reset"
 _CMD_STEP = "step"
 _CMD_CLOSE = "close"
 _CMD_TASK_DESC = "task_desc"
-
-
-# https://github.com/Lifelong-Robot-Learning/LIBERO/issues/3
-if mp.get_start_method(allow_none=True) != "spawn":
-    mp.set_start_method("spawn", force=True)
+_CMD_RECONFIGURE = "reconfigure"
 
 # ---------------------------------------------------------------------------
 # Subprocess worker
@@ -53,7 +55,11 @@ def _libero_worker(
     image_size: int,
     camera_name: str | None = None,
 ) -> None:
-    """Worker process: creates one LIBERO env and responds to commands."""
+    """Worker process: creates one LIBERO env and responds to commands.
+
+    Supports ``_CMD_RECONFIGURE`` to hot-swap the task without restarting
+    the process, following the RLinf ``ReconfigureSubprocEnv`` pattern.
+    """
     from vla.envs.libero import LiberoEnv
 
     kwargs: dict = {}
@@ -81,15 +87,44 @@ def _libero_worker(
                 pipe.send((_pack_obs(obs, img_size, state_dim), reward, terminated, truncated, info))
             elif cmd == _CMD_TASK_DESC:
                 pipe.send(task_desc)
+            elif cmd == _CMD_RECONFIGURE:
+                new_suite, new_task_id = data
+                env.close()
+                env = LiberoEnv(
+                    suite_name=new_suite,
+                    task_id=new_task_id,
+                    obs_type=obs_type,
+                    state_dim=state_dim,
+                    **kwargs,
+                )
+                task_desc = env.task_description
+                pipe.send(task_desc)
             elif cmd == _CMD_CLOSE:
                 env.close()
                 pipe.send(None)
                 break
+    except (KeyboardInterrupt, EOFError, BrokenPipeError):
+        with contextlib.suppress(Exception):
+            env.close()
+        return
     except Exception:
         import traceback
 
         logger.exception("LIBERO worker crashed")
-        pipe.send(RuntimeError(f"LIBERO worker crashed:\n{traceback.format_exc()}"))
+        with contextlib.suppress(BrokenPipeError, OSError):
+            pipe.send(RuntimeError(f"LIBERO worker crashed:\n{traceback.format_exc()}"))
+
+
+_cached_libero_processor: object | None = None
+
+
+def _get_libero_processor() -> object:
+    global _cached_libero_processor
+    if _cached_libero_processor is None:
+        from lerobot.processor.env_processor import LiberoProcessorStep
+
+        _cached_libero_processor = LiberoProcessorStep()
+    return _cached_libero_processor
 
 
 def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
@@ -99,20 +134,19 @@ def _pack_obs(raw_obs: dict, image_size: int, state_dim: int) -> dict:
         Dict with ``images`` (list of ``(H, W, 3)`` uint8) and
         ``state`` (``(state_dim,)`` float32).
     """
-    from lerobot.processor.env_processor import LiberoProcessorStep
-    from PIL import Image as PILImage
+    import cv2
 
     images: list[np.ndarray] = []
     if "pixels" in raw_obs and isinstance(raw_obs["pixels"], dict):
         for img_np in raw_obs["pixels"].values():
             flipped = np.flip(img_np, axis=(0, 1)).copy()
-            pil = PILImage.fromarray(flipped).resize((image_size, image_size), PILImage.Resampling.BILINEAR)  # type: ignore[attr-defined]
-            images.append(np.array(pil, dtype=np.uint8))
+            resized = cv2.resize(flipped, (image_size, image_size), interpolation=cv2.INTER_LINEAR)
+            images.append(resized.astype(np.uint8))
 
     state = np.zeros(state_dim, dtype=np.float32)
     if "robot_state" in raw_obs:
         rs = raw_obs["robot_state"]
-        proc = LiberoProcessorStep()
+        proc = _get_libero_processor()
         eef_pos = np.asarray(rs["eef"]["pos"], dtype=np.float32).flatten()
         eef_quat = torch.from_numpy(np.asarray(rs["eef"]["quat"], dtype=np.float32)).float().unsqueeze(0)
         eef_aa = proc._quat2axisangle(eef_quat).squeeze(0).numpy()
@@ -158,9 +192,15 @@ class LiberoVecEnv:
     ) -> None:
         self.num_envs = num_envs
         self.image_size = image_size
+        self.suite_name = suite_name
+        self.task_id = task_id
+        self._obs_type = obs_type
+        self._state_dim = state_dim
+        self._camera_name = camera_name
         self._pipes: list[multiprocessing.connection.Connection] = []
         self._procs: list[mp.Process] = []
 
+        t0 = time.monotonic()
         ctx = mp.get_context("spawn")
         for _ in range(num_envs):
             parent_conn, child_conn = ctx.Pipe()
@@ -176,6 +216,41 @@ class LiberoVecEnv:
 
         self._pipes[0].send((_CMD_TASK_DESC, None))
         self.task_description: str = self._pipes[0].recv()
+        elapsed = time.monotonic() - t0
+        logger.info(
+            "LiberoVecEnv created: %d envs for task %d in %.1fs",
+            num_envs,
+            task_id,
+            elapsed,
+        )
+
+    def reconfigure(self, suite_name: str, task_id: int) -> None:
+        """Hot-swap all workers to a new task without restarting processes.
+
+        Follows the RLinf ``ReconfigureSubprocEnv`` pattern: each subprocess
+        closes its current ``LiberoEnv`` and creates a new one for the
+        requested task.  This avoids the cost of process teardown/spawn.
+        """
+        if suite_name == self.suite_name and task_id == self.task_id:
+            return
+
+        t0 = time.monotonic()
+        for pipe in self._pipes:
+            pipe.send((_CMD_RECONFIGURE, (suite_name, task_id)))
+        results = [pipe.recv() for pipe in self._pipes]
+        for r in results:
+            if isinstance(r, Exception):
+                raise r
+        self.suite_name = suite_name
+        self.task_id = task_id
+        self.task_description = results[0]
+        elapsed = time.monotonic() - t0
+        logger.info(
+            "LiberoVecEnv reconfigured: %d envs to task %d in %.1fs",
+            self.num_envs,
+            task_id,
+            elapsed,
+        )
 
     def reset(self, seeds: list[int | None]) -> list[dict]:
         for pipe, seed in zip(self._pipes, seeds, strict=True):
@@ -277,6 +352,13 @@ class LiberoRollout:
     @property
     def task_description(self) -> str:
         return self.vec_env.task_description
+
+    def reconfigure(self, suite_name: str, task_id: int) -> None:
+        """Hot-swap all workers to a new task without restarting processes."""
+        resolved = SUITE_MAP.get(suite_name.lower(), suite_name)
+        self.vec_env.reconfigure(resolved, task_id)
+        self.suite_name = resolved
+        self.task_id = task_id
 
     def _obs_to_tensors(self, packed_obs: dict) -> tuple[torch.Tensor, torch.Tensor]:
         """Convert a packed obs dict into image and state tensors.
