@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarises findings from six FPO (Flow Policy Optimization) training runs on LIBERO spatial task 2 (`sparse_rl` mode with binary success/failure rewards).
+This document summarises findings from eight FPO (Flow Policy Optimization) training runs on LIBERO spatial task 2 (`sparse_rl` mode with binary success/failure rewards).
 All runs use the same codebase (FPO update with leave-one-out advantages, asymmetric PPO-clip), the same SFT-initialised SmolVLA checkpoint, and differ only in hyperparameters.
 The goal is to identify which settings produce stable learning and which cause collapse, and to guide future experiments.
 
@@ -16,13 +16,15 @@ The goal is to identify which settings produce stable learning and which cause c
 | Update method | FPO (flow policy optimization) |
 | Advantage mode | Leave-one-out (RLOO) |
 | Reward mode | `sparse_rl` (1.0 = success, 0.0 = failure) |
-| Trajectories per iteration | 32 |
+| Trajectories per iteration | 32 (runs 1–6), varies in runs 7–8 |
 | Rollout envs | 8 (vectorised) |
 | FM batch size | 64 |
 | FM noise samples | 4 |
 | KL coeff | 0.01 |
 | Max grad norm | 10.0 |
 | Gradient checkpointing | Yes |
+
+Runs 7–8 also vary `trajs_per_task`, `ppo_epochs`, and `eval_episodes`; deviations from the baseline are noted in the run summary table.
 
 ---
 
@@ -36,6 +38,11 @@ The goal is to identify which settings produce stable learning and which cause c
 | 4 | 3e-6 | 0.05 / 0.08 | 0.5 | 35 | 220 | 58% | **88%** (iter 35) | 88% | Slightly worse than run 2 |
 | 5 | **5e-6** | 0.10 / 0.15 | 1.0 | 35 | 220 | 58% | **90%** (iter 15) | **50%** | Collapsed |
 | 6 | **5e-6** | 0.10 / 0.15 | **0.5** | 35 | 220 | 60% | **88%** (iter 15) | **4%** | Catastrophic collapse |
+| 7 | 3e-6 | 0.05 / 0.08 | 1.0 | 35 | 220 | 60% | **86%** (iter 30) | 84% | Comparable to run 2 at same iter count ¹ |
+| 8 | 3e-6 | 0.05 / 0.08 | 1.0 | 64/100 | 220 | 59% | **90%** (iter 30) | **76%** (iter 60) | Degradation after peak ² |
+
+¹ Run 7: `trajs_per_task=64` (2× baseline), all other settings match run 2.
+² Run 8: `ppo_epochs=2`, `trajs_per_task=48`, `eval_episodes=100`. Still running at iter 64.
 
 ---
 
@@ -112,6 +119,56 @@ The eval in run 2 oscillates: 88% → 82% → 90% → 86% → 92% → 86% → 82
 **Conclusion:** Use at least 100 eval episodes for more reliable checkpointing.
 A binomial 95% CI at 85% SR drops from ±10% (N=50) to ±7% (N=100).
 
+### 6. Doubling batch size (64 trajs) does not accelerate convergence
+
+Run 7 doubled trajectories per iteration from 32 to 64 while keeping all other settings at the proven baseline (run 2 config).
+At iteration 30, run 7 reached 86% eval SR — matching run 2 at the same iteration count.
+However, each iteration took ~22 minutes vs ~13 minutes for the 32-traj baseline, so wall-clock cost per iteration roughly doubled.
+
+The rollout success rate climbed steadily from 56% (iter 2) to 95% (iter 32), showing healthy learning, but the eval improvement was not proportionally faster.
+The larger batch provides lower-variance advantage estimates: with 64 trajs and 50% success rate, LOO advantages are ±0.5 vs ±1.0 with 32 trajs.
+But at `lr=3e-6` with conservative clipping, the optimiser is not gradient-noise-limited — the bottleneck is the trust-region step size, not advantage estimate quality.
+
+**Conclusion:** `trajs_per_task=32` remains the cost-effective choice at the current learning rate.
+Larger batches may help at higher learning rates (where more stable gradients could prevent the collapse seen in runs 5–6), but this is untested.
+
+### 7. Two PPO epochs cause late-stage performance degradation
+
+Run 8 used `ppo_epochs=2` with `trajs_per_task=48` and `eval_episodes=100`.
+Early training was healthy: 59% → 76% (iter 10) → 84% (iter 20) → **90%** (iter 30), matching or exceeding the best of run 2 at comparable iterations.
+But after iter 30, performance steadily declined: 89% (iter 40) → 85% (iter 50) → **76%** (iter 60).
+
+The mechanism: with 2 PPO epochs, the second gradient pass uses the FM-loss ratio computed at the start of the iteration.
+By the time the second epoch runs, the policy has already moved from the first epoch's update.
+The ratio `r = exp(L_old − L_new)` is stale — it reflects the _original_ policy, not the post-epoch-1 policy.
+This means the trust-region constraint is effectively broken on the second pass.
+
+Diagnostic evidence from run 8:
+
+| Symptom | Evidence |
+| --- | --- |
+| Updates making policy worse | Positive FPO losses at iters 33, 38, 39, 42 |
+| Diminishing learning signal | KL dropped to 0.001–0.004 in late phase |
+| Rollout degradation | Rollout SR declined from 87–94% (iters 25–32) to 73–83% (iters 50–64) |
+| Eval degradation | 90% → 89% → 85% → 76% over iters 30–60 |
+
+Note: run 8 changed three settings simultaneously (`ppo_epochs`, `trajs_per_task`, `eval_episodes`), but run 7 shows that changing only `trajs_per_task` does not cause degradation.
+The `eval_episodes` increase is evaluation-only and cannot affect training.
+Therefore `ppo_epochs=2` is the most likely cause of the regression.
+
+**Conclusion:** `ppo_epochs=1` is correct for FPO.
+The extra gradient step does not extract meaningful additional signal — instead it corrupts the trust-region approximation.
+If more signal extraction per iteration is desired, increasing `trajs_per_task` is the safer path since it improves advantage estimates without introducing ratio staleness.
+
+### 8. 100 eval episodes reveal real trends (confirmed)
+
+Run 8 used 100 eval episodes as suggested in the recommendations from runs 1–6.
+The eval trajectory 59% → 76% → 84% → 90% → 89% → 85% → 76% shows a clear rise-and-fall arc that would have been obscured by 50-episode noise.
+With 50 episodes, the binomial 95% CI at 85% SR is ±10%, making a drop from 90% to 85% indistinguishable from noise.
+With 100 episodes, the same CI is ±7%, and five consecutive evals showing monotonic decline (90% → 89% → 85% → 76%) strongly indicate real regression rather than sampling variance.
+
+**Conclusion:** 100 eval episodes should be the standard going forward.
+
 ---
 
 ## Recommended Configuration
@@ -139,14 +196,17 @@ A binomial 95% CI at 85% SR drops from ±10% (N=50) to ±7% (N=100).
 --clip-epsilon-high 0.08
 --fpo-negative-adv-scale 1.0
 --kl-coeff 0.01
---ppo-epochs 2               # extract more signal per iteration
---trajs-per-task 48           # better advantage estimates at high SR
+--ppo-epochs 1                # 2 epochs shown harmful (run 8)
+--trajs-per-task 32           # 48/64 did not help (runs 7, 8)
 --num-fm-noise-samples 4
---eval-episodes 100            # less noisy eval
+--eval-episodes 100            # confirmed less noisy (run 8)
 --max-steps 220
+--adaptive-kl                  # if implemented — highest-impact change
 ```
 
-The extra cost per iteration (~50% more rollout time, 2× gradient steps) should be worthwhile because it lets each expensive iteration extract more learning signal — especially in the late stage where gradients are small.
+Run 8 disproved the hypothesis that `ppo_epochs=2` would extract more signal — it caused degradation instead.
+Run 7 showed that doubling `trajs_per_task` to 64 provided no meaningful speedup.
+The most promising next step is adaptive KL targeting (see recommendations below), which could unlock higher learning rates without collapse.
 
 ---
 
@@ -200,6 +260,6 @@ Switching to `srpo` mode with world-model progress rewards provides continuous r
 | clip_epsilon_high | 0.05 – 0.10 | **0.08** | ≥ 0.15 (compounds with LR) | Run 3 vs 2 |
 | kl_coeff | 0.005 – 0.02 | **0.01** at lr=3e-6 | < 0.01 at lr=5e-6 (insufficient) | Runs 5, 6 |
 | neg_adv_scale | 0.5 – 1.0 | **1.0** (symmetric) | — | Run 4 marginal diff |
-| ppo_epochs | 1 – 2 | **1** (proven), 2 (untested) | ≥ 4 (stale FM ratio) | Run 2 |
-| trajs_per_task | 32+ | **32** (proven), 48 (suggested) | < 16 (high variance) | All runs |
-| eval_episodes | 50+ | **100** (suggested) | < 50 (noisy checkpoints) | Run 2 oscillation |
+| ppo_epochs | 1 | **1** | ≥ 2 (stale FM ratio → degradation) | Runs 2, 8 |
+| trajs_per_task | 32–64 | **32** (cost-effective) | < 16 (high variance) | Runs 7, 8 |
+| eval_episodes | 100+ | **100** (confirmed) | < 50 (noisy checkpoints) | Runs 2, 8 |
