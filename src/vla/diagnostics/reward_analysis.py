@@ -155,6 +155,44 @@ def compute_zscore_rewards(
     return alpha * special.expit(-z)
 
 
+def compute_siirl_rewards_global(
+    distances: np.ndarray,
+    all_distances: np.ndarray,
+) -> np.ndarray:
+    """siiRL reward with global min-max normalization across all groups.
+
+    Unlike ``compute_siirl_rewards`` which normalizes within the passed
+    array, this uses ``all_distances`` for min-max bounds so rewards are
+    comparable across trajectory groups.
+    """
+    if len(distances) == 0:
+        return np.array([])
+
+    min_d, max_d = all_distances.min(), all_distances.max()
+    if max_d - min_d < 1e-6:
+        normalized = np.full_like(distances, 0.5)
+    else:
+        normalized = (distances - min_d) / (max_d - min_d)
+
+    return 0.6 * special.expit(10.0 * (0.5 - normalized))
+
+
+def compute_zscore_rewards_global(
+    distances: np.ndarray,
+    all_distances: np.ndarray,
+    alpha: float = 0.8,
+    eps: float = 1e-8,
+) -> np.ndarray:
+    """Z-score reward with global mean/std normalization across all groups."""
+    if len(distances) == 0:
+        return np.array([])
+
+    d_mean = all_distances.mean()
+    d_std = max(all_distances.std(), eps)
+    z = (distances - d_mean) / d_std
+    return alpha * special.expit(-z)
+
+
 def build_distance_table(
     groups: dict[str, np.ndarray],
     reward_fn: Callable[[np.ndarray], np.ndarray] | None = None,
@@ -172,6 +210,35 @@ def build_distance_table(
         }
         if reward_fn is not None:
             rewards = reward_fn(dists)
+            row["Reward Mean"] = rewards.mean()
+            row["Reward Std"] = rewards.std() if len(rewards) > 1 else 0.0
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def build_distance_table_global(
+    groups: dict[str, np.ndarray],
+    reward_fn_global: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
+) -> pd.DataFrame:
+    """Build summary DataFrame with globally-normalized rewards.
+
+    Unlike ``build_distance_table``, the reward function receives both
+    the per-group distances and all distances concatenated, ensuring
+    normalization is consistent across groups.
+    """
+    all_dists = np.concatenate(list(groups.values()))
+    rows = []
+    for name, dists in groups.items():
+        row = {
+            "Group": name,
+            "N": len(dists),
+            "Dist Mean": dists.mean(),
+            "Dist Std": dists.std() if len(dists) > 1 else 0.0,
+            "Dist Min": dists.min() if len(dists) > 0 else 0.0,
+            "Dist Max": dists.max() if len(dists) > 0 else 0.0,
+        }
+        if reward_fn_global is not None:
+            rewards = reward_fn_global(dists, all_dists)
             row["Reward Mean"] = rewards.mean()
             row["Reward Std"] = rewards.std() if len(rewards) > 1 else 0.0
         rows.append(row)
@@ -228,6 +295,68 @@ def compute_progress_correlation(
     return float(corr), float(pval)
 
 
+def bootstrap_spearman_ci(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_bootstrap: int = 1000,
+    ci: float = 0.95,
+    seed: int = 42,
+) -> tuple[float, float, float]:
+    """Bootstrap confidence interval for Spearman correlation.
+
+    Returns ``(correlation, ci_lower, ci_upper)``.
+    """
+    rng = np.random.RandomState(seed)
+    n = len(x)
+    corr, _ = spearmanr(x, y)
+
+    boot_corrs = []
+    for _ in range(n_bootstrap):
+        idx = rng.choice(n, size=n, replace=True)
+        c, _ = spearmanr(x[idx], y[idx])
+        if not np.isnan(c):
+            boot_corrs.append(c)
+
+    if not boot_corrs:
+        return float(corr), float(corr), float(corr)
+
+    alpha_half = (1 - ci) / 2
+    lower = np.percentile(boot_corrs, alpha_half * 100)
+    upper = np.percentile(boot_corrs, (1 - alpha_half) * 100)
+    return float(corr), float(lower), float(upper)
+
+
+def compute_per_trajectory_progress_correlation(
+    progress_levels: list[float],
+    distances_per_level: dict[float, np.ndarray],
+    n_bootstrap: int = 1000,
+    seed: int = 42,
+) -> tuple[float, float, float, float]:
+    """Spearman correlation at per-trajectory level (not per-level mean).
+
+    Each trajectory contributes one ``(progress, distance)`` pair,
+    giving far more statistical power than correlating level means.
+    Returns ``(correlation, p_value, ci_lower, ci_upper)``.
+    """
+    all_progress: list[float] = []
+    all_distances: list[float] = []
+    for level in sorted(progress_levels):
+        dists = distances_per_level.get(level)
+        if dists is not None and len(dists) > 0:
+            for d in dists:
+                all_progress.append(level)
+                all_distances.append(float(d))
+
+    if len(all_progress) < 3:
+        return 0.0, 1.0, 0.0, 0.0
+
+    x = np.array(all_progress)
+    y = np.array(all_distances)
+    corr, pval = spearmanr(x, y)
+    _, ci_lower, ci_upper = bootstrap_spearman_ci(x, y, n_bootstrap, seed=seed)
+    return float(corr), float(pval), ci_lower, ci_upper
+
+
 def plot_distance_kde(
     groups: dict[str, np.ndarray],
     title: str = "Distance to Nearest Cluster Center",
@@ -271,6 +400,26 @@ def plot_reward_kde(
 ) -> plt.Axes:
     """KDE plot of computed rewards per group."""
     reward_groups = {k: reward_fn(v) for k, v in groups.items() if len(v) > 0}
+    return plot_distance_kde(reward_groups, title=title, colors=colors, ax=ax)
+
+
+def plot_reward_kde_global(
+    groups: dict[str, np.ndarray],
+    reward_fn_global: Callable[[np.ndarray, np.ndarray], np.ndarray],
+    title: str = "Shaped Rewards (global normalization)",
+    colors: dict[str, str] | None = None,
+    ax: plt.Axes | None = None,
+) -> plt.Axes:
+    """KDE plot with globally-normalized rewards.
+
+    Concatenates all group distances for normalization before computing
+    per-group rewards, ensuring cross-group comparability.
+    """
+    all_dists = np.concatenate([v for v in groups.values() if len(v) > 0])
+    reward_groups = {
+        k: reward_fn_global(v, all_dists)
+        for k, v in groups.items() if len(v) > 0
+    }
     return plot_distance_kde(reward_groups, title=title, colors=colors, ax=ax)
 
 
@@ -356,6 +505,80 @@ def plot_cosine_similarity_matrix(
 
 
 # ──────────────────────────────────────────────────────────────────────
+# Separation metrics
+# ──────────────────────────────────────────────────────────────────────
+
+
+def compute_separation_metrics(
+    success_distances: np.ndarray,
+    failure_distances: np.ndarray,
+) -> dict[str, float]:
+    """Quantitative separation between two distance distributions.
+
+    Returns Cohen's d (positive = failure farther from centers),
+    AUROC (lower distance = positive/success class), and histogram
+    overlap coefficient (0 = no overlap, 1 = identical).
+    """
+    from sklearn.metrics import roc_auc_score
+
+    pooled_std = np.sqrt(
+        (success_distances.std() ** 2 + failure_distances.std() ** 2) / 2
+    )
+    cohens_d = (failure_distances.mean() - success_distances.mean()) / max(pooled_std, 1e-8)
+
+    labels = np.concatenate([
+        np.ones(len(success_distances)),
+        np.zeros(len(failure_distances)),
+    ])
+    scores = np.concatenate([-success_distances, -failure_distances])
+    auroc = float(roc_auc_score(labels, scores))
+
+    lo = min(success_distances.min(), failure_distances.min())
+    hi = max(success_distances.max(), failure_distances.max())
+    bins = np.linspace(lo, hi, 100)
+    hist_s, _ = np.histogram(success_distances, bins=bins, density=True)
+    hist_f, _ = np.histogram(failure_distances, bins=bins, density=True)
+    bin_width = bins[1] - bins[0]
+    overlap = float(np.sum(np.minimum(hist_s, hist_f)) * bin_width)
+
+    return {"Cohen's d": cohens_d, "AUROC": auroc, "Overlap": overlap}
+
+
+def build_separation_table(
+    groups: dict[str, np.ndarray],
+    success_groups: list[str] | None = None,
+    failure_groups: list[str] | None = None,
+) -> pd.DataFrame:
+    """Separation metrics table: success vs each failure group and combined."""
+    if success_groups is None:
+        success_groups = ["Demo", "SFT Success"]
+    if failure_groups is None:
+        failure_groups = ["SFT Failed", "Random"]
+
+    success_dists = np.concatenate([
+        groups[g] for g in success_groups if g in groups and len(groups[g]) > 0
+    ])
+
+    rows = []
+    for fg in failure_groups:
+        if fg not in groups or len(groups[fg]) == 0:
+            continue
+        metrics = compute_separation_metrics(success_dists, groups[fg])
+        metrics["Comparison"] = f"Success vs {fg}"
+        rows.append(metrics)
+
+    failure_dists = np.concatenate([
+        groups[g] for g in failure_groups if g in groups and len(groups[g]) > 0
+    ])
+    if len(failure_dists) > 0:
+        metrics = compute_separation_metrics(success_dists, failure_dists)
+        metrics["Comparison"] = "Success vs All Failure"
+        rows.append(metrics)
+
+    return pd.DataFrame(rows)[["Comparison", "Cohen's d", "AUROC", "Overlap"]]
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Experiment 5: Per-frame vs clip encoding comparison
 # ──────────────────────────────────────────────────────────────────────
 
@@ -418,6 +641,42 @@ def encode_trajectories_clip(
     return encoder.encode_trajectories(imgs_list, subsample_every).cpu().numpy()
 
 
+def encode_trajectories_siirl_faithful(
+    trajectories_images: list,
+    encoder,
+    target_frames: int = 64,
+) -> np.ndarray:
+    """Encode trajectories matching the siiRL production pipeline.
+
+    For each trajectory, evenly samples exactly ``target_frames`` frames
+    (with repetition if shorter), then encodes the clip as a single
+    video through the encoder — matching siiRL's preprocessing.
+    Returns ``(N, D)`` numpy array.
+    """
+    import torch
+    from vla.utils.tensor import to_float01
+
+    results = []
+    for imgs in trajectories_images:
+        imgs = to_float01(imgs)
+        T = imgs.shape[0]
+        if imgs.ndim == 5:
+            t, v, c, h, w = imgs.shape
+            imgs = imgs.reshape(t * v, c, h, w)
+            T = imgs.shape[0]
+
+        if T >= target_frames:
+            indices = np.linspace(0, T - 1, num=target_frames, dtype=int)
+        else:
+            indices = np.resize(np.arange(T), target_frames)
+
+        sampled = imgs[indices]
+        emb = encoder.encode_trajectory(sampled, subsample_every=1)
+        results.append(emb)
+
+    return torch.stack(results, dim=0).cpu().numpy()
+
+
 def compare_encoding_methods(
     per_frame_embs: np.ndarray,
     clip_embs: np.ndarray,
@@ -445,6 +704,20 @@ def compare_encoding_methods(
             "Clip Dist Std": dists_clip[mask].std(),
         })
     return pd.DataFrame(rows)
+
+
+def generate_null_embeddings(
+    n_samples: int,
+    dim: int,
+    seed: int = 42,
+) -> np.ndarray:
+    """Random Gaussian embeddings as a null-model baseline.
+
+    If V-JEPA 2 barely outperforms this, the embedding does not
+    capture task-relevant structure.
+    """
+    rng = np.random.RandomState(seed)
+    return rng.randn(n_samples, dim).astype(np.float32)
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -786,6 +1059,31 @@ def compute_chunked_intra_trajectory_correlation(
     return float(np.mean(corrs)), float(np.mean(pvals))
 
 
+def compute_chunked_intra_trajectory_correlations(
+    trajectories_images: list,
+    encoder,
+    centers: np.ndarray,
+    scaler: StandardScaler | None = None,
+    window_size: int = 32,
+    stride: int = 16,
+) -> list[float]:
+    """Per-trajectory Spearman correlations (chunk timestep vs distance).
+
+    Returns a list of correlations, one per trajectory with >= 3 chunks.
+    Use for bootstrap confidence intervals on the mean.
+    """
+    corrs: list[float] = []
+    for imgs in trajectories_images:
+        ts, dists = compute_chunked_progress_curve(
+            imgs, encoder, centers, scaler, window_size, stride,
+        )
+        if len(ts) >= 3:
+            c, _ = spearmanr(ts, dists)
+            if not np.isnan(c):
+                corrs.append(float(c))
+    return corrs
+
+
 def plot_chunked_progress_curves(
     curves_by_group: dict[str, list[tuple[np.ndarray, np.ndarray]]],
     title: str = "Chunked Encoding: Per-Chunk Distance Over Time",
@@ -916,30 +1214,52 @@ def plot_per_frame_evolution(
 
 
 def build_progress_correlation_table(
-    methods: dict[str, tuple[float, float]],
+    methods: dict[str, tuple],
     top_rewarder_ref: float = 0.95,
 ) -> pd.DataFrame:
     """Build a comparison table of progress correlation across methods.
 
     Args:
-        methods: ``{method_name: (spearman_r, p_value)}``
+        methods: ``{name: (r, p)}`` or ``{name: (r, p, ci_lo, ci_hi)}``.
         top_rewarder_ref: Published Top-Rewarder Spearman correlation
             (default 0.95, from the paper) included as a reference row.
     """
     rows = []
-    for name, (corr, pval) in methods.items():
-        rows.append({
+    for name, vals in methods.items():
+        corr, pval = vals[0], vals[1]
+        ci_lo = vals[2] if len(vals) > 2 else None
+        ci_hi = vals[3] if len(vals) > 3 else None
+        row: dict = {
             "Method": name,
             "Spearman r": corr,
             "p-value": pval,
+            "95% CI": f"[{ci_lo:.3f}, {ci_hi:.3f}]" if ci_lo is not None else "—",
             "Monotonic": abs(corr) > 0.8 and pval < 0.05,
-        })
+        }
+        rows.append(row)
 
     rows.append({
         "Method": "Top-Rewarder (published reference)",
         "Spearman r": top_rewarder_ref,
         "p-value": 0.0,
+        "95% CI": "—",
         "Monotonic": True,
     })
 
+    return pd.DataFrame(rows)
+
+
+def build_multi_task_summary(
+    task_results: dict[str, dict],
+) -> pd.DataFrame:
+    """Aggregate key metrics across multiple tasks.
+
+    Args:
+        task_results: ``{task_key: {"sep_auroc": ..., "progress_corr": ..., ...}}``.
+    """
+    rows = []
+    for task_key, metrics in task_results.items():
+        row = {"Task": task_key}
+        row.update(metrics)
+        rows.append(row)
     return pd.DataFrame(rows)
