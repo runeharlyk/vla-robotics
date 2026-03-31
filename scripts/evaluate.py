@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import torch
 import typer
 
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
@@ -42,7 +43,11 @@ def main(
     seed_everything(seed)
     device = get_device()
 
-    policy = SmolVLAPolicy(checkpoint=checkpoint, action_dim=8, state_dim=0, device=str(device))
+    ckpt_data = torch.load(checkpoint_dir / "policy.pt", map_location="cpu", weights_only=False)
+    action_dim = ckpt_data.get("action_dim", 7)
+    state_dim = ckpt_data.get("state_dim", 0)
+
+    policy = SmolVLAPolicy(checkpoint=checkpoint, action_dim=action_dim, state_dim=state_dim, device=str(device))
     env_meta = policy.load_checkpoint(checkpoint_dir)
     logging.info(
         "Loaded checkpoint from %s (action_dim=%d, state_dim=%d, env_metadata=%s)",
