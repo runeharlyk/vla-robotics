@@ -1,0 +1,154 @@
+{
+  "rollouts": [
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 0,
+      "base_instruction": "pick up the black bowl next to the cookie box and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl next to the cookie box and place it on the plate"
+        ],
+        "politeness": [
+          "please pick up the black bowl next to the cookie box and place it on the plate",
+          "kindly pick up the black bowl next to the cookie box and place it on the plate",
+          "could you pick up the black bowl next to the cookie box and place it on the plate"
+        ],
+        "sentence_structure": [
+          "next to the cookie box, pick up the black bowl and place it on the plate",
+          "the black bowl next to the cookie box, pick it up and place it on the plate",
+          "place on the plate the black bowl next to the cookie box after picking it up"
+        ],
+        "verb_paraphrase": [
+          "grab the black bowl next to the cookie box and place it on the plate",
+          "lift the black bowl next to the cookie box and place it on the plate",
+          "take the black bowl next to the cookie box and place it on the plate"
+        ],
+        "verbosity": [
+          "for this task, pick up the black bowl next to the cookie box and place it on the plate",
+          "in this task, pick up the black bowl next to the cookie box and place it on the plate",
+          "for me, pick up the black bowl next to the cookie box and place it on the plate"
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 1,
+      "base_instruction": "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate"
+        ],
+        "politeness": [
+          "please pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "kindly pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "could you pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate"
+        ],
+        "sentence_structure": [
+          "in the top drawer of the wooden cabinet, pick up the black bowl and place it on the plate",
+          "the black bowl in the top drawer of the wooden cabinet, pick it up and place it on the plate",
+          "place on the plate the black bowl in the top drawer of the wooden cabinet after picking it up"
+        ],
+        "verb_paraphrase": [
+          "grab the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "lift the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "take the black bowl in the top drawer of the wooden cabinet and place it on the plate"
+        ],
+        "verbosity": [
+          "for this task, pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "in this task, pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+          "for me, pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate"
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 2,
+      "base_instruction": "pick up the black bowl on the ramekin and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl on the ramekin and place it on the plate"
+        ],
+        "politeness": [
+          "please pick up the black bowl on the ramekin and place it on the plate",
+          "kindly pick up the black bowl on the ramekin and place it on the plate",
+          "could you pick up the black bowl on the ramekin and place it on the plate"
+        ],
+        "sentence_structure": [
+          "on the ramekin, pick up the black bowl and place it on the plate",
+          "the black bowl on the ramekin, pick it up and place it on the plate",
+          "place on the plate the black bowl on the ramekin after picking it up"
+        ],
+        "verb_paraphrase": [
+          "grab the black bowl on the ramekin and place it on the plate",
+          "lift the black bowl on the ramekin and place it on the plate",
+          "take the black bowl on the ramekin and place it on the plate"
+        ],
+        "verbosity": [
+          "for this task, pick up the black bowl on the ramekin and place it on the plate",
+          "in this task, pick up the black bowl on the ramekin and place it on the plate",
+          "for me, pick up the black bowl on the ramekin and place it on the plate"
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 3,
+      "base_instruction": "pick up the black bowl on the stove and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl on the stove and place it on the plate"
+        ],
+        "politeness": [
+          "please pick up the black bowl on the stove and place it on the plate",
+          "kindly pick up the black bowl on the stove and place it on the plate",
+          "could you pick up the black bowl on the stove and place it on the plate"
+        ],
+        "sentence_structure": [
+          "on the stove, pick up the black bowl and place it on the plate",
+          "the black bowl on the stove, pick it up and place it on the plate",
+          "place on the plate the black bowl on the stove after picking it up"
+        ],
+        "verb_paraphrase": [
+          "grab the black bowl on the stove and place it on the plate",
+          "lift the black bowl on the stove and place it on the plate",
+          "take the black bowl on the stove and place it on the plate"
+        ],
+        "verbosity": [
+          "for this task, pick up the black bowl on the stove and place it on the plate",
+          "in this task, pick up the black bowl on the stove and place it on the plate",
+          "for me, pick up the black bowl on the stove and place it on the plate"
+        ]
+      }
+    },
+    {
+      "rollout_path": "data/h5/libero/libero_spatial_tasks5_rollouts50.h5",
+      "task_index": 4,
+      "base_instruction": "pick up the black bowl between the plate and the ramekin and place it on the plate",
+      "variants": {
+        "original": [
+          "pick up the black bowl between the plate and the ramekin and place it on the plate"
+        ],
+        "politeness": [
+          "please pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "kindly pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "could you pick up the black bowl between the plate and the ramekin and place it on the plate"
+        ],
+        "sentence_structure": [
+          "between the plate and the ramekin, pick up the black bowl and place it on the plate",
+          "the black bowl between the plate and the ramekin, pick it up and place it on the plate",
+          "place on the plate the black bowl between the plate and the ramekin after picking it up"
+        ],
+        "verb_paraphrase": [
+          "grab the black bowl between the plate and the ramekin and place it on the plate",
+          "lift the black bowl between the plate and the ramekin and place it on the plate",
+          "take the black bowl between the plate and the ramekin and place it on the plate"
+        ],
+        "verbosity": [
+          "for this task, pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "in this task, pick up the black bowl between the plate and the ramekin and place it on the plate",
+          "for me, pick up the black bowl between the plate and the ramekin and place it on the plate"
+        ]
+      }
+    }
+  ]
+}
