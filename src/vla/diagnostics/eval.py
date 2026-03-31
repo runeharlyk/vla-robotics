@@ -5,7 +5,7 @@ the :class:`~vla.envs.base.SimEnv` protocol) through the
 :class:`~vla.envs.base.SimEnvFactory` abstraction.
 
 LIBERO evaluation can be vectorized across multiple subprocess environments
-for significantly faster wall-clock time (see ``num_eval_envs`` in
+for significantly faster wall-clock time (see ``num_envs`` in
 :func:`evaluate_smolvla`).
 """
 
@@ -220,7 +220,7 @@ def evaluate_smolvla(
     suite: str = "all",
     image_size: int = 256,
     task_id: int | None = None,
-    num_eval_envs: int = 1,
+    num_envs: int = 1,
 ) -> EvalMetrics:
     """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
 
@@ -230,10 +230,10 @@ def evaluate_smolvla(
     """
     sim = simulator.lower()
 
-    if sim == "libero" and num_eval_envs > 1 and task_id is not None:
+    if sim == "libero" and num_envs > 1 and task_id is not None:
         logger.info(
             "Vectorized LIBERO eval: %d envs, %d episodes, task_id=%d",
-            num_eval_envs,
+            num_envs,
             num_episodes,
             task_id,
         )
@@ -242,7 +242,7 @@ def evaluate_smolvla(
             suite=suite,
             task_id=task_id,
             num_episodes=num_episodes,
-            num_envs=num_eval_envs,
+            num_envs=num_envs,
             seed=seed,
             state_dim=policy.state_dim,
             image_size=image_size,

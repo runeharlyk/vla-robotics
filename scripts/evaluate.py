@@ -29,6 +29,7 @@ def main(
     num_episodes: int = typer.Option(100, "--num-episodes", "-n"),
     max_steps: int = typer.Option(None, "--max-steps", help="Override max steps (default: from metadata)"),
     seed: int = typer.Option(0, "--seed"),
+    num_envs: int = typer.Option(4, "--num-envs"),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
     control_mode: str = typer.Option(None, "--control-mode", help="Override control mode (default: from checkpoint)"),
 ) -> None:
@@ -72,6 +73,7 @@ def main(
         simulator=simulator,
         env_id=resolved_env_id,
         num_episodes=num_episodes,
+        num_envs=num_envs,
         max_steps=resolved_max_steps,
         seed=seed,
         control_mode=resolved_control_mode,
