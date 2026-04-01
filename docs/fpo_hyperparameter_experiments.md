@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarises findings from eight FPO (Flow Policy Optimization) training runs on LIBERO spatial task 2 (`sparse_rl` mode with binary success/failure rewards).
+This document summarises findings from ten FPO (Flow Policy Optimization) training runs on LIBERO spatial task 2 (`sparse_rl` mode with binary success/failure rewards).
 All runs use the same codebase (FPO update with leave-one-out advantages, asymmetric PPO-clip), the same SFT-initialised SmolVLA checkpoint, and differ only in hyperparameters.
 The goal is to identify which settings produce stable learning and which cause collapse, and to guide future experiments.
 
@@ -16,7 +16,7 @@ The goal is to identify which settings produce stable learning and which cause c
 | Update method | FPO (flow policy optimization) |
 | Advantage mode | Leave-one-out (RLOO) |
 | Reward mode | `sparse_rl` (1.0 = success, 0.0 = failure) |
-| Trajectories per iteration | 32 (runs 1–6), varies in runs 7–8 |
+| Trajectories per iteration | 32 (runs 1–6, 9–10), varies in runs 7–8 |
 | Rollout envs | 8 (vectorised) |
 | FM batch size | 64 |
 | FM noise samples | 4 |
@@ -24,7 +24,9 @@ The goal is to identify which settings produce stable learning and which cause c
 | Max grad norm | 10.0 |
 | Gradient checkpointing | Yes |
 
-Runs 7–8 also vary `trajs_per_task`, `ppo_epochs`, and `eval_episodes`; deviations from the baseline are noted in the run summary table.
+Runs 7–8 also vary `trajs_per_task`, `ppo_epochs`, and `eval_episodes`.
+Runs 9–10 add `adaptive_kl=True` with `kl_target=0.01` and `kl_adapt_factor=1.5` at `lr=5e-6` (see run summary footnotes).
+Deviations from the baseline are noted in the run summary table.
 
 ---
 
@@ -39,10 +41,15 @@ Runs 7–8 also vary `trajs_per_task`, `ppo_epochs`, and `eval_episodes`; deviat
 | 5 | **5e-6** | 0.10 / 0.15 | 1.0 | 35 | 220 | 58% | **90%** (iter 15) | **50%** | Collapsed |
 | 6 | **5e-6** | 0.10 / 0.15 | **0.5** | 35 | 220 | 60% | **88%** (iter 15) | **4%** | Catastrophic collapse |
 | 7 | 3e-6 | 0.05 / 0.08 | 1.0 | 35 | 220 | 60% | **86%** (iter 30) | 84% | Comparable to run 2 at same iter count ¹ |
-| 8 | 3e-6 | 0.05 / 0.08 | 1.0 | 64/100 | 220 | 59% | **90%** (iter 30) | **76%** (iter 60) | Degradation after peak ² |
+| 8 | 3e-6 | 0.05 / 0.08 | 1.0 | 67 ³ | 220 | 59% | **90%** (iter 30) | **76%** (iter 60) | Degradation after peak; stopped early ² |
+| 9 | **5e-6** | 0.05 / 0.08 | 1.0 | 100 | 220 | 60% | **91%** (iter 30) | **12%** (iter 100) | Adaptive KL; late collapse ⁴ |
+| 10 | **5e-6** | **0.10 / 0.15** | 1.0 | 100 | 220 | 60% | **88%** (iter 20) | **16%** (iter 100) | Adaptive KL + wide clip; faster collapse ⁵ |
 
 ¹ Run 7: `trajs_per_task=64` (2× baseline), all other settings match run 2.
-² Run 8: `ppo_epochs=2`, `trajs_per_task=48`, `eval_episodes=100`. Still running at iter 64.
+² Run 8: `ppo_epochs=2`, `trajs_per_task=48`, `eval_episodes=100`.
+³ Run 8 stopped at training iter 67 (external signal); last eval at iter 60 was 76%.
+⁴ Run 9: `adaptive_kl=True`, `kl_target=0.01`, `ppo_epochs=1`, `trajs_per_task=32`, `eval_episodes=100`.
+⁵ Run 10: same as run 9 except `clip_epsilon=0.10`, `clip_epsilon_high=0.15`.
 
 ---
 
@@ -50,7 +57,8 @@ Runs 7–8 also vary `trajs_per_task`, `ppo_epochs`, and `eval_episodes`; deviat
 
 ### 1. LR = 5e-6 causes catastrophic collapse
 
-Both runs with `lr=5e-6` (runs 5 and 6) collapsed after initially reaching 88–90% success rate.
+Runs with `lr=5e-6` and fixed `kl_coeff` (runs 5 and 6) collapsed after initially reaching 88–90% success rate.
+Runs 9 and 10 used adaptive KL at `lr=5e-6` and also collapsed after strong mid-training peaks (see §9).
 The collapse signature is visible in the KL divergence metric:
 
 | Run | LR | KL range (stable phase) | KL range (pre-collapse) | Outcome |
@@ -66,7 +74,7 @@ When the ratio approximation breaks down, the PPO-clip trust region loses its me
 The existing KL penalty (`kl_coeff=0.01`) is too weak to compensate for the larger step sizes.
 
 **Conclusion:** `lr=3e-6` is the safe choice for the current FPO implementation.
-Higher learning rates require a stronger or adaptive KL penalty (see recommendations below).
+Higher learning rates need a KL scheme that actually constrains cumulative drift; the adaptive rule tested in runs 9–10 did not (§9).
 
 ### 2. Larger clip ranges do not help and may hurt
 
@@ -76,6 +84,7 @@ At iteration 15, run 3 was still at baseline (58%) while run 2 was at ~72%.
 Wider clips don't help when the FPO ratio is already well within the trust region — and they increase the risk of destabilising steps without providing any upside.
 
 Combined with higher LR (runs 5, 6), larger clips amplify the step size problem and accelerate collapse.
+Run 10 (`clip=0.1/0.15`, `lr=5e-6`, adaptive KL) peaked at 88% by iter 20 but eval fell to 68% by iter 30 and to ~16% by iter 100 — worse mid-run than run 9’s conservative clips at the same LR.
 
 **Conclusion:** `clip_epsilon=0.05` / `clip_epsilon_high=0.08` is the right setting.
 These values align with the FPO paper's ablation, which found ε = 0.05 optimal.
@@ -149,8 +158,8 @@ Diagnostic evidence from run 8:
 | --- | --- |
 | Updates making policy worse | Positive FPO losses at iters 33, 38, 39, 42 |
 | Diminishing learning signal | KL dropped to 0.001–0.004 in late phase |
-| Rollout degradation | Rollout SR declined from 87–94% (iters 25–32) to 73–83% (iters 50–64) |
-| Eval degradation | 90% → 89% → 85% → 76% over iters 30–60 |
+| Rollout degradation | Rollout SR declined from 87–94% (iters 25–32) to 73–83% (iters 50–67) |
+| Eval degradation | 90% → 89% → 85% → 76% over iters 30–60 (last logged eval before early stop) |
 
 Note: run 8 changed three settings simultaneously (`ppo_epochs`, `trajs_per_task`, `eval_episodes`), but run 7 shows that changing only `trajs_per_task` does not cause degradation.
 The `eval_episodes` increase is evaluation-only and cannot affect training.
@@ -168,6 +177,18 @@ With 50 episodes, the binomial 95% CI at 85% SR is ±10%, making a drop from 90%
 With 100 episodes, the same CI is ±7%, and five consecutive evals showing monotonic decline (90% → 89% → 85% → 76%) strongly indicate real regression rather than sampling variance.
 
 **Conclusion:** 100 eval episodes should be the standard going forward.
+
+### 9. Adaptive KL as implemented did not stabilise `lr=5e-6` (runs 9–10)
+
+Runs 9 and 10 used `adaptive_kl=True`, initial `kl_coeff=0.01`, `kl_target=0.01`, and adapt factor 1.5 (halve coeff when `raw_kl < 0.5 * target`, multiply when above `2 * target`).
+Logged `raw_kl` per iteration stayed far below 0.01 (often ~1e-3 to 1e-4), so the rule repeatedly *decreased* `kl_coeff` until it was effectively zero within the first few tens of iterations.
+That removed KL regularisation while the optimiser still stepped at `5e-6`, so the policy could drift and the FM-loss ratio proxy could break down later — matching the late catastrophic eval drop.
+
+Run 9 eval arc (N=100): 60% → 65% (10) → 82% (20) → **91%** (30) → 64% (40) → 21% (50) → 15% (60) → 10–16% (70–100); final **12%** at iter 100.
+Run 10 eval arc: 60% → 72% (10) → **88%** (20) → 68% (30) → 29% (40) → 19% (50) → 18% (60) → 15–20% (70–90); final **16%** at iter 100.
+
+**Conclusion:** Do not assume “adaptive KL” fixes high LR until the adaptation signal matches the quantity you care about (e.g. floor on `kl_coeff`, different target, or KL measured vs a fixed reference).
+Runs 9–10 are a negative result for the specific rule and metric used in those logs.
 
 ---
 
@@ -201,21 +222,22 @@ With 100 episodes, the same CI is ±7%, and five consecutive evals showing monot
 --num-fm-noise-samples 4
 --eval-episodes 100            # confirmed less noisy (run 8)
 --max-steps 220
---adaptive-kl                  # if implemented — highest-impact change
 ```
 
 Run 8 disproved the hypothesis that `ppo_epochs=2` would extract more signal — it caused degradation instead.
 Run 7 showed that doubling `trajs_per_task` to 64 provided no meaningful speedup.
-The most promising next step is adaptive KL targeting (see recommendations below), which could unlock higher learning rates without collapse.
+Runs 9–10 show that the adaptive KL rule logged in those runs does *not* unlock stable `lr=5e-6`; redesign the adaptation (floor, target, or KL definition) before retrying higher LR.
 
 ---
 
 ## Recommendations for Code Changes
 
-### High impact: Adaptive KL penalty
+### High impact: Adaptive KL penalty (needs redesign after runs 9–10)
 
 The fixed `kl_coeff=0.01` cannot adapt to different effective step sizes.
-Implementing adaptive KL targeting (as in the original PPO paper) would allow safely using higher learning rates:
+A symmetric adapt rule (as in the original PPO paper) can still fail if the monitored `actual_kl` is almost always below `kl_target`: runs 9–10 then drove `kl_coeff` toward zero and later collapsed.
+
+Any retry should at least: enforce a **floor** on `kl_coeff`; consider a `kl_target` matched to the scale of the logged KL; or adapt using a KL vs a **fixed** reference policy, not a quantity that stays tiny while the policy drifts.
 
 ```python
 kl_target = 0.01
@@ -223,10 +245,10 @@ if actual_kl > 2.0 * kl_target:
     kl_coeff *= 1.5
 elif actual_kl < 0.5 * kl_target:
     kl_coeff /= 1.5
+kl_coeff = max(kl_coeff, kl_coeff_floor)
 ```
 
-This would decouple the LR choice from the trust-region constraint: the penalty auto-increases when the policy moves too fast.
-Run 5's early phase (fast learning, 90% at iter 15) would be preserved while the collapse would be prevented.
+Run 5's fast early phase at `5e-6` is still desirable, but runs 9–10 show the naive decrease-only regime is dangerous for FPO at that LR.
 
 ### High impact: KL-based step rejection
 
@@ -255,10 +277,11 @@ Switching to `srpo` mode with world-model progress rewards provides continuous r
 
 | Parameter | Safe range | Optimal | Danger zone | Evidence |
 | --- | --- | --- | --- | --- |
-| Learning rate | 1e-6 – 3e-6 | **3e-6** | ≥ 5e-6 (collapse) | Runs 5, 6 vs 1, 2 |
-| clip_epsilon | 0.03 – 0.08 | **0.05** | ≥ 0.1 (no benefit, adds risk) | Run 3 vs 2 |
-| clip_epsilon_high | 0.05 – 0.10 | **0.08** | ≥ 0.15 (compounds with LR) | Run 3 vs 2 |
-| kl_coeff | 0.005 – 0.02 | **0.01** at lr=3e-6 | < 0.01 at lr=5e-6 (insufficient) | Runs 5, 6 |
+| Learning rate | 1e-6 – 3e-6 | **3e-6** | ≥ 5e-6 (collapse) | Runs 5, 6, 9, 10 vs 1, 2 |
+| clip_epsilon | 0.03 – 0.08 | **0.05** | ≥ 0.1 (no benefit, adds risk) | Run 3 vs 2; run 10 vs 9 |
+| clip_epsilon_high | 0.05 – 0.10 | **0.08** | ≥ 0.15 (compounds with LR) | Run 3 vs 2; run 10 vs 9 |
+| kl_coeff | 0.005 – 0.02 | **0.01** at lr=3e-6 | Collapsing to ~0 at lr=5e-6 (adaptive) | Runs 9, 10 |
+| adaptive_kl | — | **off** until rule fixed | Decreasing-only + tiny raw_kl | Runs 9, 10 |
 | neg_adv_scale | 0.5 – 1.0 | **1.0** (symmetric) | — | Run 4 marginal diff |
 | ppo_epochs | 1 | **1** | ≥ 2 (stale FM ratio → degradation) | Runs 2, 8 |
 | trajs_per_task | 32–64 | **32** (cost-effective) | < 16 (high variance) | Runs 7, 8 |
