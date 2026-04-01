@@ -41,7 +41,7 @@ class ManiSkillEnv(SimEnv):
     def __init__(
         self,
         env_id: str,
-        obs_mode: str = "rgbd",
+        obs_mode: str = "rgb",
         control_mode: str = DEFAULT_CONTROL_MODE,
         render_mode: str = "cameras",
         max_episode_steps: int | None = None,
@@ -87,7 +87,7 @@ class ManiSkillEnv(SimEnv):
         """Normalise ManiSkill obs into a common raw dict."""
         out: dict = {"pixels": {}, "agent_state": None}
 
-        # Some envs use 'image' (rgbd), others use 'sensor_data' (rgb+state).
+        # Some envs use 'image' (rgb), others use 'sensor_data' (rgb+state).
         image_dict: dict = {}
         if "image" in obs:
             image_dict = obs["image"]
@@ -167,7 +167,7 @@ class ManiSkillEnvFactory:
         instruction: str = "",
         max_episode_steps: int | None = None,
         image_size: int = 256,
-        obs_mode: str = "rgbd",
+        obs_mode: str = "rgb",
         control_mode: str = DEFAULT_CONTROL_MODE,
     ):
         self._env_id = env_id
