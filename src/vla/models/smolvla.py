@@ -19,6 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file as load_safetensors
+from safetensors.torch import save_file as save_safetensors
 from transformers import AutoProcessor
 
 from vla.env_metadata import EnvMetadata
@@ -151,11 +152,17 @@ class SmolVLAPolicy(nn.Module):
         if "action.mean" in stats and "action.std" in stats:
             am = stats["action.mean"].float()[:action_dim]
             astd = stats["action.std"].float()[:action_dim]
+            if am.shape != self.action_mean.shape:
+                self.register_buffer("action_mean", torch.zeros_like(am), persistent=True)
+                self.register_buffer("action_std", torch.ones_like(astd), persistent=True)
             self.action_mean.copy_(am)
             self.action_std.copy_(astd)
         if "observation.state.mean" in stats and "observation.state.std" in stats:
             sm = stats["observation.state.mean"].float()[:state_dim]
             sstd = stats["observation.state.std"].float()[:state_dim]
+            if sm.shape != self.state_mean.shape:
+                self.register_buffer("state_mean", torch.zeros_like(sm), persistent=True)
+                self.register_buffer("state_std", torch.ones_like(sstd), persistent=True)
             self.state_mean.copy_(sm)
             self.state_std.copy_(sstd)
         logger.info(
@@ -776,8 +783,14 @@ class SmolVLAPolicy(nn.Module):
     ) -> None:
         """Save full model weights, normalization statistics, and optional metadata.
 
+        Writes both the internal ``policy.pt`` format (used by
+        :meth:`load_checkpoint` / ``scripts/evaluate.py``) **and** the
+        LeRobot-compatible files (``config.json``, ``model.safetensors``,
+        normalizer ``.safetensors``) so the checkpoint works with
+        ``lerobot-eval`` as well.
+
         Args:
-            path: Directory to write ``policy.pt`` into.
+            path: Directory to write checkpoint files into.
             env_metadata: Typed environment metadata.  If ``None`` but keyword
                 arguments are provided, an :class:`EnvMetadata` is constructed
                 from them for backward compatibility.
@@ -801,6 +814,50 @@ class SmolVLAPolicy(nn.Module):
             },
             path / "policy.pt",
         )
+
+        self._save_lerobot_format(path)
+
+    def _save_lerobot_format(self, path: Path) -> None:
+        """Write LeRobot-compatible checkpoint files alongside ``policy.pt``.
+
+        Emits ``config.json``, ``model.safetensors``, and the normalizer
+        safetensors so that ``lerobot-eval --policy.path=<path>`` works
+        out of the box.
+        """
+        config = dict(self.ckpt_config)
+        config["output_features"] = {
+            "action": {"type": "ACTION", "shape": [self.action_dim]},
+        }
+        state_shape = max(self.state_dim, 1)
+        input_feats = config.get("input_features", {})
+        num_visual = sum(
+            1 for v in input_feats.values() if isinstance(v, dict) and v.get("type") == "VISUAL"
+        )
+        if num_visual == 0:
+            input_feats["observation.images.camera1"] = {
+                "type": "VISUAL",
+                "shape": [3, 256, 256],
+            }
+        input_feats["observation.state"] = {
+            "type": "STATE",
+            "shape": [state_shape],
+        }
+        config["input_features"] = input_feats
+        with open(path / "config.json", "w") as f:
+            json.dump(config, f, indent=2)
+
+        prefixed = {f"model.{k}": v for k, v in self.model.state_dict().items()}
+        save_safetensors(prefixed, path / "model.safetensors")
+
+        norm_stats: dict[str, torch.Tensor] = {
+            "action.mean": self.action_mean.detach().cpu().float(),
+            "action.std": self.action_std.detach().cpu().float(),
+            "observation.state.mean": self.state_mean.detach().cpu().float(),
+            "observation.state.std": self.state_std.detach().cpu().float(),
+        }
+        save_safetensors(norm_stats, path / "policy_postprocessor_step_1_unnormalizer_processor.safetensors")
+        save_safetensors(norm_stats, path / "policy_preprocessor_step_5_normalizer_processor.safetensors")
+        logger.info("Saved LeRobot-compatible checkpoint to %s", path)
 
     def load_checkpoint(self, path: str | Path) -> EnvMetadata:
         """Load model weights and normalization statistics from a previously saved checkpoint.
