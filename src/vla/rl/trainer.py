@@ -148,6 +148,8 @@ def log_training_config(
     lines.append(f"    eval_zero_sample:    {config.eval_zero_sample}")
     lines.append(f"    fm_batch_size:       {config.fm_batch_size}")
     lines.append(f"    seed:                {config.seed}")
+    lines.append(f"    include_demos_in_update:    {config.include_demos_in_update}")
+    lines.append(f"    success_replay_buffer_size: {config.success_replay_buffer_size}")
 
     lines.append("")
     lines.append("  SRPO reward (world-model):")
@@ -442,6 +444,8 @@ def train_srpo(
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
 
+    success_buffer: dict[str, list[Trajectory]] = defaultdict(list)
+
     # -- Per-task reward model (works for single-task too: 1 key) ---------
     world_encoder: WorldModelEncoder | None = None
     reward_model: MultiTaskWorldProgressReward | None = None
@@ -507,7 +511,7 @@ def train_srpo(
             ref_policy.load_state_dict(policy.state_dict())
 
         # -- 1. Collect trajectories from all tasks -----------------------
-        all_trajectories, per_task_successes = collect_all_trajectories(
+        rollout_trajectories, per_task_successes = collect_all_trajectories(
             policy,
             task_specs,
             rollout_engines,
@@ -516,11 +520,31 @@ def train_srpo(
             trajs_per_task_per_iter,
         )
 
-        total_successes = sum(per_task_successes.values())
+        total_rollout_successes = sum(per_task_successes.values())
+        
+        if config.success_replay_buffer_size > 0:
+            for t in rollout_trajectories:
+                if t.success:
+                    buf = success_buffer[t.task_id]
+                    buf.append(t)
+                    if len(buf) > config.success_replay_buffer_size:
+                        buf.pop(0)
+        extra_trajectories: list[Trajectory] = []
+        if config.include_demos_in_update and demo_trajectories:
+            for tid, demos in demo_trajectories.items():
+                extra_trajectories.extend(demos)
+        
+        if config.success_replay_buffer_size > 0:
+            for tid, buf in success_buffer.items():
+                extra_trajectories.extend(buf)
+
+        all_trajectories = rollout_trajectories + extra_trajectories
+
+        total_successes = sum(1 for t in all_trajectories if t.success)
         logger.info(
-            f"Iter {iteration}: collected {len(all_trajectories)} trajs across "
-            f"{len(task_specs)} tasks, {total_successes} successes "
-            f"({per_task_successes})"
+            f"Iter {iteration}: collected {len(rollout_trajectories)} trajs, "
+            f"{total_rollout_successes} rollout successes, {len(all_trajectories)} total trajs for update "
+            f"({total_successes} total successes)"
         )
 
         # -- 2. Per-task rewards g_i --------------------------------------
@@ -686,6 +710,7 @@ def train_srpo(
             f"{config.mode}/{loss_key}": update_metrics.avg_loss,
             f"{config.mode}/kl_penalty": update_metrics.avg_kl,
             f"{config.mode}/total_successes": total_successes,
+            f"{config.mode}/rollout_successes": total_rollout_successes,
             f"{config.mode}/skipped_tasks": len(skipped_tasks),
             f"{config.mode}/iteration": iteration,
         }

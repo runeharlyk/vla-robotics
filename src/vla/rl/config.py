@@ -60,6 +60,8 @@ class SRPOConfig(BaseTrainingConfig):
     adaptive_kl: bool = False
     kl_target: float = 0.01
     kl_adapt_factor: float = 1.5
+    include_demos_in_update: bool = False
+    success_replay_buffer_size: int = 0
 
 
 @dataclass

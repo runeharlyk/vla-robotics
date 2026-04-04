@@ -297,6 +297,14 @@ def main(
     ),
     kl_target: float = typer.Option(0.01, "--kl-target", help="Target KL for adaptive adjustment"),
     kl_adapt_factor: float = typer.Option(1.5, "--kl-adapt-factor", help="Multiplicative factor for adaptive KL"),
+    include_demos_in_update: bool = typer.Option(
+        False,
+        "--include-demos-in-update/--no-include-demos-in-update",
+        help="Include demonstration trajectories in every policy update iteration (online SFT).",
+    ),
+    success_replay_buffer_size: int = typer.Option(
+        0, "--success-replay-buffer-size", help="Replay successful trajectories from previous iterations."
+    ),
 ) -> None:
     import wandb
     from vla.models.smolvla import SmolVLAPolicy
@@ -311,6 +319,8 @@ def main(
     resolved_eval_envs = num_eval_envs if num_eval_envs > 0 else num_rollout_envs
     resolved_task_ids = _parse_task_ids(task_ids)
 
+    include_demos_internal = (mode == Mode.SRPO) or include_demos_in_update
+
     task_specs, demo_trajectories, resolved_state_dim, resolved_action_dim = _build_tasks(
         data_path=data_path,
         data_dir=data_dir,
@@ -320,7 +330,7 @@ def main(
         simulator=simulator,
         suite=suite,
         task_ids=resolved_task_ids,
-        include_demos=mode == "srpo",
+        include_demos=include_demos_internal,
         env_id_override=env_id,
         instruction_override=instruction,
     )
@@ -399,6 +409,8 @@ def main(
         adaptive_kl=adaptive_kl,
         kl_target=kl_target,
         kl_adapt_factor=kl_adapt_factor,
+        include_demos_in_update=include_demos_in_update,
+        success_replay_buffer_size=success_replay_buffer_size,
     )
 
     logger.info(
