@@ -584,6 +584,12 @@ def train_srpo(
 
     if config.simulator is Simulator.LIBERO and _SHARED_LIBERO_KEY not in rollout_engines:
         _get_or_build_engine(rollout_engines, config, task_specs[0])
+    elif config.simulator is Simulator.MANISKILL and config.num_rollout_envs > 1:
+        # ManiSkill GPU PhysX must be enabled before any other PhysX-backed env
+        # is constructed. Prebuild vectorized rollout engines before the
+        # baseline evaluation step so the later eval envs do not block GPU PhysX.
+        for spec in task_specs:
+            _get_or_build_engine(rollout_engines, config, spec)
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
 

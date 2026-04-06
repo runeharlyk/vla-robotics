@@ -103,17 +103,23 @@ class ManiSkillEnv(SimEnv):
                 parts = []
                 for key in ("qpos", "qvel"):
                     if key in obs["agent"]:
-                        parts.append(np.asarray(obs["agent"][key]).flatten())
+                        parts.append(self._to_numpy(obs["agent"][key]).flatten())
                 if parts:
                     out["agent_state"] = np.concatenate(parts)
             else:
-                out["agent_state"] = np.asarray(obs["agent"]).flatten()
+                out["agent_state"] = self._to_numpy(obs["agent"]).flatten()
 
         return out
 
     @staticmethod
-    def _to_uint8(arr: np.ndarray) -> np.ndarray:
-        arr = np.asarray(arr)
+    def _to_numpy(arr: Any) -> np.ndarray:
+        if isinstance(arr, torch.Tensor):
+            arr = arr.detach().cpu().numpy()
+        return np.asarray(arr)
+
+    @classmethod
+    def _to_uint8(cls, arr: Any) -> np.ndarray:
+        arr = cls._to_numpy(arr)
         if arr.dtype == np.float32 or arr.dtype == np.float64:
             arr = (arr * 255).clip(0, 255).astype(np.uint8)
         if arr.ndim == 4:
