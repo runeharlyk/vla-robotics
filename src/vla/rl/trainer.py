@@ -142,7 +142,7 @@ def log_training_config(
     lines.append(f"    num_iterations:      {config.num_iterations}")
     lines.append(f"    trajs_per_task:      {trajs_per_task_per_iter}")
     lines.append(f"    num_rollout_envs:    {config.num_rollout_envs}")
-    lines.append(f"    num_eval_envs:       {config.num_eval_envs}")
+    lines.append(f"    num_envs:            {config.num_envs}")
     lines.append(f"    max_steps:           {config.max_steps}")
     lines.append(f"    eval_every:          {config.eval_every}")
     lines.append(f"    eval_episodes:       {config.eval_episodes}")
@@ -465,7 +465,7 @@ def _evaluate_task(
         seed=config.seed + 20000,
     )
     if config.simulator is Simulator.LIBERO:
-        kwargs.update(suite=config.suite, task_id=spec.libero_task_idx, num_eval_envs=config.num_eval_envs)
+        kwargs.update(suite=config.suite, task_id=spec.libero_task_idx, num_envs=config.num_envs)
     else:
         kwargs.update(env_id=spec.env_id or config.env_id)
     return evaluate_smolvla(policy, **kwargs)

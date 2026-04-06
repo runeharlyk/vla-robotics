@@ -80,6 +80,8 @@ class SmolVLAPolicy(nn.Module):
         self.dtype = dtype
         self.checkpoint = checkpoint
         self.eval_zero_sample = False
+        self.eval_fixed_noise_seed: int | None = None
+        self._eval_noise_counter = 0
 
         ckpt_config = self._load_ckpt_config(checkpoint)
         self.ckpt_config = ckpt_config
@@ -319,6 +321,38 @@ class SmolVLAPolicy(nn.Module):
     def _to_float01(img: torch.Tensor) -> torch.Tensor:
         return to_float01(img, auto_scale=True)
 
+    def set_eval_fixed_noise(self, seed: int | None) -> None:
+        """Enable deterministic per-call evaluation noise when *seed* is set."""
+        self.eval_fixed_noise_seed = seed
+        self._eval_noise_counter = 0
+
+    def reset_eval_noise(self, seed: int | None = None) -> None:
+        """Reset the deterministic evaluation-noise stream for a new episode/task."""
+        if seed is not None:
+            self.eval_fixed_noise_seed = seed
+        self._eval_noise_counter = 0
+
+    def _build_eval_noise(self, batch_size: int) -> torch.Tensor | None:
+        if self.eval_zero_sample:
+            return torch.zeros(
+                (batch_size, self.chunk_size, self.max_action_dim),
+                device=self.device,
+                dtype=self.dtype,
+            )
+        if self.eval_fixed_noise_seed is None:
+            return None
+
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(self.eval_fixed_noise_seed + self._eval_noise_counter)
+        self._eval_noise_counter += 1
+
+        noise = torch.randn(
+            (batch_size, self.chunk_size, self.max_action_dim),
+            generator=generator,
+            dtype=torch.float32,
+        )
+        return noise.to(self.device, dtype=self.dtype)
+
     def predict_action(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Predict a single action from an image observation.
 
@@ -339,9 +373,7 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
             s = self._prepare_state_input(state, batch_size=1)
-            noise = None
-            if self.eval_zero_sample:
-                noise = torch.zeros((1, self.chunk_size, self.max_action_dim), device=self.device, dtype=self.dtype)
+            noise = self._build_eval_noise(batch_size=1)
             actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[0, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
@@ -367,13 +399,7 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
             s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-            noise = None
-            if self.eval_zero_sample:
-                noise = torch.zeros(
-                    (imgs.shape[0], self.chunk_size, self.max_action_dim),
-                    device=self.device,
-                    dtype=self.dtype,
-                )
+            noise = self._build_eval_noise(batch_size=imgs.shape[0])
             actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[:, 0, : self.action_dim].float()
             return self._denormalize_action(raw)

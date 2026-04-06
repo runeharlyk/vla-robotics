@@ -45,7 +45,7 @@ class SRPOConfig(BaseTrainingConfig):
     task_id: int = 0
     state_dim: int = 0
     num_rollout_envs: int = 1
-    num_eval_envs: int = 1
+    num_envs: int = 1
     fm_batch_size: int = 32
     gradient_checkpointing: bool = False
     use_failure_rewards: bool = True

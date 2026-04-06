@@ -31,6 +31,12 @@ def main(
     max_steps: int = typer.Option(None, "--max-steps", help="Override max steps (default: from metadata)"),
     seed: int = typer.Option(0, "--seed"),
     num_envs: int = typer.Option(4, "--num-envs"),
+    task_id: int | None = typer.Option(None, "--task-id", help="Optional LIBERO task id override"),
+    fixed_noise_seed: int | None = typer.Option(
+        None,
+        "--fixed-noise-seed",
+        help="Use deterministic seeded evaluation noise instead of fresh sampling",
+    ),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
     control_mode: str = typer.Option(None, "--control-mode", help="Override control mode (default: from checkpoint)"),
 ) -> None:
@@ -79,10 +85,12 @@ def main(
         env_id=resolved_env_id,
         num_episodes=num_episodes,
         num_envs=num_envs,
+        task_id=task_id,
         max_steps=resolved_max_steps,
         seed=seed,
         control_mode=resolved_control_mode,
         suite=suite,
+        fixed_noise_seed=fixed_noise_seed,
     )
     print_metrics(metrics, tag=str(checkpoint_dir))
 

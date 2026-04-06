@@ -99,6 +99,7 @@ def evaluate(
     num_episodes: int = 100,
     seed: int = 0,
     device: torch.device | str = "cpu",
+    noise_reset_fn: Callable[[int], None] | None = None,
 ) -> EvalMetrics:
     """Evaluate a policy across all tasks exposed by *env_factory*.
 
@@ -126,7 +127,10 @@ def evaluate(
         max_steps = env.max_episode_steps
 
         for ep in range(num_episodes):
-            raw_obs, info = env.reset(seed=seed + task_id * num_episodes + ep)
+            ep_seed = seed + task_id * num_episodes + ep
+            if noise_reset_fn is not None:
+                noise_reset_fn(ep_seed)
+            raw_obs, info = env.reset(seed=ep_seed)
             ep_reward = 0.0
             ep_len = 0
             success = False
@@ -166,17 +170,20 @@ def evaluate(
 def _evaluate_libero_vectorized(
     policy,
     suite: str,
-    task_id: int,
+    task_id: int | None,
     num_episodes: int,
     num_envs: int,
     seed: int,
     state_dim: int,
     image_size: int = 256,
     max_steps: int = 280,
+    fixed_noise_seed: int | None = None,
 ) -> EvalMetrics:
     from vla.rl.libero_rollout import LiberoRollout
 
-    resolved_task_id = task_id if task_id is not None else 0
+    env_factory = make_env_factory("libero", suite=suite, state_dim=state_dim, task_id=task_id)
+    task_ids = [task_id] if task_id is not None else list(range(env_factory.num_tasks))
+    resolved_task_id = task_ids[0]
     rollout = LiberoRollout(
         suite_name=suite,
         task_id=resolved_task_id,
@@ -186,8 +193,6 @@ def _evaluate_libero_vectorized(
         state_dim=state_dim,
     )
 
-    instruction = rollout.task_description
-
     def _batch_fn(images: torch.Tensor, instr: str, states: torch.Tensor) -> torch.Tensor:
         return policy.predict_action_batch(images, instr, states)
 
@@ -195,17 +200,28 @@ def _evaluate_libero_vectorized(
         return policy.predict_action(image, instr, state)
 
     try:
-        trajectories = rollout.collect_batch(
-            policy_fn=_single_fn,
-            instruction=instruction,
-            num_trajectories=num_episodes,
-            seed=seed,
-            policy_batch_fn=_batch_fn,
-        )
+        trajectories: list[Trajectory] = []
+        for idx, current_task_id in enumerate(task_ids):
+            if idx > 0:
+                rollout.reconfigure(suite, current_task_id)
+            if fixed_noise_seed is not None and hasattr(policy, "reset_eval_noise"):
+                policy.reset_eval_noise(fixed_noise_seed + current_task_id * num_episodes)
+            instruction = rollout.task_description
+            task_seed = seed + current_task_id * num_episodes
+            trajectories.extend(
+                rollout.collect_batch(
+                    policy_fn=_single_fn,
+                    instruction=instruction,
+                    num_trajectories=num_episodes,
+                    seed=task_seed,
+                    policy_batch_fn=_batch_fn,
+                )
+            )
     finally:
         rollout.close()
 
-    return metrics_from_trajectories(trajectories, num_episodes)
+    expected_episodes = num_episodes * len(task_ids)
+    return metrics_from_trajectories(trajectories, expected_episodes)
 
 
 def evaluate_smolvla(
@@ -221,6 +237,7 @@ def evaluate_smolvla(
     image_size: int = 256,
     task_id: int | None = None,
     num_envs: int = 1,
+    fixed_noise_seed: int | None = None,
 ) -> EvalMetrics:
     """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
 
@@ -230,9 +247,12 @@ def evaluate_smolvla(
     """
     sim = simulator.lower()
 
-    if sim == "libero" and num_envs > 1 and task_id is not None:
+    if hasattr(policy, "set_eval_fixed_noise"):
+        policy.set_eval_fixed_noise(fixed_noise_seed)
+
+    if sim == "libero" and num_envs > 1:
         logger.info(
-            "Vectorized LIBERO eval: %d envs, %d episodes, task_id=%d",
+            "Vectorized LIBERO eval: %d envs, %d episodes, task_id=%s",
             num_envs,
             num_episodes,
             task_id,
@@ -247,6 +267,7 @@ def evaluate_smolvla(
             state_dim=policy.state_dim,
             image_size=image_size,
             max_steps=max_steps,
+            fixed_noise_seed=fixed_noise_seed,
         )
 
     factory_kwargs: dict = {}
@@ -289,7 +310,19 @@ def evaluate_smolvla(
             task = task[0]
         return policy.predict_action(image, task, state)
 
-    return evaluate(_policy_fn, env_factory, num_episodes=num_episodes, seed=seed, device=device)
+    def _noise_reset(ep_seed: int) -> None:
+        if fixed_noise_seed is None or not hasattr(policy, "reset_eval_noise"):
+            return
+        policy.reset_eval_noise(fixed_noise_seed + ep_seed)
+
+    return evaluate(
+        _policy_fn,
+        env_factory,
+        num_episodes=num_episodes,
+        seed=seed,
+        device=device,
+        noise_reset_fn=_noise_reset if fixed_noise_seed is not None else None,
+    )
 
 
 def print_metrics(metrics: EvalMetrics, tag: str = "") -> None:

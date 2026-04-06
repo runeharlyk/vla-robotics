@@ -224,8 +224,8 @@ def main(
     num_rollout_envs: int = typer.Option(
         1, "--num-rollout-envs", help="Parallel envs per task for vectorised rollouts"
     ),
-    num_eval_envs: int = typer.Option(
-        0, "--num-eval-envs", help="Parallel envs for vectorised eval (0 = same as num-rollout-envs)"
+    num_envs: int = typer.Option(
+        0, "--num-envs", help="Parallel envs for vectorised eval (0 = same as num-rollout-envs)"
     ),
     fm_batch_size: int = typer.Option(32, "--fm-batch-size", help="Timesteps per FM forward pass"),
     lr: float = typer.Option(1e-5, "--lr"),
@@ -336,7 +336,7 @@ def main(
     device = get_device()
 
     resolved_max_steps = max_steps or 280
-    resolved_eval_envs = num_eval_envs if num_eval_envs > 0 else num_rollout_envs
+    resolved_eval_envs = num_envs if num_envs > 0 else num_rollout_envs
     resolved_task_ids = _parse_task_ids(task_ids)
 
     include_demos_internal = (mode == Mode.SRPO) or include_demos_in_update
@@ -416,7 +416,7 @@ def main(
         task_id=task_specs[0].libero_task_idx,
         state_dim=resolved_state_dim,
         num_rollout_envs=num_rollout_envs,
-        num_eval_envs=resolved_eval_envs,
+        num_envs=resolved_eval_envs,
         fm_batch_size=fm_batch_size,
         gradient_checkpointing=gradient_checkpointing,
         fpo_full_chunk_target=fpo_full_chunk_target,
