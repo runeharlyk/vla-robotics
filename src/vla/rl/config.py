@@ -62,6 +62,10 @@ class SRPOConfig(BaseTrainingConfig):
     kl_adapt_factor: float = 1.5
     include_demos_in_update: bool = False
     success_replay_buffer_size: int = 0
+    success_replay_total_size: int = 0
+    success_replay_alpha: float = 1.0
+    success_replay_ema_decay: float = 0.8
+    success_replay_max_ratio: float = 1.0
 
 
 @dataclass

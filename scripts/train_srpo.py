@@ -305,6 +305,26 @@ def main(
     success_replay_buffer_size: int = typer.Option(
         0, "--success-replay-buffer-size", help="Replay successful trajectories from previous iterations."
     ),
+    success_replay_total_size: int = typer.Option(
+        0,
+        "--success-replay-total-size",
+        help="Global capacity for balanced success replay across tasks. Overrides --success-replay-buffer-size.",
+    ),
+    success_replay_alpha: float = typer.Option(
+        1.0,
+        "--success-replay-alpha",
+        help="Inverse-success weighting strength for balanced replay (0 disables balancing, 1 is linear inverse).",
+    ),
+    success_replay_ema_decay: float = typer.Option(
+        0.8,
+        "--success-replay-ema-decay",
+        help="EMA decay for per-task success-rate estimates used by balanced replay.",
+    ),
+    success_replay_max_ratio: float = typer.Option(
+        1.0,
+        "--success-replay-max-ratio",
+        help="Maximum replayed trajectories per iteration as a multiple of fresh rollout trajectories.",
+    ),
 ) -> None:
     import wandb
     from vla.models.smolvla import SmolVLAPolicy
@@ -411,6 +431,10 @@ def main(
         kl_adapt_factor=kl_adapt_factor,
         include_demos_in_update=include_demos_in_update,
         success_replay_buffer_size=success_replay_buffer_size,
+        success_replay_total_size=success_replay_total_size,
+        success_replay_alpha=success_replay_alpha,
+        success_replay_ema_decay=success_replay_ema_decay,
+        success_replay_max_ratio=success_replay_max_ratio,
     )
 
     logger.info(
