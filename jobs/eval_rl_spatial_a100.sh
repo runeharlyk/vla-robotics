@@ -27,4 +27,5 @@ uv run python scripts/evaluate.py \
   --num-episodes 100 \
   --max-steps 220 \
   --seed 42 \
-  --num-envs 8
+  --num-envs 8 \
+  --fixed-noise-seed 42
