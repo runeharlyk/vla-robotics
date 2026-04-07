@@ -88,17 +88,36 @@ def main(
     resolved_env_id = env_id or env_meta.env_id
     resolved_instruction = instruction or env_meta.instruction
     resolved_control_mode = control_mode or env_meta.control_mode
+
+    # If evaluating a base checkpoint (no checkpoint_dir), provide better defaults for LIBERO
+    if checkpoint_dir is None:
+        if simulator == "libero":
+            resolved_env_id = env_id or f"libero_{suite}"
+            resolved_instruction = instruction or "follow the task instruction"
+            resolved_control_mode = control_mode or "relative"
+        elif simulator == "maniskill":
+            resolved_env_id = env_id or "PickCube-v1"
+            resolved_instruction = instruction or "pick up the cube"
+            resolved_control_mode = control_mode or "pd_joint_delta_pos"
+
     resolved_max_steps = max_steps or 200
 
-    logging.info(
-        "Evaluating: simulator=%s  env_id=%s  instruction=%r  control_mode=%s  max_steps=%d  suite=%s",
-        simulator,
-        resolved_env_id,
-        resolved_instruction,
-        resolved_control_mode,
-        resolved_max_steps,
-        suite,
-    )
+    # Build a concise log message with only relevant information
+    log_bits = [f"simulator={simulator}"]
+    if simulator == "libero":
+        log_bits.append(f"suite={suite}")
+        if task_id is not None:
+            log_bits.append(f"task_id={task_id}")
+    else:
+        log_bits.append(f"env_id={resolved_env_id}")
+
+    log_bits.append(f"control_mode={resolved_control_mode}")
+    log_bits.append(f"max_steps={resolved_max_steps}")
+
+    if instruction:  # Only log instruction if it was explicitly provided via CLI
+        log_bits.append(f"instruction={instruction!r}")
+
+    logging.info("Evaluating: %s", "  ".join(log_bits))
 
     metrics = evaluate_smolvla(
         policy,
