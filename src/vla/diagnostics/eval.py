@@ -301,14 +301,18 @@ def evaluate_smolvla(
             if img.ndim == 2:
                 img = img.unsqueeze(0)
             cam_views.append(img)
-        image = torch.stack(cam_views, dim=0) if len(cam_views) > 1 else cam_views[0]
+        # Keep a batch dimension so multi-view LIBERO observations remain
+        # multi-view all the way into ``predict_action_batch``.
+        image = torch.stack(cam_views, dim=0).unsqueeze(0) if len(cam_views) > 1 else cam_views[0].unsqueeze(0)
         state = batch.get("observation.state")
         if state is not None and state.ndim == 2:
             state = state[0]
+        if state is not None:
+            state = state.unsqueeze(0)
         task = batch.get("task", instruction)
         if isinstance(task, (list, tuple)):
             task = task[0]
-        return policy.predict_action(image, task, state)
+        return policy.predict_action_batch(image, task, state)[0]
 
     def _noise_reset(ep_seed: int) -> None:
         if fixed_noise_seed is None or not hasattr(policy, "reset_eval_noise"):

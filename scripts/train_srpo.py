@@ -124,6 +124,14 @@ def _build_tasks(
 
         task_specs: list[TaskSpec] = []
         for tidx, task_instruction in task_map.items():
+            if task_ids is not None:
+                # LiberoSFTDataset.instruction is a suite-level default and
+                # may point at the first task; use the per-task lookup here.
+                task_instruction = (
+                    first_ds._task_map.get(tidx, task_instruction)
+                    if hasattr(first_ds, "_task_map")
+                    else task_instruction
+                )
             task_key = f"{suite}_task_{tidx}"
             task_specs.append(
                 TaskSpec(
