@@ -20,7 +20,7 @@ mkdir -p "$LIBERO_PATH"
 printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
 
 uv run python scripts/evaluate.py \
-  --checkpoint-dir /work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_2_seed42_28117746/best \
+  --checkpoint-dir /work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_2_seed42_28123898/best \
   --checkpoint HuggingFaceVLA/smolvla_libero \
   --simulator libero \
   --suite spatial \

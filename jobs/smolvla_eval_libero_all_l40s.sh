@@ -3,8 +3,8 @@
 # ---------------- LSF directives ----------------
 #BSUB -J smolvla_eval_libero_all_l40s
 #BSUB -q gpul40s
-#BSUB -W 6:00
-#BSUB -n 8
+#BSUB -W 12:00
+#BSUB -n 12
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=4GB]"
 #BSUB -gpu "num=1:mode=exclusive_process"
@@ -22,7 +22,7 @@ printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero;
 uv run lerobot-eval \
   --policy.path=HuggingFaceVLA/smolvla_libero \
   --env.type=libero \
-  --env.task=libero_spatial \
+  --env.task=libero_object \
   --env.control_mode=relative \
   --eval.batch_size=8 \
   --eval.n_episodes=100 \

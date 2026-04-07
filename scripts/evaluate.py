@@ -100,7 +100,7 @@ def main(
             resolved_instruction = instruction or "pick up the cube"
             resolved_control_mode = control_mode or "pd_joint_delta_pos"
 
-    resolved_max_steps = max_steps or 200
+    resolved_max_steps = max_steps or 220
 
     # Build a concise log message with only relevant information
     log_bits = [f"simulator={simulator}"]

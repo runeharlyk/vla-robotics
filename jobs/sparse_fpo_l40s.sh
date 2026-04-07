@@ -23,7 +23,7 @@ uv run python scripts/train_srpo.py \
   --simulator libero \
   --suite spatial \
   --libero-suite spatial \
-  --task-ids 1,2,3,4,5 \
+  --task-ids 5 \
   --mode sparse_rl \
   --update-method fpo \
   --advantage-mode leave_one_out \
@@ -46,7 +46,7 @@ uv run python scripts/train_srpo.py \
   --eval-episodes 100 \
   --max-steps 220 \
   --include-demos-in-update \
-  --success-replay-total-size 160 \
+  --success-replay-total-size 64 \
   --success-replay-alpha 1.0 \
   --success-replay-ema-decay 0.8 \
   --success-replay-max-ratio 0.5 \

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 _PROC = LiberoProcessorStep()
 
-LIBERO_CAMERAS = "agentview,robot0_eye_in_hand"
+LIBERO_CAMERAS = "agentview_image,robot0_eye_in_hand_image"
 
 
 class LiberoEnv(SimEnv):

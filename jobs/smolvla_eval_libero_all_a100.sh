@@ -3,7 +3,7 @@
 # ---------------- LSF directives ----------------
 #BSUB -J smolvla_eval_libero_all_a100
 #BSUB -q gpua100
-#BSUB -W 6:00
+#BSUB -W 16:00
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=4GB]"

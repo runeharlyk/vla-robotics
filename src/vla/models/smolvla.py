@@ -130,6 +130,7 @@ class SmolVLAPolicy(nn.Module):
         (e.g. for local-only checkpoints).
         """
         files_to_try = [
+            "policy_postprocessor_step_0_unnormalizer_processor.safetensors",
             "policy_postprocessor_step_1_unnormalizer_processor.safetensors",
             "policy_preprocessor_step_5_normalizer_processor.safetensors",
         ]
@@ -846,9 +847,9 @@ class SmolVLAPolicy(nn.Module):
     def _save_lerobot_format(self, path: Path) -> None:
         """Write LeRobot-compatible checkpoint files alongside ``policy.pt``.
 
-        Emits ``config.json``, ``model.safetensors``, and the normalizer
-        safetensors so that ``lerobot-eval --policy.path=<path>`` works
-        out of the box.
+        Emits ``config.json``, ``model.safetensors``, the processor JSON
+        pipeline configs, and the normalizer safetensors so that
+        ``lerobot-eval --policy.path=<path>`` works out of the box.
         """
         config = dict(self.ckpt_config)
         config["output_features"] = {
@@ -881,8 +882,67 @@ class SmolVLAPolicy(nn.Module):
             "observation.state.mean": self.state_mean.detach().cpu().float(),
             "observation.state.std": self.state_std.detach().cpu().float(),
         }
-        save_safetensors(norm_stats, path / "policy_postprocessor_step_1_unnormalizer_processor.safetensors")
+        save_safetensors(norm_stats, path / "policy_postprocessor_step_0_unnormalizer_processor.safetensors")
         save_safetensors(norm_stats, path / "policy_preprocessor_step_5_normalizer_processor.safetensors")
+
+        default_norm_map = {"VISUAL": "IDENTITY", "STATE": "MEAN_STD", "ACTION": "MEAN_STD"}
+        norm_map = config.get("normalization_mapping", default_norm_map)
+        vlm_name = config.get("vlm_model_name", "HuggingFaceTB/SmolVLM2-500M-Video-Instruct")
+        tok_max = config.get("tokenizer_max_length", 48)
+
+        all_features = dict(input_feats)
+        all_features["action"] = {"type": "ACTION", "shape": [self.action_dim]}
+
+        preprocessor = {
+            "name": "policy_preprocessor",
+            "steps": [
+                {"registry_name": "rename_observations_processor", "config": {"rename_map": {}}},
+                {"registry_name": "to_batch_processor", "config": {}},
+                {"registry_name": "smolvla_new_line_processor", "config": {}},
+                {
+                    "registry_name": "tokenizer_processor",
+                    "config": {
+                        "max_length": tok_max,
+                        "task_key": "task",
+                        "padding_side": "right",
+                        "padding": "max_length",
+                        "truncation": True,
+                        "tokenizer_name": vlm_name,
+                    },
+                },
+                {"registry_name": "device_processor", "config": {"device": "cuda", "float_dtype": None}},
+                {
+                    "registry_name": "normalizer_processor",
+                    "config": {
+                        "eps": 1e-8,
+                        "features": all_features,
+                        "norm_map": norm_map,
+                    },
+                    "state_file": "policy_preprocessor_step_5_normalizer_processor.safetensors",
+                },
+            ],
+        }
+        with open(path / "policy_preprocessor.json", "w") as f:
+            json.dump(preprocessor, f, indent=2)
+
+        postprocessor = {
+            "name": "policy_postprocessor",
+            "steps": [
+                {
+                    "registry_name": "unnormalizer_processor",
+                    "config": {
+                        "eps": 1e-8,
+                        "features": {"action": {"type": "ACTION", "shape": [self.action_dim]}},
+                        "norm_map": norm_map,
+                    },
+                    "state_file": "policy_postprocessor_step_0_unnormalizer_processor.safetensors",
+                },
+                {"registry_name": "device_processor", "config": {"device": "cpu", "float_dtype": None}},
+            ],
+        }
+        with open(path / "policy_postprocessor.json", "w") as f:
+            json.dump(postprocessor, f, indent=2)
+
         logger.info("Saved LeRobot-compatible checkpoint to %s", path)
 
     def load_checkpoint(self, path: str | Path) -> EnvMetadata:
