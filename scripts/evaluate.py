@@ -12,7 +12,9 @@ Usage:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import torch
 import typer
@@ -20,9 +22,40 @@ import typer
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.env_metadata import EnvMetadata
 from vla.models.smolvla import SmolVLAPolicy
+from vla.training.metrics_logger import MetricsLogger
 from vla.utils import get_device, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+
+def _build_eval_log_prefix(simulator: str, suite: str, task_payload: dict[str, Any]) -> str:
+    if simulator.lower() == "libero":
+        return f"eval/{suite}/task_{task_payload['task_id']}"
+    return f"eval/{simulator}/task_{task_payload['task_id']}"
+
+
+def _log_eval_metrics(
+    metrics_logger: MetricsLogger | None,
+    simulator: str,
+    suite: str,
+    task_payload: dict[str, Any],
+) -> None:
+    if metrics_logger is None:
+        return
+
+    prefix = _build_eval_log_prefix(simulator, suite, task_payload)
+    log_data = {
+        f"{prefix}/success_rate": task_payload["success_rate"],
+        f"{prefix}/successes": task_payload["successes"],
+        f"{prefix}/num_episodes": task_payload["num_episodes"],
+        f"{prefix}/mean_reward": task_payload["mean_reward"],
+        f"{prefix}/mean_episode_length": task_payload["mean_episode_length"],
+    }
+    if "task_index" in task_payload:
+        log_data["eval/progress/tasks_completed"] = int(task_payload["task_index"]) + 1
+    if "tasks_total" in task_payload:
+        log_data["eval/progress/tasks_total"] = task_payload["tasks_total"]
+    metrics_logger.log(log_data)
 
 
 def main(
@@ -41,6 +74,10 @@ def main(
         "--fixed-noise-seed",
         help="Use deterministic seeded evaluation noise instead of fresh sampling",
     ),
+    use_wandb: bool = typer.Option(False, "--wandb/--no-wandb", help="Log live eval metrics to Weights & Biases"),
+    wandb_project: str = typer.Option("vla-eval", "--wandb-project", help="W&B project name for evaluation runs"),
+    wandb_name: str | None = typer.Option(None, "--wandb-name", help="Optional W&B run name"),
+    wandb_entity: str | None = typer.Option(None, "--wandb-entity", help="Optional W&B entity/team"),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
     control_mode: str = typer.Option(None, "--control-mode", help="Override control mode (default: from checkpoint)"),
     action_dim: int = typer.Option(7, "--action-dim", help="Action dimension (used when no checkpoint-dir)"),
@@ -56,6 +93,8 @@ def main(
     ``env_id``, ``instruction``, and ``control_mode`` are loaded from the
     checkpoint's saved metadata unless explicitly overridden via CLI flags.
     """
+    wandb_run = None
+    metrics_logger: MetricsLogger | None = None
     seed_everything(seed)
     device = get_device()
 
@@ -119,21 +158,68 @@ def main(
 
     logging.info("Evaluating: %s", "  ".join(log_bits))
 
-    metrics = evaluate_smolvla(
-        policy,
-        instruction=resolved_instruction,
-        simulator=simulator,
-        env_id=resolved_env_id,
-        num_episodes=num_episodes,
-        num_envs=num_envs,
-        task_id=task_id,
-        max_steps=resolved_max_steps,
-        seed=seed,
-        control_mode=resolved_control_mode,
-        suite=suite,
-        fixed_noise_seed=fixed_noise_seed,
-    )
-    print_metrics(metrics, tag=tag)
+    if use_wandb:
+        import wandb
+
+        resolved_run_name = wandb_name or (
+            f"eval_{simulator}_{suite}_{checkpoint_dir.name if checkpoint_dir else checkpoint.split('/')[-1]}"
+        )
+        wandb_run = wandb.init(
+            project=wandb_project,
+            entity=wandb_entity,
+            name=resolved_run_name,
+            config={
+                "checkpoint": checkpoint,
+                "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else None,
+                "simulator": simulator,
+                "suite": suite,
+                "env_id": resolved_env_id,
+                "num_episodes": num_episodes,
+                "num_envs": num_envs,
+                "max_steps": resolved_max_steps,
+                "seed": seed,
+                "fixed_noise_seed": fixed_noise_seed,
+                "task_id": task_id,
+            },
+        )
+        metrics_logger = MetricsLogger(wandb_run=wandb_run)
+
+    task_callback: Callable[[int, dict[str, Any]], None] | None = None
+    if metrics_logger is not None:
+        task_callback = lambda _task_id, payload: _log_eval_metrics(metrics_logger, simulator, suite, payload)
+
+    try:
+        metrics = evaluate_smolvla(
+            policy,
+            instruction=resolved_instruction,
+            simulator=simulator,
+            env_id=resolved_env_id,
+            num_episodes=num_episodes,
+            num_envs=num_envs,
+            task_id=task_id,
+            max_steps=resolved_max_steps,
+            seed=seed,
+            control_mode=resolved_control_mode,
+            suite=suite,
+            fixed_noise_seed=fixed_noise_seed,
+            task_metrics_callback=task_callback,
+        )
+        print_metrics(metrics, tag=tag)
+        if metrics_logger is not None:
+            overall_prefix = f"eval/{suite}" if simulator.lower() == "libero" else f"eval/{simulator}"
+            metrics_logger.log(
+                {
+                    f"{overall_prefix}/overall/success_rate": metrics.success_rate,
+                    f"{overall_prefix}/overall/successes": metrics.successes,
+                    f"{overall_prefix}/overall/num_episodes": metrics.num_episodes,
+                    f"{overall_prefix}/overall/mean_reward": metrics.mean_reward,
+                    f"{overall_prefix}/overall/mean_episode_length": metrics.mean_episode_length,
+                    f"{overall_prefix}/overall/median_episode_length": metrics.median_episode_length,
+                }
+            )
+    finally:
+        if wandb_run is not None:
+            wandb_run.finish()
 
 
 if __name__ == "__main__":

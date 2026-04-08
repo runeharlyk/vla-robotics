@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import torch
@@ -100,6 +101,7 @@ def evaluate(
     seed: int = 0,
     device: torch.device | str = "cpu",
     noise_reset_fn: Callable[[int], None] | None = None,
+    task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
 ) -> EvalMetrics:
     """Evaluate a policy across all tasks exposed by *env_factory*.
 
@@ -124,7 +126,11 @@ def evaluate(
 
     for task_id in range(env_factory.num_tasks):
         env = env_factory(task_id)
+        task_desc = env.task_description
         max_steps = env.max_episode_steps
+        task_successes = 0
+        task_rewards: list[float] = []
+        task_lengths: list[int] = []
 
         for ep in range(num_episodes):
             ep_seed = seed + task_id * num_episodes + ep
@@ -153,8 +159,25 @@ def evaluate(
 
             if success:
                 total_successes += 1
+                task_successes += 1
             total_rewards.append(ep_reward)
             total_lengths.append(ep_len)
+            task_rewards.append(ep_reward)
+            task_lengths.append(ep_len)
+
+        if task_metrics_callback is not None:
+            task_metrics_callback(
+                task_id,
+                {
+                    "task_id": task_id,
+                    "task_description": task_desc,
+                    "num_episodes": num_episodes,
+                    "successes": task_successes,
+                    "success_rate": task_successes / max(num_episodes, 1),
+                    "mean_reward": sum(task_rewards) / max(len(task_rewards), 1),
+                    "mean_episode_length": sum(task_lengths) / max(len(task_lengths), 1),
+                },
+            )
 
         env.close()
 
@@ -178,6 +201,7 @@ def _evaluate_libero_vectorized(
     image_size: int = 256,
     max_steps: int = 280,
     fixed_noise_seed: int | None = None,
+    task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
 ) -> EvalMetrics:
     from vla.rl.libero_rollout import LiberoRollout
 
@@ -244,6 +268,21 @@ def _evaluate_libero_vectorized(
                 task_successes,
                 num_episodes,
             )
+            if task_metrics_callback is not None:
+                task_metrics_callback(
+                    current_task_id,
+                    {
+                        "task_id": current_task_id,
+                        "task_description": instruction,
+                        "task_index": idx,
+                        "tasks_total": len(task_ids),
+                        "num_episodes": num_episodes,
+                        "successes": task_successes,
+                        "success_rate": task_successes / max(num_episodes, 1),
+                        "mean_reward": sum(task_rewards) / max(len(task_rewards), 1),
+                        "mean_episode_length": sum(task_lengths) / max(len(task_lengths), 1),
+                    },
+                )
     finally:
         rollout.close()
 
@@ -265,6 +304,7 @@ def evaluate_smolvla(
     task_id: int | None = None,
     num_envs: int = 1,
     fixed_noise_seed: int | None = None,
+    task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
 ) -> EvalMetrics:
     """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
 
@@ -295,6 +335,7 @@ def evaluate_smolvla(
             image_size=image_size,
             max_steps=max_steps,
             fixed_noise_seed=fixed_noise_seed,
+            task_metrics_callback=task_metrics_callback,
         )
 
     factory_kwargs: dict = {}
@@ -353,6 +394,7 @@ def evaluate_smolvla(
         seed=seed,
         device=device,
         noise_reset_fn=_noise_reset if fixed_noise_seed is not None else None,
+        task_metrics_callback=task_metrics_callback,
     )
 
 

@@ -16,6 +16,8 @@
 . jobs/_env.sh
 
 export LIBERO_PATH=/work3/s234814/libero
+WANDB_PROJECT="${WANDB_PROJECT:-vla-libero-eval}"
+WANDB_RUN_NAME="${WANDB_RUN_NAME:-eval_sft_spatial_l40s_${LSB_JOBID}}"
 mkdir -p "$LIBERO_PATH"
 printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
 
@@ -27,4 +29,7 @@ uv run python scripts/evaluate.py \
   --max-steps 220 \
   --seed 42 \
   --num-envs 8 \
-  --fixed-noise-seed 42
+  --fixed-noise-seed 42 \
+  --wandb \
+  --wandb-project "$WANDB_PROJECT" \
+  --wandb-name "$WANDB_RUN_NAME"
