@@ -200,7 +200,9 @@ def _evaluate_libero_vectorized(
         return policy.predict_action(image, instr, state)
 
     try:
-        trajectories: list[Trajectory] = []
+        total_successes = 0
+        total_rewards: list[float] = []
+        total_lengths: list[int] = []
         for idx, current_task_id in enumerate(task_ids):
             if idx > 0:
                 rollout.reconfigure(suite, current_task_id)
@@ -208,20 +210,45 @@ def _evaluate_libero_vectorized(
                 policy.reset_eval_noise(fixed_noise_seed + current_task_id * num_episodes)
             instruction = rollout.task_description
             task_seed = seed + current_task_id * num_episodes
-            trajectories.extend(
-                rollout.collect_batch(
+            logger.info(
+                "Starting LIBERO eval task %d/%d (task_id=%d, seed=%d)",
+                idx + 1,
+                len(task_ids),
+                current_task_id,
+                task_seed,
+            )
+            try:
+                task_trajectories = rollout.collect_batch(
                     policy_fn=_single_fn,
                     instruction=instruction,
                     num_trajectories=num_episodes,
                     seed=task_seed,
                     policy_batch_fn=_batch_fn,
                 )
+            except Exception:
+                logger.exception("LIBERO eval failed on task_id=%d", current_task_id)
+                raise
+
+            task_successes = sum(1 for t in task_trajectories if t.success)
+            task_rewards = [float(t.rewards.sum()) for t in task_trajectories]
+            task_lengths = [t.length for t in task_trajectories]
+            total_successes += task_successes
+            total_rewards.extend(task_rewards)
+            total_lengths.extend(task_lengths)
+            logger.info(
+                "Finished LIBERO eval task %d/%d (task_id=%d): %.2f%% success (%d/%d)",
+                idx + 1,
+                len(task_ids),
+                current_task_id,
+                100.0 * task_successes / max(num_episodes, 1),
+                task_successes,
+                num_episodes,
             )
     finally:
         rollout.close()
 
     expected_episodes = num_episodes * len(task_ids)
-    return metrics_from_trajectories(trajectories, expected_episodes)
+    return _compute_eval_metrics(total_successes, total_rewards, total_lengths, expected_episodes)
 
 
 def evaluate_smolvla(
