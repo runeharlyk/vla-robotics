@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
-#BSUB -J fpo_t5_clean_srpo_l40s
-#BSUB -q gpul40s
+#BSUB -J fpo_t5_clean_srpo_a100
+#BSUB -q gpua100
 #BSUB -W 24:00
 #BSUB -n 16
 #BSUB -R "span[hosts=1]"
@@ -11,7 +11,7 @@
 #BSUB -u s234814@dtu.dk
 #BSUB -B
 #BSUB -N
-#BSUB -oo logs/srpo_fpo_l40s/%J.out
+#BSUB -oo logs/srpo_fpo_a100/%J.out
 # -------------------------------------------------
 . jobs/_env.sh
 

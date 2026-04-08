@@ -45,11 +45,10 @@ uv run python scripts/train_srpo.py \
   --eval-every 25 \
   --eval-episodes 100 \
   --max-steps 220 \
-  --include-demos-in-update \
   --success-replay-total-size 64 \
   --success-replay-alpha 1.0 \
   --success-replay-ema-decay 0.8 \
   --success-replay-max-ratio 0.5 \
   --gradient-checkpointing \
-  --wandb-name "v17-t-5" \
+  --wandb-name "v22-t5-replay-only" \
   --wandb
