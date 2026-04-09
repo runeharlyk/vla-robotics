@@ -22,6 +22,18 @@ import typer
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.env_metadata import EnvMetadata
 from vla.models.smolvla import SmolVLAPolicy
+from vla.results_registry import (
+    RESULTS_DIR,
+    find_training_metadata,
+    flatten_task_metrics,
+    get_git_info,
+    get_scheduler_info,
+    load_json_if_exists,
+    now_iso,
+    sanitize_name,
+    write_eval_registry,
+    write_json,
+)
 from vla.training.metrics_logger import MetricsLogger
 from vla.utils import get_device, seed_everything
 
@@ -56,6 +68,19 @@ def _log_eval_metrics(
     if "tasks_total" in task_payload:
         log_data["eval/progress/tasks_total"] = task_payload["tasks_total"]
     metrics_logger.log(log_data)
+
+
+def _default_eval_name(
+    simulator: str,
+    suite: str,
+    checkpoint_dir: Path | None,
+    checkpoint: str,
+    wandb_name: str | None,
+) -> str:
+    if wandb_name:
+        return wandb_name
+    checkpoint_tag = checkpoint_dir.name if checkpoint_dir else checkpoint.split("/")[-1]
+    return f"eval_{simulator}_{suite}_{checkpoint_tag}"
 
 
 def main(
@@ -95,6 +120,7 @@ def main(
     """
     wandb_run = None
     metrics_logger: MetricsLogger | None = None
+    task_payloads: list[dict[str, Any]] = []
     seed_everything(seed)
     device = get_device()
 
@@ -158,12 +184,11 @@ def main(
 
     logging.info("Evaluating: %s", "  ".join(log_bits))
 
+    resolved_run_name = _default_eval_name(simulator, suite, checkpoint_dir, checkpoint, wandb_name)
+
     if use_wandb:
         import wandb
 
-        resolved_run_name = wandb_name or (
-            f"eval_{simulator}_{suite}_{checkpoint_dir.name if checkpoint_dir else checkpoint.split('/')[-1]}"
-        )
         wandb_run = wandb.init(
             project=wandb_project,
             entity=wandb_entity,
@@ -186,7 +211,12 @@ def main(
 
     task_callback: Callable[[int, dict[str, Any]], None] | None = None
     if metrics_logger is not None:
-        task_callback = lambda _task_id, payload: _log_eval_metrics(metrics_logger, simulator, suite, payload)
+        task_callback = lambda _task_id, payload: (
+            task_payloads.append(dict(payload)),
+            _log_eval_metrics(metrics_logger, simulator, suite, payload),
+        )
+    else:
+        task_callback = lambda _task_id, payload: task_payloads.append(dict(payload))
 
     try:
         metrics = evaluate_smolvla(
@@ -217,6 +247,52 @@ def main(
                     f"{overall_prefix}/overall/median_episode_length": metrics.median_episode_length,
                 }
             )
+
+        training_metadata_path = find_training_metadata(checkpoint_dir)
+        training_metadata = load_json_if_exists(training_metadata_path)
+        eval_record = {
+            "record_type": "evaluation",
+            "recorded_at": now_iso(),
+            "eval_name": resolved_run_name,
+            "checkpoint": checkpoint,
+            "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else "",
+            "tag": tag,
+            "simulator": simulator,
+            "suite": suite,
+            "env_id": resolved_env_id,
+            "instruction": resolved_instruction,
+            "control_mode": resolved_control_mode,
+            "num_episodes": num_episodes,
+            "num_envs": num_envs,
+            "max_steps": resolved_max_steps,
+            "seed": seed,
+            "fixed_noise_seed": fixed_noise_seed,
+            "task_id": task_id,
+            "wandb_run_name": resolved_run_name if use_wandb else "",
+            "success_rate": metrics.success_rate,
+            "successes": metrics.successes,
+            "mean_reward": metrics.mean_reward,
+            "mean_episode_length": metrics.mean_episode_length,
+            "median_episode_length": metrics.median_episode_length,
+            "task_metrics": task_payloads,
+            "training_metadata_path": str(training_metadata_path) if training_metadata_path else "",
+            "training_method": (training_metadata or {}).get("method", ""),
+            "training_save_dir": (training_metadata or {}).get("save_dir", ""),
+            "training_git_commit": (training_metadata or {}).get("git_commit", ""),
+            **get_git_info(),
+            **get_scheduler_info(),
+        }
+        eval_slug = sanitize_name(resolved_run_name)
+        eval_json_path = RESULTS_DIR / "evals" / f"{eval_slug}.json"
+        write_json(eval_json_path, eval_record)
+        eval_registry_row = {
+            k: v
+            for k, v in eval_record.items()
+            if k not in {"task_metrics", "instruction"}
+        }
+        eval_registry_row["result_json"] = str(eval_json_path)
+        eval_registry_row.update(flatten_task_metrics(task_payloads))
+        write_eval_registry(eval_registry_row)
     finally:
         if wandb_run is not None:
             wandb_run.finish()

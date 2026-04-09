@@ -15,6 +15,7 @@ CHECKPOINTS_DIR = WORK_DIR / "checkpoints"
 MODELS_DIR = WORK_DIR / "models"
 VIDEOS_DIR = WORK_DIR / "videos"
 OUTPUTS_DIR = WORK_DIR / "outputs"
+RESULTS_DIR = WORK_DIR / "results"
 
 ACTION_DIM = 7
 

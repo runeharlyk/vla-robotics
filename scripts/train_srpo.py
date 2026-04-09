@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from pathlib import Path
 
 import typer
@@ -42,6 +43,14 @@ from vla.constants import (
 )
 from vla.rl.config import SRPOConfig, TaskSpec
 from vla.rl.rollout import Trajectory
+from vla.results_registry import (
+    get_git_info,
+    get_scheduler_info,
+    now_iso,
+    summarize_metrics_jsonl,
+    write_json,
+    write_training_registry,
+)
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -464,6 +473,7 @@ def main(
         )
 
     run = None
+    final_name: str | None = None
     if use_wandb:
         wb_config = config.to_dict()
         wb_config.update(
@@ -482,8 +492,41 @@ def main(
             config=wb_config,
         )
 
+    save_dir_path = Path(config.save_dir)
+    metrics_jsonl_path = save_dir_path / "metrics.jsonl"
+    training_record = {
+        "record_type": "training",
+        "recorded_at": now_iso(),
+        "completed_at": None,
+        "method": str(mode),
+        "update_method": str(update_method),
+        "save_dir": str(save_dir_path),
+        "best_checkpoint_dir": str(save_dir_path / "best"),
+        "last_checkpoint_dir": str(save_dir_path / "last"),
+        "checkpoint": checkpoint,
+        "sft_checkpoint": str(sft_checkpoint) if sft_checkpoint is not None else "",
+        "simulator": str(simulator),
+        "suite": str(suite),
+        "seed": seed,
+        "num_tasks": len(task_specs),
+        "task_ids": [spec.task_id for spec in task_specs],
+        "libero_task_indices": [spec.libero_task_idx for spec in task_specs],
+        "task_instructions": {spec.task_id: spec.instruction for spec in task_specs},
+        "wandb_run_name": final_name or "",
+        "demo_seeding": demo_seeding,
+        "include_demos_in_update": include_demos_in_update,
+        "success_replay_total_size": success_replay_total_size,
+        "trajs_per_task_per_iter": trajs_per_task,
+        "config": config.to_dict(),
+        "task_specs": [asdict(spec) for spec in task_specs],
+        "metrics_jsonl": str(metrics_jsonl_path),
+        **get_git_info(),
+        **get_scheduler_info(),
+    }
+    write_json(save_dir_path / "training_run.json", training_record)
+
     ml = MetricsLogger(
-        jsonl_path=Path(config.save_dir) / "metrics.jsonl",
+        jsonl_path=metrics_jsonl_path,
         wandb_run=run,
     )
 
@@ -495,6 +538,16 @@ def main(
         metrics_logger=ml,
         trajs_per_task_per_iter=trajs_per_task,
     )
+
+    training_record["completed_at"] = now_iso()
+    training_record.update(
+        summarize_metrics_jsonl(
+            metrics_jsonl_path,
+            eval_key_suffixes=[f"{mode}/eval/success_rate"],
+        )
+    )
+    write_json(save_dir_path / "training_run.json", training_record)
+    write_training_registry(training_record)
 
     if run is not None:
         run.finish()
