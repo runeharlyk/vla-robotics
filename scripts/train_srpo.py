@@ -362,6 +362,7 @@ def main(
     resolved_task_ids = _parse_task_ids(task_ids)
 
     include_demos_internal = (mode == Mode.SRPO) or include_demos_in_update
+    demo_seeding = include_demos_internal
 
     task_specs, demo_trajectories, resolved_state_dim, resolved_action_dim = _build_tasks(
         data_path=data_path,
