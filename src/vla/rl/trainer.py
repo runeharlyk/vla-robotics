@@ -65,6 +65,20 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
+# Reference-policy helpers
+# ---------------------------------------------------------------------------
+
+
+def _freeze_policy_copy(policy: SmolVLAPolicy) -> SmolVLAPolicy:
+    """Return an eval-only, non-trainable copy of a policy."""
+    frozen = copy.deepcopy(policy)
+    frozen.eval()
+    for p in frozen.parameters():
+        p.requires_grad_(False)
+    return frozen
+
+
+# ---------------------------------------------------------------------------
 # Config logging
 # ---------------------------------------------------------------------------
 
@@ -115,6 +129,7 @@ def log_training_config(
     lines.append(f"    clip_epsilon:        {config.clip_epsilon}")
     lines.append(f"    clip_epsilon_high:   {config.clip_epsilon_high}")
     lines.append(f"    kl_coeff:            {config.kl_coeff}")
+    lines.append(f"    sft_kl_coeff:        {config.sft_kl_coeff}")
     lines.append(f"    adaptive_kl:         {config.adaptive_kl}")
     if config.adaptive_kl:
         lines.append(f"    kl_target:           {config.kl_target}")
@@ -573,10 +588,11 @@ def train_srpo(
     # losses as the KL anchor.
     ref_policy: SmolVLAPolicy | None = None
     if config.update_method is not UpdateMethod.FPO or getattr(config, "fpo_use_ref_policy_kl", False):
-        ref_policy = copy.deepcopy(policy)
-        ref_policy.eval()
-        for p in ref_policy.parameters():
-            p.requires_grad_(False)
+        ref_policy = _freeze_policy_copy(policy)
+
+    sft_policy: SmolVLAPolicy | None = None
+    if config.sft_kl_coeff > 0:
+        sft_policy = _freeze_policy_copy(policy)
 
     # -- Per-task rollout engines -----------------------------------------
     if rollout_engines is None:
@@ -835,6 +851,7 @@ def train_srpo(
             update_metrics = awr_update(
                 policy,
                 ref_policy,
+                sft_policy,
                 optimizer,
                 trainable,
                 update_trajs,
@@ -856,12 +873,14 @@ def train_srpo(
                 update_time,
                 config,
                 ref_policy=ref_policy,
+                sft_policy=sft_policy,
             )
         elif config.update_method is UpdateMethod.PPO:
             assert ref_policy is not None
             update_metrics = ppo_update(
                 policy,
                 ref_policy,
+                sft_policy,
                 optimizer,
                 trainable,
                 update_trajs,
@@ -903,7 +922,9 @@ def train_srpo(
             raise ValueError(f"Unknown update_method: {config.update_method}")
         log_data = {
             f"{config.mode}/{loss_key}": update_metrics.avg_loss,
-            f"{config.mode}/kl_penalty": update_metrics.avg_kl,
+            f"{config.mode}/kl_penalty": update_metrics.avg_kl + update_metrics.avg_sft_kl,
+            f"{config.mode}/step_kl_penalty": update_metrics.avg_kl,
+            f"{config.mode}/sft_kl_penalty": update_metrics.avg_sft_kl,
             f"{config.mode}/total_successes": total_successes,
             f"{config.mode}/rollout_successes": total_rollout_successes,
             f"{config.mode}/replay_successes": sum(replay_counts.values()),
@@ -915,10 +936,13 @@ def train_srpo(
             log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
         elif config.update_method == UpdateMethod.FPO:
             log_data[f"{config.mode}/clip_frac"] = update_metrics.avg_weight
+            log_data[f"{config.mode}/mean_shift"] = update_metrics.avg_shift
             log_data[f"{config.mode}/raw_kl"] = update_metrics.raw_kl
+            log_data[f"{config.mode}/raw_sft_kl"] = update_metrics.raw_sft_kl
             log_data[f"{config.mode}/mean_ratio"] = update_metrics.mean_ratio
             log_data[f"{config.mode}/max_log_ratio"] = update_metrics.max_log_ratio
             log_data[f"{config.mode}/kl_coeff"] = config.kl_coeff
+            log_data[f"{config.mode}/sft_kl_coeff"] = config.sft_kl_coeff
 
         for tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{tid}/successes"] = n_succ
@@ -936,12 +960,17 @@ def train_srpo(
         if config.update_method is UpdateMethod.FPO:
             ratio_info = (
                 f"  raw_kl={update_metrics.raw_kl:.6f}"
+                f"  raw_sft_kl={update_metrics.raw_sft_kl:.6f}"
+                f"  shift={update_metrics.avg_shift:.6f}"
                 f"  mean_r={update_metrics.mean_ratio:.4f}"
                 f"  max_lr={update_metrics.max_log_ratio:.4f}"
                 f"  kl_c={config.kl_coeff:.6f}"
+                f"  sft_kl_c={config.sft_kl_coeff:.6f}"
             )
         logger.info(
-            f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}  kl={update_metrics.avg_kl:.6f}"
+            f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}"
+            f"  step_kl={update_metrics.avg_kl:.6f}"
+            f"  sft_kl={update_metrics.avg_sft_kl:.6f}"
             f"  successes={total_successes}/{M}{ratio_info}"
         )
         for tid in per_task_successes:

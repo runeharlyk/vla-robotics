@@ -32,6 +32,7 @@ class SRPOConfig(BaseTrainingConfig):
     awr_temperature: float = 5.0
     awr_weight_clip: float = 20.0
     kl_coeff: float = 0.01
+    sft_kl_coeff: float = 0.0
     save_dir: str = "checkpoints/srpo"
     mode: Mode = Mode.SRPO
     world_model_type: WorldModelType = WorldModelType.VJEPA2

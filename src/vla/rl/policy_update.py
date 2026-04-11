@@ -85,8 +85,11 @@ class UpdateMetrics:
 
     avg_loss: float = 0.0
     avg_kl: float = 0.0
+    avg_sft_kl: float = 0.0
+    avg_shift: float = 0.0
     avg_weight: float = 0.0
     raw_kl: float = 0.0
+    raw_sft_kl: float = 0.0
     mean_ratio: float = 1.0
     max_log_ratio: float = 0.0
 
@@ -94,6 +97,7 @@ class UpdateMetrics:
 def awr_update(
     policy: SmolVLAPolicy,
     ref_policy: SmolVLAPolicy,
+    sft_policy: SmolVLAPolicy | None,
     optimizer: torch.optim.Optimizer,
     trainable: list[torch.nn.Parameter],
     trajectories: list[Trajectory],
@@ -131,6 +135,8 @@ def awr_update(
     # not the time dimension. Do not set to "none" as that throws a ValueError.
     ref_losses_per_traj: list[torch.Tensor] = []
     if config.kl_coeff > 0:
+        if ref_policy is None:
+            raise ValueError("AWR KL requested, but ref_policy was not provided.")
         with torch.no_grad():
             for i, traj in enumerate(trajectories):
                 ref_loss = _compute_fm_loss_batched(
@@ -144,9 +150,28 @@ def awr_update(
                 )
                 ref_losses_per_traj.append(ref_loss.detach())
 
+    sft_kl_coeff = float(getattr(config, "sft_kl_coeff", 0.0))
+    sft_losses_per_traj: list[torch.Tensor] = []
+    if sft_kl_coeff > 0:
+        if sft_policy is None:
+            raise ValueError("AWR SFT-anchor KL requested, but sft_policy was not provided.")
+        with torch.no_grad():
+            for i, traj in enumerate(trajectories):
+                sft_loss = _compute_fm_loss_batched(
+                    sft_policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
+                    reduction="mean",
+                )
+                sft_losses_per_traj.append(sft_loss.detach())
+
     policy.train()
     total_weighted_loss = 0.0
     total_kl = 0.0
+    total_sft_kl = 0.0
     total_weight = 0.0
     used_count_total = 0
 
@@ -154,6 +179,7 @@ def awr_update(
         optimizer.zero_grad()
         epoch_loss = 0.0
         epoch_kl = 0.0
+        epoch_sft_kl = 0.0
         epoch_weight = 0.0
         used_count = 0
 
@@ -192,6 +218,13 @@ def awr_update(
                 traj_loss = traj_loss + config.kl_coeff * kl_approx / M
                 epoch_kl += (config.kl_coeff * kl_approx).item()
 
+            if sft_losses_per_traj:
+                sft_fm_t = sft_losses_per_traj[i]
+                sft_kl_per_step = 0.5 * (sft_fm_t - fm_loss_t) ** 2
+                sft_kl_approx = sft_kl_per_step.mean()
+                traj_loss = traj_loss + sft_kl_coeff * sft_kl_approx / M
+                epoch_sft_kl += (sft_kl_coeff * sft_kl_approx).item()
+
             traj_loss.backward()
             epoch_loss += (weight * fm_loss).item()
             epoch_weight += weight
@@ -202,6 +235,7 @@ def awr_update(
 
         total_weighted_loss += epoch_loss
         total_kl += epoch_kl
+        total_sft_kl += epoch_sft_kl
         total_weight += epoch_weight
         used_count_total += used_count
 
@@ -209,6 +243,7 @@ def awr_update(
     return UpdateMetrics(
         avg_loss=total_weighted_loss / denom,
         avg_kl=total_kl / denom,
+        avg_sft_kl=total_sft_kl / denom,
         avg_weight=total_weight / denom,
     )
 
@@ -259,6 +294,7 @@ def fpo_update(
     fixed_time: list[list[torch.Tensor]],
     config: SRPOConfig,
     ref_policy: SmolVLAPolicy | None = None,
+    sft_policy: SmolVLAPolicy | None = None,
 ) -> UpdateMetrics:
     """FPO (Flow Policy Optimization) update with PPO-clip objective.
 
@@ -322,13 +358,34 @@ def fpo_update(
                 )
                 ref_fm_per_traj.append(ref_fm.detach())
 
+    sft_kl_coeff = float(getattr(config, "sft_kl_coeff", 0.0))
+    sft_fm_per_traj: list[torch.Tensor] = []
+    if sft_kl_coeff > 0:
+        if sft_policy is None:
+            raise ValueError("FPO SFT-anchor KL requested, but sft_policy was not provided.")
+        with torch.no_grad():
+            for i, traj in enumerate(trajectories):
+                sft_fm = _compute_fm_loss_multi_sample(
+                    sft_policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
+                    reduction=reduction,
+                )
+                sft_fm_per_traj.append(sft_fm.detach())
+
     policy.train()
 
     minibatch_trajs = min(getattr(config, "ppo_minibatch_trajs", 4), M)
     total_loss = 0.0
+    total_local_kl = 0.0
+    total_sft_kl = 0.0
     total_shift = 0.0
     total_clip_frac = 0.0
     total_raw_kl = 0.0
+    total_raw_sft_kl = 0.0
     total_mean_ratio = 0.0
     total_max_log_ratio = 0.0
     num_updates = 0
@@ -343,9 +400,12 @@ def fpo_update(
             optimizer.zero_grad(set_to_none=True)
 
             mb_loss = 0.0
+            mb_local_kl = 0.0
+            mb_sft_kl = 0.0
             mb_shift = 0.0
             mb_clip_frac = 0.0
             mb_raw_kl = 0.0
+            mb_raw_sft_kl = 0.0
             mb_max_log_ratio = 0.0
             mb_sum_ratio = 0.0
             used = 0
@@ -394,6 +454,14 @@ def fpo_update(
                     kl_per_step = 0.5 * (kl_anchor - new_fm_f) ** 2
                     kl_penalty = config.kl_coeff * kl_per_step.mean() / n_idxs
                     loss_i = loss_i + kl_penalty
+                    mb_local_kl += (config.kl_coeff * kl_per_step.mean()).item() / n_idxs
+
+                if sft_fm_per_traj:
+                    sft_anchor = sft_fm_per_traj[i].to(device=device, dtype=torch.float32)
+                    sft_kl_per_step = 0.5 * (sft_anchor - new_fm_f) ** 2
+                    sft_kl_penalty = sft_kl_coeff * sft_kl_per_step.mean() / n_idxs
+                    loss_i = loss_i + sft_kl_penalty
+                    mb_sft_kl += (sft_kl_coeff * sft_kl_per_step.mean()).item() / n_idxs
 
                 loss_i.backward()
 
@@ -411,6 +479,9 @@ def fpo_update(
                 if use_kl:
                     kl_anchor = ref_fm_per_traj[i].to(device=device, dtype=torch.float32) if ref_fm_per_traj else old_fm
                     mb_raw_kl += (0.5 * (kl_anchor - new_fm_f.detach()) ** 2).mean().item() / n_idxs
+                if sft_fm_per_traj:
+                    sft_anchor = sft_fm_per_traj[i].to(device=device, dtype=torch.float32)
+                    mb_raw_sft_kl += (0.5 * (sft_anchor - new_fm_f.detach()) ** 2).mean().item() / n_idxs
                 used += 1
 
             if used == 0:
@@ -420,9 +491,12 @@ def fpo_update(
             optimizer.step()
 
             total_loss += mb_loss
+            total_local_kl += mb_local_kl
+            total_sft_kl += mb_sft_kl
             total_shift += mb_shift
             total_clip_frac += mb_clip_frac
             total_raw_kl += mb_raw_kl
+            total_raw_sft_kl += mb_raw_sft_kl
             total_mean_ratio += mb_sum_ratio
             total_max_log_ratio = max(total_max_log_ratio, mb_max_log_ratio)
             num_updates += 1
@@ -430,9 +504,12 @@ def fpo_update(
     denom = max(num_updates, 1)
     return UpdateMetrics(
         avg_loss=total_loss / denom,
-        avg_kl=total_shift / denom,
+        avg_kl=total_local_kl / denom,
+        avg_sft_kl=total_sft_kl / denom,
+        avg_shift=total_shift / denom,
         avg_weight=total_clip_frac / denom,
         raw_kl=total_raw_kl / denom,
+        raw_sft_kl=total_raw_sft_kl / denom,
         mean_ratio=total_mean_ratio / denom,
         max_log_ratio=total_max_log_ratio,
     )
@@ -441,6 +518,7 @@ def fpo_update(
 def ppo_update(
     policy: SmolVLAPolicy,
     ref_policy: SmolVLAPolicy,
+    sft_policy: SmolVLAPolicy | None,
     optimizer: torch.optim.Optimizer,
     trainable: list[torch.nn.Parameter],
     trajectories: list[Trajectory],
@@ -462,6 +540,8 @@ def ppo_update(
 
     old_losses_per_traj: list[torch.Tensor] = []
     ref_losses_per_traj: list[torch.Tensor] = []
+    sft_losses_per_traj: list[torch.Tensor] = []
+    sft_kl_coeff = float(getattr(config, "sft_kl_coeff", 0.0))
 
     with torch.no_grad():
         for i in range(M):
@@ -486,15 +566,30 @@ def ppo_update(
             )
             ref_losses_per_traj.append(ref_loss.detach())
 
+            if sft_kl_coeff > 0:
+                if sft_policy is None:
+                    raise ValueError("PPO SFT-anchor KL requested, but sft_policy was not provided.")
+                sft_loss = _compute_fm_loss_batched(
+                    sft_policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
+                )
+                sft_losses_per_traj.append(sft_loss.detach())
+
     policy.train()
     total_surrogate = 0.0
     total_kl = 0.0
+    total_sft_kl = 0.0
     used_count_total = 0
 
     for _ppo_epoch in range(config.ppo_epochs):
         optimizer.zero_grad()
         epoch_clip_loss = 0.0
         epoch_kl = 0.0
+        epoch_sft_kl = 0.0
         used_count = 0
 
         for i in range(M):
@@ -532,6 +627,13 @@ def ppo_update(
             kl_penalty = config.kl_coeff * kl_approx
 
             traj_loss = (clip_loss + kl_penalty) / M
+            if sft_losses_per_traj:
+                sft_losses_t = sft_losses_per_traj[i]
+                log_ratio_sft = sft_losses_t - new_losses_t
+                sft_kl_approx = 0.5 * (log_ratio_sft**2).mean()
+                sft_kl_penalty = sft_kl_coeff * sft_kl_approx
+                traj_loss = traj_loss + sft_kl_penalty / M
+                epoch_sft_kl += sft_kl_penalty.item()
             traj_loss.backward()
 
             epoch_clip_loss += clip_loss.item()
@@ -543,10 +645,12 @@ def ppo_update(
 
         total_surrogate += epoch_clip_loss
         total_kl += epoch_kl
+        total_sft_kl += epoch_sft_kl
         used_count_total += used_count
 
     denom = max(used_count_total, 1)
     return UpdateMetrics(
         avg_loss=total_surrogate / denom,
         avg_kl=total_kl / denom,
+        avg_sft_kl=total_sft_kl / denom,
     )
