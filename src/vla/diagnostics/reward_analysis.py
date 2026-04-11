@@ -598,8 +598,7 @@ def encode_trajectories_per_frame(
     import torch
     from vla.utils.tensor import to_float01
 
-    all_frames = []
-    traj_sizes = []
+    results = []
     for imgs in trajectories_images:
         indices = list(range(0, imgs.shape[0], subsample_every))
         frames = imgs[indices]
@@ -607,17 +606,7 @@ def encode_trajectories_per_frame(
             t, v, c, h, w = frames.shape
             frames = frames.reshape(t * v, c, h, w)
         frames = to_float01(frames)
-        all_frames.append(frames)
-        traj_sizes.append(frames.shape[0])
-
-    mega = torch.cat(all_frames, dim=0)
-    all_embs = encoder.encode_frames(mega)
-
-    results = []
-    offset = 0
-    for sz in traj_sizes:
-        results.append(all_embs[offset : offset + sz].mean(dim=0))
-        offset += sz
+        results.append(encoder.encode_frames(frames).mean(dim=0))
     return torch.stack(results, dim=0).cpu().numpy()
 
 
