@@ -42,6 +42,7 @@ from vla.constants import (
     WorldModelType,
 )
 from vla.rl.config import SRPOConfig, TaskSpec
+from vla.rl.demo_replay import replay_demo_rollouts
 from vla.rl.rollout import Trajectory
 from vla.results_registry import (
     get_git_info,
@@ -395,6 +396,20 @@ def main(
     else:
         logger.info("No SFT checkpoint - using pretrained %s weights directly", checkpoint)
 
+    if demo_trajectories:
+        logger.info(
+            "Replacing raw demo trajectories with simulator-replayed trajectories before training uses them."
+        )
+        demo_trajectories = replay_demo_rollouts(
+            task_specs=task_specs,
+            demo_trajectories=demo_trajectories,
+            simulator=simulator,
+            suite=suite,
+            max_steps=resolved_max_steps,
+            seed=seed,
+            state_dim=resolved_state_dim,
+        )
+
     if len(task_specs) > 1:
         task_tag = f"{len(task_specs)}tasks_{suite}"
         run_tag = f"{task_tag}_seed{seed}"
@@ -521,6 +536,7 @@ def main(
         "task_instructions": {spec.task_id: spec.instruction for spec in task_specs},
         "wandb_run_name": final_name or "",
         "demo_seeding": demo_seeding,
+        "demo_trajectory_source": "replayed_env_rollouts" if demo_trajectories else "none",
         "include_demos_in_update": include_demos_in_update,
         "success_replay_total_size": success_replay_total_size,
         "trajs_per_task_per_iter": trajs_per_task,
