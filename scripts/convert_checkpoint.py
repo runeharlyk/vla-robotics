@@ -20,9 +20,6 @@ from pathlib import Path
 import torch
 import typer
 from safetensors.torch import load_file as load_safetensors
-from safetensors.torch import save_file as save_safetensors
-
-from vla.env_metadata import EnvMetadata
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -76,7 +73,7 @@ def _lerobot_to_policy_pt(path: Path, base_checkpoint: str) -> None:
 
     weights = load_safetensors(str(path / "model.safetensors"), device="cpu")
     prefix = "model."
-    state_dict = {k[len(prefix):] if k.startswith(prefix) else k: v for k, v in weights.items()}
+    state_dict = {k[len(prefix) :] if k.startswith(prefix) else k: v for k, v in weights.items()}
     policy.model.load_state_dict(state_dict)
 
     for fname in NORMALIZER_FILES:
@@ -92,8 +89,8 @@ def _lerobot_to_policy_pt(path: Path, base_checkpoint: str) -> None:
                 policy.action_mean.copy_(am)
                 policy.action_std.copy_(astd)
             if "observation.state.mean" in stats:
-                sm = stats["observation.state.mean"].float()[:max(state_dim, 1)]
-                sstd = stats["observation.state.std"].float()[:max(state_dim, 1)]
+                sm = stats["observation.state.mean"].float()[: max(state_dim, 1)]
+                sstd = stats["observation.state.std"].float()[: max(state_dim, 1)]
                 if sm.shape != policy.state_mean.shape:
                     policy.register_buffer("state_mean", torch.zeros_like(sm), persistent=True)
                     policy.register_buffer("state_std", torch.ones_like(sstd), persistent=True)

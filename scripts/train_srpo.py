@@ -41,9 +41,6 @@ from vla.constants import (
     UpdateMethod,
     WorldModelType,
 )
-from vla.rl.config import SRPOConfig, TaskSpec
-from vla.rl.demo_replay import replay_demo_rollouts
-from vla.rl.rollout import Trajectory
 from vla.results_registry import (
     get_git_info,
     get_scheduler_info,
@@ -52,6 +49,9 @@ from vla.results_registry import (
     write_json,
     write_training_registry,
 )
+from vla.rl.config import SRPOConfig, TaskSpec
+from vla.rl.demo_replay import replay_demo_rollouts
+from vla.rl.rollout import Trajectory
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -310,7 +310,7 @@ def main(
     fpo_use_ref_policy_kl: bool = typer.Option(
         False,
         "--fpo-use-ref-policy-kl/--no-fpo-use-ref-policy-kl",
-        help="For FPO, anchor the KL penalty to an explicit start-of-iteration reference policy instead of cached old_fm losses.",
+        help="Anchor KL penalty to a reference policy instead of cached old_fm losses.",
     ),
     eval_zero_sample: bool = typer.Option(True, "--eval-zero-sample/--no-eval-zero-sample"),
     adaptive_kl: bool = typer.Option(
@@ -397,9 +397,7 @@ def main(
         logger.info("No SFT checkpoint - using pretrained %s weights directly", checkpoint)
 
     if demo_trajectories:
-        logger.info(
-            "Replacing raw demo trajectories with simulator-replayed trajectories before training uses them."
-        )
+        logger.info("Replacing raw demo trajectories with simulator-replayed trajectories before training uses them.")
         demo_trajectories = replay_demo_rollouts(
             task_specs=task_specs,
             demo_trajectories=demo_trajectories,

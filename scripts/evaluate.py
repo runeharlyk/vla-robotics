@@ -211,12 +211,16 @@ def main(
 
     task_callback: Callable[[int, dict[str, Any]], None] | None = None
     if metrics_logger is not None:
-        task_callback = lambda _task_id, payload: (
-            task_payloads.append(dict(payload)),
-            _log_eval_metrics(metrics_logger, simulator, suite, payload),
-        )
+
+        def task_callback(_task_id, payload):
+            return (
+                task_payloads.append(dict(payload)),
+                _log_eval_metrics(metrics_logger, simulator, suite, payload),
+            )
     else:
-        task_callback = lambda _task_id, payload: task_payloads.append(dict(payload))
+
+        def task_callback(_task_id, payload):
+            return task_payloads.append(dict(payload))
 
     try:
         metrics = evaluate_smolvla(
@@ -285,11 +289,7 @@ def main(
         eval_slug = sanitize_name(resolved_run_name)
         eval_json_path = RESULTS_DIR / "evals" / f"{eval_slug}.json"
         write_json(eval_json_path, eval_record)
-        eval_registry_row = {
-            k: v
-            for k, v in eval_record.items()
-            if k not in {"task_metrics", "instruction"}
-        }
+        eval_registry_row = {k: v for k, v in eval_record.items() if k not in {"task_metrics", "instruction"}}
         eval_registry_row["result_json"] = str(eval_json_path)
         eval_registry_row.update(flatten_task_metrics(task_payloads))
         write_eval_registry(eval_registry_row)
