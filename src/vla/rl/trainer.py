@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 import subprocess
 from collections import defaultdict
 from pathlib import Path
@@ -61,6 +62,20 @@ __all__ = [
     "fpo_update",
     "train_srpo",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Reference-policy helpers
+# ---------------------------------------------------------------------------
+
+
+def _freeze_policy_copy(policy: SmolVLAPolicy) -> SmolVLAPolicy:
+    """Return an eval-only, non-trainable copy of a policy."""
+    frozen = copy.deepcopy(policy)
+    frozen.eval()
+    for p in frozen.parameters():
+        p.requires_grad_(False)
+    return frozen
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +129,7 @@ def log_training_config(
     lines.append(f"    clip_epsilon:        {config.clip_epsilon}")
     lines.append(f"    clip_epsilon_high:   {config.clip_epsilon_high}")
     lines.append(f"    kl_coeff:            {config.kl_coeff}")
+    lines.append(f"    sft_kl_coeff:        {config.sft_kl_coeff}")
     lines.append(f"    adaptive_kl:         {config.adaptive_kl}")
     if config.adaptive_kl:
         lines.append(f"    kl_target:           {config.kl_target}")
@@ -141,13 +157,19 @@ def log_training_config(
     lines.append(f"    num_iterations:      {config.num_iterations}")
     lines.append(f"    trajs_per_task:      {trajs_per_task_per_iter}")
     lines.append(f"    num_rollout_envs:    {config.num_rollout_envs}")
-    lines.append(f"    num_eval_envs:       {config.num_eval_envs}")
+    lines.append(f"    num_envs:            {config.num_envs}")
     lines.append(f"    max_steps:           {config.max_steps}")
     lines.append(f"    eval_every:          {config.eval_every}")
     lines.append(f"    eval_episodes:       {config.eval_episodes}")
     lines.append(f"    eval_zero_sample:    {config.eval_zero_sample}")
     lines.append(f"    fm_batch_size:       {config.fm_batch_size}")
     lines.append(f"    seed:                {config.seed}")
+    lines.append(f"    include_demos_in_update:    {config.include_demos_in_update}")
+    lines.append(f"    success_replay_buffer_size: {config.success_replay_buffer_size}")
+    lines.append(f"    success_replay_total_size:  {config.success_replay_total_size}")
+    lines.append(f"    success_replay_alpha:       {config.success_replay_alpha}")
+    lines.append(f"    success_replay_ema_decay:   {config.success_replay_ema_decay}")
+    lines.append(f"    success_replay_max_ratio:   {config.success_replay_max_ratio}")
 
     lines.append("")
     lines.append("  SRPO reward (world-model):")
@@ -219,6 +241,146 @@ def build_rollout_engine(
 
 
 _SHARED_LIBERO_KEY = "_shared_libero"
+
+
+def _resolve_success_replay_capacity(config: SRPOConfig) -> int:
+    """Return the global replay capacity, preserving the legacy flag as a fallback."""
+    if config.success_replay_total_size > 0:
+        return config.success_replay_total_size
+    return config.success_replay_buffer_size
+
+
+def _inverse_success_weights(
+    task_ids: list[str],
+    success_rate_ema: dict[str, float],
+    alpha: float,
+    rate_floor: float,
+) -> dict[str, float]:
+    """Compute bounded inverse-success weights for quota allocation."""
+    bounded_alpha = max(alpha, 0.0)
+    floor = max(rate_floor, 1e-6)
+    weights: dict[str, float] = {}
+    for tid in task_ids:
+        rate = max(success_rate_ema.get(tid, 0.0), 0.0)
+        weights[tid] = 1.0 / math.pow(rate + floor, bounded_alpha)
+    return weights
+
+
+def _allocate_integer_budget(weights: dict[str, float], budget: int) -> dict[str, int]:
+    """Allocate an integer budget proportionally to the provided positive weights."""
+    if budget <= 0 or not weights:
+        return {tid: 0 for tid in weights}
+
+    total_weight = sum(max(w, 0.0) for w in weights.values())
+    if total_weight <= 0:
+        return {tid: 0 for tid in weights}
+
+    quotas: dict[str, int] = {}
+    fractional: list[tuple[float, str]] = []
+    used = 0
+    for tid, weight in weights.items():
+        raw = budget * max(weight, 0.0) / total_weight
+        base = int(math.floor(raw))
+        quotas[tid] = base
+        used += base
+        fractional.append((raw - base, tid))
+
+    for _, tid in sorted(fractional, reverse=True)[: max(budget - used, 0)]:
+        quotas[tid] += 1
+
+    return quotas
+
+
+def _rebalance_success_buffer(
+    success_buffer: dict[str, list[Trajectory]],
+    success_rate_ema: dict[str, float],
+    total_capacity: int,
+    alpha: float,
+    rate_floor: float,
+) -> dict[str, int]:
+    """Evict only from over-quota tasks so the retained buffer matches the target mix."""
+    active_task_ids = [tid for tid, buf in success_buffer.items() if buf]
+    if total_capacity <= 0 or not active_task_ids:
+        success_buffer.clear()
+        return {}
+
+    quotas = _allocate_integer_budget(
+        _inverse_success_weights(active_task_ids, success_rate_ema, alpha=alpha, rate_floor=rate_floor),
+        total_capacity,
+    )
+    total_size = sum(len(success_buffer[tid]) for tid in active_task_ids)
+    while total_size > total_capacity:
+        overfull = [tid for tid in active_task_ids if len(success_buffer[tid]) > quotas.get(tid, 0)]
+        if not overfull:
+            overfull = [tid for tid in active_task_ids if success_buffer[tid]]
+        evict_tid = max(
+            overfull, key=lambda tid: (len(success_buffer[tid]) - quotas.get(tid, 0), len(success_buffer[tid]))
+        )
+        success_buffer[evict_tid].pop(0)
+        total_size -= 1
+        if not success_buffer[evict_tid]:
+            del success_buffer[evict_tid]
+            active_task_ids = [tid for tid in active_task_ids if tid != evict_tid]
+
+    return quotas
+
+
+def _sample_success_replay(
+    success_buffer: dict[str, list[Trajectory]],
+    success_rate_ema: dict[str, float],
+    max_replay: int,
+    alpha: float,
+    rate_floor: float,
+) -> tuple[list[Trajectory], dict[str, int]]:
+    """Sample a capped replay batch using the same inverse-success balancing as retention."""
+    active_task_ids = [tid for tid, buf in success_buffer.items() if buf]
+    if max_replay <= 0 or not active_task_ids:
+        return [], {}
+
+    available = sum(len(success_buffer[tid]) for tid in active_task_ids)
+    replay_budget = min(max_replay, available)
+    quotas = _allocate_integer_budget(
+        _inverse_success_weights(active_task_ids, success_rate_ema, alpha=alpha, rate_floor=rate_floor),
+        replay_budget,
+    )
+
+    sampled: list[Trajectory] = []
+    sampled_counts: dict[str, int] = {}
+    carry = replay_budget
+    remaining = active_task_ids.copy()
+
+    while carry > 0 and remaining:
+        progressed = False
+        for tid in remaining.copy():
+            take = min(len(success_buffer[tid]), quotas.get(tid, 0))
+            if take > 0:
+                sampled.extend(success_buffer[tid][-take:])
+                sampled_counts[tid] = take
+                carry -= take
+                quotas[tid] = 0
+                progressed = True
+            remaining.remove(tid)
+
+        if carry <= 0 or not progressed:
+            leftovers = sorted(
+                ((len(success_buffer[tid]) - sampled_counts.get(tid, 0), tid) for tid in active_task_ids),
+                reverse=True,
+            )
+            for left, tid in leftovers:
+                if carry <= 0:
+                    break
+                if left <= 0:
+                    continue
+                take = min(left, carry)
+                already = sampled_counts.get(tid, 0)
+                start = len(success_buffer[tid]) - already - take
+                end = len(success_buffer[tid]) - already
+                sampled.extend(success_buffer[tid][start:end])
+                sampled_counts[tid] = already + take
+                carry -= take
+            break
+
+    return sampled, sampled_counts
 
 
 def collect_all_trajectories(
@@ -320,7 +482,7 @@ def _evaluate_task(
         seed=config.seed + 20000,
     )
     if config.simulator is Simulator.LIBERO:
-        kwargs.update(suite=config.suite, task_id=spec.libero_task_idx, num_eval_envs=config.num_eval_envs)
+        kwargs.update(suite=config.suite, task_id=spec.libero_task_idx, num_envs=config.num_envs)
     else:
         kwargs.update(env_id=spec.env_id or config.env_id)
     return evaluate_smolvla(policy, **kwargs)
@@ -428,10 +590,11 @@ def train_srpo(
     # losses as the KL anchor.
     ref_policy: SmolVLAPolicy | None = None
     if config.update_method is not UpdateMethod.FPO or getattr(config, "fpo_use_ref_policy_kl", False):
-        ref_policy = copy.deepcopy(policy)
-        ref_policy.eval()
-        for p in ref_policy.parameters():
-            p.requires_grad_(False)
+        ref_policy = _freeze_policy_copy(policy)
+
+    sft_policy: SmolVLAPolicy | None = None
+    if config.sft_kl_coeff > 0:
+        sft_policy = _freeze_policy_copy(policy)
 
     # -- Per-task rollout engines -----------------------------------------
     if rollout_engines is None:
@@ -439,8 +602,18 @@ def train_srpo(
 
     if config.simulator is Simulator.LIBERO and _SHARED_LIBERO_KEY not in rollout_engines:
         _get_or_build_engine(rollout_engines, config, task_specs[0])
+    elif config.simulator is Simulator.MANISKILL and config.num_rollout_envs > 1:
+        # ManiSkill GPU PhysX must be enabled before any other PhysX-backed env
+        # is constructed. Prebuild vectorized rollout engines before the
+        # baseline evaluation step so the later eval envs do not block GPU PhysX.
+        for spec in task_specs:
+            _get_or_build_engine(rollout_engines, config, spec)
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
+
+    success_buffer: dict[str, list[Trajectory]] = defaultdict(list)
+    success_rate_ema: dict[str, float] = {s.task_id: 0.0 for s in task_specs}
+    replay_capacity = _resolve_success_replay_capacity(config)
 
     # -- Per-task reward model (works for single-task too: 1 key) ---------
     world_encoder: WorldModelEncoder | None = None
@@ -463,13 +636,13 @@ def train_srpo(
         reward_model = MultiTaskWorldProgressReward(world_encoder, reward_cfg)
 
         if demo_trajectories:
-            for tid, demos in demo_trajectories.items():
+            for _tid, demos in demo_trajectories.items():
                 demo_images = []
                 for dt in demos:
                     imgs = dt.images[: dt.length]
                     imgs = to_float01(imgs)
                     demo_images.append(imgs)
-                reward_model.add_demo_trajectories(tid, demo_images)
+                reward_model.add_demo_trajectories(_tid, demo_images)
 
     save_path = Path(config.save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
@@ -507,7 +680,7 @@ def train_srpo(
             ref_policy.load_state_dict(policy.state_dict())
 
         # -- 1. Collect trajectories from all tasks -----------------------
-        all_trajectories, per_task_successes = collect_all_trajectories(
+        rollout_trajectories, per_task_successes = collect_all_trajectories(
             policy,
             task_specs,
             rollout_engines,
@@ -516,12 +689,76 @@ def train_srpo(
             trajs_per_task_per_iter,
         )
 
-        total_successes = sum(per_task_successes.values())
+        total_rollout_successes = sum(per_task_successes.values())
+        rate_floor = 1.0 / max(trajs_per_task_per_iter, 1)
+        for _tid, n_success in per_task_successes.items():
+            rollout_sr = n_success / max(trajs_per_task_per_iter, 1)
+            if iteration == 1:
+                success_rate_ema[_tid] = rollout_sr
+            else:
+                prev = success_rate_ema.get(_tid, rollout_sr)
+                success_rate_ema[_tid] = (
+                    config.success_replay_ema_decay * prev + (1.0 - config.success_replay_ema_decay) * rollout_sr
+                )
+
+        if replay_capacity > 0:
+            for t in rollout_trajectories:
+                if t.success:
+                    success_buffer[t.task_id].append(t)
+            buffer_quotas = _rebalance_success_buffer(
+                success_buffer,
+                success_rate_ema,
+                total_capacity=replay_capacity,
+                alpha=config.success_replay_alpha,
+                rate_floor=rate_floor,
+            )
+        else:
+            buffer_quotas = {}
+
+        extra_trajectories: list[Trajectory] = []
+        if config.include_demos_in_update and demo_trajectories:
+            for _tid, demos in demo_trajectories.items():
+                extra_trajectories.extend(demos)
+
+        if replay_capacity > 0:
+            max_replay = int(config.success_replay_max_ratio * len(rollout_trajectories))
+            replay_trajs, replay_counts = _sample_success_replay(
+                success_buffer,
+                success_rate_ema,
+                max_replay=max_replay,
+                alpha=config.success_replay_alpha,
+                rate_floor=rate_floor,
+            )
+            extra_trajectories.extend(replay_trajs)
+        else:
+            replay_counts = {}
+
+        all_trajectories = rollout_trajectories + extra_trajectories
+
+        total_successes = sum(1 for t in all_trajectories if t.success)
         logger.info(
-            f"Iter {iteration}: collected {len(all_trajectories)} trajs across "
-            f"{len(task_specs)} tasks, {total_successes} successes "
-            f"({per_task_successes})"
+            f"Iter {iteration}: collected {len(rollout_trajectories)} trajs, "
+            f"{total_rollout_successes} rollout successes, {len(all_trajectories)} total trajs for update "
+            f"({total_successes} total successes)"
         )
+        if replay_counts:
+            replay_total = sum(replay_counts.values())
+            logger.info(
+                "Iter %d: replayed %d successes from buffer (capacity=%d, buffered=%d)",
+                iteration,
+                replay_total,
+                replay_capacity,
+                sum(len(buf) for buf in success_buffer.values()),
+            )
+            for _tid in sorted(replay_counts):
+                logger.info(
+                    "  [replay %s] sampled=%d buffered=%d quota=%d sr_ema=%.4f",
+                    _tid,
+                    replay_counts[_tid],
+                    len(success_buffer[_tid]),
+                    buffer_quotas.get(_tid, 0),
+                    success_rate_ema.get(_tid, 0.0),
+                )
 
         # -- 2. Per-task rewards g_i --------------------------------------
         if world_encoder is not None:
@@ -535,8 +772,8 @@ def train_srpo(
                 if t.success:
                     by_task_embs[t.task_id].append(traj_embs[i])
 
-            for tid, embs in by_task_embs.items():
-                reward_model.add_successful_embeddings(tid, embs)
+            for _tid, embs in by_task_embs.items():
+                reward_model.add_successful_embeddings(_tid, embs)
         else:
             g_values = [1.0 if t.success else 0.0 for t in all_trajectories]
             all_diags = None
@@ -576,8 +813,8 @@ def train_srpo(
                 f"{config.mode}/total_successes": total_successes,
                 f"{config.mode}/iteration": iteration,
             }
-            for tid in per_task_g_mean:
-                log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean[tid]
+            for _tid in per_task_g_mean:
+                log_data[f"{config.mode}/{_tid}/g_mean"] = per_task_g_mean[_tid]
             metrics_logger.log(log_data)
             continue
 
@@ -616,6 +853,7 @@ def train_srpo(
             update_metrics = awr_update(
                 policy,
                 ref_policy,
+                sft_policy,
                 optimizer,
                 trainable,
                 update_trajs,
@@ -637,12 +875,14 @@ def train_srpo(
                 update_time,
                 config,
                 ref_policy=ref_policy,
+                sft_policy=sft_policy,
             )
         elif config.update_method is UpdateMethod.PPO:
             assert ref_policy is not None
             update_metrics = ppo_update(
                 policy,
                 ref_policy,
+                sft_policy,
                 optimizer,
                 trainable,
                 update_trajs,
@@ -684,8 +924,13 @@ def train_srpo(
             raise ValueError(f"Unknown update_method: {config.update_method}")
         log_data = {
             f"{config.mode}/{loss_key}": update_metrics.avg_loss,
-            f"{config.mode}/kl_penalty": update_metrics.avg_kl,
+            f"{config.mode}/kl_penalty": update_metrics.avg_kl + update_metrics.avg_sft_kl,
+            f"{config.mode}/step_kl_penalty": update_metrics.avg_kl,
+            f"{config.mode}/sft_kl_penalty": update_metrics.avg_sft_kl,
             f"{config.mode}/total_successes": total_successes,
+            f"{config.mode}/rollout_successes": total_rollout_successes,
+            f"{config.mode}/replay_successes": sum(replay_counts.values()),
+            f"{config.mode}/success_buffer_size": sum(len(buf) for buf in success_buffer.values()),
             f"{config.mode}/skipped_tasks": len(skipped_tasks),
             f"{config.mode}/iteration": iteration,
         }
@@ -693,33 +938,45 @@ def train_srpo(
             log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
         elif config.update_method == UpdateMethod.FPO:
             log_data[f"{config.mode}/clip_frac"] = update_metrics.avg_weight
+            log_data[f"{config.mode}/mean_shift"] = update_metrics.avg_shift
             log_data[f"{config.mode}/raw_kl"] = update_metrics.raw_kl
+            log_data[f"{config.mode}/raw_sft_kl"] = update_metrics.raw_sft_kl
             log_data[f"{config.mode}/mean_ratio"] = update_metrics.mean_ratio
             log_data[f"{config.mode}/max_log_ratio"] = update_metrics.max_log_ratio
             log_data[f"{config.mode}/kl_coeff"] = config.kl_coeff
+            log_data[f"{config.mode}/sft_kl_coeff"] = config.sft_kl_coeff
 
-        for tid, n_succ in per_task_successes.items():
-            log_data[f"{config.mode}/{tid}/successes"] = n_succ
-            log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean.get(tid, 0.0)
+        for _tid, n_succ in per_task_successes.items():
+            log_data[f"{config.mode}/{_tid}/successes"] = n_succ
+            log_data[f"{config.mode}/{_tid}/g_mean"] = per_task_g_mean.get(_tid, 0.0)
+            log_data[f"{config.mode}/{_tid}/success_rate_ema"] = success_rate_ema.get(_tid, 0.0)
+            log_data[f"{config.mode}/{_tid}/success_buffer_size"] = len(success_buffer.get(_tid, []))
+            log_data[f"{config.mode}/{_tid}/success_buffer_quota"] = buffer_quotas.get(_tid, 0)
+            log_data[f"{config.mode}/{_tid}/replay_successes"] = replay_counts.get(_tid, 0)
         if all_diags is not None:
-            for tid, diag in all_diags.items():
+            for _tid, diag in all_diags.items():
                 if diag is not None:
-                    log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
+                    log_data.update(diag.as_dict(prefix=f"{config.mode}/{_tid}/cluster"))
 
         ratio_info = ""
         if config.update_method is UpdateMethod.FPO:
             ratio_info = (
                 f"  raw_kl={update_metrics.raw_kl:.6f}"
+                f"  raw_sft_kl={update_metrics.raw_sft_kl:.6f}"
+                f"  shift={update_metrics.avg_shift:.6f}"
                 f"  mean_r={update_metrics.mean_ratio:.4f}"
                 f"  max_lr={update_metrics.max_log_ratio:.4f}"
                 f"  kl_c={config.kl_coeff:.6f}"
+                f"  sft_kl_c={config.sft_kl_coeff:.6f}"
             )
         logger.info(
-            f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}  kl={update_metrics.avg_kl:.6f}"
+            f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}"
+            f"  step_kl={update_metrics.avg_kl:.6f}"
+            f"  sft_kl={update_metrics.avg_sft_kl:.6f}"
             f"  successes={total_successes}/{M}{ratio_info}"
         )
-        for tid in per_task_successes:
-            logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
+        for _tid in per_task_successes:
+            logger.info(f"  [{_tid}] successes={per_task_successes[_tid]}  g_mean={per_task_g_mean.get(_tid, 0.0):.4f}")
 
         # -- 8. Periodic evaluation ---------------------------------------
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:

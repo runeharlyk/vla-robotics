@@ -160,7 +160,7 @@ eval-policy: |
       --num-episodes {num_episodes} \
       --seed {seed}
 
-# ── Evaluate via vla CLI in Libero ─────────────────────────────────────
+# ── Evaluate via evaluation script in Libero ───────────────────────────
 # Parity with lerobot-eval: suite all = libero_object, libero_spatial, libero_goal;
 # num_episodes = eval.n_episodes; we run batch_size 1 (sequential).
 eval-libero: |
@@ -168,24 +168,22 @@ eval-libero: |
   mkdir -p "$LIBERO_PATH"
   printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero; print('Libero configured')"
 
-  uv run python -m vla evaluate \
-      --model {model} \
+  uv run python scripts/evaluate.py \
       --checkpoint {checkpoint} \
       --simulator libero \
       --suite {suite} \
       --num-episodes {num_episodes} \
       --device cuda \
-      --compile \
+      --wandb \
       --wandb-project {wandb_project}
 
-# ── Evaluate via vla CLI in ManiSkill ──────────────────────────────────
+# ── Evaluate via evaluation script in ManiSkill ────────────────────────
 eval-maniskill: |
-  uv run python -m vla evaluate \
-      --model {model} \
+  uv run python scripts/evaluate.py \
       --checkpoint {checkpoint} \
       --simulator maniskill \
       --env-id {env_id} \
       --num-episodes {num_episodes} \
       --device cuda \
-      --compile \
+      --wandb \
       --wandb-project {wandb_project}

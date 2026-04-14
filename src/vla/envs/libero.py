@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import einops
@@ -12,6 +13,8 @@ from lerobot.processor.env_processor import LiberoProcessorStep
 from vla.constants import SUITE_MAP
 from vla.envs.base import SimEnv
 from vla.utils.tensor import to_float01
+
+logger = logging.getLogger(__name__)
 
 _PROC = LiberoProcessorStep()
 
@@ -27,15 +30,24 @@ class LiberoEnv(SimEnv):
         task_id: int,
         obs_type: str = "pixels_agent_pos",
         state_dim: int = 8,
-        camera_name: str = LIBERO_CAMERAS,
+        camera_name: str | list[str] = LIBERO_CAMERAS,
     ):
         self._suite = _get_suite(suite_name)
+        if isinstance(camera_name, str):
+            camera_name = sorted([c.strip() for c in camera_name.split(",") if c.strip()])
+
         self._env = _LeRobotLiberoEnv(
             task_suite=self._suite,
             task_id=task_id,
             task_suite_name=suite_name,
             obs_type=obs_type,
             camera_name=camera_name,
+        )
+        logger.info(
+            "LiberoEnv created: suite=%s, task_id=%d, camera_name=%r",
+            suite_name,
+            task_id,
+            camera_name,
         )
         self._state_dim = state_dim
 

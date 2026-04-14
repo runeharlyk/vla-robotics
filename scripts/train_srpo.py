@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from pathlib import Path
 
 import typer
@@ -41,7 +42,16 @@ from vla.constants import (
     WorldModelType,
 )
 from vla.rl.config import SRPOConfig, TaskSpec
+from vla.rl.demo_replay import replay_demo_rollouts
 from vla.rl.rollout import Trajectory
+from vla.results_registry import (
+    get_git_info,
+    get_scheduler_info,
+    now_iso,
+    summarize_metrics_jsonl,
+    write_json,
+    write_training_registry,
+)
 from vla.utils import get_device, run_id, seed_everything
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -124,6 +134,14 @@ def _build_tasks(
 
         task_specs: list[TaskSpec] = []
         for tidx, task_instruction in task_map.items():
+            if task_ids is not None:
+                # LiberoSFTDataset.instruction is a suite-level default and
+                # may point at the first task; use the per-task lookup here.
+                task_instruction = (
+                    first_ds._task_map.get(tidx, task_instruction)
+                    if hasattr(first_ds, "_task_map")
+                    else task_instruction
+                )
             task_key = f"{suite}_task_{tidx}"
             task_specs.append(
                 TaskSpec(
@@ -224,8 +242,8 @@ def main(
     num_rollout_envs: int = typer.Option(
         1, "--num-rollout-envs", help="Parallel envs per task for vectorised rollouts"
     ),
-    num_eval_envs: int = typer.Option(
-        0, "--num-eval-envs", help="Parallel envs for vectorised eval (0 = same as num-rollout-envs)"
+    num_envs: int = typer.Option(
+        0, "--num-envs", help="Parallel envs for vectorised eval (0 = same as num-rollout-envs)"
     ),
     fm_batch_size: int = typer.Option(32, "--fm-batch-size", help="Timesteps per FM forward pass"),
     lr: float = typer.Option(1e-5, "--lr"),
@@ -246,6 +264,11 @@ def main(
     awr_temperature: float = typer.Option(5.0, "--awr-temperature", help="AWR weight sharpness (beta)"),
     awr_weight_clip: float = typer.Option(20.0, "--awr-weight-clip", help="Max AWR weight"),
     kl_coeff: float = typer.Option(0.01, "--kl-coeff"),
+    sft_kl_coeff: float = typer.Option(
+        0.0,
+        "--sft-kl-coeff",
+        help="Additional KL penalty against the immutable initial policy checkpoint to limit cumulative drift.",
+    ),
     adv_eps: float = typer.Option(1e-8, "--adv-eps"),
     adv_skip_threshold: float = typer.Option(1e-6, "--adv-skip-threshold"),
     eval_every: int = typer.Option(10, "--eval-every"),
@@ -297,6 +320,34 @@ def main(
     ),
     kl_target: float = typer.Option(0.01, "--kl-target", help="Target KL for adaptive adjustment"),
     kl_adapt_factor: float = typer.Option(1.5, "--kl-adapt-factor", help="Multiplicative factor for adaptive KL"),
+    include_demos_in_update: bool = typer.Option(
+        False,
+        "--include-demos-in-update/--no-include-demos-in-update",
+        help="Include demonstration trajectories in every policy update iteration (online SFT).",
+    ),
+    success_replay_buffer_size: int = typer.Option(
+        0, "--success-replay-buffer-size", help="Replay successful trajectories from previous iterations."
+    ),
+    success_replay_total_size: int = typer.Option(
+        0,
+        "--success-replay-total-size",
+        help="Global capacity for balanced success replay across tasks. Overrides --success-replay-buffer-size.",
+    ),
+    success_replay_alpha: float = typer.Option(
+        1.0,
+        "--success-replay-alpha",
+        help="Inverse-success weighting strength for balanced replay (0 disables balancing, 1 is linear inverse).",
+    ),
+    success_replay_ema_decay: float = typer.Option(
+        0.8,
+        "--success-replay-ema-decay",
+        help="EMA decay for per-task success-rate estimates used by balanced replay.",
+    ),
+    success_replay_max_ratio: float = typer.Option(
+        1.0,
+        "--success-replay-max-ratio",
+        help="Maximum replayed trajectories per iteration as a multiple of fresh rollout trajectories.",
+    ),
 ) -> None:
     import wandb
     from vla.models.smolvla import SmolVLAPolicy
@@ -308,8 +359,11 @@ def main(
     device = get_device()
 
     resolved_max_steps = max_steps or 280
-    resolved_eval_envs = num_eval_envs if num_eval_envs > 0 else num_rollout_envs
+    resolved_eval_envs = num_envs if num_envs > 0 else num_rollout_envs
     resolved_task_ids = _parse_task_ids(task_ids)
+
+    include_demos_internal = (mode == Mode.SRPO) or include_demos_in_update
+    demo_seeding = include_demos_internal
 
     task_specs, demo_trajectories, resolved_state_dim, resolved_action_dim = _build_tasks(
         data_path=data_path,
@@ -320,7 +374,7 @@ def main(
         simulator=simulator,
         suite=suite,
         task_ids=resolved_task_ids,
-        include_demos=mode == "srpo",
+        include_demos=include_demos_internal,
         env_id_override=env_id,
         instruction_override=instruction,
     )
@@ -341,6 +395,20 @@ def main(
                 spec.instruction = env_meta.instruction
     else:
         logger.info("No SFT checkpoint - using pretrained %s weights directly", checkpoint)
+
+    if demo_trajectories:
+        logger.info(
+            "Replacing raw demo trajectories with simulator-replayed trajectories before training uses them."
+        )
+        demo_trajectories = replay_demo_rollouts(
+            task_specs=task_specs,
+            demo_trajectories=demo_trajectories,
+            simulator=simulator,
+            suite=suite,
+            max_steps=resolved_max_steps,
+            seed=seed,
+            state_dim=resolved_state_dim,
+        )
 
     if len(task_specs) > 1:
         task_tag = f"{len(task_specs)}tasks_{suite}"
@@ -364,6 +432,7 @@ def main(
         awr_weight_clip=awr_weight_clip,
         advantage_mode=advantage_mode,
         kl_coeff=kl_coeff,
+        sft_kl_coeff=sft_kl_coeff,
         adv_eps=adv_eps,
         adv_skip_threshold=adv_skip_threshold,
         eval_every=eval_every,
@@ -386,7 +455,7 @@ def main(
         task_id=task_specs[0].libero_task_idx,
         state_dim=resolved_state_dim,
         num_rollout_envs=num_rollout_envs,
-        num_eval_envs=resolved_eval_envs,
+        num_envs=resolved_eval_envs,
         fm_batch_size=fm_batch_size,
         gradient_checkpointing=gradient_checkpointing,
         fpo_full_chunk_target=fpo_full_chunk_target,
@@ -399,6 +468,12 @@ def main(
         adaptive_kl=adaptive_kl,
         kl_target=kl_target,
         kl_adapt_factor=kl_adapt_factor,
+        include_demos_in_update=include_demos_in_update,
+        success_replay_buffer_size=success_replay_buffer_size,
+        success_replay_total_size=success_replay_total_size,
+        success_replay_alpha=success_replay_alpha,
+        success_replay_ema_decay=success_replay_ema_decay,
+        success_replay_max_ratio=success_replay_max_ratio,
     )
 
     logger.info(
@@ -420,6 +495,7 @@ def main(
         )
 
     run = None
+    final_name: str | None = None
     if use_wandb:
         wb_config = config.to_dict()
         wb_config.update(
@@ -438,8 +514,42 @@ def main(
             config=wb_config,
         )
 
+    save_dir_path = Path(config.save_dir)
+    metrics_jsonl_path = save_dir_path / "metrics.jsonl"
+    training_record = {
+        "record_type": "training",
+        "recorded_at": now_iso(),
+        "completed_at": None,
+        "method": str(mode),
+        "update_method": str(update_method),
+        "save_dir": str(save_dir_path),
+        "best_checkpoint_dir": str(save_dir_path / "best"),
+        "last_checkpoint_dir": str(save_dir_path / "last"),
+        "checkpoint": checkpoint,
+        "sft_checkpoint": str(sft_checkpoint) if sft_checkpoint is not None else "",
+        "simulator": str(simulator),
+        "suite": str(suite),
+        "seed": seed,
+        "num_tasks": len(task_specs),
+        "task_ids": [spec.task_id for spec in task_specs],
+        "libero_task_indices": [spec.libero_task_idx for spec in task_specs],
+        "task_instructions": {spec.task_id: spec.instruction for spec in task_specs},
+        "wandb_run_name": final_name or "",
+        "demo_seeding": demo_seeding,
+        "demo_trajectory_source": "replayed_env_rollouts" if demo_trajectories else "none",
+        "include_demos_in_update": include_demos_in_update,
+        "success_replay_total_size": success_replay_total_size,
+        "trajs_per_task_per_iter": trajs_per_task,
+        "config": config.to_dict(),
+        "task_specs": [asdict(spec) for spec in task_specs],
+        "metrics_jsonl": str(metrics_jsonl_path),
+        **get_git_info(),
+        **get_scheduler_info(),
+    }
+    write_json(save_dir_path / "training_run.json", training_record)
+
     ml = MetricsLogger(
-        jsonl_path=Path(config.save_dir) / "metrics.jsonl",
+        jsonl_path=metrics_jsonl_path,
         wandb_run=run,
     )
 
@@ -451,6 +561,16 @@ def main(
         metrics_logger=ml,
         trajs_per_task_per_iter=trajs_per_task,
     )
+
+    training_record["completed_at"] = now_iso()
+    training_record.update(
+        summarize_metrics_jsonl(
+            metrics_jsonl_path,
+            eval_key_suffixes=[f"{mode}/eval/success_rate"],
+        )
+    )
+    write_json(save_dir_path / "training_run.json", training_record)
+    write_training_registry(training_record)
 
     if run is not None:
         run.finish()

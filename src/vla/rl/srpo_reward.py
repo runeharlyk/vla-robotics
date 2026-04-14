@@ -46,6 +46,7 @@ class SRPORewardConfig:
     ref_demo_ratio: float = 0.5
     distance_metric: DistanceMetric = DistanceMetric.NORMALIZED_L2
     use_failure_rewards: bool = True
+    use_standard_scaler: bool = False
 
 
 @dataclass

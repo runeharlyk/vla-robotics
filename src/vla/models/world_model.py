@@ -47,6 +47,19 @@ class WorldModelEncoder(ABC):
         if hasattr(self, "model") and self.model is not None:
             self.model.to(device)
 
+    @staticmethod
+    def _select_primary_view(images: torch.Tensor) -> torch.Tensor:
+        """Select the third-person camera stream when multi-view frames are present.
+
+        SRPO trajectory rewards are currently defined over a single video stream.
+        When rollouts provide multiple camera views ``(T, V, C, H, W)``, use the
+        first view only rather than flattening views into pseudo-time. In LIBERO,
+        view ``0`` corresponds to ``agentview_image`` (third-person).
+        """
+        if images.ndim == 5:
+            return images[:, 0]
+        return images
+
     @abstractmethod
     def encode_frames(self, images: torch.Tensor) -> torch.Tensor:
         """Encode a batch of images into embeddings.
@@ -74,11 +87,9 @@ class WorldModelEncoder(ABC):
         Returns:
             ``(D,)`` trajectory embedding.
         """
+        images = self._select_primary_view(images)
         indices = list(range(0, images.shape[0], subsample_every))
         frames = images[indices]
-        if frames.ndim == 5:
-            t, v, c, h, w = frames.shape
-            frames = frames.reshape(t * v, c, h, w)
         frame_embs = self.encode_frames(frames)
         return frame_embs.mean(dim=0)
 
@@ -106,11 +117,9 @@ class WorldModelEncoder(ABC):
         all_frames: list[torch.Tensor] = []
         traj_sizes: list[int] = []  # frames per trajectory after subsampling
         for imgs in trajectories_images:
+            imgs = self._select_primary_view(imgs)
             indices = list(range(0, imgs.shape[0], subsample_every))
             frames = imgs[indices]
-            if frames.ndim == 5:  # (T, V, C, H, W) -> (T*V, C, H, W)
-                t, v, c, h, w = frames.shape
-                frames = frames.reshape(t * v, c, h, w)
             all_frames.append(frames)
             traj_sizes.append(frames.shape[0])
 
@@ -367,11 +376,9 @@ class VJEPA2Encoder(WorldModelEncoder):
         Returns:
             ``(D,)`` trajectory embedding.
         """
+        images = self._select_primary_view(images)
         indices = list(range(0, images.shape[0], subsample_every))
         frames = images[indices]
-        if frames.ndim == 5:
-            t, v, c, h, w = frames.shape
-            frames = frames.reshape(t * v, c, h, w)
 
         frames = to_float01(frames, auto_scale=True)
 
@@ -413,11 +420,9 @@ class VJEPA2Encoder(WorldModelEncoder):
         # Subsample each trajectory and normalise to (T_sub*V, C, H, W)
         clips: list[torch.Tensor] = []
         for imgs in trajectories_images:
+            imgs = self._select_primary_view(imgs)
             indices = list(range(0, imgs.shape[0], subsample_every))
             frames = imgs[indices]
-            if frames.ndim == 5:  # (T, V, C, H, W)
-                t, v, c, h, w = frames.shape
-                frames = frames.reshape(t * v, c, h, w)
             frames = to_float01(frames, auto_scale=True)
             clips.append(frames)  # (F_i, C, H, W)
 

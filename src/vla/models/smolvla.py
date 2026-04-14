@@ -19,6 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file as load_safetensors
+from safetensors.torch import save_file as save_safetensors
 from transformers import AutoProcessor
 
 from vla.env_metadata import EnvMetadata
@@ -79,6 +80,8 @@ class SmolVLAPolicy(nn.Module):
         self.dtype = dtype
         self.checkpoint = checkpoint
         self.eval_zero_sample = False
+        self.eval_fixed_noise_seed: int | None = None
+        self._eval_noise_counter = 0
 
         ckpt_config = self._load_ckpt_config(checkpoint)
         self.ckpt_config = ckpt_config
@@ -127,6 +130,7 @@ class SmolVLAPolicy(nn.Module):
         (e.g. for local-only checkpoints).
         """
         files_to_try = [
+            "policy_postprocessor_step_0_unnormalizer_processor.safetensors",
             "policy_postprocessor_step_1_unnormalizer_processor.safetensors",
             "policy_preprocessor_step_5_normalizer_processor.safetensors",
         ]
@@ -151,11 +155,17 @@ class SmolVLAPolicy(nn.Module):
         if "action.mean" in stats and "action.std" in stats:
             am = stats["action.mean"].float()[:action_dim]
             astd = stats["action.std"].float()[:action_dim]
+            if am.shape != self.action_mean.shape:
+                self.register_buffer("action_mean", torch.zeros_like(am), persistent=True)
+                self.register_buffer("action_std", torch.ones_like(astd), persistent=True)
             self.action_mean.copy_(am)
             self.action_std.copy_(astd)
         if "observation.state.mean" in stats and "observation.state.std" in stats:
             sm = stats["observation.state.mean"].float()[:state_dim]
             sstd = stats["observation.state.std"].float()[:state_dim]
+            if sm.shape != self.state_mean.shape:
+                self.register_buffer("state_mean", torch.zeros_like(sm), persistent=True)
+                self.register_buffer("state_std", torch.ones_like(sstd), persistent=True)
             self.state_mean.copy_(sm)
             self.state_std.copy_(sstd)
         logger.info(
@@ -312,6 +322,38 @@ class SmolVLAPolicy(nn.Module):
     def _to_float01(img: torch.Tensor) -> torch.Tensor:
         return to_float01(img, auto_scale=True)
 
+    def set_eval_fixed_noise(self, seed: int | None) -> None:
+        """Enable deterministic per-call evaluation noise when *seed* is set."""
+        self.eval_fixed_noise_seed = seed
+        self._eval_noise_counter = 0
+
+    def reset_eval_noise(self, seed: int | None = None) -> None:
+        """Reset the deterministic evaluation-noise stream for a new episode/task."""
+        if seed is not None:
+            self.eval_fixed_noise_seed = seed
+        self._eval_noise_counter = 0
+
+    def _build_eval_noise(self, batch_size: int) -> torch.Tensor | None:
+        if self.eval_zero_sample:
+            return torch.zeros(
+                (batch_size, self.chunk_size, self.max_action_dim),
+                device=self.device,
+                dtype=self.dtype,
+            )
+        if self.eval_fixed_noise_seed is None:
+            return None
+
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(self.eval_fixed_noise_seed + self._eval_noise_counter)
+        self._eval_noise_counter += 1
+
+        noise = torch.randn(
+            (batch_size, self.chunk_size, self.max_action_dim),
+            generator=generator,
+            dtype=torch.float32,
+        )
+        return noise.to(self.device, dtype=self.dtype)
+
     def predict_action(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Predict a single action from an image observation.
 
@@ -332,9 +374,7 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=1)
             s = self._prepare_state_input(state, batch_size=1)
-            noise = None
-            if self.eval_zero_sample:
-                noise = torch.zeros((1, self.chunk_size, self.max_action_dim), device=self.device, dtype=self.dtype)
+            noise = self._build_eval_noise(batch_size=1)
             actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[0, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
@@ -360,13 +400,7 @@ class SmolVLAPolicy(nn.Module):
             img_list, mask_list = self._prepare_images(imgs)
             tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
             s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-            noise = None
-            if self.eval_zero_sample:
-                noise = torch.zeros(
-                    (imgs.shape[0], self.chunk_size, self.max_action_dim),
-                    device=self.device,
-                    dtype=self.dtype,
-                )
+            noise = self._build_eval_noise(batch_size=imgs.shape[0])
             actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[:, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
@@ -776,8 +810,14 @@ class SmolVLAPolicy(nn.Module):
     ) -> None:
         """Save full model weights, normalization statistics, and optional metadata.
 
+        Writes both the internal ``policy.pt`` format (used by
+        :meth:`load_checkpoint` / ``scripts/evaluate.py``) **and** the
+        LeRobot-compatible files (``config.json``, ``model.safetensors``,
+        normalizer ``.safetensors``) so the checkpoint works with
+        ``lerobot-eval`` as well.
+
         Args:
-            path: Directory to write ``policy.pt`` into.
+            path: Directory to write checkpoint files into.
             env_metadata: Typed environment metadata.  If ``None`` but keyword
                 arguments are provided, an :class:`EnvMetadata` is constructed
                 from them for backward compatibility.
@@ -801,6 +841,107 @@ class SmolVLAPolicy(nn.Module):
             },
             path / "policy.pt",
         )
+
+        self._save_lerobot_format(path)
+
+    def _save_lerobot_format(self, path: Path) -> None:
+        """Write LeRobot-compatible checkpoint files alongside ``policy.pt``.
+
+        Emits ``config.json``, ``model.safetensors``, the processor JSON
+        pipeline configs, and the normalizer safetensors so that
+        ``lerobot-eval --policy.path=<path>`` works out of the box.
+        """
+        config = dict(self.ckpt_config)
+        config["output_features"] = {
+            "action": {"type": "ACTION", "shape": [self.action_dim]},
+        }
+        state_shape = max(self.state_dim, 1)
+        input_feats = config.get("input_features", {})
+        num_visual = sum(1 for v in input_feats.values() if isinstance(v, dict) and v.get("type") == "VISUAL")
+        if num_visual == 0:
+            input_feats["observation.images.camera1"] = {
+                "type": "VISUAL",
+                "shape": [3, 256, 256],
+            }
+        input_feats["observation.state"] = {
+            "type": "STATE",
+            "shape": [state_shape],
+        }
+        config["input_features"] = input_feats
+        with open(path / "config.json", "w") as f:
+            json.dump(config, f, indent=2)
+
+        prefixed = {f"model.{k}": v for k, v in self.model.state_dict().items()}
+        save_safetensors(prefixed, path / "model.safetensors")
+
+        norm_stats: dict[str, torch.Tensor] = {
+            "action.mean": self.action_mean.detach().cpu().float(),
+            "action.std": self.action_std.detach().cpu().float(),
+            "observation.state.mean": self.state_mean.detach().cpu().float(),
+            "observation.state.std": self.state_std.detach().cpu().float(),
+        }
+        save_safetensors(norm_stats, path / "policy_postprocessor_step_0_unnormalizer_processor.safetensors")
+        save_safetensors(norm_stats, path / "policy_preprocessor_step_5_normalizer_processor.safetensors")
+
+        default_norm_map = {"VISUAL": "IDENTITY", "STATE": "MEAN_STD", "ACTION": "MEAN_STD"}
+        norm_map = config.get("normalization_mapping", default_norm_map)
+        vlm_name = config.get("vlm_model_name", "HuggingFaceTB/SmolVLM2-500M-Video-Instruct")
+        tok_max = config.get("tokenizer_max_length", 48)
+
+        all_features = dict(input_feats)
+        all_features["action"] = {"type": "ACTION", "shape": [self.action_dim]}
+
+        preprocessor = {
+            "name": "policy_preprocessor",
+            "steps": [
+                {"registry_name": "rename_observations_processor", "config": {"rename_map": {}}},
+                {"registry_name": "to_batch_processor", "config": {}},
+                {"registry_name": "smolvla_new_line_processor", "config": {}},
+                {
+                    "registry_name": "tokenizer_processor",
+                    "config": {
+                        "max_length": tok_max,
+                        "task_key": "task",
+                        "padding_side": "right",
+                        "padding": "max_length",
+                        "truncation": True,
+                        "tokenizer_name": vlm_name,
+                    },
+                },
+                {"registry_name": "device_processor", "config": {"device": "cuda", "float_dtype": None}},
+                {
+                    "registry_name": "normalizer_processor",
+                    "config": {
+                        "eps": 1e-8,
+                        "features": all_features,
+                        "norm_map": norm_map,
+                    },
+                    "state_file": "policy_preprocessor_step_5_normalizer_processor.safetensors",
+                },
+            ],
+        }
+        with open(path / "policy_preprocessor.json", "w") as f:
+            json.dump(preprocessor, f, indent=2)
+
+        postprocessor = {
+            "name": "policy_postprocessor",
+            "steps": [
+                {
+                    "registry_name": "unnormalizer_processor",
+                    "config": {
+                        "eps": 1e-8,
+                        "features": {"action": {"type": "ACTION", "shape": [self.action_dim]}},
+                        "norm_map": norm_map,
+                    },
+                    "state_file": "policy_postprocessor_step_0_unnormalizer_processor.safetensors",
+                },
+                {"registry_name": "device_processor", "config": {"device": "cpu", "float_dtype": None}},
+            ],
+        }
+        with open(path / "policy_postprocessor.json", "w") as f:
+            json.dump(postprocessor, f, indent=2)
+
+        logger.info("Saved LeRobot-compatible checkpoint to %s", path)
 
     def load_checkpoint(self, path: str | Path) -> EnvMetadata:
         """Load model weights and normalization statistics from a previously saved checkpoint.

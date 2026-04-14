@@ -6,8 +6,6 @@ from invoke.context import Context
 from invoke.tasks import task
 
 WINDOWS = os.name == "nt"
-PROJECT_NAME = "vla"
-PYTHON_VERSION = "3.11"
 
 JOBS_DIR = Path(__file__).parent / "jobs"
 PROFILES_PATH = JOBS_DIR / "_profiles.yaml"
@@ -30,7 +28,6 @@ LSF_HEADER = """\
 #BSUB -oo logs/{job_name}/%J.out
 # -------------------------------------------------
 """
-
 
 @task
 def lint(ctx: Context, fix: bool = False) -> None:
@@ -69,12 +66,6 @@ def docs(ctx: Context, serve: bool = False) -> None:
 @task
 def download_libero(ctx: Context, suite: str = "all") -> None:
     """Download LIBERO datasets from HuggingFace via LeRobot."""
-    ctx.run(f"uv run python scripts/download_libero.py --suite {suite}", echo=True, pty=not WINDOWS)
-
-
-@task
-def download_libero_data(ctx: Context, suite: str = "all") -> None:
-    """Pre-download Libero data from HuggingFace (cached by LeRobot)."""
     ctx.run(f"uv run python scripts/download_libero.py --suite {suite}", echo=True, pty=not WINDOWS)
 
 

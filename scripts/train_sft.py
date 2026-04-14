@@ -30,6 +30,14 @@ import wandb
 from vla.constants import CHECKPOINTS_DIR, PREPROCESSED_DIR
 from vla.data.dataset import ConcatFewDemoDataset, FewDemoDataset
 from vla.models.smolvla import SmolVLAPolicy
+from vla.results_registry import (
+    get_git_info,
+    get_scheduler_info,
+    now_iso,
+    summarize_metrics_jsonl,
+    write_json,
+    write_training_registry,
+)
 from vla.training.metrics_logger import MetricsLogger
 from vla.training.sft_smolvla import SFTConfig, train_sft
 from vla.utils import get_device, run_id, seed_everything
@@ -208,6 +216,7 @@ def main(
     )
 
     run = None
+    final_name = f"sft_{data_tag}_{demos_tag}_seed{seed}"
     if use_wandb:
         wb_config = config.to_dict()
         wb_config.update(
@@ -223,17 +232,55 @@ def main(
         )
         run = wandb.init(
             project="srpo-smolvla",
-            name=f"sft_{data_tag}_{demos_tag}_seed{seed}",
+            name=final_name,
             config=wb_config,
             resume="allow" if resume else None,
         )
 
+    save_dir_path = Path(config.save_dir)
+    metrics_jsonl_path = save_dir_path / "metrics.jsonl"
+    training_record = {
+        "record_type": "training",
+        "recorded_at": now_iso(),
+        "completed_at": None,
+        "method": "sft",
+        "save_dir": str(save_dir_path),
+        "best_checkpoint_dir": str(save_dir_path / "best"),
+        "last_checkpoint_dir": str(save_dir_path / "last"),
+        "checkpoint": checkpoint,
+        "resume_from": resume or "",
+        "simulator": resolved_simulator,
+        "suite": eval_suite,
+        "env_id": resolved_env_id,
+        "instruction": resolved_instruction,
+        "seed": seed,
+        "num_demos": num_demos,
+        "wandb_run_name": final_name if use_wandb else "",
+        "data_source": "libero" if libero_suite else "pt",
+        "data_tag": data_tag,
+        "config": config.to_dict(),
+        "metrics_jsonl": str(metrics_jsonl_path),
+        **get_git_info(),
+        **get_scheduler_info(),
+    }
+    write_json(save_dir_path / "training_run.json", training_record)
+
     ml = MetricsLogger(
-        jsonl_path=Path(config.save_dir) / "metrics.jsonl",
+        jsonl_path=metrics_jsonl_path,
         wandb_run=run,
     )
 
     train_sft(policy, dataset, config, metrics_logger=ml, instruction=resolved_instruction)
+
+    training_record["completed_at"] = now_iso()
+    training_record.update(
+        summarize_metrics_jsonl(
+            metrics_jsonl_path,
+            eval_key_suffixes=["sft/success_rate"],
+        )
+    )
+    write_json(save_dir_path / "training_run.json", training_record)
+    write_training_registry(training_record)
 
     if run is not None:
         run.finish()

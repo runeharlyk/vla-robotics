@@ -15,12 +15,11 @@
 # -------------------------------------------------
 . jobs/_env.sh
 
-uv run python -m vla evaluate \
-    --model smolvla \
+uv run python scripts/evaluate.py \
     --checkpoint $VLA_WORK3/models/smolvla_train_libero_all_a100.pt \
     --simulator maniskill \
     --env-id PegInsertionSide-v1 \
     --num-episodes 20 \
     --device cuda \
-    --compile \
+    --wandb \
     --wandb-project vla-smolvla-maniskill

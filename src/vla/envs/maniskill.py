@@ -41,7 +41,7 @@ class ManiSkillEnv(SimEnv):
     def __init__(
         self,
         env_id: str,
-        obs_mode: str = "rgbd",
+        obs_mode: str = "rgb",
         control_mode: str = DEFAULT_CONTROL_MODE,
         render_mode: str = "cameras",
         max_episode_steps: int | None = None,
@@ -87,7 +87,7 @@ class ManiSkillEnv(SimEnv):
         """Normalise ManiSkill obs into a common raw dict."""
         out: dict = {"pixels": {}, "agent_state": None}
 
-        # Some envs use 'image' (rgbd), others use 'sensor_data' (rgb+state).
+        # Some envs use 'image' (rgb), others use 'sensor_data' (rgb+state).
         image_dict: dict = {}
         if "image" in obs:
             image_dict = obs["image"]
@@ -103,17 +103,23 @@ class ManiSkillEnv(SimEnv):
                 parts = []
                 for key in ("qpos", "qvel"):
                     if key in obs["agent"]:
-                        parts.append(np.asarray(obs["agent"][key]).flatten())
+                        parts.append(self._to_numpy(obs["agent"][key]).flatten())
                 if parts:
                     out["agent_state"] = np.concatenate(parts)
             else:
-                out["agent_state"] = np.asarray(obs["agent"]).flatten()
+                out["agent_state"] = self._to_numpy(obs["agent"]).flatten()
 
         return out
 
     @staticmethod
-    def _to_uint8(arr: np.ndarray) -> np.ndarray:
-        arr = np.asarray(arr)
+    def _to_numpy(arr: Any) -> np.ndarray:
+        if isinstance(arr, torch.Tensor):
+            arr = arr.detach().cpu().numpy()
+        return np.asarray(arr)
+
+    @classmethod
+    def _to_uint8(cls, arr: Any) -> np.ndarray:
+        arr = cls._to_numpy(arr)
         if arr.dtype == np.float32 or arr.dtype == np.float64:
             arr = (arr * 255).clip(0, 255).astype(np.uint8)
         if arr.ndim == 4:
@@ -167,7 +173,7 @@ class ManiSkillEnvFactory:
         instruction: str = "",
         max_episode_steps: int | None = None,
         image_size: int = 256,
-        obs_mode: str = "rgbd",
+        obs_mode: str = "rgb",
         control_mode: str = DEFAULT_CONTROL_MODE,
     ):
         self._env_id = env_id

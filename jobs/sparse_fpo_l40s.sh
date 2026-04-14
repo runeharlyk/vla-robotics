@@ -23,18 +23,18 @@ uv run python scripts/train_srpo.py \
   --simulator libero \
   --suite spatial \
   --libero-suite spatial \
-  --task-ids 2 \
+  --task-ids 5 \
   --mode sparse_rl \
   --update-method fpo \
   --advantage-mode leave_one_out \
   --seed 42 \
-  --lr 5e-06 \
+  --lr 3e-06 \
   --max-grad-norm 10.0 \
   --iterations 100 \
-  --trajs-per-task 48 \
+  --trajs-per-task 32 \
   --num-rollout-envs 8 \
   --fm-batch-size 64 \
-  --ppo-epochs 2 \
+  --ppo-epochs 1 \
   --clip-epsilon 0.05 \
   --clip-epsilon-high 0.08 \
   --num-fm-noise-samples 4 \
@@ -42,9 +42,13 @@ uv run python scripts/train_srpo.py \
   --kl-coeff 0.01 \
   --adv-eps 1e-8 \
   --adv-skip-threshold 1e-6 \
-  --eval-every 10 \
+  --eval-every 25 \
   --eval-episodes 100 \
   --max-steps 220 \
+  --success-replay-total-size 64 \
+  --success-replay-alpha 1.0 \
+  --success-replay-ema-decay 0.8 \
+  --success-replay-max-ratio 0.5 \
   --gradient-checkpointing \
-  --wandb-name "v14-t2-epochs2-trajs48" \
+  --wandb-name "v22-t5-replay-only" \
   --wandb

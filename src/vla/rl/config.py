@@ -32,6 +32,7 @@ class SRPOConfig(BaseTrainingConfig):
     awr_temperature: float = 5.0
     awr_weight_clip: float = 20.0
     kl_coeff: float = 0.01
+    sft_kl_coeff: float = 0.0
     save_dir: str = "checkpoints/srpo"
     mode: Mode = Mode.SRPO
     world_model_type: WorldModelType = WorldModelType.VJEPA2
@@ -45,7 +46,7 @@ class SRPOConfig(BaseTrainingConfig):
     task_id: int = 0
     state_dim: int = 0
     num_rollout_envs: int = 1
-    num_eval_envs: int = 1
+    num_envs: int = 1
     fm_batch_size: int = 32
     gradient_checkpointing: bool = False
     use_failure_rewards: bool = True
@@ -60,6 +61,12 @@ class SRPOConfig(BaseTrainingConfig):
     adaptive_kl: bool = False
     kl_target: float = 0.01
     kl_adapt_factor: float = 1.5
+    include_demos_in_update: bool = False
+    success_replay_buffer_size: int = 0
+    success_replay_total_size: int = 0
+    success_replay_alpha: float = 1.0
+    success_replay_ema_decay: float = 0.8
+    success_replay_max_ratio: float = 1.0
 
 
 @dataclass
