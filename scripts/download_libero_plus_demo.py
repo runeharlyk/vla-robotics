@@ -30,6 +30,11 @@ def download_by_column(repo, split, save_dir, group_col, num_samples):
             break
 
 def download_by_configs(repo, split, save_dir, num_samples):
+    """
+    So the creator of libero plus decided it would be smart to use unsupported file type of zip, z01, z02, etc. for the dataset
+    Therefore this form of downloading is just not possible so this function is practically useless, but I will keep it here for posterity 
+    and in case they change the dataset structure in the future which would be smart, even huggingface does not like it.
+    """
     configs = get_dataset_config_names(repo)
     print(f"Found {len(configs)} dataset configs (noise types): {configs}")
     
