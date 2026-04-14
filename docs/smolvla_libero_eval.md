@@ -9,57 +9,76 @@
 
 | Suite | `pc_success` | `eval_s` | `eval_ep_s` |
 | ----- | ------------ | -------- | ----------- |
-| `libero_spatial` | **74.1%** | 29678 s (~8.2 h) | 29.7 s |
+| `libero_spatial` | **80.9%** | - | - |
 | `libero_object` | **86.3%** | 24585 s (~6.8 h) | 24.6 s |
 
-## libero_spatial
+## libero_spatial (SFT)
 
-### Command
+This is the baseline model trained with supervised fine-tuning.
 
-```sh
-uv run lerobot-eval \
-  --policy.path=HuggingFaceVLA/smolvla_libero \
-  --env.type=libero \
-  --env.task=libero_spatial \
-  --env.control_mode=relative \
-  --eval.batch_size=8 \
-  --eval.n_episodes=100 \
-  --policy.device=cuda \
-  --policy.use_amp=true \
-  --env.max_parallel_tasks=1 \
-  --seed=42
-```
+### Run Info
 
-This aggregate run used **1000** episodes (100 per task).
+- **Model:** `HuggingFaceVLA/smolvla_libero`
+- **Eval finished:** 2026-04-08
+- **Protocol:** 10 tasks × 100 episodes = 1000 episodes
 
 ### Per-Task Results
 
 | Task ID | Success Rate |
 | ------- | ------------ |
-| 0 | 71.0% |
-| 1 | 85.0% |
-| 2 | 87.0% |
-| 3 | 61.0% |
-| 4 | 83.0% |
-| 5 | 52.0% |
-| 6 | 80.0% |
-| 7 | 81.0% |
-| 8 | 83.0% |
-| 9 | 58.0% |
+| 0 | 78.0% |
+| 1 | 97.0% |
+| 2 | 48.0% |
+| 3 | 87.0% |
+| 4 | 85.0% |
+| 5 | 76.0% |
+| 6 | 92.0% |
+| 7 | 76.0% |
+| 8 | 96.0% |
+| 9 | 74.0% |
 
 ### Aggregate Metrics
 
 | Metric | Value |
 | ------ | ----- |
-| `pc_success` | **74.1%** |
-| `avg_sum_reward` | 0.741 |
-| `avg_max_reward` | 0.741 |
+| `pc_success` | **80.9%** |
+| `avg_sum_reward` | 0.809 |
 | `n_episodes` | 1000 |
-| `eval_s` (total) | 29678.33 s (~494.6 min) |
-| `eval_ep_s` (per episode) | 29.678 s |
 
-Recorded videos: 10 episodes per task (100 MP4 files total) under `outputs/eval/2026-03-25/22-32-46_libero_smolvla/videos/libero_spatial_<task_id>/eval_episode_*.mp4`.
-Aggregate metrics cover all 1000 episodes.
+---
+
+## libero_spatial (Sparse RL)
+
+Fine-tuned using Sparse RL (FPO) on top of the SFT checkpoint.
+
+### Run Info
+
+- **Checkpoint:** `checkpoints/sparse_rl/spatial_task_5_seed42_28188629/best`
+- **Eval finished:** 2026-04-13
+- **Protocol:** 10 tasks × 100 episodes = 1000 episodes
+
+### Per-Task Results
+
+| Task ID | Success Rate |
+| ------- | ------------ |
+| 0 | 83.0% |
+| 1 | 99.0% |
+| 2 | 40.0% |
+| 3 | 82.0% |
+| 4 | 94.0% |
+| 5 | 84.0% |
+| 6 | 84.0% |
+| 7 | 61.0% |
+| 8 | 99.0% |
+| 9 | 62.0% |
+
+### Aggregate Metrics
+
+| Metric | Value |
+| ------ | ----- |
+| `pc_success` | **78.8%** |
+| `avg_sum_reward` | 0.788 |
+| `n_episodes` | 1000 |
 
 ---
 
@@ -69,8 +88,7 @@ Aggregate metrics cover all 1000 episodes.
 **Eval finished (log):** 2026-03-26 17:55:45 (`bot_eval.py`)  
 **Protocol:** 10 tasks × 100 episodes = 1000 episodes (`libero_object`)
 
-On this suite, the same policy reaches **86.3%** success versus **74.1%** on `libero_spatial`.
-Wall time per episode is lower (~24.6 s vs ~29.7 s).
+On this suite, the same policy reaches **86.3%** success versus **80.9%** on `libero_spatial` (SFT baseline).
 
 ### Command
 
@@ -121,10 +139,10 @@ Aggregate metrics cover all 1000 episodes.
 
 ## Raw metrics (eval log)
 
-`libero_spatial` — overall aggregated metrics:
+`libero_spatial` — overall aggregated metrics (SFT):
 
 ```text
-{'avg_sum_reward': 0.741, 'avg_max_reward': 0.741, 'pc_success': 74.1, 'n_episodes': 1000, 'eval_s': 29678.333701610565, 'eval_ep_s': 29.678333701848985, 'video_paths': [...]}
+{'avg_sum_reward': 0.809, 'pc_success': 80.9, 'n_episodes': 1000}
 ```
 
 `libero_object` — overall aggregated metrics:
