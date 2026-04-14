@@ -12,7 +12,7 @@ from pathlib import Path
 
 import torch
 
-from vla.constants import LiberoSuite, OUTPUTS_DIR, Simulator
+from vla.constants import OUTPUTS_DIR, LiberoSuite, Simulator
 from vla.envs import SimEnv, make_env_factory
 from vla.rl.config import TaskSpec
 from vla.rl.rollout import Trajectory
@@ -213,4 +213,3 @@ def replay_demo_rollouts(
             env.close()
 
     return replayed
-

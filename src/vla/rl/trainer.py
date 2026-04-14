@@ -313,7 +313,9 @@ def _rebalance_success_buffer(
         overfull = [tid for tid in active_task_ids if len(success_buffer[tid]) > quotas.get(tid, 0)]
         if not overfull:
             overfull = [tid for tid in active_task_ids if success_buffer[tid]]
-        evict_tid = max(overfull, key=lambda tid: (len(success_buffer[tid]) - quotas.get(tid, 0), len(success_buffer[tid])))
+        evict_tid = max(
+            overfull, key=lambda tid: (len(success_buffer[tid]) - quotas.get(tid, 0), len(success_buffer[tid]))
+        )
         success_buffer[evict_tid].pop(0)
         total_size -= 1
         if not success_buffer[evict_tid]:
@@ -634,13 +636,13 @@ def train_srpo(
         reward_model = MultiTaskWorldProgressReward(world_encoder, reward_cfg)
 
         if demo_trajectories:
-            for tid, demos in demo_trajectories.items():
+            for _tid, demos in demo_trajectories.items():
                 demo_images = []
                 for dt in demos:
                     imgs = dt.images[: dt.length]
                     imgs = to_float01(imgs)
                     demo_images.append(imgs)
-                reward_model.add_demo_trajectories(tid, demo_images)
+                reward_model.add_demo_trajectories(_tid, demo_images)
 
     save_path = Path(config.save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
@@ -689,13 +691,13 @@ def train_srpo(
 
         total_rollout_successes = sum(per_task_successes.values())
         rate_floor = 1.0 / max(trajs_per_task_per_iter, 1)
-        for tid, n_success in per_task_successes.items():
+        for _tid, n_success in per_task_successes.items():
             rollout_sr = n_success / max(trajs_per_task_per_iter, 1)
             if iteration == 1:
-                success_rate_ema[tid] = rollout_sr
+                success_rate_ema[_tid] = rollout_sr
             else:
-                prev = success_rate_ema.get(tid, rollout_sr)
-                success_rate_ema[tid] = (
+                prev = success_rate_ema.get(_tid, rollout_sr)
+                success_rate_ema[_tid] = (
                     config.success_replay_ema_decay * prev + (1.0 - config.success_replay_ema_decay) * rollout_sr
                 )
 
@@ -715,7 +717,7 @@ def train_srpo(
 
         extra_trajectories: list[Trajectory] = []
         if config.include_demos_in_update and demo_trajectories:
-            for tid, demos in demo_trajectories.items():
+            for _tid, demos in demo_trajectories.items():
                 extra_trajectories.extend(demos)
 
         if replay_capacity > 0:
@@ -748,14 +750,14 @@ def train_srpo(
                 replay_capacity,
                 sum(len(buf) for buf in success_buffer.values()),
             )
-            for tid in sorted(replay_counts):
+            for _tid in sorted(replay_counts):
                 logger.info(
                     "  [replay %s] sampled=%d buffered=%d quota=%d sr_ema=%.4f",
-                    tid,
-                    replay_counts[tid],
-                    len(success_buffer[tid]),
-                    buffer_quotas.get(tid, 0),
-                    success_rate_ema.get(tid, 0.0),
+                    _tid,
+                    replay_counts[_tid],
+                    len(success_buffer[_tid]),
+                    buffer_quotas.get(_tid, 0),
+                    success_rate_ema.get(_tid, 0.0),
                 )
 
         # -- 2. Per-task rewards g_i --------------------------------------
@@ -770,8 +772,8 @@ def train_srpo(
                 if t.success:
                     by_task_embs[t.task_id].append(traj_embs[i])
 
-            for tid, embs in by_task_embs.items():
-                reward_model.add_successful_embeddings(tid, embs)
+            for _tid, embs in by_task_embs.items():
+                reward_model.add_successful_embeddings(_tid, embs)
         else:
             g_values = [1.0 if t.success else 0.0 for t in all_trajectories]
             all_diags = None
@@ -811,8 +813,8 @@ def train_srpo(
                 f"{config.mode}/total_successes": total_successes,
                 f"{config.mode}/iteration": iteration,
             }
-            for tid in per_task_g_mean:
-                log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean[tid]
+            for _tid in per_task_g_mean:
+                log_data[f"{config.mode}/{_tid}/g_mean"] = per_task_g_mean[_tid]
             metrics_logger.log(log_data)
             continue
 
@@ -944,17 +946,17 @@ def train_srpo(
             log_data[f"{config.mode}/kl_coeff"] = config.kl_coeff
             log_data[f"{config.mode}/sft_kl_coeff"] = config.sft_kl_coeff
 
-        for tid, n_succ in per_task_successes.items():
-            log_data[f"{config.mode}/{tid}/successes"] = n_succ
-            log_data[f"{config.mode}/{tid}/g_mean"] = per_task_g_mean.get(tid, 0.0)
-            log_data[f"{config.mode}/{tid}/success_rate_ema"] = success_rate_ema.get(tid, 0.0)
-            log_data[f"{config.mode}/{tid}/success_buffer_size"] = len(success_buffer.get(tid, []))
-            log_data[f"{config.mode}/{tid}/success_buffer_quota"] = buffer_quotas.get(tid, 0)
-            log_data[f"{config.mode}/{tid}/replay_successes"] = replay_counts.get(tid, 0)
+        for _tid, n_succ in per_task_successes.items():
+            log_data[f"{config.mode}/{_tid}/successes"] = n_succ
+            log_data[f"{config.mode}/{_tid}/g_mean"] = per_task_g_mean.get(_tid, 0.0)
+            log_data[f"{config.mode}/{_tid}/success_rate_ema"] = success_rate_ema.get(_tid, 0.0)
+            log_data[f"{config.mode}/{_tid}/success_buffer_size"] = len(success_buffer.get(_tid, []))
+            log_data[f"{config.mode}/{_tid}/success_buffer_quota"] = buffer_quotas.get(_tid, 0)
+            log_data[f"{config.mode}/{_tid}/replay_successes"] = replay_counts.get(_tid, 0)
         if all_diags is not None:
-            for tid, diag in all_diags.items():
+            for _tid, diag in all_diags.items():
                 if diag is not None:
-                    log_data.update(diag.as_dict(prefix=f"{config.mode}/{tid}/cluster"))
+                    log_data.update(diag.as_dict(prefix=f"{config.mode}/{_tid}/cluster"))
 
         ratio_info = ""
         if config.update_method is UpdateMethod.FPO:
@@ -973,8 +975,8 @@ def train_srpo(
             f"  sft_kl={update_metrics.avg_sft_kl:.6f}"
             f"  successes={total_successes}/{M}{ratio_info}"
         )
-        for tid in per_task_successes:
-            logger.info(f"  [{tid}] successes={per_task_successes[tid]}  g_mean={per_task_g_mean.get(tid, 0.0):.4f}")
+        for _tid in per_task_successes:
+            logger.info(f"  [{_tid}] successes={per_task_successes[_tid]}  g_mean={per_task_g_mean.get(_tid, 0.0):.4f}")
 
         # -- 8. Periodic evaluation ---------------------------------------
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:

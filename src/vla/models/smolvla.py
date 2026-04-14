@@ -857,9 +857,7 @@ class SmolVLAPolicy(nn.Module):
         }
         state_shape = max(self.state_dim, 1)
         input_feats = config.get("input_features", {})
-        num_visual = sum(
-            1 for v in input_feats.values() if isinstance(v, dict) and v.get("type") == "VISUAL"
-        )
+        num_visual = sum(1 for v in input_feats.values() if isinstance(v, dict) and v.get("type") == "VISUAL")
         if num_visual == 0:
             input_feats["observation.images.camera1"] = {
                 "type": "VISUAL",

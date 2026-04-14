@@ -84,9 +84,8 @@ def append_jsonl(path: Path | str, payload: dict[str, Any]) -> Path:
     out_path = Path(path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = out_path.with_suffix(out_path.suffix + ".lock")
-    with _file_lock(lock_path):
-        with open(out_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(to_json_serializable(payload)) + "\n")
+    with _file_lock(lock_path), open(out_path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(to_json_serializable(payload)) + "\n")
     return out_path
 
 
