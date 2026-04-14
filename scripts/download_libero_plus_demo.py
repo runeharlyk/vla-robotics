@@ -46,7 +46,7 @@ def download_by_configs(repo, split, save_dir, num_samples):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download a subset of trajectories per LIBERO-plus noise type.")
     
-    parser.add_argument("--repo", type=str, default="Sylvest/libero_plus_lerobot",
+    parser.add_argument("--repo", type=str, default="Sylvest/libero_plus_rlds",
                         help="Hugging Face dataset repo (e.g., Sylvest/libero_plus_lerobot)")
     parser.add_argument("--samples", type=int, default=1,
                         help="Number of samples to download per noise type")
