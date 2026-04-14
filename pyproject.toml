@@ -38,7 +38,6 @@ dependencies = [
     "robosuite==1.4.0; sys_platform == 'linux'",
     "libero>=0.1.0; sys_platform == 'linux'",
     "pyyaml>=6.0",
-    "num2words>=0.5.14",
     "scikit-learn>=1.8.0",
     "h5py>=3.15.1",
     "tqdm>=4.67.3",
@@ -105,7 +104,7 @@ exclude = [
   "build",
   "dist"
 ]
-pythonVersion = "3.12"
+pythonVersion = "3.11"
 typeCheckingMode = "standard"
 reportMissingImports = true
 reportMissingTypeStubs = false
