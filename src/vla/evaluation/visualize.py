@@ -3,7 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import torch
 import typer
+
+from vla.evaluation.runtime import (
+    EvalConfig,
+    make_runtime_env_factory,
+    predict_action_from_batch,
+    resolve_eval_runtime,
+)
+from vla.utils import seed_everything
 
 
 def _save_video(frames: list, path: Path, fps: int = 30) -> None:
@@ -20,7 +29,6 @@ def _save_video(frames: list, path: Path, fps: int = 30) -> None:
 
 
 def main(
-    model: str = typer.Option("smolvla", "--model", "-m"),
     checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
     simulator: str = typer.Option("libero", "--simulator"),
     suite: str = typer.Option("long", "--suite", "-s"),
@@ -32,33 +40,31 @@ def main(
     fps: int = typer.Option(30, "--fps"),
     seed: int = typer.Option(0, "--seed"),
 ) -> None:
-    import torch
     from tqdm import tqdm
 
-    from vla.evaluation.evaluate import _make_factory
-    from vla.models import load_policy
-
-    device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
-
-    loaded = load_policy(model, checkpoint, device)
-    policy = loaded.policy
-    policy.eval()
-
-    preprocessor = loaded.preprocessor
-    postprocessor = loaded.postprocessor
-
-    env_factory = _make_factory(simulator, suite=suite, env_id=env_id, state_dim=loaded.state_dim)
+    seed_everything(seed)
+    runtime = resolve_eval_runtime(
+        EvalConfig(
+            checkpoint=checkpoint,
+            simulator=simulator,
+            suite=suite,
+            env_id=env_id,
+            device=device,
+        )
+    )
+    runtime.policy.eval()
+    env_factory = make_runtime_env_factory(runtime)
 
     task_ids = list(range(env_factory.num_tasks))
     if tasks is not None:
         task_ids = [int(t.strip()) for t in tasks.split(",")]
 
-    out = Path(output_dir) / model / env_factory.suite_name
+    out = Path(output_dir) / runtime.checkpoint_tag / env_factory.suite_name
     out.mkdir(parents=True, exist_ok=True)
 
     total_videos = len(task_ids) * episodes
     print(f"\nRecording {total_videos} videos -> {out}/")
-    print(f"Model: {model}, Simulator: {simulator}, Suite/Task: {env_factory.suite_name}")
+    print(f"Checkpoint: {runtime.checkpoint_tag}, Simulator: {simulator}, Suite/Task: {env_factory.suite_name}")
     print(f"Tasks: {task_ids}, Episodes/task: {episodes}\n")
 
     task_bar = tqdm(task_ids, desc="Tasks", unit="task", position=0)
@@ -72,22 +78,17 @@ def main(
         ep_bar = tqdm(range(episodes), desc="  Episodes", unit="ep", position=1, leave=False)
         for ep in ep_bar:
             obs_raw, info = env.reset(seed=seed + ep)
-            policy.reset()
             frames: list[np.ndarray] = [env.get_frame(obs_raw)]
             success = False
 
             step_bar = tqdm(range(max_steps), desc="    Steps", unit="step", position=2, leave=False)
             for _step in step_bar:
-                batch = env.obs_to_batch(obs_raw, device=device_obj)
-                batch = preprocessor(batch)
+                batch = env.obs_to_batch(obs_raw, device=runtime.device)
 
                 with torch.no_grad():
-                    action = policy.select_action(batch)
+                    action = predict_action_from_batch(runtime.policy, batch, runtime.instruction)
 
-                action = postprocessor(action)
                 action_np = action.to("cpu").numpy()
-                if action_np.ndim == 2:
-                    action_np = action_np[0]
 
                 obs_raw, reward, terminated, truncated, info = env.step(action_np)
                 frames.append(env.get_frame(obs_raw))

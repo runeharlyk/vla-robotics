@@ -72,7 +72,6 @@ def download_libero(ctx: Context, suite: str = "all") -> None:
 @task
 def evaluate(
     ctx: Context,
-    model: str = "smolvla",
     checkpoint: str = "HuggingFaceVLA/smolvla_libero",
     simulator: str = "libero",
     suite: str = "all",
@@ -82,8 +81,8 @@ def evaluate(
 ) -> None:
     env_flag = f"--env-id {env_id}" if env_id else ""
     cmd = (
-        f"uv run python -m vla evaluate "
-        f"--model {model} --checkpoint {checkpoint} --simulator {simulator} "
+        f"uv run python scripts/evaluate.py "
+        f"--checkpoint {checkpoint} --simulator {simulator} "
         f"--suite {suite} {env_flag} --num-episodes {num_episodes} --device {device}"
     )
     ctx.run(cmd, echo=True, pty=not WINDOWS)

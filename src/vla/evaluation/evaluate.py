@@ -1,200 +1,244 @@
+"""Checkpoint evaluation runner."""
+
 from __future__ import annotations
 
-import torch
-import typer
-import wandb
-from tqdm import tqdm
+import logging
+from pathlib import Path
+from typing import Any
 
-from vla.envs import SimEnvFactory, make_env_factory
-from vla.models import load_policy
+from vla.diagnostics.eval import evaluate_smolvla, print_metrics
+from vla.evaluation.runtime import EvalConfig, resolve_eval_runtime
+from vla.results_registry import (
+    RESULTS_DIR,
+    find_training_metadata,
+    flatten_task_metrics,
+    get_git_info,
+    get_scheduler_info,
+    load_json_if_exists,
+    now_iso,
+    sanitize_name,
+    write_eval_registry,
+    write_json,
+)
+from vla.training.metrics_logger import MetricsLogger
+from vla.utils import seed_everything
 
-app = typer.Typer(no_args_is_help=True)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 
-@app.command()
-def evaluate(
-    model: str = typer.Option("smolvla", "--model", "-m"),
-    checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
-    simulator: str = typer.Option("libero", "--simulator"),
-    suite: str = typer.Option("all", "--suite", "-s"),
-    env_id: str = typer.Option(None, "--env-id"),
-    num_episodes: int = typer.Option(20, "--num-episodes", "-n"),
-    device: str = typer.Option("cuda", "--device", "-d"),
-    wandb_project: str | None = typer.Option(None, "--wandb-project"),
-    compile_model: bool = typer.Option(False, "--compile/--no-compile"),
+def _build_eval_log_prefix(simulator: str, suite: str, task_payload: dict[str, Any]) -> str:
+    if simulator.lower() == "libero":
+        return f"eval/{suite}/task_{task_payload['task_id']}"
+    return f"eval/{simulator}/task_{task_payload['task_id']}"
+
+
+def _log_eval_metrics(
+    metrics_logger: MetricsLogger | None,
+    simulator: str,
+    suite: str,
+    task_payload: dict[str, Any],
 ) -> None:
-    device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
+    if metrics_logger is None:
+        return
 
-    if device_obj.type == "cuda":
-        torch.backends.cudnn.benchmark = True
+    prefix = _build_eval_log_prefix(simulator, suite, task_payload)
+    log_data = {
+        f"{prefix}/success_rate": task_payload["success_rate"],
+        f"{prefix}/successes": task_payload["successes"],
+        f"{prefix}/num_episodes": task_payload["num_episodes"],
+        f"{prefix}/mean_reward": task_payload["mean_reward"],
+        f"{prefix}/mean_episode_length": task_payload["mean_episode_length"],
+    }
+    if "task_index" in task_payload:
+        log_data["eval/progress/tasks_completed"] = int(task_payload["task_index"]) + 1
+    if "tasks_total" in task_payload:
+        log_data["eval/progress/tasks_total"] = task_payload["tasks_total"]
+    metrics_logger.log(log_data)
 
-    loaded = load_policy(model, checkpoint, device)
-    policy = loaded.policy
-    policy.eval()
 
-    if compile_model and hasattr(torch, "compile"):
-        policy = torch.compile(policy, mode="default")
+def _default_eval_name(
+    simulator: str,
+    suite: str,
+    checkpoint_dir: Path | None,
+    checkpoint: str,
+    wandb_name: str | None,
+) -> str:
+    if wandb_name:
+        return wandb_name
+    checkpoint_tag = checkpoint_dir.name if checkpoint_dir else checkpoint.split("/")[-1]
+    return f"eval_{simulator}_{suite}_{checkpoint_tag}"
 
-    preprocessor = loaded.preprocessor
-    postprocessor = loaded.postprocessor
 
-    if simulator.lower() == "libero" and suite.lower() == "all":
-        from vla.constants import resolve_suites
+def _append_task_payload(
+    task_payloads: list[dict[str, Any]],
+    metrics_logger: MetricsLogger | None,
+    simulator: str,
+    suite: str,
+    _task_id: int,
+    payload: dict[str, Any],
+) -> None:
+    task_payloads.append(dict(payload))
+    _log_eval_metrics(metrics_logger, simulator, suite, payload)
 
-        libero_suites = [s for s in resolve_suites("all") if s != "long"]
-        factories = [
-            _make_factory(simulator, suite=s, env_id=env_id, state_dim=loaded.state_dim) for s in libero_suites
-        ]
-        suite_label = "all (object, spatial, goal)"
+
+def run_evaluation(config: EvalConfig) -> None:
+    """Evaluate a saved policy checkpoint and persist the result."""
+    wandb_run = None
+    metrics_logger: MetricsLogger | None = None
+    task_payloads: list[dict[str, Any]] = []
+
+    seed_everything(config.seed)
+    runtime = resolve_eval_runtime(config)
+
+    if config.checkpoint_dir is not None:
+        logger.info(
+            "Loaded checkpoint from %s (action_dim=%d, state_dim=%d, env_metadata=%s)",
+            config.checkpoint_dir,
+            runtime.action_dim,
+            runtime.state_dim,
+            runtime.env_meta,
+        )
     else:
-        factories = [_make_factory(simulator, suite=suite, env_id=env_id, state_dim=loaded.state_dim)]
-        suite_label = factories[0].suite_name
+        logger.info(
+            "Using base checkpoint %s (action_dim=%d, state_dim=%d)",
+            config.checkpoint,
+            runtime.action_dim,
+            runtime.state_dim,
+        )
 
-    print(f"  Model: {model}, Action dim: {loaded.action_dim}, State dim: {loaded.state_dim}")
-    print(f"  Simulator: {simulator}, Suite/Task: {suite_label}")
-    print(f"  Device: {device_obj}")
+    tag = str(config.checkpoint_dir) if config.checkpoint_dir else config.checkpoint
 
-    if wandb_project:
-        wandb.init(project=wandb_project, name=f"eval-{model}", config={"checkpoint": checkpoint})
+    log_bits = [f"simulator={config.simulator}"]
+    if config.simulator.lower() == "libero":
+        log_bits.append(f"suite={config.suite}")
+        if config.task_id is not None:
+            log_bits.append(f"task_id={config.task_id}")
+    else:
+        log_bits.append(f"env_id={runtime.env_id}")
+    log_bits.append(f"device={runtime.device}")
+    log_bits.append(f"control_mode={runtime.control_mode}")
+    log_bits.append(f"max_steps={runtime.max_steps}")
+    if config.instruction:
+        log_bits.append(f"instruction={config.instruction!r}")
+    logger.info("Evaluating: %s", "  ".join(log_bits))
+
+    resolved_run_name = _default_eval_name(
+        config.simulator,
+        config.suite,
+        config.checkpoint_dir,
+        config.checkpoint,
+        config.wandb_name,
+    )
+
+    if config.use_wandb:
+        import wandb
+
+        wandb_run = wandb.init(
+            project=config.wandb_project,
+            entity=config.wandb_entity,
+            name=resolved_run_name,
+            config={
+                "checkpoint": config.checkpoint,
+                "checkpoint_dir": str(config.checkpoint_dir) if config.checkpoint_dir else None,
+                "simulator": config.simulator,
+                "suite": config.suite,
+                "env_id": runtime.env_id,
+                "num_episodes": config.num_episodes,
+                "num_envs": config.num_envs,
+                "max_steps": runtime.max_steps,
+                "seed": config.seed,
+                "fixed_noise_seed": config.fixed_noise_seed,
+                "task_id": config.task_id,
+                "device": str(runtime.device),
+            },
+        )
+        metrics_logger = MetricsLogger(wandb_run=wandb_run)
 
     try:
-        results = {}
-        for env_factory in factories:
-            suite_results = _run_eval(
-                policy,
-                preprocessor,
-                postprocessor,
-                env_factory,
-                num_episodes,
-                device_obj,
+        metrics = evaluate_smolvla(
+            runtime.policy,
+            instruction=runtime.instruction,
+            simulator=config.simulator,
+            env_id=runtime.env_id,
+            num_episodes=config.num_episodes,
+            num_envs=config.num_envs,
+            task_id=config.task_id,
+            max_steps=runtime.max_steps,
+            seed=config.seed,
+            control_mode=runtime.control_mode,
+            suite=config.suite,
+            fixed_noise_seed=config.fixed_noise_seed,
+            task_metrics_callback=lambda current_task_id, payload: _append_task_payload(
+                task_payloads,
+                metrics_logger,
+                config.simulator,
+                config.suite,
+                current_task_id,
+                payload,
+            ),
+        )
+        print_metrics(metrics, tag=tag)
+
+        if metrics_logger is not None:
+            if config.simulator.lower() == "libero":
+                overall_prefix = f"eval/{config.suite}"
+            else:
+                overall_prefix = f"eval/{config.simulator}"
+            metrics_logger.log(
+                {
+                    f"{overall_prefix}/overall/success_rate": metrics.success_rate,
+                    f"{overall_prefix}/overall/successes": metrics.successes,
+                    f"{overall_prefix}/overall/num_episodes": metrics.num_episodes,
+                    f"{overall_prefix}/overall/mean_reward": metrics.mean_reward,
+                    f"{overall_prefix}/overall/mean_episode_length": metrics.mean_episode_length,
+                    f"{overall_prefix}/overall/median_episode_length": metrics.median_episode_length,
+                }
             )
-            results.update(suite_results)
-        _print_results(results, model)
+
+        training_metadata_path = find_training_metadata(config.checkpoint_dir)
+        training_metadata = load_json_if_exists(training_metadata_path)
+        eval_record = {
+            "record_type": "evaluation",
+            "recorded_at": now_iso(),
+            "eval_name": resolved_run_name,
+            "checkpoint": config.checkpoint,
+            "checkpoint_dir": str(config.checkpoint_dir) if config.checkpoint_dir else "",
+            "tag": tag,
+            "simulator": config.simulator,
+            "suite": config.suite,
+            "env_id": runtime.env_id,
+            "instruction": runtime.instruction,
+            "control_mode": runtime.control_mode,
+            "num_episodes": config.num_episodes,
+            "num_envs": config.num_envs,
+            "max_steps": runtime.max_steps,
+            "seed": config.seed,
+            "fixed_noise_seed": config.fixed_noise_seed,
+            "task_id": config.task_id,
+            "device": str(runtime.device),
+            "wandb_run_name": resolved_run_name if config.use_wandb else "",
+            "success_rate": metrics.success_rate,
+            "successes": metrics.successes,
+            "mean_reward": metrics.mean_reward,
+            "mean_episode_length": metrics.mean_episode_length,
+            "median_episode_length": metrics.median_episode_length,
+            "task_metrics": task_payloads,
+            "training_metadata_path": str(training_metadata_path) if training_metadata_path else "",
+            "training_method": (training_metadata or {}).get("method", ""),
+            "training_save_dir": (training_metadata or {}).get("save_dir", ""),
+            "training_git_commit": (training_metadata or {}).get("git_commit", ""),
+            **get_git_info(),
+            **get_scheduler_info(),
+        }
+        eval_slug = sanitize_name(resolved_run_name)
+        eval_json_path = RESULTS_DIR / "evals" / f"{eval_slug}.json"
+        write_json(eval_json_path, eval_record)
+
+        eval_registry_row = {k: v for k, v in eval_record.items() if k not in {"task_metrics", "instruction"}}
+        eval_registry_row["result_json"] = str(eval_json_path)
+        eval_registry_row.update(flatten_task_metrics(task_payloads))
+        write_eval_registry(eval_registry_row)
     finally:
-        if wandb_project and wandb.run is not None:
-            wandb.finish()
-
-
-def _make_factory(
-    simulator: str,
-    suite: str | None = None,
-    env_id: str | None = None,
-    state_dim: int = 8,
-) -> SimEnvFactory:
-    sim = simulator.lower()
-    kwargs: dict = {}
-
-    if sim == "libero":
-        kwargs["suite"] = suite or "all"
-        kwargs["state_dim"] = state_dim
-    elif sim == "maniskill":
-        if not env_id:
-            raise typer.BadParameter("--env-id is required for ManiSkill evaluation")
-        from vla.constants import MANISKILL_TASKS
-
-        task_meta = MANISKILL_TASKS.get(env_id, {})
-        kwargs["env_id"] = env_id
-        kwargs["instruction"] = task_meta.get("instruction", env_id)
-        kwargs["max_episode_steps"] = task_meta.get("max_episode_steps")
-
-    return make_env_factory(sim, **kwargs)
-
-
-def _run_eval(
-    policy,
-    preprocessor,
-    postprocessor,
-    env_factory: SimEnvFactory,
-    num_episodes: int,
-    device: torch.device,
-) -> dict[str, dict[str, float]]:
-
-    all_results: dict[str, dict[str, float]] = {}
-    use_amp = device.type == "cuda"
-
-    task_bar = tqdm(range(env_factory.num_tasks), desc="Tasks", unit="task", position=0)
-    for task_id in task_bar:
-        env = env_factory(task_id)
-
-        task_desc = env.task_description
-        max_steps = env.max_episode_steps
-        task_bar.set_description(f"Task {task_id}: {task_desc}")
-
-        successes = 0
-        ep_bar = tqdm(range(num_episodes), desc="  Episodes", unit="ep", position=1, leave=False)
-        for ep in ep_bar:
-            obs_raw, info = env.reset(seed=ep)
-            policy.reset()
-            episode_success = False
-
-            for _step in range(max_steps):
-                batch = env.obs_to_batch(obs_raw, device=device)
-                batch = preprocessor(batch)
-
-                with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
-                    action = policy.select_action(batch)
-
-                action = postprocessor(action)
-                action_np = action.to("cpu").numpy()
-                if action_np.ndim == 2:
-                    action_np = action_np[0]
-
-                obs_raw, reward, terminated, truncated, info = env.step(action_np)
-
-                if env.is_success(info):
-                    episode_success = True
-                    break
-                if terminated or truncated:
-                    break
-
-            if episode_success:
-                successes += 1
-            ep_bar.set_postfix(sr=f"{successes}/{ep + 1}")
-        ep_bar.close()
-
-        env.close()
-        sr = successes / num_episodes
-        task_results = all_results.setdefault(env_factory.suite_name, {})
-        task_results[task_desc] = sr
-        task_bar.set_postfix(last_sr=f"{sr * 100:.0f}%")
-        tqdm.write(f"  Task {task_id}: {sr * 100:.1f}% ({successes}/{num_episodes}) - {task_desc}")
-    task_bar.close()
-
-    if wandb.run is not None:
-        for suite_name, task_results in all_results.items():
-            metrics = {}
-            for task_name, sr in task_results.items():
-                metrics[f"eval/{suite_name}/{task_name}"] = sr
-            avg = sum(task_results.values()) / max(len(task_results), 1)
-            metrics[f"eval/{suite_name}/average"] = avg
-            wandb.log(metrics)
-
-    return all_results
-
-
-def _print_results(results: dict[str, dict[str, float]], model_name: str) -> None:
-    print(f"\n{'=' * 60}")
-    print(f"Results: {model_name}")
-    print(f"{'=' * 60}")
-
-    suite_avgs = {}
-    for suite_name, task_results in results.items():
-        print(f"\n  {suite_name}:")
-        for task_name, success_rate in task_results.items():
-            print(f"    {task_name}: {success_rate * 100:.1f}%")
-        avg = sum(task_results.values()) / max(len(task_results), 1)
-        suite_avgs[suite_name] = avg
-        print(f"    Average: {avg * 100:.1f}%")
-
-    overall = sum(suite_avgs.values()) / max(len(suite_avgs), 1)
-    print(f"\n  Overall Average: {overall * 100:.1f}%")
-
-    print("\n  | Suite | Success Rate |")
-    print("  |-------|-------------|")
-    for suite_name, avg in suite_avgs.items():
-        print(f"  | {suite_name:12s} | {avg * 100:10.1f}% |")
-    print(f"  | {'Overall':12s} | {overall * 100:10.1f}% |")
-
-
-if __name__ == "__main__":
-    app()
+        if wandb_run is not None:
+            wandb_run.finish()

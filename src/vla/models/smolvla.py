@@ -811,7 +811,7 @@ class SmolVLAPolicy(nn.Module):
         """Save full model weights, normalization statistics, and optional metadata.
 
         Writes both the internal ``policy.pt`` format (used by
-        :meth:`load_checkpoint` / ``scripts/evaluate.py``) **and** the
+        :meth:`load_checkpoint` / ``python scripts/evaluate.py``) **and** the
         LeRobot-compatible files (``config.json``, ``model.safetensors``,
         normalizer ``.safetensors``) so the checkpoint works with
         ``lerobot-eval`` as well.

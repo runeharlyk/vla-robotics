@@ -20,6 +20,7 @@ import numpy as np
 import torch
 
 from vla.envs import SimEnvFactory, make_env_factory
+from vla.evaluation.runtime import predict_action_from_batch
 from vla.rl.rollout import Trajectory
 from vla.utils.tensor import action_to_numpy
 
@@ -358,29 +359,7 @@ def evaluate_smolvla(
     device = policy.device
 
     def _policy_fn(batch: dict) -> torch.Tensor:
-        image_keys = sorted(k for k in batch if k.startswith("observation.images."))
-        if not image_keys:
-            raise ValueError(f"No observation.images.* in batch. Keys: {list(batch.keys())}")
-        cam_views = []
-        for k in image_keys:
-            img = batch[k]
-            if img.ndim in (4, 5):
-                img = img[0]
-            if img.ndim == 2:
-                img = img.unsqueeze(0)
-            cam_views.append(img)
-        # Keep a batch dimension so multi-view LIBERO observations remain
-        # multi-view all the way into ``predict_action_batch``.
-        image = torch.stack(cam_views, dim=0).unsqueeze(0) if len(cam_views) > 1 else cam_views[0].unsqueeze(0)
-        state = batch.get("observation.state")
-        if state is not None and state.ndim == 2:
-            state = state[0]
-        if state is not None:
-            state = state.unsqueeze(0)
-        task = batch.get("task", instruction)
-        if isinstance(task, (list, tuple)):
-            task = task[0]
-        return policy.predict_action_batch(image, task, state)[0]
+        return predict_action_from_batch(policy, batch, instruction)
 
     def _noise_reset(ep_seed: int) -> None:
         if fixed_noise_seed is None or not hasattr(policy, "reset_eval_noise"):

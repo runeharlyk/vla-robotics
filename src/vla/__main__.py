@@ -39,37 +39,8 @@ def train_rl(
 
 
 @app.command()
-def evaluate(
-    ctx: typer.Context,
-    model: str = typer.Option("smolvla", "--model", "-m"),
-    checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
-    simulator: str = typer.Option("libero", "--simulator"),
-    suite: str = typer.Option("all", "--suite", "-s"),
-    env_id: str | None = typer.Option(None, "--env-id"),
-    num_episodes: int = typer.Option(20, "--num-episodes", "-n"),
-    device: str = typer.Option("cuda", "--device", "-d"),
-    wandb_project: str | None = typer.Option(None, "--wandb-project"),
-    compile_model: bool = typer.Option(False, "--compile/--no-compile"),
-) -> None:
-    """Evaluate SmolVLA on a simulator."""
-    mod = importlib.import_module("vla.evaluation.evaluate")
-    mod.evaluate(
-        model=model,
-        checkpoint=checkpoint,
-        simulator=simulator,
-        suite=suite,
-        env_id=env_id,
-        num_episodes=num_episodes,
-        device=device,
-        wandb_project=wandb_project,
-        compile_model=compile_model,
-    )
-
-
-@app.command()
 def visualize(
     ctx: typer.Context,
-    model: str = typer.Option("smolvla", "--model", "-m"),
     checkpoint: str = typer.Option(..., "--checkpoint", "-c"),
     simulator: str = typer.Option("libero", "--simulator"),
     suite: str = typer.Option("long", "--suite", "-s"),
@@ -84,7 +55,6 @@ def visualize(
     """Record policy rollout videos on a simulator."""
     mod = importlib.import_module("vla.evaluation.visualize")
     mod.main(
-        model=model,
         checkpoint=checkpoint,
         simulator=simulator,
         suite=suite,

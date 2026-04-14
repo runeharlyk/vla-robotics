@@ -160,17 +160,17 @@ def _replay_episodes(
     fps: int,
     seed: int,
 ) -> None:
-    from vla.evaluation.evaluate import _make_factory
+    from vla.evaluation.runtime import make_eval_env_factory
 
     for idx in ep_indices:
         ep = episodes[idx]
         T = ep.actions.shape[0]
 
         if simulator == "libero":
-            env_factory = _make_factory(simulator, suite=suite)
+            env_factory = make_eval_env_factory(simulator, suite=suite)
             env = env_factory(ep.task_index)
         else:
-            env_factory = _make_factory(simulator, env_id=env_id)
+            env_factory = make_eval_env_factory(simulator, env_id=env_id)
             env = env_factory(0)
 
         task_desc = env.task_description
