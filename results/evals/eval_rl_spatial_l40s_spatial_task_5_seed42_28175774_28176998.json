@@ -1,31 +1,31 @@
 {
   "record_type": "evaluation",
-  "wandb_run_name": "eval_rl_spatial_l40s_spatial_task_5_seed42_28188629_28192858",
+  "wandb_run_name": "eval_rl_spatial_l40s_spatial_task_5_seed42_28175774_28176998",
   "checkpoint": "HuggingFaceVLA/smolvla_libero",
   "simulator": "libero",
   "suite": "spatial",
-  "success_rate": 0.708,
-  "mean_reward": 0.708,
+  "success_rate": 0.727,
+  "mean_reward": 0.727,
   "task_metrics": [
     {
       "task_id": 0,
-      "success_rate": 0.76
+      "success_rate": 0.79
     },
     {
       "task_id": 1,
-      "success_rate": 0.98
+      "success_rate": 0.97
     },
     {
       "task_id": 2,
-      "success_rate": 0.3
+      "success_rate": 0.38
     },
     {
       "task_id": 3,
-      "success_rate": 0.71
+      "success_rate": 0.72
     },
     {
       "task_id": 4,
-      "success_rate": 0.99
+      "success_rate": 0.98
     },
     {
       "task_id": 5,
@@ -33,21 +33,21 @@
     },
     {
       "task_id": 6,
-      "success_rate": 0.73
+      "success_rate": 0.71
     },
     {
       "task_id": 7,
-      "success_rate": 0.29
+      "success_rate": 0.38
     },
     {
       "task_id": 8,
-      "success_rate": 0.98
+      "success_rate": 0.97
     },
     {
       "task_id": 9,
-      "success_rate": 0.54
+      "success_rate": 0.57
     }
   ],
-  "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629/last",
+  "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28175774/best",
   "training_method": "sparse_rl"
 }

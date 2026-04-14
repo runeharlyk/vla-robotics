@@ -88,9 +88,6 @@ def append_jsonl(path: Path | str, payload: dict[str, Any]) -> Path:
     return out_path
 
 
-
-
-
 def flatten_task_metrics(task_payloads: list[dict[str, Any]]) -> dict[str, Any]:
     flat: dict[str, Any] = {}
     for payload in task_payloads:

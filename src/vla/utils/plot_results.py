@@ -7,7 +7,8 @@ per-task success rates across different training methods (SFT, Sparse RL, etc.).
 Usage::
 
     uv run python -m vla.utils.plot_results --results-dir results/evals --suite spatial
-    uv run python -m vla.utils.plot_results --results-dir results/evals --suite spatial --output assets/libero_spatial_comparison.png
+    uv run python -m vla.utils.plot_results --results-dir results/evals \\
+        --suite spatial --output assets/libero_spatial_comparison.png
 """
 
 from __future__ import annotations
@@ -97,7 +98,6 @@ def select_best_per_method(records: list[dict[str, Any]]) -> list[dict[str, Any]
     return [best[m] for m in sorted(best, key=_sort_key)]
 
 
-
 def build_comparison_dataframe(records: list[dict[str, Any]]) -> pd.DataFrame:
     """Build a long-form DataFrame from eval records for seaborn plotting."""
     rows: list[dict[str, Any]] = []
@@ -177,9 +177,11 @@ def plot_comparison(
 
 
 def main(
-    results_dir: Path = typer.Option("results/evals", "--results-dir", "-r", help="Directory with eval JSON files"),
-    suite: str = typer.Option("spatial", "--suite", "-s", help="Filter by suite name"),
-    output: Path = typer.Option(None, "--output", "-o", help="Output PNG path (default: assets/libero_<suite>_comparison.png)"),
+    results_dir: Path = typer.Option("results/evals", "--results-dir", "-r", help="Directory with eval JSON files"),  # noqa: B008
+    suite: str = typer.Option("spatial", "--suite", "-s", help="Filter by suite name"),  # noqa: B008
+    output: Path = typer.Option(  # noqa: B008
+        None, "--output", "-o", help="Output PNG path (default: assets/libero_<suite>_comparison.png)"
+    ),
 ) -> None:
     """Generate comparison plots from eval result JSON files."""
     results_path = Path(results_dir)

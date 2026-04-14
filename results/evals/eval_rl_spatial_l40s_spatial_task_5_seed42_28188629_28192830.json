@@ -1,147 +1,53 @@
 {
   "record_type": "evaluation",
-  "recorded_at": "2026-04-12T23:04:50.050197+00:00",
-  "eval_name": "eval_rl_spatial_l40s_spatial_task_5_seed42_28188629_28192830",
+  "wandb_run_name": "eval_rl_spatial_l40s_spatial_task_5_seed42_28188629_28192830",
   "checkpoint": "HuggingFaceVLA/smolvla_libero",
-  "checkpoint_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629/best",
-  "tag": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629/best",
   "simulator": "libero",
   "suite": "spatial",
-  "env_id": "PickCube-v1",
-  "instruction": "complete the manipulation task",
-  "control_mode": "pd_joint_delta_pos",
-  "num_episodes": 100,
-  "num_envs": 8,
-  "max_steps": 220,
-  "seed": 42,
-  "fixed_noise_seed": 42,
-  "task_id": null,
-  "wandb_run_name": "eval_rl_spatial_l40s_spatial_task_5_seed42_28188629_28192830",
   "success_rate": 0.788,
-  "successes": 788,
   "mean_reward": 0.788,
-  "mean_episode_length": 131.289,
-  "median_episode_length": 116.0,
   "task_metrics": [
     {
       "task_id": 0,
-      "task_description": "pick up the black bowl between the plate and the ramekin and place it on the plate",
-      "task_index": 0,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 83,
-      "success_rate": 0.83,
-      "mean_reward": 0.83,
-      "mean_episode_length": 105.44
+      "success_rate": 0.83
     },
     {
       "task_id": 1,
-      "task_description": "pick up the black bowl next to the ramekin and place it on the plate",
-      "task_index": 1,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 99,
-      "success_rate": 0.99,
-      "mean_reward": 0.99,
-      "mean_episode_length": 109.3
+      "success_rate": 0.99
     },
     {
       "task_id": 2,
-      "task_description": "pick up the black bowl from table center and place it on the plate",
-      "task_index": 2,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 40,
-      "success_rate": 0.4,
-      "mean_reward": 0.4,
-      "mean_episode_length": 173.88
+      "success_rate": 0.4
     },
     {
       "task_id": 3,
-      "task_description": "pick up the black bowl on the cookie box and place it on the plate",
-      "task_index": 3,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 82,
-      "success_rate": 0.82,
-      "mean_reward": 0.82,
-      "mean_episode_length": 114.23
+      "success_rate": 0.82
     },
     {
       "task_id": 4,
-      "task_description": "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
-      "task_index": 4,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 94,
-      "success_rate": 0.94,
-      "mean_reward": 0.94,
-      "mean_episode_length": 133.98
+      "success_rate": 0.94
     },
     {
       "task_id": 5,
-      "task_description": "pick up the black bowl on the ramekin and place it on the plate",
-      "task_index": 5,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 84,
-      "success_rate": 0.84,
-      "mean_reward": 0.84,
-      "mean_episode_length": 115.41
+      "success_rate": 0.84
     },
     {
       "task_id": 6,
-      "task_description": "pick up the black bowl next to the cookie box and place it on the plate",
-      "task_index": 6,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 84,
-      "success_rate": 0.84,
-      "mean_reward": 0.84,
-      "mean_episode_length": 137.97
+      "success_rate": 0.84
     },
     {
       "task_id": 7,
-      "task_description": "pick up the black bowl on the stove and place it on the plate",
-      "task_index": 7,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 61,
-      "success_rate": 0.61,
-      "mean_reward": 0.61,
-      "mean_episode_length": 164.25
+      "success_rate": 0.61
     },
     {
       "task_id": 8,
-      "task_description": "pick up the black bowl next to the plate and place it on the plate",
-      "task_index": 8,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 99,
-      "success_rate": 0.99,
-      "mean_reward": 0.99,
-      "mean_episode_length": 96.0
+      "success_rate": 0.99
     },
     {
       "task_id": 9,
-      "task_description": "pick up the black bowl on the wooden cabinet and place it on the plate",
-      "task_index": 9,
-      "tasks_total": 10,
-      "num_episodes": 100,
-      "successes": 62,
-      "success_rate": 0.62,
-      "mean_reward": 0.62,
-      "mean_episode_length": 162.43
+      "success_rate": 0.62
     }
   ],
-  "training_metadata_path": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629/training_run.json",
-  "training_method": "sparse_rl",
-  "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629",
-  "training_git_commit": "e3b72285b54352a35c6dc60856d9f74b79b63f87",
-  "git_commit": "e3b72285b54352a35c6dc60856d9f74b79b63f87",
-  "git_branch": "eval-rl",
-  "lsf_job_id": "28192830",
-  "lsf_job_name": "eval_rl_spatial_l40s",
-  "slurm_job_id": "",
-  "hostname": "n-62-13-16"
+  "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629/best",
+  "training_method": "sparse_rl"
 }

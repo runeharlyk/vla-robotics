@@ -1,0 +1,53 @@
+{
+  "record_type": "evaluation",
+  "wandb_run_name": "eval_sft_spatial_l40s_28161033",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "simulator": "libero",
+  "suite": "spatial",
+  "success_rate": 0.809,
+  "mean_reward": 0.809,
+  "task_metrics": [
+    {
+      "task_id": 0,
+      "success_rate": 0.78
+    },
+    {
+      "task_id": 1,
+      "success_rate": 0.97
+    },
+    {
+      "task_id": 2,
+      "success_rate": 0.48
+    },
+    {
+      "task_id": 3,
+      "success_rate": 0.87
+    },
+    {
+      "task_id": 4,
+      "success_rate": 0.85
+    },
+    {
+      "task_id": 5,
+      "success_rate": 0.76
+    },
+    {
+      "task_id": 6,
+      "success_rate": 0.92
+    },
+    {
+      "task_id": 7,
+      "success_rate": 0.76
+    },
+    {
+      "task_id": 8,
+      "success_rate": 0.96
+    },
+    {
+      "task_id": 9,
+      "success_rate": 0.74
+    }
+  ],
+  "training_save_dir": "",
+  "training_method": "sft"
+}
