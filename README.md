@@ -2,10 +2,13 @@
 
 ## Setup
 
+This project targets `Python 3.11.14`.
+
 ```bash
 git clone https://github.com/runeharlyk/vla-robotics
 cd vla-robotics
 uv sync
+uv sync --dev
 ```
 
 ## Results
