@@ -89,6 +89,9 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["vla"]
+
 [tool.ruff.lint.per-file-ignores]
 # typer.Option() in function defaults is the canonical Typer pattern
 "scripts/*.py" = ["B008"]
