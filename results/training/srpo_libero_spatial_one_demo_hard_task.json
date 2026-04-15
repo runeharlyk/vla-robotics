@@ -1,0 +1,29 @@
+{
+  "record_type": "training",
+  "wandb_run_name": "srpo_libero_spatial_one_demo_hard_task",
+  "method": "srpo",
+  "save_dir": "",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "suite": "spatial",
+  "config": {
+    "lr": 5e-06,
+    "seed": 42,
+    "task": "libero_spatial",
+    "suite": "spatial",
+    "env_id": "libero_spatial",
+    "method": "srpo",
+    "kl_coeff": 0.01,
+    "num_demos": 1,
+    "simulator": "libero",
+    "checkpoint": "HuggingFaceVLA/smolvla_libero",
+    "ppo_epochs": 1,
+    "instruction": "pick up the black bowl next to the cookie box and place it on the plate",
+    "world_model": "vjepa2",
+    "clip_epsilon": 0.2,
+    "fm_batch_size": 64,
+    "num_iterations": 200,
+    "sft_checkpoint": "None",
+    "num_rollout_envs": 8,
+    "trajectories_per_iter": 8
+  }
+}

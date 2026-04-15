@@ -1,0 +1,29 @@
+{
+  "record_type": "training",
+  "wandb_run_name": "srpo_libero_object_seed42",
+  "method": "srpo",
+  "save_dir": "",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "suite": "object",
+  "config": {
+    "lr": 5e-06,
+    "seed": 42,
+    "task": "libero_object",
+    "suite": "object",
+    "env_id": "libero_object",
+    "method": "srpo",
+    "kl_coeff": 0.01,
+    "num_demos": 50,
+    "simulator": "libero",
+    "checkpoint": "HuggingFaceVLA/smolvla_libero",
+    "ppo_epochs": 4,
+    "instruction": "pick up the orange juice and place it in the basket",
+    "world_model": "vjepa2",
+    "clip_epsilon": 0.2,
+    "fm_batch_size": 64,
+    "num_iterations": 200,
+    "sft_checkpoint": "None",
+    "num_rollout_envs": 8,
+    "trajectories_per_iter": 8
+  }
+}

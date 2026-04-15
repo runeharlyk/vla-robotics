@@ -456,8 +456,6 @@ def main(
     raw_dir = raw_dir.resolve()
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    instruction = INSTRUCTION_MAP.get(skill, skill)
-
     h5_path, json_path = find_trajectory_files(raw_dir, skill)
     json_data = load_json(json_path)
     env_info = json_data["env_info"]

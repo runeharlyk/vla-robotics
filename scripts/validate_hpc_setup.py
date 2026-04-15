@@ -86,8 +86,7 @@ def check_cuda() -> None:
         for i in range(torch.cuda.device_count()):
             name = torch.cuda.get_device_name(i)
             props = torch.cuda.get_device_properties(i)
-            mem = getattr(props, "total_memory", None) or getattr(
-                props, "total_mem", 0)
+            mem = getattr(props, "total_memory", None) or getattr(props, "total_mem", 0)
             mem = mem / 1e9
             _ok(f"  GPU {i}: {name} ({mem:.1f} GB)")
     else:
@@ -104,14 +103,14 @@ def check_srpo_pipeline() -> None:
         _fail("vla.models.world_model", e)
 
     try:
-        from vla.rl.srpo_reward import WorldProgressReward, ClusterDiagnostics  # noqa: F401
+        from vla.rl.srpo_reward import ClusterDiagnostics, WorldProgressReward  # noqa: F401
 
         _ok("vla.rl.srpo_reward (with ClusterDiagnostics)")
     except Exception as e:
         _fail("vla.rl.srpo_reward", e)
 
     try:
-        from vla.rl.trainer import train_srpo, SRPOConfig  # noqa: F401
+        from vla.rl.trainer import SRPOConfig, train_srpo  # noqa: F401
 
         _ok("vla.rl.trainer")
     except Exception as e:
@@ -130,7 +129,7 @@ def check_dinov2() -> None:
     import torch
 
     try:
-        from vla.models.world_model import DINOv2Encoder, DINOV2_MODEL_ID
+        from vla.models.world_model import DINOV2_MODEL_ID, DINOv2Encoder
 
         print(f"  Model ID: {DINOV2_MODEL_ID}")
         t0 = time.time()
@@ -150,7 +149,7 @@ def check_vjepa2() -> None:
     import torch
 
     try:
-        from vla.models.world_model import VJEPA2Encoder, VJEPA2_MODEL_ID, VJEPA2_SRPO_RAW_ID
+        from vla.models.world_model import VJEPA2_MODEL_ID, VJEPA2_SRPO_RAW_ID, VJEPA2Encoder
 
         print(f"  Primary model ID : {VJEPA2_MODEL_ID}")
         print(f"  Fallback raw ID  : {VJEPA2_SRPO_RAW_ID}")
@@ -161,10 +160,8 @@ def check_vjepa2() -> None:
         elapsed = time.time() - t0
 
         if encoder._fallback is not None:
-            _fail(
-                f"V-JEPA 2 fell back to DINOv2 after {elapsed:.1f}s - no checkpoint loadable")
-            print(
-                f"       Try: uv run huggingface-cli download {VJEPA2_MODEL_ID}")
+            _fail(f"V-JEPA 2 fell back to DINOv2 after {elapsed:.1f}s - no checkpoint loadable")
+            print(f"       Try: uv run huggingface-cli download {VJEPA2_MODEL_ID}")
             return
 
         _ok(f"V-JEPA 2 loaded in {elapsed:.1f}s - embed_dim={encoder.embed_dim()}, backend={encoder._backend}")
@@ -181,33 +178,27 @@ def check_hf_cache() -> None:
     import os
     from pathlib import Path
 
-    hf_home = os.environ.get("HF_HOME", str(
-        Path.home() / ".cache" / "huggingface"))
+    hf_home = os.environ.get("HF_HOME", str(Path.home() / ".cache" / "huggingface"))
     hub_dir = Path(hf_home) / "hub"
     print(f"  HF_HOME = {hf_home}")
 
     if hub_dir.exists():
-        models = sorted(p.name for p in hub_dir.iterdir()
-                        if p.name.startswith("models--"))
+        models = sorted(p.name for p in hub_dir.iterdir() if p.name.startswith("models--"))
         if models:
             _ok(f"{len(models)} cached model(s):")
             for m in models:
                 print(f"       {m.replace('models--', '').replace('--', '/')}")
         else:
-            _fail(
-                "Hub cache exists but no models found. Run uv run huggingface-cli download first.")
+            _fail("Hub cache exists but no models found. Run uv run huggingface-cli download first.")
     else:
         _fail(f"Hub directory not found: {hub_dir}")
 
-    dinov2_cached = any("dinov2" in m for m in (
-        models if hub_dir.exists() else []))
-    vjepa2_cached = any("vjepa2" in m for m in (
-        models if hub_dir.exists() else []))
+    dinov2_cached = any("dinov2" in m for m in (models if hub_dir.exists() else []))
+    vjepa2_cached = any("vjepa2" in m for m in (models if hub_dir.exists() else []))
     if dinov2_cached:
         _ok("DINOv2 checkpoint cached")
     else:
-        _fail(
-            "DINOv2 not cached - run: uv run huggingface-cli download facebook/dinov2-large")
+        _fail("DINOv2 not cached - run: uv run huggingface-cli download facebook/dinov2-large")
     if vjepa2_cached:
         _ok("V-JEPA 2 checkpoint cached")
     else:
@@ -265,12 +256,9 @@ def check_preprocessed_data(data_dir: str) -> None:
 
 
 def main(
-    world_model: str = typer.Option(
-        "dinov2", "--world-model", "-w", help="dinov2, vjepa2, or all"),
-    sft_checkpoint: str = typer.Option(
-        "", "--sft-checkpoint", "-s", help="Path to SFT checkpoint dir"),
-    data_dir: str = typer.Option(
-        "", "--data-dir", "-d", help="Path to preprocessed .pt directory"),
+    world_model: str = typer.Option("dinov2", "--world-model", "-w", help="dinov2, vjepa2, or all"),
+    sft_checkpoint: str = typer.Option("", "--sft-checkpoint", "-s", help="Path to SFT checkpoint dir"),
+    data_dir: str = typer.Option("", "--data-dir", "-d", help="Path to preprocessed .pt directory"),
 ) -> None:
     """Validate HPC environment for SRPO training."""
     import os

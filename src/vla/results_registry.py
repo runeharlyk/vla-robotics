@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import json
 import logging
 import os
@@ -89,34 +88,6 @@ def append_jsonl(path: Path | str, payload: dict[str, Any]) -> Path:
     return out_path
 
 
-def append_csv_row(path: Path | str, row: dict[str, Any]) -> Path:
-    out_path = Path(path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = out_path.with_suffix(out_path.suffix + ".lock")
-    serializable_row = {k: to_json_serializable(v) for k, v in row.items()}
-
-    with _file_lock(lock_path):
-        existing_rows: list[dict[str, Any]] = []
-        fieldnames: list[str] = []
-        if out_path.exists():
-            with open(out_path, newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                fieldnames = list(reader.fieldnames or [])
-                existing_rows = list(reader)
-
-        for key in serializable_row:
-            if key not in fieldnames:
-                fieldnames.append(key)
-
-        with open(out_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            for existing in existing_rows:
-                writer.writerow(existing)
-            writer.writerow(serializable_row)
-    return out_path
-
-
 def flatten_task_metrics(task_payloads: list[dict[str, Any]]) -> dict[str, Any]:
     flat: dict[str, Any] = {}
     for payload in task_payloads:
@@ -176,13 +147,11 @@ def summarize_metrics_jsonl(jsonl_path: Path | str, eval_key_suffixes: list[str]
 
 
 def write_training_registry(record: dict[str, Any]) -> None:
-    append_jsonl(RESULTS_DIR / "training_runs.jsonl", record)
-    append_csv_row(RESULTS_DIR / "training_runs.csv", record)
+    append_jsonl(RESULTS_DIR / "training" / "training_runs.jsonl", record)
 
 
 def write_eval_registry(record: dict[str, Any]) -> None:
-    append_jsonl(RESULTS_DIR / "eval_runs.jsonl", record)
-    append_csv_row(RESULTS_DIR / "eval_runs.csv", record)
+    append_jsonl(RESULTS_DIR / "evals" / "eval_runs.jsonl", record)
 
 
 def find_training_metadata(checkpoint_dir: Path | None) -> Path | None:
