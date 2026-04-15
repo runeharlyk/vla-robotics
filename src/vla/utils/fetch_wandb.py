@@ -1,9 +1,9 @@
 import json
 
 import typer
+import wandb
 from tqdm import tqdm
 
-import wandb
 from vla.constants import RESULTS_DIR
 from vla.results_registry import sanitize_name
 
