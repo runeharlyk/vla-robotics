@@ -1,0 +1,10 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,original,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,0,True,77
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,politeness,0,please pick up the black bowl between the plate and the ramekin and place it on the plate,0,0,True,83
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,verb_paraphrase,0,grasp the black bowl between the plate and the ramekin and place it on the plate,0,0,True,77
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,sentence_structure,0,grasp the black bowl between the plate and the ramekin and place it on the plate,0,0,True,70
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,verbosity,0,please pick up the black bowl between the plate and the ramekin and place it on the plate for this task,0,0,False,280
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,carefully,0,please grasp the black bowl between the plate and the ramekin and place it on the plate carefully,0,0,True,61
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,quickly,0,please grasp the black bowl between the plate and the ramekin and place it on the plate quickly,0,0,True,72
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,contrastive_negation,0,please do not move the red bowl between the plate and the ramekin and place the black bowl on the plate,0,0,False,280
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,0,do_not_move,0,do not move the black bowl between the plate and the ramekin and place it on the plate,0,0,True,197

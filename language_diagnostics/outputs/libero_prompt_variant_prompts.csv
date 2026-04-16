@@ -1,0 +1,10 @@
+suite,task_id,task_description,variant_type,prompt
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,original,pick up the black bowl between the plate and the ramekin and place it on the plate
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,politeness,please pick up the black bowl between the plate and the ramekin and place it on the plate
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,verb_paraphrase,grab the black bowl between the plate and the ramekin and place it on the plate
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,sentence_structure,"the black bowl between the plate and the ramekin, pick it upand place it on the plate"
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,verbosity,"Now for this task, pick up the black bowl between the plate and the ramekin and place it on the plate"
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,carefully,Pick up the black bowl between the plate and the ramekin and place it on the plate carefully
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,quickly,pick up the black bowl between the plate and the ramekin and place it on the plate quickly
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,contrastive_negation,"Do not move the red, but the black bowl between the plate and the ramekin and place it on the plate"
+spatial,0,pick up the black bowl between the plate and the ramekin and place it on the plate,do_not_move,do not move the black bowl between the plate and the ramekin and place it on the plate
