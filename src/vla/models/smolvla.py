@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,10 @@ from vla.utils.tensor import to_float01
 
 DEFAULT_CHECKPOINT = "HuggingFaceVLA/smolvla_libero"
 logger = logging.getLogger(__name__)
+
+
+def _hf_local_files_only() -> bool:
+    return os.environ.get("HF_HUB_OFFLINE") == "1" or os.environ.get("TRANSFORMERS_OFFLINE") == "1"
 
 
 def _resize_with_pad(img: torch.Tensor, width: int, height: int, pad_value: float = -1) -> torch.Tensor:
@@ -97,7 +102,10 @@ class SmolVLAPolicy(nn.Module):
         )
         self._warned_camera_fallback = False
 
-        self.processor = AutoProcessor.from_pretrained(self.vlm_model_name)
+        self.processor = AutoProcessor.from_pretrained(
+            self.vlm_model_name,
+            local_files_only=_hf_local_files_only(),
+        )
 
         self.model = VLAFlowMatching(ckpt_config)
 
@@ -143,7 +151,7 @@ class SmolVLAPolicy(nn.Module):
                         continue
                     fpath = str(fpath)
                 else:
-                    fpath = hf_hub_download(checkpoint, fname)
+                    fpath = hf_hub_download(checkpoint, fname, local_files_only=_hf_local_files_only())
                 stats = load_safetensors(fpath, device="cpu")
                 break
             except Exception:
@@ -242,7 +250,7 @@ class SmolVLAPolicy(nn.Module):
         if Path(checkpoint).is_dir():
             cfg_path = Path(checkpoint) / "config.json"
         else:
-            cfg_path = hf_hub_download(checkpoint, "config.json")
+            cfg_path = hf_hub_download(checkpoint, "config.json", local_files_only=_hf_local_files_only())
         with open(cfg_path) as f:
             return json.load(f)
 
@@ -250,7 +258,7 @@ class SmolVLAPolicy(nn.Module):
     def _resolve_weights(checkpoint: str) -> str:
         if Path(checkpoint).is_dir():
             return str(Path(checkpoint) / "model.safetensors")
-        return hf_hub_download(checkpoint, "model.safetensors")
+        return hf_hub_download(checkpoint, "model.safetensors", local_files_only=_hf_local_files_only())
 
     def _tokenize(self, instruction: str | list[str], batch_size: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
         tok_max = self.ckpt_config.get("tokenizer_max_length", 48)
