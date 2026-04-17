@@ -107,3 +107,7 @@ videos/
 logs/
 wandb/
 outputs/
+.hf-cache
+.libero
+.libero-src-cache
+.tmpdeps

@@ -1,18 +1,26 @@
 from __future__ import annotations
 
+import importlib
 import logging
 from typing import Any
 
 import einops
 import numpy as np
 import torch
-from lerobot.envs.libero import LiberoEnv as _LeRobotLiberoEnv
-from lerobot.envs.libero import _get_suite
-from lerobot.processor.env_processor import LiberoProcessorStep
 
 from vla.constants import SUITE_MAP
 from vla.envs.base import SimEnv
+from vla.envs.libero_runtime import configure_libero_runtime
 from vla.utils.tensor import to_float01
+
+configure_libero_runtime()
+
+_lerobot_libero = importlib.import_module("lerobot.envs.libero")
+_processor_mod = importlib.import_module("lerobot.processor.env_processor")
+
+_LeRobotLiberoEnv = _lerobot_libero.LiberoEnv
+_get_suite = _lerobot_libero._get_suite
+LiberoProcessorStep = _processor_mod.LiberoProcessorStep
 
 logger = logging.getLogger(__name__)
 

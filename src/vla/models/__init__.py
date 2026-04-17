@@ -43,24 +43,32 @@ class _SmolVLAAdapter:
 
     @torch.no_grad()
     def select_action(self, batch: dict) -> torch.Tensor:
-        image_key = next((k for k in batch if k.startswith("observation.images.")), None)
-        if image_key is None:
+        image_keys = sorted(k for k in batch if k.startswith("observation.images."))
+        if not image_keys:
             raise ValueError(f"No observation.images.* key in batch. Keys: {list(batch.keys())}")
 
-        image = batch[image_key]
-        if image.ndim in (4, 5):
-            image = image[0]
+        cam_views = []
+        for key in image_keys:
+            image = batch[key]
+            if image.ndim in (4, 5):
+                image = image[0]
+            if image.ndim == 2:
+                image = image.unsqueeze(0)
+            cam_views.append(image)
+
+        image = torch.stack(cam_views, dim=0).unsqueeze(0) if len(cam_views) > 1 else cam_views[0].unsqueeze(0)
 
         state = batch.get("observation.state")
         if state is not None and state.ndim == 2:
             state = state[0]
+        if state is not None:
+            state = state.unsqueeze(0)
 
         task = batch.get("task", "")
         if isinstance(task, (list, tuple)):
             task = task[0]
 
-        action = self._inner.predict_action(image, task, state)
-        return action.unsqueeze(0)
+        return self._inner.predict_action_batch(image, task, state)
 
 
 def load_policy(model: str, checkpoint: str, device: str) -> LoadedPolicy:

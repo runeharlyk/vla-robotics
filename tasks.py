@@ -29,6 +29,7 @@ LSF_HEADER = """\
 # -------------------------------------------------
 """
 
+
 @task
 def lint(ctx: Context, fix: bool = False) -> None:
     """Run ruff linter."""
@@ -67,6 +68,19 @@ def docs(ctx: Context, serve: bool = False) -> None:
 def download_libero(ctx: Context, suite: str = "all") -> None:
     """Download LIBERO datasets from HuggingFace via LeRobot."""
     ctx.run(f"uv run python scripts/download_libero.py --suite {suite}", echo=True, pty=not WINDOWS)
+
+
+@task
+def setup_libero(ctx: Context, config_dir: str = "", datasets_dir: str = "", install: bool = False) -> None:
+    """Create a non-interactive LIBERO config and print runtime details."""
+    config_flag = f' --config-dir "{config_dir}"' if config_dir else ""
+    datasets_flag = f' --datasets-dir "{datasets_dir}"' if datasets_dir else ""
+    install_flag = " --install" if install else ""
+    ctx.run(
+        f"uv run python scripts/setup_libero.py{config_flag}{datasets_flag}{install_flag}",
+        echo=True,
+        pty=not WINDOWS,
+    )
 
 
 @task

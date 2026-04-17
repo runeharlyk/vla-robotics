@@ -11,6 +11,31 @@ uv sync
 uv sync --dev
 ```
 
+### Windows LIBERO
+
+Native Windows LIBERO installs need two extra pieces beyond a normal `uv sync`:
+
+```powershell
+uv run python scripts/setup_libero.py --install
+uv run python -m vla visualize --checkpoint HuggingFaceVLA/smolvla_libero --simulator libero --suite spatial
+```
+
+`scripts/setup_libero.py --install` downloads the upstream `libero` source distribution, installs the package into the active virtualenv, and fetches the missing LIBERO assets that upstream expects at runtime. It also creates the non-interactive LIBERO config file that upstream otherwise prompts for on first import.
+
+On Windows the setup script now:
+
+- installs the `libero` package directly into the active `.venv`
+- downloads the missing LIBERO scene assets into that installed package
+- writes the LIBERO config under `.libero\config.yaml` in the repo by default
+- uses `.hf-cache\` in the repo for Hugging Face downloads unless `HF_HOME` is already set
+- patches `robosuite` for Windows so `MUJOCO_GL=wgl` works without the Linux EGL path
+
+If you want datasets/config outside the repo-local defaults:
+
+```powershell
+uv run python scripts/setup_libero.py --install --config-dir C:\libero-config --datasets-dir D:\libero-data
+```
+
 ## Results
 
 Latest results are tracking in:
