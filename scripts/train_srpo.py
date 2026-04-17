@@ -410,7 +410,7 @@ def main(
 
     if len(task_specs) > 1:
         task_tag = f"{len(task_specs)}tasks_{suite}"
-        run_tag = f"{task_tag}_seed{seed}"
+        run_tag = f"{task_tag}_seed{seed}_{run_id()}"
     else:
         run_tag = f"{task_specs[0].task_id}_seed{seed}_{run_id()}"
     save_dir = str(CHECKPOINTS_DIR / mode / run_tag)
