@@ -522,6 +522,7 @@ def main(
         "update_method": str(update_method),
         "save_dir": str(save_dir_path),
         "best_checkpoint_dir": str(save_dir_path / "best"),
+        "best_rollout_checkpoint_dir": str(save_dir_path / "best_rollout"),
         "last_checkpoint_dir": str(save_dir_path / "last"),
         "checkpoint": checkpoint,
         "sft_checkpoint": str(sft_checkpoint) if sft_checkpoint is not None else "",
