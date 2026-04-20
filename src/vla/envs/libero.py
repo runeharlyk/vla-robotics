@@ -67,8 +67,33 @@ class LiberoEnv(SimEnv):
     def max_episode_steps(self) -> int:
         return self._env._max_episode_steps
 
+    def _resolve_init_state_id(self, seed: int | None) -> int | None:
+        init_states = getattr(self._env, "_init_states", None)
+        if init_states is None:
+            return None
+
+        num_init_states = len(init_states)
+        if num_init_states <= 0:
+            return None
+
+        if seed is None:
+            current = int(getattr(self._env, "_init_state_id", 0))
+            return current % num_init_states
+
+        rng = np.random.RandomState(int(seed))
+        return int(rng.randint(num_init_states))
+
     def reset(self, seed: int = 0) -> tuple[dict, dict]:
-        return self._env.reset(seed=seed)
+        init_state_id = self._resolve_init_state_id(seed)
+        if init_state_id is not None and hasattr(self._env, "_init_state_id"):
+            self._env._init_state_id = init_state_id
+
+        obs, info = self._env.reset(seed=seed)
+        if init_state_id is not None:
+            info = dict(info)
+            info["libero_init_state_id"] = init_state_id
+            info["libero_num_init_states"] = len(self._env._init_states)
+        return obs, info
 
     def step(self, action: np.ndarray) -> tuple[dict, float, bool, bool, dict]:
         return self._env.step(action)
