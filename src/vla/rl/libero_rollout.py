@@ -26,6 +26,7 @@ import numpy as np
 import torch
 
 from vla.constants import SUITE_MAP
+from vla.envs.libero_runtime import _patch_robosuite, _safe_close_env
 from vla.rl.rollout import (
     SingleStepResult,
     Trajectory,
@@ -40,61 +41,6 @@ _CMD_STEP = "step"
 _CMD_CLOSE = "close"
 _CMD_TASK_DESC = "task_desc"
 _CMD_RECONFIGURE = "reconfigure"
-_ROBOSUITE_PATCHED = False
-
-
-def _safe_close_env(env: Any) -> None:
-    """Best-effort env close that also swallows interrupt-time teardown noise."""
-    try:
-        env.close()
-    except BaseException:
-        logger.debug("Ignoring LIBERO env close failure during shutdown", exc_info=True)
-
-
-def _patch_robosuite() -> None:
-    """Patch noisy robosuite cleanup hooks that can fail during interrupted EGL teardown."""
-    global _ROBOSUITE_PATCHED
-    if _ROBOSUITE_PATCHED:
-        return
-
-    try:
-        from robosuite.renderers.context.egl_context import EGLGLContext
-        from robosuite.utils.binding_utils import MjRenderContext
-    except Exception:
-        return
-
-    orig_mj_del = getattr(MjRenderContext, "__del__", None)
-    if callable(orig_mj_del):
-
-        def _safe_mj_del(self: object) -> None:
-            if not hasattr(self, "con"):
-                return
-            with contextlib.suppress(Exception):
-                orig_mj_del(self)
-
-        MjRenderContext.__del__ = _safe_mj_del
-
-    orig_egl_free = getattr(EGLGLContext, "free", None)
-    if callable(orig_egl_free):
-
-        def _safe_egl_free(self: object) -> None:
-            with contextlib.suppress(Exception):
-                orig_egl_free(self)
-
-        EGLGLContext.free = _safe_egl_free
-
-    orig_egl_del = getattr(EGLGLContext, "__del__", None)
-    if callable(orig_egl_del):
-
-        def _safe_egl_del(self: object) -> None:
-            with contextlib.suppress(Exception):
-                orig_egl_del(self)
-
-        EGLGLContext.__del__ = _safe_egl_del
-
-    _ROBOSUITE_PATCHED = True
-
-
 # ---------------------------------------------------------------------------
 # Subprocess worker
 # ---------------------------------------------------------------------------
