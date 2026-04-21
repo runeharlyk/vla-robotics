@@ -299,4 +299,4 @@ if __name__ == "__main__":
     else:
         download_by_configs(args.repo, args.split, args.save_dir, args.samples)
 
-    print("\n✅ Download complete!")
+    print("\n Download complete!")
