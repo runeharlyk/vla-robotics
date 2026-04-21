@@ -232,7 +232,20 @@ def build_rollout_engine(
             state_dim=config.state_dim,
         )
 
-    raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
+    if sim is Simulator.ROBOCASA:
+        from vla.rl.robocasa_rollout import RoboCasaRollout
+
+        env_id = (spec.env_id or config.env_id) if spec else config.env_id
+        return RoboCasaRollout(
+            env_id=env_id,
+            num_envs=resolved_envs,
+            max_steps=config.max_steps,
+            layout_id=spec.layout_id if spec else None,
+            style_id=spec.style_id if spec else None,
+            split=spec.split if spec and spec.split else "all",
+        )
+
+    raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero, robocasa")
 
 
 # ---------------------------------------------------------------------------
@@ -483,6 +496,13 @@ def _evaluate_task(
     )
     if config.simulator is Simulator.LIBERO:
         kwargs.update(suite=config.suite, task_id=spec.libero_task_idx, num_envs=config.num_envs)
+    elif config.simulator is Simulator.ROBOCASA:
+        kwargs.update(
+            env_id=spec.env_id or config.env_id,
+            layout_id=spec.layout_id,
+            style_id=spec.style_id,
+            split=spec.split or "all",
+        )
     else:
         kwargs.update(env_id=spec.env_id or config.env_id)
     return evaluate_smolvla(policy, **kwargs)

@@ -351,6 +351,8 @@ def evaluate_smolvla(
         factory_kwargs.update(suite=suite, state_dim=policy.state_dim)
         if task_id is not None:
             factory_kwargs["task_id"] = task_id
+    elif sim == "robocasa":
+        factory_kwargs.update(env_id=env_id, instruction=instruction, max_episode_steps=max_steps, image_size=image_size)
     else:
         raise ValueError(f"Unknown simulator {simulator!r}")
 

@@ -111,3 +111,20 @@ outputs/
 .libero
 .libero-src-cache
 .tmpdeps
+
+# Local simulator source trees / envs
+.libero-plus-src/
+.robocasa-src/
+.robocasa-src-cache/
+.robocasa-asset-cache/
+.robocasa-venv/
+.robosuite-src/
+
+# Local caches / temp runtime dirs
+.tmp/
+tests/.tmp/
+tmp*/
+videos-test/
+.ruff_cache/
+.uv-cache/
+.wandb/

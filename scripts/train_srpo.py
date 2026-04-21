@@ -97,6 +97,9 @@ def _build_tasks(
     include_demos: bool,
     env_id_override: str | None,
     instruction_override: str | None,
+    robocasa_layout_id: int | None,
+    robocasa_style_id: int | None,
+    robocasa_split: str,
 ) -> tuple[list[TaskSpec], dict[str, list[Trajectory]] | None, int, int]:
     """Build the task list and optional demo trajectories.
 
@@ -110,6 +113,60 @@ def _build_tasks(
     from vla.constants import ACTION_DIM
 
     demo_trajectories: dict[str, list[Trajectory]] | None = {} if include_demos else None
+
+    if simulator is Simulator.ROBOCASA:
+        from vla.envs.robocasa import (
+            ROBOCASA_DEFAULT_ACTION_DIM,
+            ROBOCASA_DEFAULT_STATE_DIM,
+            list_robocasa_tasks,
+            probe_robocasa_task,
+        )
+
+        selected_env_ids: list[str]
+        if env_id_override:
+            selected_env_ids = [env_id_override]
+        else:
+            catalog = list_robocasa_tasks()
+            if not catalog:
+                raise ValueError("No RoboCasa tasks were registered in the active Python environment.")
+            if task_ids is None:
+                selected_env_ids = catalog
+            else:
+                selected_env_ids = [catalog[idx] for idx in task_ids]
+
+        first_probe = probe_robocasa_task(
+            selected_env_ids[0],
+            layout_id=robocasa_layout_id,
+            style_id=robocasa_style_id,
+            split=robocasa_split,
+        )
+        resolved_state_dim = int(first_probe.get("state_dim", ROBOCASA_DEFAULT_STATE_DIM))
+        resolved_action_dim = int(first_probe.get("action_dim", ROBOCASA_DEFAULT_ACTION_DIM))
+
+        task_specs: list[TaskSpec] = []
+        for idx, current_env_id in enumerate(selected_env_ids):
+            if idx == 0:
+                task_instruction = str(first_probe.get("instruction", "complete the kitchen task"))
+            else:
+                task_instruction = current_env_id
+            task_key = current_env_id
+            if robocasa_layout_id is not None:
+                task_key = f"{task_key}_layout{robocasa_layout_id}"
+            if robocasa_style_id is not None:
+                task_key = f"{task_key}_style{robocasa_style_id}"
+            task_specs.append(
+                TaskSpec(
+                    task_id=task_key,
+                    instruction=instruction_override or task_instruction,
+                    env_id=current_env_id,
+                    libero_task_idx=0,
+                    layout_id=robocasa_layout_id,
+                    style_id=robocasa_style_id,
+                    split=robocasa_split,
+                )
+            )
+
+        return task_specs, demo_trajectories, resolved_state_dim, resolved_action_dim
 
     if simulator is Simulator.LIBERO and libero_suite is not None and data_dir is None:
         from vla.data.libero import LiberoSFTDataset
@@ -277,6 +334,9 @@ def main(
     seed: int = typer.Option(42, "--seed"),
     env_id: str = typer.Option(None, "--env", help="Override env id (default: from checkpoint metadata)"),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
+    robocasa_layout_id: int | None = typer.Option(None, "--robocasa-layout", help="Optional RoboCasa layout id."),
+    robocasa_style_id: int | None = typer.Option(None, "--robocasa-style", help="Optional RoboCasa style id."),
+    robocasa_split: str = typer.Option("all", "--robocasa-split", help="RoboCasa split: all, pretrain, target."),
     gradient_checkpointing: bool = typer.Option(
         False,
         "--gradient-checkpointing/--no-gradient-checkpointing",
@@ -349,7 +409,6 @@ def main(
         help="Maximum replayed trajectories per iteration as a multiple of fresh rollout trajectories.",
     ),
 ) -> None:
-    import wandb
     from vla.models.smolvla import SmolVLAPolicy
     from vla.rl.trainer import train_srpo
     from vla.training.metrics_logger import MetricsLogger
@@ -361,6 +420,12 @@ def main(
     resolved_max_steps = max_steps or 280
     resolved_eval_envs = num_envs if num_envs > 0 else num_rollout_envs
     resolved_task_ids = _parse_task_ids(task_ids)
+
+    if simulator is Simulator.ROBOCASA and mode is Mode.SRPO:
+        raise typer.BadParameter(
+            "RoboCasa integration currently supports sparse_rl. "
+            "SRPO still needs a RoboCasa demo-seeding pipeline."
+        )
 
     include_demos_internal = (mode == Mode.SRPO) or include_demos_in_update
     demo_seeding = include_demos_internal
@@ -377,6 +442,9 @@ def main(
         include_demos=include_demos_internal,
         env_id_override=env_id,
         instruction_override=instruction,
+        robocasa_layout_id=robocasa_layout_id,
+        robocasa_style_id=robocasa_style_id,
+        robocasa_split=robocasa_split,
     )
 
     policy = SmolVLAPolicy(
@@ -495,6 +563,8 @@ def main(
     run = None
     final_name: str | None = None
     if use_wandb:
+        import wandb
+
         wb_config = config.to_dict()
         wb_config.update(
             method=mode,

@@ -8,6 +8,7 @@ from vla.envs.base import SimEnv, SimEnvFactory
 _REGISTRY: dict[str, tuple[str, str]] = {
     "libero": ("vla.envs.libero", "LiberoEnvFactory"),
     "maniskill": ("vla.envs.maniskill", "ManiSkillEnvFactory"),
+    "robocasa": ("vla.envs.robocasa", "RoboCasaEnvFactory"),
 }
 
 _CACHE: dict[str, type] = {}
@@ -27,7 +28,7 @@ def make_env_factory(simulator: str, **kwargs) -> SimEnvFactory:
     """Return an env factory for the given simulator backend.
 
     Args:
-        simulator: One of ``"libero"`` or ``"maniskill"``.
+        simulator: One of ``"libero"``, ``"maniskill"``, or ``"robocasa"``.
         **kwargs: Forwarded to the factory constructor
             (e.g. ``suite`` for LIBERO, ``env_id`` for ManiSkill).
 

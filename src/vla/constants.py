@@ -50,6 +50,7 @@ class Mode(StrEnum):
 class Simulator(StrEnum):
     LIBERO = "libero"
     MANISKILL = "maniskill"
+    ROBOCASA = "robocasa"
 
 
 class LiberoSuite(StrEnum):

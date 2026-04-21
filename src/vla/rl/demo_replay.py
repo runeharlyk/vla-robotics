@@ -180,6 +180,16 @@ def replay_demo_rollouts(
                 instruction=spec.instruction,
                 max_episode_steps=max_steps,
             )
+        elif simulator is Simulator.ROBOCASA:
+            factory = make_env_factory(
+                "robocasa",
+                env_id=spec.env_id,
+                instruction=spec.instruction,
+                max_episode_steps=max_steps,
+                layout_id=spec.layout_id,
+                style_id=spec.style_id,
+                split=spec.split or "all",
+            )
         else:
             raise ValueError(f"Unsupported simulator for demo replay: {simulator!r}")
 

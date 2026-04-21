@@ -86,3 +86,6 @@ class TaskSpec:
     env_id: str = ""
     libero_task_idx: int = 0
     data_path: str = ""
+    layout_id: int | None = None
+    style_id: int | None = None
+    split: str = ""
