@@ -60,6 +60,7 @@ __all__ = [
     "log_training_config",
     "ppo_update",
     "fpo_update",
+    "resample_uniform_reward_tasks",
     "train_srpo",
 ]
 
@@ -170,6 +171,8 @@ def log_training_config(
     lines.append(f"    success_replay_alpha:       {config.success_replay_alpha}")
     lines.append(f"    success_replay_ema_decay:   {config.success_replay_ema_decay}")
     lines.append(f"    success_replay_max_ratio:   {config.success_replay_max_ratio}")
+    lines.append(f"    dynamic_sampling:           {config.dynamic_sampling}")
+    lines.append(f"    dynamic_sampling_max_retries: {config.dynamic_sampling_max_retries}")
 
     lines.append("")
     lines.append("  SRPO reward (world-model):")
@@ -381,6 +384,110 @@ def _sample_success_replay(
             break
 
     return sampled, sampled_counts
+
+
+def _reward_std(trajs: list[Trajectory]) -> float:
+    """Population std of sparse-success rewards for a task's trajectory group."""
+    if len(trajs) < 2:
+        return 0.0
+    rewards = [1.0 if t.success else 0.0 for t in trajs]
+    mean = sum(rewards) / len(rewards)
+    var = sum((r - mean) ** 2 for r in rewards) / len(rewards)
+    return var**0.5
+
+
+def resample_uniform_reward_tasks(
+    policy: SmolVLAPolicy,
+    rollout_trajectories: list[Trajectory],
+    task_specs: list[TaskSpec],
+    rollout_engines: dict[str, RolloutEngine],
+    config: SRPOConfig,
+    iteration: int,
+    trajs_per_task: int,
+) -> tuple[list[Trajectory], dict[str, int], dict[str, int], list[str]]:
+    """DAPO-style replacement sampling for uniform-reward rollout groups.
+
+    After the initial rollout, any task whose trajectory group has a reward
+    std below ``config.adv_skip_threshold`` (i.e. all-success or all-failure)
+    contributes zero advantage signal and wastes its slot in the update
+    batch.  This helper re-collects ``trajs_per_task`` trajectories for each
+    such task, up to ``config.dynamic_sampling_max_retries`` times, stopping
+    as soon as the group becomes informative.
+
+    The call is a no-op when ``config.dynamic_sampling`` is ``False`` or the
+    retry budget is zero, so gating the feature behind a CLI flag keeps
+    ablations clean.
+
+    Returns:
+        Tuple of (rebuilt trajectory list, per-task successes, retries per
+        resampled task, tasks that gave up after exhausting the retry budget).
+    """
+    if not config.dynamic_sampling or config.dynamic_sampling_max_retries <= 0:
+        per_task_successes: dict[str, int] = {}
+        for spec in task_specs:
+            per_task_successes[spec.task_id] = sum(
+                1 for t in rollout_trajectories if t.task_id == spec.task_id and t.success
+            )
+        return rollout_trajectories, per_task_successes, {}, []
+
+    trajs_by_task: dict[str, list[Trajectory]] = defaultdict(list)
+    for t in rollout_trajectories:
+        trajs_by_task[t.task_id].append(t)
+
+    use_vectorized = config.num_rollout_envs > 1
+    retries_per_task: dict[str, int] = {}
+    gave_up_tasks: list[str] = []
+
+    for spec in task_specs:
+        tid = spec.task_id
+        task_trajs = trajs_by_task.get(tid, [])
+        retries = 0
+        while _reward_std(task_trajs) < config.adv_skip_threshold and retries < config.dynamic_sampling_max_retries:
+            retries += 1
+            engine = _get_or_build_engine(rollout_engines, config, spec)
+            new_trajs = engine.collect_batch(
+                policy_fn=policy.predict_action,
+                instruction=spec.instruction,
+                num_trajectories=trajs_per_task,
+                seed=config.seed + iteration * 1000 + retries * 100003,
+                policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
+            )
+            for t in new_trajs:
+                t.task_id = tid
+            task_trajs = new_trajs
+            trajs_by_task[tid] = new_trajs
+
+        if retries > 0:
+            retries_per_task[tid] = retries
+            if _reward_std(task_trajs) < config.adv_skip_threshold:
+                gave_up_tasks.append(tid)
+
+    new_all: list[Trajectory] = []
+    new_per_task_successes: dict[str, int] = {}
+    for spec in task_specs:
+        task_list = trajs_by_task.get(spec.task_id, [])
+        new_all.extend(task_list)
+        new_per_task_successes[spec.task_id] = sum(1 for t in task_list if t.success)
+
+    if retries_per_task:
+        total_retries = sum(retries_per_task.values())
+        logger.info(
+            "Iter %d: dynamic sampling recollected %d task(s) (%d total retries); gave_up=%s",
+            iteration,
+            len(retries_per_task),
+            total_retries,
+            gave_up_tasks or "none",
+        )
+        for tid, n in sorted(retries_per_task.items()):
+            logger.info(
+                "  [dynsample %s] retries=%d final_std=%.4f gave_up=%s",
+                tid,
+                n,
+                _reward_std(trajs_by_task[tid]),
+                tid in gave_up_tasks,
+            )
+
+    return new_all, new_per_task_successes, retries_per_task, gave_up_tasks
 
 
 def collect_all_trajectories(
@@ -713,6 +820,22 @@ def train_srpo(
             trajs_per_task_per_iter,
         )
 
+        # -- 1b. Dynamic (replacement) sampling (DAPO-style) --------------
+        (
+            rollout_trajectories,
+            per_task_successes,
+            dynsample_retries,
+            dynsample_gave_up,
+        ) = resample_uniform_reward_tasks(
+            policy,
+            rollout_trajectories,
+            task_specs,
+            rollout_engines,
+            config,
+            iteration,
+            trajs_per_task_per_iter,
+        )
+
         total_rollout_successes = sum(per_task_successes.values())
         rate_floor = 1.0 / max(trajs_per_task_per_iter, 1)
         for _tid, n_success in per_task_successes.items():
@@ -841,6 +964,9 @@ def train_srpo(
             log_data: dict[str, Any] = {
                 f"{config.mode}/skipped_update": 1,
                 f"{config.mode}/total_successes": total_successes,
+                f"{config.mode}/dynamic_sampling/resampled_tasks": len(dynsample_retries),
+                f"{config.mode}/dynamic_sampling/total_retries": sum(dynsample_retries.values()),
+                f"{config.mode}/dynamic_sampling/gave_up_tasks": len(dynsample_gave_up),
                 f"{config.mode}/iteration": iteration,
             }
             for _tid in per_task_g_mean:
@@ -962,8 +1088,14 @@ def train_srpo(
             f"{config.mode}/replay_successes": sum(replay_counts.values()),
             f"{config.mode}/success_buffer_size": sum(len(buf) for buf in success_buffer.values()),
             f"{config.mode}/skipped_tasks": len(skipped_tasks),
+            f"{config.mode}/dynamic_sampling/resampled_tasks": len(dynsample_retries),
+            f"{config.mode}/dynamic_sampling/total_retries": sum(dynsample_retries.values()),
+            f"{config.mode}/dynamic_sampling/gave_up_tasks": len(dynsample_gave_up),
             f"{config.mode}/iteration": iteration,
         }
+        for _tid, n_retries in dynsample_retries.items():
+            log_data[f"{config.mode}/{_tid}/dynamic_sampling/retries"] = n_retries
+            log_data[f"{config.mode}/{_tid}/dynamic_sampling/gave_up"] = int(_tid in dynsample_gave_up)
         if config.update_method == UpdateMethod.AWR:
             log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
         elif config.update_method == UpdateMethod.FPO:
