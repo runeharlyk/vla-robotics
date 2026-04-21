@@ -536,6 +536,29 @@ def evaluate_and_checkpoint(
     return best_success
 
 
+def save_best_rollout_checkpoint(
+    current_successes: int,
+    best_successes: int,
+    save_fn: Any,
+    *,
+    tag: str = "",
+) -> int:
+    """Save a checkpoint when rollout successes improve.
+
+    Unlike eval-based checkpointing, this metric is available every iteration
+    and is useful when jobs die before the first scheduled evaluation.
+    """
+    if current_successes > best_successes:
+        save_fn()
+        logger.info(
+            "New best %srollout checkpoint: %d successes",
+            f"{tag} " if tag else "",
+            current_successes,
+        )
+        return current_successes
+    return best_successes
+
+
 # ---------------------------------------------------------------------------
 # Main training loop
 # ---------------------------------------------------------------------------
@@ -649,6 +672,7 @@ def train_srpo(
     if metrics_logger is None:
         metrics_logger = MetricsLogger(jsonl_path=save_path / "metrics.jsonl")
     best_success = -1.0
+    best_rollout_successes = -1
 
     log_training_config(config, task_specs, trajs_per_task_per_iter)
 
@@ -740,6 +764,12 @@ def train_srpo(
             f"Iter {iteration}: collected {len(rollout_trajectories)} trajs, "
             f"{total_rollout_successes} rollout successes, {len(all_trajectories)} total trajs for update "
             f"({total_successes} total successes)"
+        )
+        best_rollout_successes = save_best_rollout_checkpoint(
+            total_rollout_successes,
+            best_rollout_successes,
+            lambda: policy.save_checkpoint(save_path / "best_rollout"),
+            tag=config.mode,
         )
         if replay_counts:
             replay_total = sum(replay_counts.values())
@@ -977,6 +1007,10 @@ def train_srpo(
         )
         for _tid in per_task_successes:
             logger.info(f"  [{_tid}] successes={per_task_successes[_tid]}  g_mean={per_task_g_mean.get(_tid, 0.0):.4f}")
+
+        # Overwrite the rolling "last" checkpoint every iteration so that
+        # interrupted jobs still leave behind the most recent trainable state.
+        policy.save_checkpoint(save_path / "last")
 
         # -- 8. Periodic evaluation ---------------------------------------
         if iteration % config.eval_every == 0 or iteration == config.num_iterations:
