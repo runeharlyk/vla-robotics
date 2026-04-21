@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-04-16T07:42:00.650178+00:00",
+  "generated_at_utc": "2026-04-21T09:39:56.692866+00:00",
   "llm_model": "Qwen/Qwen2.5-3B-Instruct",
   "variant_types": [
     "original",
@@ -21,12 +21,92 @@
         "original": "pick up the black bowl between the plate and the ramekin and place it on the plate",
         "politeness": "please pick up the black bowl between the plate and the ramekin and place it on the plate",
         "verb_paraphrase": "grab the black bowl between the plate and the ramekin and place it on the plate",
-        "sentence_structure": "the black bowl between the plate and the ramekin, pick it upand place it on the plate",
-        "verbosity": "Now for this task, pick up the black bowl between the plate and the ramekin and place it on the plate",
-        "carefully": "Pick up the black bowl between the plate and the ramekin and place it on the plate carefully",
+        "sentence_structure": "The black bowl between the plate and the ramekin, pick it up and place it on the plate",
+        "verbosity": "In this task you have to pick up the black bowl between the plate and the ramekin and place it on the plate for me",
+        "carefully": "pick up the black bowl between the plate and the ramekin and place it on the plate carefully",
         "quickly": "pick up the black bowl between the plate and the ramekin and place it on the plate quickly",
-        "contrastive_negation": "Do not move the red, but the black bowl between the plate and the ramekin and place it on the plate",
+        "contrastive_negation": "pick up the black, not the red bowl between the plate and the ramekin and place it on the plate",
         "do_not_move": "do not move the black bowl between the plate and the ramekin and place it on the plate"
+      }
+    },
+    {
+      "suite": "spatial",
+      "task_id": 1,
+      "task_description": "pick up the black bowl next to the ramekin and place it on the plate",
+      "prompts": {
+        "original": "pick up the black bowl next to the ramekin and place it on the plate",
+        "politeness": "please pick up the black bowl next to the ramekin and place it on the plate",
+        "verb_paraphrase": "grab the black bowl next to the ramekin and place it on the plate",
+        "sentence_structure": "The black bowl next to the ramekin, pick it up and place it on the plate",
+        "verbosity": "In this task you have to pick up the black bowl next to the ramekin and place it on the plate for me",
+        "carefully": "pick up the black bowl next to the ramekin and place it on the plate carefully",
+        "quickly": "pick up the black bowl next to the ramekin and place it on the plate quickly",
+        "contrastive_negation": "pick up the black, not the red bowl next to the ramekin and place it on the plate",
+        "do_not_move": "do not move the black bowl next to the ramekin and place it on the plate"
+      }
+    },
+    {
+      "suite": "object",
+      "task_id": 0,
+      "task_description": "pick up the alphabet soup and place it in the basket",
+      "prompts": {
+        "original": "pick up the alphabet soup and place it in the basket",
+        "politeness": "please pick up the alphabet soup and place it in the basket",
+        "verb_paraphrase": "grab the alphabet soup and place it in the basket",
+        "sentence_structure": "The alphabet soup, pick it up and place it in the basket",
+        "verbosity": "In this task you have to pick up the alphabet soup and place it in the basket for me",
+        "carefully": "pick up the alphabet soup and place it in the basket carefully",
+        "quickly": "pick up the alphabet soup and place it in the basket quickly",
+        "contrastive_negation": "pick up the alphabet soup, not the other item, and place it in the basket",
+        "do_not_move": "do not move the alphabet soup and place it in the basket"
+      }
+    },
+    {
+      "suite": "object",
+      "task_id": 1,
+      "task_description": "pick up the cream cheese and place it in the basket",
+      "prompts": {
+        "original": "pick up the cream cheese and place it in the basket",
+        "politeness": "please pick up the cream cheese and place it in the basket",
+        "verb_paraphrase": "grab the cream cheese and place it in the basket",
+        "sentence_structure": "The cream cheese, pick it up and place it in the basket",
+        "verbosity": "In this task you have to pick up the cream cheese and place it in the basket for me",
+        "carefully": "pick up the cream cheese and place it in the basket carefully",
+        "quickly": "pick up the cream cheese and place it in the basket quickly",
+        "contrastive_negation": "pick up the cream cheese, not the other item, and place it in the basket",
+        "do_not_move": "do not move the cream cheese and place it in the basket"
+      }
+    },
+    {
+      "suite": "goal",
+      "task_id": 0,
+      "task_description": "open the middle drawer of the cabinet",
+      "prompts": {
+        "original": "open the middle drawer of the cabinet",
+        "politeness": "please open the middle drawer of the cabinet",
+        "verb_paraphrase": "pull out the middle drawer of the cabinet",
+        "sentence_structure": "The middle drawer of the cabinet, open it",
+        "verbosity": "In this task you have to open the middle drawer of the cabinet for me",
+        "carefully": "open the middle drawer of the cabinet carefully",
+        "quickly": "open the middle drawer of the cabinet quickly",
+        "contrastive_negation": "open the middle drawer of the cabinet, not the top or bottom one",
+        "do_not_move": "do not open the middle drawer of the cabinet"
+      }
+    },
+    {
+      "suite": "goal",
+      "task_id": 1,
+      "task_description": "put the bowl on the stove",
+      "prompts": {
+        "original": "put the bowl on the stove",
+        "politeness": "please put the bowl on the stove",
+        "verb_paraphrase": "place the bowl on the stove",
+        "sentence_structure": "The bowl, put it on the stove",
+        "verbosity": "In this task you have to put the bowl on the stove for me",
+        "carefully": "put the bowl on the stove carefully",
+        "quickly": "put the bowl on the stove quickly",
+        "contrastive_negation": "put the bowl on the stove, not somewhere else",
+        "do_not_move": "do not move the bowl or place it on the stove"
       }
     }
   ]

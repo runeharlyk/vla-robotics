@@ -52,7 +52,7 @@ CRITICAL INSTRUCTION: Each variant value MUST be a COMPLETE, FULL-LENGTH instruc
 
 Variant rules:
 - original: output the base instruction exactly unchanged
-- politeness: add "please" at the start, then output the complete rest of the instruction. MUST be 80%+ as long as base.
+- politeness: add "please" at the start, then output the complete rest of the instruction.
 - verb_paraphrase: replace ONLY one main action verb (e.g., pick->grasp, put->place, push->move) but keep everything else identical. MUST have all same objects/locations.
 - sentence_structure: rearrange word order but keep ALL words and meaning. Example: if base is "A B C D", output could be "D C A B" but must be complete.
 - verbosity: insert "for this task" or similar phrase within the instruction, but keep the full base meaning. MUST include all original details.
