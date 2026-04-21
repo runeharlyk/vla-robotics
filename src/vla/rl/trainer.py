@@ -243,6 +243,7 @@ def build_rollout_engine(
             layout_id=spec.layout_id if spec else None,
             style_id=spec.style_id if spec else None,
             split=spec.split if spec and spec.split else "all",
+            instruction=spec.instruction if spec else "",
         )
 
     raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero, robocasa")

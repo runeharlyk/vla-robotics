@@ -134,6 +134,39 @@ def _append_registry_entries(path: Path, entries: dict[str, dict[str, object]]) 
     _append_lines(path, lines[:-1], sentinel=f"{next(iter(missing))}:")
 
 
+def _rewrite_missing_xml_roots(registry_dir: Path, assets_root: Path) -> None:
+    """Fix stale `objects/lightwheel/...` registry entries to the extracted object root.
+
+    The current NVIDIA asset bundle unpacks many object folders directly under
+    `models/assets/objects/<category>/...`, while some upstream fixture registry
+    entries still point at `objects/lightwheel/<category>/...`.
+    """
+    for registry_path in sorted(registry_dir.glob("*.yaml")):
+        data = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
+        changed = False
+        for entry in data.values():
+            if not isinstance(entry, dict):
+                continue
+            xml_rel = entry.get("xml")
+            if not isinstance(xml_rel, str):
+                continue
+            if not xml_rel.startswith("objects/lightwheel/"):
+                continue
+
+            current_model = assets_root / xml_rel / "model.xml"
+            if current_model.exists():
+                continue
+
+            candidate_rel = "objects/" + xml_rel[len("objects/lightwheel/") :]
+            candidate_model = assets_root / candidate_rel / "model.xml"
+            if candidate_model.exists():
+                entry["xml"] = candidate_rel
+                changed = True
+
+        if changed:
+            registry_path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+
 def _sync_asset_registry(package_root: Path) -> None:
     assets_root = package_root / "models" / "assets"
     registry_dir = assets_root / "fixtures" / "fixture_registry"
@@ -157,6 +190,7 @@ def _sync_asset_registry(package_root: Path) -> None:
         _append_registry_entries(registry_dir / "stool.yaml", _stool_entries())
 
     _append_registry_entries(registry_dir / "cabinet.yaml", _cabinet_alias_entries())
+    _rewrite_missing_xml_roots(registry_dir, assets_root)
 
 
 def main() -> None:
