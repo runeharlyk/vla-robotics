@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-04-16T13:19:17.529658+00:00",
+  "generated_at_utc": "2026-04-16T09:12:47.074991+00:00",
   "args": {
-    "episodes": 5,
+    "episodes": 1,
     "max_steps": 280,
     "seed": 0,
     "state_dim": 8,
@@ -24,6 +24,6 @@
     "do_not_move"
   ],
   "prompt_plan_path": "language_diagnostics/libero_prompt_variant_prompt_plan.json",
-  "num_rollout_rows": 45,
+  "num_rollout_rows": 9,
   "num_prompt_rows": 9
 }
