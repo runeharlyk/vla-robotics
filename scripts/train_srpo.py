@@ -348,6 +348,16 @@ def main(
         "--success-replay-max-ratio",
         help="Maximum replayed trajectories per iteration as a multiple of fresh rollout trajectories.",
     ),
+    dynamic_sampling: bool = typer.Option(
+        False,
+        "--dynamic-sampling/--no-dynamic-sampling",
+        help="DAPO-style replacement sampling: re-collect rollouts for tasks whose reward std is below --adv-skip-threshold.",
+    ),
+    dynamic_sampling_max_retries: int = typer.Option(
+        2,
+        "--dynamic-sampling-max-retries",
+        help="Max number of replacement draws per uniform-reward task before giving up.",
+    ),
 ) -> None:
     import wandb
     from vla.models.smolvla import SmolVLAPolicy
@@ -472,6 +482,8 @@ def main(
         success_replay_alpha=success_replay_alpha,
         success_replay_ema_decay=success_replay_ema_decay,
         success_replay_max_ratio=success_replay_max_ratio,
+        dynamic_sampling=dynamic_sampling,
+        dynamic_sampling_max_retries=dynamic_sampling_max_retries,
     )
 
     logger.info(
