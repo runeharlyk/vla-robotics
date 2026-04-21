@@ -13,7 +13,10 @@ from vla.models.smolvla import SmolVLAPolicy
 from vla.utils.device import get_device
 from vla.utils.seed import seed_everything
 
-from noise import NoiseConfig, apply_noise
+try:
+    from .noise import NoiseConfig, apply_noise
+except ImportError:
+    from noise import NoiseConfig, apply_noise
 
 
 # ---------------------------------------------------------------------------
@@ -31,7 +34,19 @@ def load_policy_bundle(
     dict
         Keys: ``policy``, ``device``, ``model_dtype``.
     """
+    if device == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            "Requested --device cuda, but CUDA is not available. "
+            "Use --device cpu as fallback."
+        )
+
     device_obj = get_device(device)
+    if device == "cuda" and device_obj.type != "cuda":
+        raise RuntimeError(
+            f"Requested CUDA but resolved device is '{device_obj}'. "
+            "Use --device cpu or fix your CUDA environment."
+        )
+
     policy = SmolVLAPolicy(checkpoint, action_dim=7, device=str(device_obj))
     policy.eval()
 
@@ -59,7 +74,7 @@ def run_trajectory(
     Parameters
     ----------
     images : torch.Tensor
-        ``(T, C, H, W)`` observations in [0, 1].
+        ``(T, C, H, W)`` or ``(T, V, C, H, W)`` observations in [0, 1].
     states : torch.Tensor
         ``(T, state_dim)`` proprioceptive states.
     instruction : str
@@ -90,7 +105,14 @@ def run_trajectory(
         for img, state in zip(images, states):
             # -- optionally corrupt the observation --
             if noise_config is not None:
-                img = apply_noise(img, noise_config)
+                if img.ndim == 3:
+                    img = apply_noise(img, noise_config)
+                elif img.ndim == 4:
+                    img = torch.stack([apply_noise(view, noise_config) for view in img], dim=0)
+                else:
+                    raise ValueError(
+                        f"Expected image shape (C,H,W) or (V,C,H,W), got {tuple(img.shape)}"
+                    )
 
             action = policy.predict_action(img, instruction, state)
             actions.append(action.cpu())

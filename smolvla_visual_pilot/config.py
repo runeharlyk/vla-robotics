@@ -17,6 +17,10 @@ NOISE_TYPES: list[str] = [
 
 # Fixed severity level (user chose L3).
 NOISE_SEVERITY: int = 3
+DEFAULT_EVAL_CAMERAS: list[str] = [
+    "observation.images.front",
+    "observation.images.wrist",
+]
 
 
 @dataclass
@@ -30,6 +34,7 @@ class EvalConfig:
 
     # -- Data --
     rollout_path: str = ""  # path to the combined Libero+ h5 file (TBD)
+    cameras: list[str] = field(default_factory=lambda: list(DEFAULT_EVAL_CAMERAS))
 
     # -- Noise --
     noise_types: list[str] = field(default_factory=lambda: list(NOISE_TYPES))

@@ -26,12 +26,22 @@ import json
 import time
 from pathlib import Path
 
-from config import EvalConfig, NOISE_TYPES, NOISE_SEVERITY
-from data_loader import Demo, iter_demos
-from inference import load_policy_bundle, run_trajectory
-from logger import ResultLogger
-from metrics import compute_l2_distances, compute_relative_l2_distances
-from noise import NoiseConfig, get_noise_configs
+import torch
+
+try:
+    from .config import DEFAULT_EVAL_CAMERAS, EvalConfig, NOISE_TYPES, NOISE_SEVERITY
+    from .data_loader import iter_demos
+    from .inference import load_policy_bundle, run_trajectory
+    from .logger import ResultLogger
+    from .metrics import compute_l2_distances, compute_relative_l2_distances
+    from .noise import get_noise_configs
+except ImportError:
+    from config import DEFAULT_EVAL_CAMERAS, EvalConfig, NOISE_TYPES, NOISE_SEVERITY
+    from data_loader import iter_demos
+    from inference import load_policy_bundle, run_trajectory
+    from logger import ResultLogger
+    from metrics import compute_l2_distances, compute_relative_l2_distances
+    from noise import get_noise_configs
 
 
 # ---------------------------------------------------------------------------
@@ -47,6 +57,16 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Path to the combined Libero+ h5 file.",
     )
+    p.add_argument(
+        "--cameras",
+        nargs="+",
+        default=list(DEFAULT_EVAL_CAMERAS),
+        help=(
+            "Camera streams under /videos for new-format h5 files. "
+            "Default uses front+wrist for dual-camera inference."
+        ),
+    )
+    p.add_argument("--camera", default=None, help=argparse.SUPPRESS)
     p.add_argument("--checkpoint", default="HuggingFaceVLA/smolvla_libero")
     p.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
     p.add_argument("--seed", type=int, default=0)
@@ -82,6 +102,16 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def parse_csv_tokens(raw_values: list[str]) -> list[str]:
+    tokens = []
+    for value in raw_values:
+        for token in value.split(","):
+            token = token.strip()
+            if token:
+                tokens.append(token)
+    return tokens
+
+
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
@@ -95,12 +125,14 @@ def run_evaluation(cfg: EvalConfig) -> None:
         cfg.rollout_path,
         max_tasks=cfg.max_tasks,
         max_demos=cfg.max_demos,
+        cameras=cfg.cameras,
     )
     if not demos:
         raise RuntimeError(f"No demos found in {cfg.rollout_path}.")
 
     n_tasks = len({d.task_index for d in demos})
     print(f"  Loaded {len(demos)} demos across {n_tasks} tasks.")
+    print(f"  Cameras: {cfg.cameras}")
 
     # -- load policy --
     print("Loading SmolVLA policy …")
@@ -201,11 +233,23 @@ def run_evaluation(cfg: EvalConfig) -> None:
 def main() -> None:
     args = parse_args()
 
+    camera_raw_values = [args.camera] if args.camera else args.cameras
+    cameras = parse_csv_tokens(camera_raw_values)
+    if not cameras:
+        raise SystemExit("No cameras selected. Pass --cameras <camera1> [camera2 ...].")
+
+    if args.device == "cuda" and not torch.cuda.is_available():
+        raise SystemExit(
+            "Requested --device cuda, but CUDA is not available in this environment. "
+            "Use --device cpu to run on CPU."
+        )
+
     cfg = EvalConfig(
         checkpoint=args.checkpoint,
         device=args.device,
         seed=args.seed,
         rollout_path=args.rollout,
+        cameras=cameras,
         noise_types=args.noise_types or list(NOISE_TYPES),
         noise_severity=args.noise_severity,
         max_tasks=args.max_tasks,
