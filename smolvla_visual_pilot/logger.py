@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import csv
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-
 
 # ---------------------------------------------------------------------------
 # Single-record dataclass
@@ -25,6 +24,9 @@ class TimestepRecord:
     task_index: int
     task_name: str
     rollout_index: int
+    source_h5: str
+    source_chunk: str
+    source_episode: str
     noise_type: str
     noise_severity: int
     timestep: int
@@ -49,6 +51,9 @@ class ResultLogger:
         task_index: int,
         task_name: str,
         rollout_index: int,
+        source_h5: str,
+        source_chunk: str,
+        source_episode: str,
         noise_type: str,
         noise_severity: int,
         timestep: int,
@@ -60,6 +65,9 @@ class ResultLogger:
                 task_index=task_index,
                 task_name=task_name,
                 rollout_index=rollout_index,
+                source_h5=source_h5,
+                source_chunk=source_chunk,
+                source_episode=source_episode,
                 noise_type=noise_type,
                 noise_severity=noise_severity,
                 timestep=timestep,
@@ -73,17 +81,23 @@ class ResultLogger:
         task_index: int,
         task_name: str,
         rollout_index: int,
+        source_h5: str,
+        source_chunk: str,
+        source_episode: str,
         noise_type: str,
         noise_severity: int,
         l2_distances: list[float] | np.ndarray,
         rel_l2_distances: list[float] | np.ndarray,
     ) -> None:
         """Convenience: log all timesteps for one (rollout, noise_variant) pair."""
-        for t, (l2, rel_l2) in enumerate(zip(l2_distances, rel_l2_distances)):
+        for t, (l2, rel_l2) in enumerate(zip(l2_distances, rel_l2_distances, strict=True)):
             self.log_timestep(
                 task_index=task_index,
                 task_name=task_name,
                 rollout_index=rollout_index,
+                source_h5=source_h5,
+                source_chunk=source_chunk,
+                source_episode=source_episode,
                 noise_type=noise_type,
                 noise_severity=noise_severity,
                 timestep=t,
@@ -101,6 +115,9 @@ class ResultLogger:
         "task_index",
         "task_name",
         "rollout_index",
+        "source_h5",
+        "source_chunk",
+        "source_episode",
         "noise_type",
         "noise_severity",
         "timestep",
@@ -121,6 +138,9 @@ class ResultLogger:
                         "task_index": r.task_index,
                         "task_name": r.task_name,
                         "rollout_index": r.rollout_index,
+                        "source_h5": r.source_h5,
+                        "source_chunk": r.source_chunk,
+                        "source_episode": r.source_episode,
                         "noise_type": r.noise_type,
                         "noise_severity": r.noise_severity,
                         "timestep": r.timestep,
@@ -146,7 +166,13 @@ class ResultLogger:
             )
             rollout = task["rollouts"].setdefault(
                 r.rollout_index,
-                {"rollout_index": r.rollout_index, "noise_variants": {}},
+                {
+                    "rollout_index": r.rollout_index,
+                    "source_h5": r.source_h5,
+                    "source_chunk": r.source_chunk,
+                    "source_episode": r.source_episode,
+                    "noise_variants": {},
+                },
             )
             nv_key = f"{r.noise_type}_s{r.noise_severity}"
             variant = rollout["noise_variants"].setdefault(
@@ -188,13 +214,17 @@ class ResultLogger:
         from collections import defaultdict
 
         by_noise: dict[str, list[float]] = defaultdict(list)
+        by_noise_rel: dict[str, list[float]] = defaultdict(list)
         by_task: dict[int, list[float]] = defaultdict(list)
         by_task_noise: dict[tuple[int, str], list[float]] = defaultdict(list)
+        by_source_noise: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
 
         for r in self._records:
             by_noise[r.noise_type].append(r.l2_distance)
+            by_noise_rel[r.noise_type].append(r.rel_l2_distance)
             by_task[r.task_index].append(r.l2_distance)
             by_task_noise[(r.task_index, r.noise_type)].append(r.l2_distance)
+            by_source_noise[r.source_h5][r.noise_type].append(r.l2_distance)
 
         def _stats(vals: list[float]) -> dict:
             a = np.array(vals)
@@ -207,9 +237,11 @@ class ResultLogger:
 
         return {
             "by_noise_type": {k: _stats(v) for k, v in sorted(by_noise.items())},
+            "by_noise_type_relative": {k: _stats(v) for k, v in sorted(by_noise_rel.items())},
             "by_task": {str(k): _stats(v) for k, v in sorted(by_task.items())},
-            "by_task_noise": {
-                f"task{k[0]}_{k[1]}": _stats(v)
-                for k, v in sorted(by_task_noise.items())
+            "by_task_noise": {f"task{k[0]}_{k[1]}": _stats(v) for k, v in sorted(by_task_noise.items())},
+            "by_source_h5_noise_type": {
+                source_h5: {noise_type: _stats(values) for noise_type, values in sorted(by_noise_map.items())}
+                for source_h5, by_noise_map in sorted(by_source_noise.items())
             },
         }
