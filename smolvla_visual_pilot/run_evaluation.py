@@ -11,11 +11,14 @@ The pipeline:
     1. Discovers all h5 files (single-file path or recursively from a folder).
     2. Loads the SmolVLA policy.
     3. For each demo in each file:
-       a. Obtains reference actions (h5 ground truth, or clean model predictions
-          if the h5 lacks an ``actions`` dataset).
+       a. Obtains reference actions from the selected source:
+          - model (default): run a clean no-noise replay.
+          - demo: use h5 ground-truth actions.
+          - fallback to the other source if the selected source is unavailable.
        b. For each noise variant (5 types × severity 3):
-          - Replays the trajectory with noisy observations.
-          - Computes per-timestep L2 distances vs reference.
+          - At timestep t, predicts one noisy action from observation/state at t.
+          - Compares it to the reference action at the same timestep t.
+          - Repeats for all timesteps in the episode.
     4. Writes results to JSON + CSV and saves a summary deviation diagram.
 """
 
@@ -73,6 +76,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--checkpoint", default="HuggingFaceVLA/smolvla_libero")
     p.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument(
+        "--reference-source",
+        choices=["model", "demo"],
+        default="model",
+        help=(
+            "Reference action source. "
+            "'model' (default): clean no-noise model actions. "
+            "'demo': h5 demo actions when available."
+        ),
+    )
     p.add_argument(
         "--noise-types",
         nargs="*",
@@ -208,6 +221,9 @@ def save_noise_deviation_diagram(summary: dict, output_path: Path) -> None:
 def run_evaluation(cfg: EvalConfig) -> None:
     out_dir = cfg.resolve_output_dir()
 
+    if cfg.reference_source not in {"model", "demo"}:
+        raise ValueError(f"Invalid reference_source='{cfg.reference_source}'. Expected one of: model, demo.")
+
     rollout_root = Path(cfg.rollout_path).expanduser()
     rollout_files = discover_rollout_files(cfg.rollout_path)
     n_chunks = len({p.parent.name for p in rollout_files if p.parent.name.startswith("chunk-")})
@@ -216,6 +232,7 @@ def run_evaluation(cfg: EvalConfig) -> None:
     if rollout_root.is_dir():
         print(f"  Chunk folders detected: {n_chunks}")
     print(f"  Cameras: {cfg.cameras}")
+    print(f"  Reference source mode: {cfg.reference_source}")
 
     # -- load policy --
     print("Loading SmolVLA policy …")
@@ -278,22 +295,51 @@ def run_evaluation(cfg: EvalConfig) -> None:
                 flush=True,
             )
 
-            # --- obtain reference actions ---
-            if demo.gt_actions is not None:
-                ref_actions = demo.gt_actions
-                ref_source = "h5_ground_truth"
+            # --- obtain reference actions (selected source, with fallback) ---
+            if cfg.reference_source == "demo":
+                if demo.gt_actions is not None:
+                    ref_actions = demo.gt_actions
+                    ref_source = "h5_ground_truth"
+                else:
+                    print("    (reference-source=demo but no GT actions; running clean baseline)")
+                    try:
+                        ref_actions = run_trajectory(
+                            demo.images,
+                            demo.states,
+                            demo.task_instruction,
+                            policy_bundle,
+                            noise_config=None,
+                            seed=cfg.seed,
+                        )
+                        ref_source = "clean_model_prediction_fallback"
+                    except Exception as exc:
+                        print(
+                            "    (demo reference unavailable and clean baseline failed; "
+                            f"skipping demo: {type(exc).__name__}: {exc})"
+                        )
+                        continue
             else:
-                # Fall back: run model on clean observations
-                print("    (no GT actions in h5 — running clean baseline)")
-                ref_actions = run_trajectory(
-                    demo.images,
-                    demo.states,
-                    demo.task_instruction,
-                    policy_bundle,
-                    noise_config=None,
-                    seed=cfg.seed,
-                )
-                ref_source = "clean_model_prediction"
+                try:
+                    ref_actions = run_trajectory(
+                        demo.images,
+                        demo.states,
+                        demo.task_instruction,
+                        policy_bundle,
+                        noise_config=None,
+                        seed=cfg.seed,
+                    )
+                    ref_source = "clean_model_prediction"
+                except Exception as exc:
+                    if demo.gt_actions is None:
+                        print(
+                            "    (clean baseline failed and no GT actions available; "
+                            f"skipping demo: {type(exc).__name__}: {exc})"
+                        )
+                        continue
+
+                    print(f"    (clean baseline failed; falling back to GT actions: {type(exc).__name__}: {exc})")
+                    ref_actions = demo.gt_actions
+                    ref_source = "h5_ground_truth_fallback"
 
             print(f"    Reference: {ref_source} — shape {tuple(ref_actions.shape)}")
 
@@ -310,6 +356,8 @@ def run_evaluation(cfg: EvalConfig) -> None:
                     seed=cfg.seed,
                 )
 
+                # For each timestep t, compare noisy prediction a_noisy[t] against
+                # reference action a_ref[t] (clean-model or demo), then aggregate over T.
                 l2 = compute_l2_distances(predicted, ref_actions)
                 rel_l2 = compute_relative_l2_distances(predicted, ref_actions)
 
@@ -382,6 +430,7 @@ def main() -> None:
         checkpoint=args.checkpoint,
         device=args.device,
         seed=args.seed,
+        reference_source=args.reference_source,
         rollout_path=args.rollout,
         cameras=cameras,
         noise_types=args.noise_types or list(NOISE_TYPES),

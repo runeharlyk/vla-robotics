@@ -40,6 +40,11 @@ class EvalConfig:
     noise_types: list[str] = field(default_factory=lambda: list(NOISE_TYPES))
     noise_severity: int = NOISE_SEVERITY
 
+    # -- Reference action source --
+    # model: run clean (no-noise) policy actions as reference (default)
+    # demo: use h5 demo actions when available
+    reference_source: str = "model"
+
     # -- Iteration caps (None = process all) --
     max_tasks: int | None = None    # cap on number of tasks (up to 15)
     max_demos: int | None = None    # cap on rollouts per task (up to 50)
