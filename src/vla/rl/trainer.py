@@ -37,6 +37,14 @@ from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.advantage import leave_one_out_advantages_per_task, normalize_advantages_per_task
 from vla.rl.config import SRPOConfig, TaskSpec
 from vla.rl.policy_update import UpdateMetrics, _sample_fixed_noise_time, awr_update, fpo_update, ppo_update
+from vla.rl.resume import (
+    ResumeState,
+    apply_resume_state,
+    has_resume_state,
+    load_full_state,
+    save_full_state,
+    verify_or_start_fresh,
+)
 from vla.rl.rollout import RolloutEngine, Trajectory
 from vla.rl.srpo_reward import (
     MultiTaskWorldProgressReward,
@@ -688,6 +696,10 @@ def train_srpo(
     metrics_logger: MetricsLogger | None = None,
     trajs_per_task_per_iter: int = 4,
     rollout_engines: dict[str, RolloutEngine] | None = None,
+    resume_from: Path | str | None = None,
+    checkpoint_keep_every: int = 0,
+    wandb_run_id: str | None = None,
+    resume_extras: dict[str, Any] | None = None,
 ) -> SmolVLAPolicy:
     """Run SRPO training (single- or multi-task) on an SFT-initialised policy.
 
@@ -714,6 +726,19 @@ def train_srpo(
         rollout_engines: Optional pre-built ``{task_id: RolloutEngine}`` map.
             When ``None``, engines are created from ``task_specs`` and
             ``config`` automatically.
+        resume_from: Directory holding ``latest/state.pt`` from a prior
+            run. When ``None`` (default) or the directory contains no
+            resume state, training starts fresh. On resume, the saved
+            config is compared against the current invocation and any
+            determinism-affecting mismatch is a hard error.
+        checkpoint_keep_every: When positive, every Nth iteration's
+            full state is mirrored from ``latest/`` to
+            ``snapshots/iter_<N>/``. Default 0 (snapshots disabled).
+        wandb_run_id: Optional W&B run id to persist so a chained run
+            can resume on the same id.
+        resume_extras: Extra CLI-level fields to round-trip through
+            ``config.json`` (e.g. ``trajs_per_task_per_iter``). Checked
+            against the saved snapshot on resume.
 
     Returns:
         The RL-tuned policy.
@@ -774,15 +799,6 @@ def train_srpo(
         )
         reward_model = MultiTaskWorldProgressReward(world_encoder, reward_cfg)
 
-        if demo_trajectories:
-            for _tid, demos in demo_trajectories.items():
-                demo_images = []
-                for dt in demos:
-                    imgs = dt.images[: dt.length]
-                    imgs = to_float01(imgs)
-                    demo_images.append(imgs)
-                reward_model.add_demo_trajectories(_tid, demo_images)
-
     save_path = Path(config.save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
     if metrics_logger is None:
@@ -792,23 +808,81 @@ def train_srpo(
 
     log_training_config(config, task_specs, trajs_per_task_per_iter)
 
-    log_data: dict[str, Any] = {
-        f"{config.mode}/iteration": 0,
-        f"{config.mode}/pre_rl_eval": 1,
-    }
-    best_success = evaluate_and_checkpoint(  # Evaluate for iteration 0 to get a baseline for improvements
-        policy,
-        config,
-        task_specs,
-        0,
-        save_path,
-        best_success,
-        log_data,
-        rollout_engines=rollout_engines,
-    )
-    metrics_logger.log(log_data)
+    # -- Resume (full-state) ------------------------------------------------
+    resume_extras = dict(resume_extras or {})
+    resume_extras.setdefault("trajs_per_task_per_iter", trajs_per_task_per_iter)
 
-    for iteration in trange(1, config.num_iterations + 1, desc="Training iterations"):
+    resume_dir = Path(resume_from) if resume_from is not None else save_path
+    start_iteration = 1
+    resumed = False
+    if resume_from is not None and has_resume_state(resume_dir):
+        verify_or_start_fresh(resume_dir, config, resume_extras)
+        state: ResumeState = load_full_state(resume_dir)
+        apply_resume_state(
+            state,
+            policy=policy,
+            optimizer=optimizer,
+            success_buffer=success_buffer,
+            success_rate_ema=success_rate_ema,
+            reward_model=reward_model,
+            config=config,
+            ckpt_dir=resume_dir,
+        )
+        start_iteration = state.iteration + 1
+        best_success = state.best_success
+        best_rollout_successes = state.best_rollout_successes
+        resumed = True
+        logger.info(
+            "Resumed from %s at iteration %d (best_success=%.4f, best_rollout_successes=%d, kl_coeff=%.6f)",
+            resume_dir,
+            state.iteration,
+            best_success,
+            best_rollout_successes,
+            config.kl_coeff,
+        )
+    elif resume_from is not None:
+        logger.info(
+            "No resume state at %s — starting fresh (writing to %s).", resume_dir, save_path
+        )
+
+    if start_iteration > config.num_iterations:
+        logger.info(
+            "Saved iteration %d already >= num_iterations %d; nothing to do.",
+            start_iteration - 1,
+            config.num_iterations,
+        )
+        return policy
+
+    if not resumed:
+        # Demo seeding is expensive (one encoder pass per demo) so we only
+        # do it on a fresh start. Resumed runs inherit the encoded demo
+        # embeddings through apply_resume_state above.
+        if config.mode == "srpo" and reward_model is not None and demo_trajectories:
+            for _tid, demos in demo_trajectories.items():
+                demo_images = []
+                for dt in demos:
+                    imgs = dt.images[: dt.length]
+                    imgs = to_float01(imgs)
+                    demo_images.append(imgs)
+                reward_model.add_demo_trajectories(_tid, demo_images)
+
+        log_data: dict[str, Any] = {
+            f"{config.mode}/iteration": 0,
+            f"{config.mode}/pre_rl_eval": 1,
+        }
+        best_success = evaluate_and_checkpoint(  # Baseline eval for iteration 0
+            policy,
+            config,
+            task_specs,
+            0,
+            save_path,
+            best_success,
+            log_data,
+            rollout_engines=rollout_engines,
+        )
+        metrics_logger.log(log_data)
+
+    for iteration in trange(start_iteration, config.num_iterations + 1, desc="Training iterations"):
         # -- 0. Refresh reference policy: θ_old ← θ  --------------------
         #    Per RIPT-VLA (Algorithm 1: "Set sampling policy π_ψ ← π_θ")
         #    and SimpleVLA-RL's GRPO loop, the reference/old policy must
@@ -1167,6 +1241,22 @@ def train_srpo(
             )
 
         metrics_logger.log(log_data)
+
+        save_full_state(
+            ckpt_dir=save_path,
+            policy=policy,
+            optimizer=optimizer,
+            iteration=iteration,
+            best_success=best_success,
+            best_rollout_successes=best_rollout_successes,
+            success_buffer=success_buffer,
+            success_rate_ema=success_rate_ema,
+            reward_model=reward_model,
+            config=config,
+            extras=resume_extras,
+            wandb_run_id=wandb_run_id,
+            keep_every=checkpoint_keep_every,
+        )
 
     policy.save_checkpoint(save_path / "last")
     for engine in rollout_engines.values():

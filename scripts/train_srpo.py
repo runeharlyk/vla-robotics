@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import asdict
 from pathlib import Path
 
@@ -51,6 +52,7 @@ from vla.results_registry import (
 )
 from vla.rl.config import SRPOConfig, TaskSpec
 from vla.rl.demo_replay import replay_demo_rollouts
+from vla.rl.resume import load_wandb_id
 from vla.rl.rollout import Trajectory
 from vla.utils import get_device, run_id, seed_everything
 
@@ -366,6 +368,27 @@ def main(
         "compute by ~H× and trains the FPO/AWR loss only on the first H chunk positions "
         "(the unexecuted tail is masked out).",
     ),
+    resume_from: Path | None = typer.Option(
+        None,
+        "--resume-from",
+        exists=False,
+        file_okay=False,
+        dir_okay=True,
+        help="Directory containing latest/state.pt from a prior run. "
+        "On match, training resumes from the saved iteration; on mismatch, the run exits with a diff.",
+    ),
+    checkpoint_out_dir: Path | None = typer.Option(
+        None,
+        "--checkpoint-out-dir",
+        file_okay=False,
+        dir_okay=True,
+        help="Override the auto-generated save directory. Use the same path across chained resume slots.",
+    ),
+    checkpoint_keep_every: int = typer.Option(
+        0,
+        "--checkpoint-keep-every",
+        help="When >0, mirror latest/ into snapshots/iter_<N>/ every N iterations.",
+    ),
 ) -> None:
     import wandb
     from vla.models.smolvla import SmolVLAPolicy
@@ -431,7 +454,13 @@ def main(
         run_tag = f"{task_tag}_seed{seed}_{run_id()}"
     else:
         run_tag = f"{task_specs[0].task_id}_seed{seed}_{run_id()}"
-    save_dir = str(CHECKPOINTS_DIR / mode / run_tag)
+
+    if checkpoint_out_dir is not None:
+        save_dir = str(checkpoint_out_dir)
+    elif resume_from is not None:
+        save_dir = str(resume_from)
+    else:
+        save_dir = str(CHECKPOINTS_DIR / mode / run_tag)
 
     config = SRPOConfig(
         lr=lr,
@@ -515,6 +544,11 @@ def main(
 
     run = None
     final_name: str | None = None
+    resume_wandb_id: str | None = None
+    if resume_from is not None:
+        resume_wandb_id = load_wandb_id(resume_from)
+        if resume_wandb_id:
+            logger.info("Resuming W&B run %s", resume_wandb_id)
     if use_wandb:
         wb_config = config.to_dict()
         wb_config.update(
@@ -527,10 +561,14 @@ def main(
             trajs_per_task_per_iter=trajs_per_task,
         )
         final_name = f"{wandb_name}_{mode}_{run_tag}" if wandb_name else f"{mode}_{run_tag}"
+        if resume_wandb_id:
+            os.environ.setdefault("WANDB_RESUME", "allow")
         run = wandb.init(
             project="srpo-smolvla",
             name=final_name,
             config=wb_config,
+            id=resume_wandb_id,
+            resume="allow" if resume_wandb_id else None,
         )
 
     save_dir_path = Path(config.save_dir)
@@ -573,6 +611,8 @@ def main(
         wandb_run=run,
     )
 
+    wandb_run_id = run.id if run is not None else resume_wandb_id
+
     train_srpo(
         policy,
         config,
@@ -580,6 +620,10 @@ def main(
         demo_trajectories=demo_trajectories,
         metrics_logger=ml,
         trajs_per_task_per_iter=trajs_per_task,
+        resume_from=resume_from,
+        checkpoint_keep_every=checkpoint_keep_every,
+        wandb_run_id=wandb_run_id,
+        resume_extras={"trajs_per_task_per_iter": trajs_per_task},
     )
 
     training_record["completed_at"] = now_iso()
