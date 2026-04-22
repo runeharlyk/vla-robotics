@@ -26,6 +26,25 @@ def _sample_fixed_noise_time(
     return noise_list, time_list
 
 
+def _actions_and_mask_for_loss(
+    traj: Trajectory,
+) -> tuple[torch.Tensor, torch.Tensor | None]:
+    """Return the (actions, chunk_mask) tuple the FM loss expects for *traj*.
+
+    When the trajectory was collected with chunk execution
+    (``traj.executed_chunks`` populated), we feed the executed chunks
+    and their validity mask to the loss so unexecuted chunk positions
+    contribute zero gradient. Otherwise we fall back to the legacy
+    flat-per-step actions.
+    """
+    T = traj.length
+    executed_chunks = getattr(traj, "executed_chunks", None)
+    chunk_mask = getattr(traj, "chunk_mask", None)
+    if executed_chunks is not None and chunk_mask is not None:
+        return executed_chunks[:T], chunk_mask[:T]
+    return traj.actions[:T], None
+
+
 def _compute_fm_loss_batched(
     policy: SmolVLAPolicy,
     traj: Trajectory,
@@ -37,15 +56,17 @@ def _compute_fm_loss_batched(
 ) -> torch.Tensor:
     """Compute per-timestep FM loss in mini-batches."""
     T = traj.length
+    actions_for_loss, cm = _actions_and_mask_for_loss(traj)
     return policy.compute_fm_loss_batched(
         images=traj.images[:T],
-        actions=traj.actions[:T],
+        actions=actions_for_loss,
         states=traj.states[:T] if traj.states is not None else None,
         instruction=instruction,
         fixed_noise=fixed_noise[:T],
         fixed_time=fixed_time[:T],
         batch_size=batch_size,
         reduction=reduction,
+        chunk_mask=cm,
     )
 
 
@@ -60,15 +81,17 @@ def _compute_fm_loss_multi_sample(
 ) -> torch.Tensor:
     """Compute per-timestep FM loss averaged over N noise/time samples."""
     T = traj.length
+    actions_for_loss, cm = _actions_and_mask_for_loss(traj)
     return policy.compute_fm_loss_multi_sample(
         images=traj.images[:T],
-        actions=traj.actions[:T],
+        actions=actions_for_loss,
         states=traj.states[:T] if traj.states is not None else None,
         instruction=instruction,
         noise_list=[n[:T] for n in noise_list],
         time_list=[t[:T] for t in time_list],
         batch_size=batch_size,
         reduction=reduction,
+        chunk_mask=cm,
     )
 
 

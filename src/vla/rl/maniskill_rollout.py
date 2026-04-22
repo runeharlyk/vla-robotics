@@ -21,6 +21,7 @@ from vla.rl.rollout import (
     Trajectory,
     collect_batch_sequential,
     collect_single_episode,
+    collect_single_episode_chunked,
 )
 from vla.utils.camera import pad_camera_views
 
@@ -346,16 +347,41 @@ class ManiSkillRollout:
         num_trajectories: int = 16,
         seed: int | None = None,
         policy_batch_fn: Any | None = None,
+        n_action_steps: int = 1,
+        policy_chunk_fn: Any | None = None,
+        policy_chunk_batch_fn: Any | None = None,
     ) -> list[Trajectory]:
         """Collect trajectories - vectorised when ``num_envs > 1``.
 
         When ``policy_batch_fn`` is provided and ``self.num_envs > 1``,
         all environments are stepped in parallel with batched policy
         inference.  Otherwise falls back to sequential collection via
-        :func:`collect_batch_sequential`.
+        :func:`collect_batch_sequential`.  When ``n_action_steps > 1``
+        the chunk-aware policy callables are required and the chunked
+        rollout paths are used.
         """
-        if self.num_envs > 1 and policy_batch_fn is not None:
-            return self._collect_batch_vectorized(policy_batch_fn, instruction, num_trajectories, seed)
+        chunked = n_action_steps > 1
+        if chunked and policy_chunk_fn is None and policy_chunk_batch_fn is None:
+            raise ValueError("n_action_steps > 1 requires policy_chunk_fn or policy_chunk_batch_fn")
+
+        if self.num_envs > 1 and (policy_batch_fn is not None or policy_chunk_batch_fn is not None):
+            return self._collect_batch_vectorized(
+                policy_batch_fn,
+                instruction,
+                num_trajectories,
+                seed,
+                n_action_steps=n_action_steps,
+                policy_chunk_batch_fn=policy_chunk_batch_fn,
+            )
+        if chunked:
+            adapter = self._make_single_adapter()
+            return collect_batch_sequential(
+                lambda s: collect_single_episode_chunked(
+                    adapter, policy_chunk_fn, instruction, self.max_steps, n_action_steps, s
+                ),
+                num_trajectories,
+                seed,
+            )
         return collect_batch_sequential(
             lambda s: self.collect_trajectory(policy_fn, instruction, seed=s),
             num_trajectories,
@@ -368,6 +394,8 @@ class ManiSkillRollout:
         instruction: str,
         num_trajectories: int,
         seed: int | None,
+        n_action_steps: int = 1,
+        policy_chunk_batch_fn: Any | None = None,
     ) -> list[Trajectory]:
         """Collect ``num_trajectories`` episodes using all ``num_envs`` in parallel.
 
@@ -378,7 +406,14 @@ class ManiSkillRollout:
 
         adapter = _ManiSkillVecAdapter(self)
         return collect_trajectories_vectorized(
-            adapter, policy_batch_fn, instruction, num_trajectories, seed, self.max_steps
+            adapter,
+            policy_batch_fn,
+            instruction,
+            num_trajectories,
+            seed,
+            self.max_steps,
+            n_action_steps=n_action_steps,
+            policy_chunk_batch_fn=policy_chunk_batch_fn,
         )
 
     def close(self) -> None:

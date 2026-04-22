@@ -173,6 +173,7 @@ def log_training_config(
     lines.append(f"    success_replay_max_ratio:   {config.success_replay_max_ratio}")
     lines.append(f"    dynamic_sampling:           {config.dynamic_sampling}")
     lines.append(f"    dynamic_sampling_max_retries: {config.dynamic_sampling_max_retries}")
+    lines.append(f"    n_action_steps:             {config.n_action_steps}")
 
     lines.append("")
     lines.append("  SRPO reward (world-model):")
@@ -435,6 +436,7 @@ def resample_uniform_reward_tasks(
         trajs_by_task[t.task_id].append(t)
 
     use_vectorized = config.num_rollout_envs > 1
+    chunked = config.n_action_steps > 1
     retries_per_task: dict[str, int] = {}
     gave_up_tasks: list[str] = []
 
@@ -451,6 +453,9 @@ def resample_uniform_reward_tasks(
                 num_trajectories=trajs_per_task,
                 seed=config.seed + iteration * 1000 + retries * 100003,
                 policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
+                n_action_steps=config.n_action_steps,
+                policy_chunk_fn=policy.predict_action_chunk if chunked else None,
+                policy_chunk_batch_fn=policy.predict_action_chunk_batch if chunked and use_vectorized else None,
             )
             for t in new_trajs:
                 t.task_id = tid
@@ -514,6 +519,7 @@ def collect_all_trajectories(
     all_trajectories: list[Trajectory] = []
     per_task_successes: dict[str, int] = {}
     use_vectorized = config.num_rollout_envs > 1
+    chunked = config.n_action_steps > 1
 
     for spec in task_specs:
         engine = _get_or_build_engine(rollout_engines, config, spec)
@@ -523,6 +529,9 @@ def collect_all_trajectories(
             num_trajectories=trajs_per_task,
             seed=config.seed + iteration * 1000,
             policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
+            n_action_steps=config.n_action_steps,
+            policy_chunk_fn=policy.predict_action_chunk if chunked else None,
+            policy_chunk_batch_fn=policy.predict_action_chunk_batch if chunked and use_vectorized else None,
         )
         for t in trajs:
             t.task_id = spec.task_id

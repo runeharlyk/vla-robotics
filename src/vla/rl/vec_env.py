@@ -168,6 +168,142 @@ def collect_wave(
     return trajectories
 
 
+def collect_wave_chunked(
+    adapter: VecEnvAdapter,
+    policy_chunk_batch_fn: Any,
+    instruction: str,
+    active_n: int,
+    seed: int | None,
+    max_steps: int,
+    n_action_steps: int,
+) -> list[Trajectory]:
+    """Like :func:`collect_wave` but uses action-chunk execution.
+
+    At each decision point the policy is queried **once** (batched across
+    all currently-active envs) to produce full chunks of shape
+    ``(chunk_size, action_dim)``.  The first ``n_action_steps`` actions
+    of each env's chunk are then stepped into the environment one by one
+    under the usual vec-env wave loop, with per-env done tracking so
+    short-episode envs stop contributing early.
+
+    Each env records one transition per decision point, mirroring the
+    single-env :func:`collect_single_episode_chunked` layout.
+    """
+    if n_action_steps < 1:
+        raise ValueError(f"n_action_steps must be >= 1, got {n_action_steps}")
+
+    N = adapter.num_envs
+    raw_obs = adapter.reset(seed)
+
+    img_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    state_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    chunk_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    chunk_mask_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    first_action_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    reward_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    done_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    success_flags = [False] * N
+    env_done = [i >= active_n for i in range(N)]
+    steps_taken = [0] * N
+
+    while not all(env_done):
+        images_batch, states_batch = adapter.extract_batch_obs(raw_obs)
+
+        active_indices = [i for i in range(N) if not env_done[i]]
+        if not active_indices:
+            break
+
+        active_imgs = images_batch[active_indices]
+        active_states = states_batch[active_indices]
+
+        with torch.no_grad():
+            chunks = policy_chunk_batch_fn(active_imgs, instruction, active_states)
+
+        if isinstance(chunks, torch.Tensor):
+            chunks_np = chunks.detach().cpu().numpy()
+        else:
+            chunks_np = np.asarray(chunks, dtype=np.float32)
+        if chunks_np.ndim != 3:
+            raise ValueError(
+                f"policy_chunk_batch_fn must return (B, chunk_size, action_dim), got shape {chunks_np.shape}"
+            )
+
+        action_dim = chunks_np.shape[-1]
+
+        dec_executed = {env_i: 0 for env_i in active_indices}
+        dec_reward_sum = {env_i: 0.0 for env_i in active_indices}
+        dec_last_done = {env_i: False for env_i in active_indices}
+
+        for idx, env_i in enumerate(active_indices):
+            img_bufs[env_i].append(images_batch[env_i])
+            state_bufs[env_i].append(states_batch[env_i])
+            first_action_bufs[env_i].append(torch.from_numpy(chunks_np[idx, 0].copy()))
+
+        for k in range(n_action_steps):
+            active_now = [i for i in active_indices if not dec_last_done[i] and steps_taken[i] < max_steps]
+            if not active_now:
+                break
+
+            actions_np = np.zeros((N, action_dim), dtype=np.float32)
+            for env_i in active_now:
+                idx = active_indices.index(env_i)
+                actions_np[env_i] = chunks_np[idx, k]
+
+            result = adapter.step(actions_np)
+            raw_obs = result.raw_obs
+
+            for env_i in active_now:
+                dec_executed[env_i] += 1
+                steps_taken[env_i] += 1
+                dec_reward_sum[env_i] += float(result.rewards[env_i])
+                step_done = result.terminateds[env_i] or result.truncateds[env_i]
+                if result.successes[env_i]:
+                    success_flags[env_i] = True
+                if step_done or steps_taken[env_i] >= max_steps:
+                    dec_last_done[env_i] = True
+
+        for idx, env_i in enumerate(active_indices):
+            n_exec = dec_executed[env_i]
+            if n_exec == 0:
+                img_bufs[env_i].pop()
+                state_bufs[env_i].pop()
+                first_action_bufs[env_i].pop()
+                env_done[env_i] = True
+                continue
+            mask = torch.zeros(n_action_steps, dtype=torch.bool)
+            mask[:n_exec] = True
+            padded_chunk = torch.zeros(n_action_steps, action_dim, dtype=torch.float32)
+            padded_chunk[:n_exec] = torch.from_numpy(chunks_np[idx, :n_exec].copy())
+            chunk_bufs[env_i].append(padded_chunk)
+            chunk_mask_bufs[env_i].append(mask)
+            reward_bufs[env_i].append(torch.tensor(dec_reward_sum[env_i]))
+            done_bufs[env_i].append(torch.tensor(float(dec_last_done[env_i])))
+            if dec_last_done[env_i]:
+                env_done[env_i] = True
+
+    trajectories: list[Trajectory] = []
+    for i in range(active_n):
+        T_dec = len(img_bufs[i])
+        if T_dec == 0:
+            continue
+        trajectories.append(
+            Trajectory(
+                images=torch.stack(img_bufs[i]),
+                states=torch.stack(state_bufs[i]),
+                actions=torch.stack(first_action_bufs[i]),
+                rewards=torch.stack(reward_bufs[i]),
+                dones=torch.stack(done_bufs[i]),
+                success=success_flags[i],
+                length=T_dec,
+                n_action_steps=n_action_steps,
+                executed_chunks=torch.stack(chunk_bufs[i]),
+                chunk_mask=torch.stack(chunk_mask_bufs[i]),
+            )
+        )
+
+    return trajectories
+
+
 def collect_trajectories_vectorized(
     adapter: VecEnvAdapter,
     policy_batch_fn: Any,
@@ -175,12 +311,19 @@ def collect_trajectories_vectorized(
     num_trajectories: int,
     seed: int | None,
     max_steps: int,
+    n_action_steps: int = 1,
+    policy_chunk_batch_fn: Any | None = None,
 ) -> list[Trajectory]:
     """Collect ``num_trajectories`` via multiple waves of parallel episodes.
 
     Reuses the ``adapter.num_envs`` environments across waves until
-    enough trajectories have been gathered.
+    enough trajectories have been gathered.  When ``n_action_steps > 1``
+    is passed, ``policy_chunk_batch_fn`` is required and the chunked
+    wave loop is used instead of the single-step loop.
     """
+    if n_action_steps > 1 and policy_chunk_batch_fn is None:
+        raise ValueError("n_action_steps > 1 requires policy_chunk_batch_fn")
+
     N = adapter.num_envs
     all_trajectories: list[Trajectory] = []
 
@@ -190,7 +333,18 @@ def collect_trajectories_vectorized(
     while remaining > 0:
         active_n = min(N, remaining)
         wave_seed = (seed + wave_idx * N) if seed is not None else None
-        wave_trajs = collect_wave(adapter, policy_batch_fn, instruction, active_n, wave_seed, max_steps)
+        if n_action_steps > 1:
+            wave_trajs = collect_wave_chunked(
+                adapter,
+                policy_chunk_batch_fn,
+                instruction,
+                active_n,
+                wave_seed,
+                max_steps,
+                n_action_steps,
+            )
+        else:
+            wave_trajs = collect_wave(adapter, policy_batch_fn, instruction, active_n, wave_seed, max_steps)
         all_trajectories.extend(wave_trajs)
         remaining -= len(wave_trajs)
         wave_idx += 1
