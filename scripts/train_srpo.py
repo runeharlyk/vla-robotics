@@ -358,6 +358,14 @@ def main(
         "--dynamic-sampling-max-retries",
         help="Max number of replacement draws per uniform-reward task before giving up.",
     ),
+    n_action_steps: int = typer.Option(
+        1,
+        "--n-action-steps",
+        help="Number of actions to execute from each sampled policy chunk before re-planning. "
+        "1 (default) preserves the legacy single-step rollout behaviour; H>1 reduces rollout "
+        "compute by ~H× and trains the FPO/AWR loss only on the first H chunk positions "
+        "(the unexecuted tail is masked out).",
+    ),
 ) -> None:
     import wandb
     from vla.models.smolvla import SmolVLAPolicy
@@ -484,6 +492,7 @@ def main(
         success_replay_max_ratio=success_replay_max_ratio,
         dynamic_sampling=dynamic_sampling,
         dynamic_sampling_max_retries=dynamic_sampling_max_retries,
+        n_action_steps=n_action_steps,
     )
 
     logger.info(

@@ -69,6 +69,7 @@ class SRPOConfig(BaseTrainingConfig):
     success_replay_max_ratio: float = 1.0
     dynamic_sampling: bool = False
     dynamic_sampling_max_retries: int = 2
+    n_action_steps: int = 1
 
 
 @dataclass

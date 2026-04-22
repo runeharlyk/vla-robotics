@@ -33,7 +33,18 @@ logger = logging.getLogger(__name__)
 class Trajectory:
     """A single episode trajectory.
 
-    All tensors have shape ``(T, ...)``.
+    All tensors have shape ``(T, ...)`` where ``T`` is the number of
+    recorded transitions.  In the default single-step rollout mode
+    (``n_action_steps == 1``), ``T`` equals the number of env steps.
+    With chunk execution (``n_action_steps > 1``), ``T`` equals the
+    number of *decision points*, each of which drove ``n_action_steps``
+    env steps (fewer only if the episode terminated mid-chunk).
+
+    When chunk execution is active, ``executed_chunks`` and
+    ``chunk_mask`` are populated and the FPO/AWR loss path uses them
+    so that only the actions actually executed by the policy
+    contribute to the loss; the unexecuted tail of each sampled chunk
+    is masked out.
     """
 
     images: torch.Tensor
@@ -45,6 +56,9 @@ class Trajectory:
     privileged_states: list[dict[str, float]] = field(default_factory=list)
     length: int = 0
     task_id: str = ""
+    n_action_steps: int = 1
+    executed_chunks: torch.Tensor | None = None
+    chunk_mask: torch.Tensor | None = None
 
 
 @runtime_checkable
@@ -163,6 +177,118 @@ def collect_single_episode(
         dones=torch.stack(dones_list) if dones_list else torch.empty(0),
         success=success,
         length=T,
+    )
+
+
+def collect_single_episode_chunked(
+    adapter: SingleEnvAdapter,
+    policy_chunk_fn: Any,
+    instruction: str,
+    max_steps: int,
+    n_action_steps: int,
+    seed: int | None = None,
+) -> Trajectory:
+    """Collect one episode using action-chunk execution.
+
+    At each decision point the policy is queried once to produce a full
+    chunk of shape ``(chunk_size, action_dim)``.  The first
+    ``n_action_steps`` actions of that chunk are executed against the
+    environment before the policy is queried again.  Only one transition
+    is recorded per decision point (not per env step), which is what the
+    FPO/AWR loss consumes; storing decision-point-aligned data also
+    ensures the loss only penalises positions the policy actually
+    committed to.
+
+    Args:
+        adapter: Environment adapter.
+        policy_chunk_fn: ``(image, instruction, state) -> chunk`` callable
+            returning a ``(chunk_size, action_dim)`` (denormalised) tensor.
+        instruction: Language instruction.
+        max_steps: Maximum env steps per episode (NOT decision points).
+        n_action_steps: How many actions to execute from each sampled
+            chunk before re-planning.  Must be ``>= 1``.
+        seed: Random seed for the env reset.
+
+    Returns:
+        A :class:`Trajectory` whose length is the number of decision
+        points, with ``executed_chunks`` and ``chunk_mask`` populated.
+    """
+    if n_action_steps < 1:
+        raise ValueError(f"n_action_steps must be >= 1, got {n_action_steps}")
+
+    raw_obs = adapter.reset(seed)
+
+    decision_imgs: list[torch.Tensor] = []
+    decision_states: list[torch.Tensor] = []
+    decision_chunks: list[torch.Tensor] = []
+    decision_chunk_masks: list[torch.Tensor] = []
+    decision_first_actions: list[torch.Tensor] = []
+    decision_rewards: list[torch.Tensor] = []
+    decision_dones: list[torch.Tensor] = []
+
+    success = False
+    steps_taken = 0
+
+    while steps_taken < max_steps:
+        img_t, state_t = adapter.obs_to_tensors(raw_obs)
+        chunk = policy_chunk_fn(img_t, instruction, state_t)
+        if chunk.ndim != 2:
+            raise ValueError(f"policy_chunk_fn must return (chunk_size, action_dim), got shape {tuple(chunk.shape)}")
+        chunk_cpu = chunk.detach().to("cpu").float()
+
+        max_exec = min(n_action_steps, max_steps - steps_taken)
+        executed_this_dec = 0
+        reward_sum = 0.0
+        last_done = False
+
+        decision_imgs.append(img_t)
+        decision_states.append(state_t)
+
+        for k in range(max_exec):
+            action = chunk_cpu[k]
+            action_np = action_to_numpy(action)
+            result = adapter.step(action_np)
+            raw_obs = result.raw_obs
+
+            executed_this_dec += 1
+            steps_taken += 1
+            reward_sum += float(result.reward)
+
+            if result.success:
+                success = True
+
+            if result.terminated or result.truncated:
+                last_done = True
+                break
+
+        first_action = chunk_cpu[0].clone()
+        mask = torch.zeros(n_action_steps, dtype=torch.bool)
+        mask[:executed_this_dec] = True
+
+        padded_chunk = torch.zeros(n_action_steps, chunk_cpu.shape[-1], dtype=chunk_cpu.dtype)
+        padded_chunk[:executed_this_dec] = chunk_cpu[:executed_this_dec]
+
+        decision_first_actions.append(first_action)
+        decision_chunks.append(padded_chunk)
+        decision_chunk_masks.append(mask)
+        decision_rewards.append(torch.tensor(reward_sum))
+        decision_dones.append(torch.tensor(float(last_done)))
+
+        if last_done:
+            break
+
+    T_dec = len(decision_imgs)
+    return Trajectory(
+        images=torch.stack(decision_imgs) if decision_imgs else torch.empty(0),
+        states=torch.stack(decision_states) if decision_states else torch.empty(0),
+        actions=torch.stack(decision_first_actions) if decision_first_actions else torch.empty(0),
+        rewards=torch.stack(decision_rewards) if decision_rewards else torch.empty(0),
+        dones=torch.stack(decision_dones) if decision_dones else torch.empty(0),
+        success=success,
+        length=T_dec,
+        n_action_steps=n_action_steps,
+        executed_chunks=torch.stack(decision_chunks) if decision_chunks else None,
+        chunk_mask=torch.stack(decision_chunk_masks) if decision_chunk_masks else None,
     )
 
 

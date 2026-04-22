@@ -32,6 +32,7 @@ from vla.rl.rollout import (
     Trajectory,
     collect_batch_sequential,
     collect_single_episode,
+    collect_single_episode_chunked,
 )
 
 logger = logging.getLogger(__name__)
@@ -389,16 +390,41 @@ class LiberoRollout:
         num_trajectories: int = 16,
         seed: int | None = None,
         policy_batch_fn: Any | None = None,
+        n_action_steps: int = 1,
+        policy_chunk_fn: Any | None = None,
+        policy_chunk_batch_fn: Any | None = None,
     ) -> list[Trajectory]:
         """Collect trajectories from LIBERO - vectorised when ``num_envs > 1``.
 
         Falls back to :func:`collect_batch_sequential` with the shared
         single-episode loop when vectorised collection is not available.
+        When ``n_action_steps > 1``, the corresponding chunk-aware
+        policy callable must be provided and the chunked single/vec
+        episode loops are used.
         """
         task_instr = self.vec_env.task_description
-        if self.num_envs > 1 and policy_batch_fn is not None:
-            return self._collect_vectorized(policy_batch_fn, task_instr, num_trajectories, seed)
+        chunked = n_action_steps > 1
+        if chunked and policy_chunk_fn is None and policy_chunk_batch_fn is None:
+            raise ValueError("n_action_steps > 1 requires policy_chunk_fn or policy_chunk_batch_fn")
+
+        if self.num_envs > 1 and (policy_batch_fn is not None or policy_chunk_batch_fn is not None):
+            return self._collect_vectorized(
+                policy_batch_fn,
+                task_instr,
+                num_trajectories,
+                seed,
+                n_action_steps=n_action_steps,
+                policy_chunk_batch_fn=policy_chunk_batch_fn,
+            )
         adapter = self._make_single_adapter()
+        if chunked:
+            return collect_batch_sequential(
+                lambda s: collect_single_episode_chunked(
+                    adapter, policy_chunk_fn, task_instr, self.max_steps, n_action_steps, s
+                ),
+                num_trajectories,
+                seed,
+            )
         return collect_batch_sequential(
             lambda s: collect_single_episode(adapter, policy_fn, task_instr, self.max_steps, s),
             num_trajectories,
@@ -411,12 +437,21 @@ class LiberoRollout:
         instruction: str,
         num_trajectories: int,
         seed: int | None,
+        n_action_steps: int = 1,
+        policy_chunk_batch_fn: Any | None = None,
     ) -> list[Trajectory]:
         from vla.rl.vec_env import collect_trajectories_vectorized
 
         adapter = _LiberoVecAdapter(self)
         return collect_trajectories_vectorized(
-            adapter, policy_batch_fn, instruction, num_trajectories, seed, self.max_steps
+            adapter,
+            policy_batch_fn,
+            instruction,
+            num_trajectories,
+            seed,
+            self.max_steps,
+            n_action_steps=n_action_steps,
+            policy_chunk_batch_fn=policy_chunk_batch_fn,
         )
 
     def close(self) -> None:

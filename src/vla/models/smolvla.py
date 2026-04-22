@@ -413,6 +413,54 @@ class SmolVLAPolicy(nn.Module):
             raw = actions[:, 0, : self.action_dim].float()
             return self._denormalize_action(raw)
 
+    def predict_action_chunk(
+        self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        """Predict a full action chunk from a single observation.
+
+        Identical to :meth:`predict_action` except the full chunk of
+        ``chunk_size`` actions is returned instead of only the first.
+        Used by the chunk-execution rollout path to amortise flow-matching
+        sampling cost over multiple env steps.
+
+        Returns:
+            ``(chunk_size, action_dim)`` float tensor (denormalised).
+        """
+        self.eval()
+        with torch.no_grad():
+            img = self._to_float01(image)
+            if img.ndim not in (3, 4):
+                raise ValueError(f"Expected image shape (C,H,W) or (N,C,H,W), got {tuple(img.shape)}")
+            imgs = img.unsqueeze(0).to(self.device, dtype=self.dtype)
+            img_list, mask_list = self._prepare_images(imgs)
+            tokens, tmasks = self._tokenize(instruction, batch_size=1)
+            s = self._prepare_state_input(state, batch_size=1)
+            noise = self._build_eval_noise(batch_size=1)
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
+            raw = actions[0, :, : self.action_dim].float()
+            return self._denormalize_action(raw)
+
+    def predict_action_chunk_batch(
+        self, images: torch.Tensor, instruction: str, states: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        """Batched counterpart of :meth:`predict_action_chunk`.
+
+        Returns:
+            ``(B, chunk_size, action_dim)`` float tensor (denormalised).
+        """
+        self.eval()
+        with torch.no_grad():
+            if images.ndim not in (4, 5):
+                raise ValueError(f"Expected image batch shape (B,C,H,W) or (B,N,C,H,W), got {tuple(images.shape)}")
+            imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
+            img_list, mask_list = self._prepare_images(imgs)
+            tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
+            s = self._prepare_state_input(states, batch_size=imgs.shape[0])
+            noise = self._build_eval_noise(batch_size=imgs.shape[0])
+            actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
+            raw = actions[:, :, : self.action_dim].float()
+            return self._denormalize_action(raw)
+
     def forward(
         self,
         images: torch.Tensor,
@@ -454,7 +502,31 @@ class SmolVLAPolicy(nn.Module):
     def _build_action_chunks(
         self,
         actions: torch.Tensor,
+        chunk_mask: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Build chunked target tensors for the flow-matching loss.
+
+        Two input modes are supported:
+
+        * ``actions.ndim == 2`` — legacy flat per-step actions of shape
+          ``(T, action_dim)``.  A shifting chunk is built for each
+          timestep ``t`` by pulling ``actions[t:t+chunk_size]``.  This is
+          the path used for SFT demos and for single-step RL rollouts.
+
+        * ``actions.ndim == 3`` — pre-chunked executed-chunk tensor of
+          shape ``(T_dec, n_action_steps, action_dim)`` produced by the
+          chunk-execution rollout path.  In this mode ``chunk_mask`` is
+          required and ``(T_dec, n_action_steps)``: only positions where
+          the mask is ``True`` were actually stepped into the env and
+          receive loss weight; the rest are zeroed and masked out.
+          This prevents the update from learning on chunk positions the
+          policy never committed to.
+        """
+        if actions.ndim == 3:
+            if chunk_mask is None:
+                raise ValueError("3D executed_chunks require a chunk_mask of matching shape")
+            return self._build_chunks_from_executed(actions, chunk_mask)
+
         T = actions.shape[0]
         actions = self._normalize_action(actions)
         actions = self._prepare_action(actions)
@@ -484,6 +556,59 @@ class SmolVLAPolicy(nn.Module):
         # for AWR, which starved the model of 90% of its learning signal.
         return chunks, mask
 
+    def _build_chunks_from_executed(
+        self,
+        executed_chunks: torch.Tensor,
+        chunk_mask: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Pad an executed-chunk tensor into (T, chunk_size, max_action_dim).
+
+        Args:
+            executed_chunks: ``(T, H, action_dim)`` unnormalised actions
+                actually executed at each decision point.  ``H`` is the
+                rollout-time ``n_action_steps``.
+            chunk_mask: ``(T, H)`` bool mask — ``True`` for chunk positions
+                that were actually stepped into the environment.
+
+        Returns:
+            ``(chunks, mask)`` with ``chunks`` of shape
+            ``(T, chunk_size, max_action_dim)`` containing normalised,
+            dim-padded actions in the first ``H`` positions (zero
+            elsewhere) and ``mask`` of shape ``(T, chunk_size)`` whose
+            ``True`` positions copy ``chunk_mask`` into the first ``H``
+            columns and are ``False`` for columns ``H..chunk_size``.
+        """
+        if executed_chunks.ndim != 3:
+            raise ValueError(f"executed_chunks must be 3D, got shape {tuple(executed_chunks.shape)}")
+        if chunk_mask.shape != executed_chunks.shape[:2]:
+            raise ValueError(
+                f"chunk_mask shape {tuple(chunk_mask.shape)} must match executed_chunks[:, :2] "
+                f"= {tuple(executed_chunks.shape[:2])}"
+            )
+
+        T, H = executed_chunks.shape[:2]
+        H_eff = min(H, self.chunk_size)
+
+        normed = self._normalize_action(executed_chunks)
+        normed = self._prepare_action(normed)
+
+        chunks = torch.zeros(
+            T,
+            self.chunk_size,
+            self.max_action_dim,
+            device=normed.device,
+            dtype=normed.dtype,
+        )
+        mask = torch.zeros(
+            T,
+            self.chunk_size,
+            device=normed.device,
+            dtype=torch.bool,
+        )
+        chunks[:, :H_eff] = normed[:, :H_eff]
+        mask[:, :H_eff] = chunk_mask[:, :H_eff].to(mask.device)
+        return chunks, mask
+
     def compute_fm_loss_batched(
         self,
         images: torch.Tensor,
@@ -494,6 +619,7 @@ class SmolVLAPolicy(nn.Module):
         fixed_time: torch.Tensor,
         batch_size: int = 32,
         reduction: str = "mean",
+        chunk_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Compute per-timestep flow-matching loss in mini-batches.
 
@@ -503,12 +629,16 @@ class SmolVLAPolicy(nn.Module):
 
         Args:
             images: ``(T, [V,] C, H, W)`` observation images.
-            actions: ``(T, action_dim)`` actions (unnormalized).
+            actions: Either ``(T, action_dim)`` flat actions (legacy
+                single-step path) or ``(T, H, action_dim)`` executed
+                chunks (chunk-execution path — requires ``chunk_mask``).
             states: ``(T, state_dim)`` or ``None``.
             instruction: Language instruction (shared across all steps).
             fixed_noise: ``(T, chunk_size, max_action_dim)`` pre-sampled noise.
             fixed_time: ``(T,)`` pre-sampled time values.
             batch_size: Number of timesteps per forward pass.
+            chunk_mask: Optional ``(T, H)`` bool mask — required when
+                ``actions`` is 3D, ignored otherwise.
 
         Returns:
             ``(T,)`` per-step mean FM loss.
@@ -518,7 +648,8 @@ class SmolVLAPolicy(nn.Module):
         use_amp = self.device.type == "cuda"
 
         actions = actions.to(self.device, dtype=self.dtype)
-        action_chunks, action_mask = self._build_action_chunks(actions)
+        cm = chunk_mask.to(self.device) if chunk_mask is not None else None
+        action_chunks, action_mask = self._build_action_chunks(actions, cm)
 
         for start in range(0, T, batch_size):
             end = min(start + batch_size, T)
@@ -575,6 +706,7 @@ class SmolVLAPolicy(nn.Module):
         time_list: list[torch.Tensor],
         batch_size: int = 32,
         reduction: str = "mean",
+        chunk_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Compute per-timestep FM loss averaged over multiple noise samples.
 
@@ -607,6 +739,7 @@ class SmolVLAPolicy(nn.Module):
                 time_list[0],
                 batch_size,
                 reduction,
+                chunk_mask=chunk_mask,
             )
 
         try:
@@ -619,6 +752,7 @@ class SmolVLAPolicy(nn.Module):
                 time_list,
                 batch_size,
                 reduction,
+                chunk_mask=chunk_mask,
             )
         except RuntimeError as exc:
             if "mask/KV mismatch" not in str(exc) and "expanded size" not in str(exc):
@@ -638,6 +772,7 @@ class SmolVLAPolicy(nn.Module):
                 time_list,
                 batch_size,
                 reduction,
+                chunk_mask=chunk_mask,
             )
 
     def _multi_sample_kv_cache(
@@ -650,13 +785,15 @@ class SmolVLAPolicy(nn.Module):
         time_list: list[torch.Tensor],
         batch_size: int,
         reduction: str,
+        chunk_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """KV-cache path: caches full VLM transformer forward per mini-batch."""
         T = images.shape[0]
         use_amp = self.device.type == "cuda"
 
         actions_dev = actions.to(self.device, dtype=self.dtype)
-        action_chunks, action_mask = self._build_action_chunks(actions_dev)
+        cm = chunk_mask.to(self.device) if chunk_mask is not None else None
+        action_chunks, action_mask = self._build_action_chunks(actions_dev, cm)
 
         all_losses: list[torch.Tensor] = []
 
@@ -725,13 +862,15 @@ class SmolVLAPolicy(nn.Module):
         time_list: list[torch.Tensor],
         batch_size: int,
         reduction: str,
+        chunk_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Prefix-embedding-cache fallback: caches ViT + masks per mini-batch."""
         T = images.shape[0]
         use_amp = self.device.type == "cuda"
 
         actions_dev = actions.to(self.device, dtype=self.dtype)
-        action_chunks, action_mask = self._build_action_chunks(actions_dev)
+        cm = chunk_mask.to(self.device) if chunk_mask is not None else None
+        action_chunks, action_mask = self._build_action_chunks(actions_dev, cm)
 
         all_losses: list[torch.Tensor] = []
 
