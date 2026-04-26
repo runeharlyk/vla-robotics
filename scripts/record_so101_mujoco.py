@@ -12,6 +12,10 @@ from __future__ import annotations
 
 import json
 import logging
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
 import os
 import time
 from dataclasses import dataclass
@@ -302,9 +306,28 @@ def _record_episode(
     fps: int,
     image_size: int,
     preview: LivePreview,
-) -> dict:
+) -> dict | None:
+    if msvcrt:
+        print(f"\n[EPISODE {episode_seed}] Previewing. Press SPACE in terminal to START, or ESC to skip.")
+        while True:
+            t0 = time.perf_counter()
+            raw = source.get_action()
+            mapped = action_mapping.apply(raw)
+            env.step(mapped)
+            if not preview.show(env):
+                return None
+            if msvcrt.kbhit():
+                key = msvcrt.getch()
+                if key == b" ":
+                    break
+                if key == b"\x1b":
+                    return None
+            time.sleep(max(1.0 / fps - (time.perf_counter() - t0), 0.0))
+
+    logger.info("--- RECORDING EPISODE %d ---", episode_seed)
     obs, _info = env.reset(seed=episode_seed)
-    images: list[torch.Tensor] = []
+    images_front: list[torch.Tensor] = []
+    images_wrist: list[torch.Tensor] = []
     states: list[torch.Tensor] = []
     actions: list[torch.Tensor] = []
 
@@ -316,7 +339,13 @@ def _record_episode(
         if not preview.show(env):
             break
 
-        images.append(_resize_image(obs["pixels"]["front"], image_size).unsqueeze(0))
+        if msvcrt and msvcrt.kbhit():
+            if msvcrt.getch() == b" ":
+                logger.info("Early stop requested via Space.")
+                break
+
+        images_front.append(_resize_image(obs["pixels"]["front"], image_size).unsqueeze(0))
+        images_wrist.append(_resize_image(obs["pixels"]["wrist"], image_size).unsqueeze(0))
         states.append(torch.from_numpy(obs["agent_state"]).float())
         actions.append(torch.from_numpy(action).float())
 
@@ -325,8 +354,10 @@ def _record_episode(
             break
         time.sleep(max(1.0 / fps - (time.perf_counter() - t0), 0.0))
 
+    logger.info("--- FINISHED EPISODE %d ---", episode_seed)
     return {
-        "images": torch.stack(images, dim=0),
+        "images": torch.stack(images_front, dim=0),
+        "images_wrist": torch.stack(images_wrist, dim=0),
         "states": torch.stack(states, dim=0),
         "actions": torch.stack(actions, dim=0),
         "instruction": env.task_description,
@@ -513,18 +544,14 @@ def main(
             _capture_neutral_mapping(action_source, capture_neutral, fps=fps)
             return
         for ep_idx in range(episodes):
-            logger.info("Recording episode %d/%d", ep_idx + 1, episodes)
-            episodes_out.append(
-                _record_episode(
-                    env=env,
-                    source=action_source,
-                    action_mapping=action_mapping,
-                    episode_seed=seed + ep_idx,
-                    fps=fps,
-                    image_size=image_size,
-                    preview=preview,
-                )
-            )
+            ep_seed = seed + ep_idx
+            data = _record_episode(env, action_source, action_mapping, ep_seed, fps, image_size, preview)
+            if data is not None:
+                episodes_out.append(data)
+            else:
+                if not preview.is_alive:
+                    break
+                logger.info("Episode skipped.")
     finally:
         preview.close()
         action_source.close()

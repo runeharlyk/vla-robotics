@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import re
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +43,7 @@ class SO101MujocoEnv(SimEnv):
         instruction: str = "teleoperate the SO101 arm",
         objects: bool = True,
         seed: int | None = None,
-        base_pos: tuple[float, float, float] | None = None,
+        base_pos: tuple[float, float, float] | None = (0, 0, 0.05),
         base_quat: tuple[float, float, float, float] | None = (0, 0, 0, 1),
     ) -> None:
         import mujoco
@@ -74,15 +76,14 @@ class SO101MujocoEnv(SimEnv):
             dtype=np.int32,
         )
 
-        for i, name in enumerate(MOTOR_NAMES):
-            if self._joint_ids[i] < 0:
-                print(f"DEBUG: Joint '{name}' not found!")
-            if self._actuator_ids[i] < 0:
-                print(f"DEBUG: Actuator '{name}' not found!")
-
         self._ranges = self._model.jnt_range[self._joint_ids].astype(np.float32)
         self._home = _range_midpoint(self._ranges)
         self._camera_name = _first_camera_name(self._model, mujoco)
+
+        print("\n[DEBUG] Found cameras in model:")
+        for i in range(self._model.ncam):
+            print(f"  - Camera {i}: {mujoco.mj_id2name(self._model, mujoco.mjtObj.mjOBJ_CAMERA, i)}")
+
         self._object_joint_qpos = _freejoint_qpos_addresses(
             self._model,
             mujoco,
@@ -186,13 +187,18 @@ class SO101MujocoEnv(SimEnv):
         return bool(np.all(self._actuator_ids >= 0))
 
     def _obs(self) -> dict:
-        if self._camera_name is None:
-            self._renderer.update_scene(self._data)
-        else:
-            self._renderer.update_scene(self._data, camera=self._camera_name)
-        image = self._renderer.render().astype(np.uint8)
+        # Get pixels from both cameras
+        self._renderer.update_scene(self._data, camera="workspace_front")
+        front_pixels = self._renderer.render().astype(np.uint8)
+
+        self._renderer.update_scene(self._data, camera="wrist")
+        wrist_pixels = self._renderer.render().astype(np.uint8)
+
         return {
-            "pixels": {"front": image},
+            "pixels": {
+                "front": front_pixels,
+                "wrist": wrist_pixels,
+            },
             "agent_state": self._state(),
         }
 
@@ -231,9 +237,9 @@ class SO101MujocoEnv(SimEnv):
             return
 
         object_poses = {
-            "cube_free": np.array([-0.27, -0.055, 0.06125, 1.0, 0.0, 0.0, 0.0], dtype=np.float32),
-            "cylinder_free": np.array([-0.22, 0.07, 0.08, 1.0, 0.0, 0.0, 0.0], dtype=np.float32),
-            "ball_free": np.array([-0.34, 0.055, 0.071, 1.0, 0.0, 0.0, 0.0], dtype=np.float32),
+            "cube_free": np.array([-0.27, -0.055, 0.068, 1.0, 0.0, 0.0, 0.0], dtype=np.float32),
+            "cylinder_free": np.array([-0.22, 0.07, 0.074, 1.0, 0.0, 0.0, 0.0], dtype=np.float32),
+            "ball_free": np.array([-0.34, 0.055, 0.068, 1.0, 0.0, 0.0, 0.0], dtype=np.float32),
         }
         for joint_name, base_pose in object_poses.items():
             qposadr = self._object_joint_qpos.get(joint_name)
@@ -282,42 +288,94 @@ def _write_interactive_scene(asset_path: Path) -> Path:
 
 
 def _interactive_scene_xml(asset_path: Path) -> str:
+    # Read the provided asset (could be scene.xml or robot.xml)
+    with open(asset_path, "r", encoding="utf-8") as f:
+        xml_content = f.read()
+
+    # Camera at the end of the arm, looking forward and down at the gripper
+    wrist_cam = '<camera name="wrist" pos="0.0 0.05 -0.04" euler="-0.2 0 0" fovy="85"/>'
+
+    # If this is a scene file that includes a robot, we need to find the robot file
+    robot_include_match = re.search(r'<include\s+file="([^"]+)"', xml_content)
+
+    if robot_include_match and "gripper" not in xml_content:
+        # It's a scene file. Load the robot file instead for injection.
+        robot_file_path = asset_path.parent / robot_include_match.group(1)
+        if robot_file_path.exists():
+            with open(robot_file_path, "r", encoding="utf-8") as f:
+                robot_xml = f.read()
+        else:
+            robot_xml = xml_content
+    else:
+        robot_xml = xml_content
+
+    # Inject camera into robot XML
+    pattern = r'(<body\s+name="gripper"[^>]*>)'
+    if re.search(pattern, robot_xml, re.IGNORECASE):
+        robot_xml = re.sub(pattern, r"\1" + wrist_cam, robot_xml, flags=re.IGNORECASE)
+        print("[DEBUG] Injected wrist camera into 'gripper' body.")
+    else:
+        pattern_wrist = r'(<body\s+name="wrist"[^>]*>)'
+        if re.search(pattern_wrist, robot_xml, re.IGNORECASE):
+            robot_xml = re.sub(pattern_wrist, r"\1" + wrist_cam, robot_xml, flags=re.IGNORECASE)
+            print("[DEBUG] Injected wrist camera into 'wrist' body.")
+        else:
+            print("[DEBUG] WARNING: Could not find 'gripper' or 'wrist' body for camera injection!")
+
+    # Boost actuator gains for better grasping
+    robot_xml = robot_xml.replace('kp="250"', 'kp="800"').replace('kp="25"', 'kp="100"')
+
+    # Save the modified robot to a temp file
+    temp_robot = tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False, encoding="utf-8")
+    temp_robot.write(robot_xml)
+    temp_robot.close()
+    temp_robot_path = Path(temp_robot.name)
+
+    # Values for objects (scaled 0.6)
     return f"""
 <mujoco model="so101_interactive_workspace">
-  <include file="{asset_path.as_posix()}"/>
+  <include file="{temp_robot_path.as_posix()}"/>
 
-  <option timestep="0.005" gravity="0 0 -9.81"/>
+  <option timestep="0.005" gravity="0 0 -9.81" iterations="50" tolerance="1e-10"/>
 
   <asset>
-    <material name="workspace_table_mat" rgba="0.48 0.38 0.27 1"/>
-    <material name="object_red_mat" rgba="0.85 0.12 0.08 1"/>
-    <material name="object_blue_mat" rgba="0.05 0.28 0.85 1"/>
-    <material name="object_green_mat" rgba="0.15 0.65 0.22 1"/>
+    <material name="workspace_table_mat" rgba="0.48 0.38 0.27 1" reflectance="0.1"/>
+    <material name="object_red_mat" rgba="0.85 0.12 0.08 1" reflectance="0.2"/>
+    <material name="object_blue_mat" rgba="0.05 0.28 0.85 1" reflectance="0.2"/>
+    <material name="material_green_mat" rgba="0.15 0.65 0.22 1" reflectance="0.2"/>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
   </asset>
 
   <worldbody>
     <camera name="workspace_front" pos="0.35 -0.70 0.42" xyaxes="0.88 0.48 0 -0.23 0.42 0.88" fovy="52"/>
-    <light name="workspace_key" pos="-0.25 -0.45 1.2" dir="0.2 0.3 -1" diffuse="0.7 0.7 0.7"/>
+    <light name="workspace_key" pos="-0.25 -0.45 1.2" dir="0.2 0.3 -1" diffuse="0.7 0.7 0.7" castshadow="true"/>
+    <light name="workspace_top" pos="0 0 2" dir="0 0 -1" diffuse="0.5 0.5 0.5"/>
 
+    <geom name="floor" size="10 10 0.05" pos="0 0 0" type="plane" material="groundplane"/>
     <geom name="workspace_table" type="box" pos="-0.28 0 0.025" size="0.36 0.25 0.025"
-          material="workspace_table_mat" friction="1.2 0.02 0.001" condim="3"/>
+          material="workspace_table_mat" friction="1.5 0.1 0.002" condim="3"/>
 
-    <body name="red_cube" pos="-0.27 -0.055 0.06125">
+    <body name="red_cube" pos="-0.27 -0.055 0.068">
       <freejoint name="cube_free"/>
-      <geom name="red_cube_geom" type="box" size="0.0225 0.0225 0.0225" mass="0.05"
-            material="object_red_mat" friction="1.0 0.02 0.001" condim="3"/>
+      <geom name="red_cube_geom" type="box" size="0.018 0.018 0.018" mass="0.08"
+            material="object_red_mat" friction="2.5 0.1 0.002" condim="4" 
+            solimp="0.99 0.99 0.01" solref="0.01 1"/>
     </body>
 
-    <body name="blue_cylinder" pos="-0.22 0.070 0.08">
+    <body name="blue_cylinder" pos="-0.22 0.070 0.074">
       <freejoint name="cylinder_free"/>
-      <geom name="blue_cylinder_geom" type="cylinder" size="0.01875 0.030" mass="0.06"
-            material="object_blue_mat" friction="0.9 0.02 0.001" condim="3"/>
+      <geom name="blue_cylinder_geom" type="cylinder" size="0.015 0.024" mass="0.1"
+            material="object_blue_mat" friction="2.5 0.1 0.002" condim="4"
+            solimp="0.99 0.99 0.01" solref="0.01 1"/>
     </body>
 
-    <body name="green_ball" pos="-0.34 0.055 0.071">
+    <body name="green_ball" pos="-0.34 0.055 0.068">
       <freejoint name="ball_free"/>
-      <geom name="green_ball_geom" type="sphere" size="0.021" mass="0.035"
-            material="object_green_mat" friction="0.7 0.02 0.001" condim="3"/>
+      <geom name="green_ball_geom" type="sphere" size="0.018" mass="0.06"
+            rgba="0.15 0.65 0.22 1" friction="2.5 0.1 0.002" condim="4"
+            solimp="0.99 0.99 0.01" solref="0.01 1"/>
     </body>
   </worldbody>
 </mujoco>
