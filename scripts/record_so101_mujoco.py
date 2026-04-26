@@ -136,6 +136,12 @@ class LivePreview:
         self._viewer.sync()
         return True
 
+    @property
+    def is_alive(self) -> bool:
+        if not self.enabled or self._viewer is None:
+            return True
+        return self._viewer.is_running()
+
     def close(self) -> None:
         if self.enabled and self._viewer is not None:
             self._viewer.close()
@@ -556,6 +562,10 @@ def main(
         preview.close()
         action_source.close()
         env.close()
+
+    if not episodes_out:
+        logger.info("No episodes recorded. Exiting.")
+        return
 
     torch.save(
         {
