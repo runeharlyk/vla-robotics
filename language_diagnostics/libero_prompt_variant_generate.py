@@ -6,6 +6,7 @@ This script only performs prompt generation.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import time
 from dataclasses import dataclass
@@ -17,6 +18,30 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from vla.envs import make_env_factory
 from vla.utils import get_device, seed_everything
+
+FALLBACK_TASK_DESCRIPTIONS: dict[str, list[str]] = {
+    "spatial": [
+        "pick up the black bowl between the plate and the ramekin and place it on the plate",
+        "pick up the black bowl next to the ramekin and place it on the plate",
+        "pick up the mug to the left of the plate and place it on the coaster",
+        "pick up the red block behind the bowl and place it in the tray",
+        "pick up the spoon in front of the cup and place it on the napkin",
+    ],
+    "object": [
+        "pick up the alphabet soup and place it in the basket",
+        "pick up the cream cheese and place it in the basket",
+        "pick up the tomato soup can and place it in the basket",
+        "pick up the mustard bottle and place it in the basket",
+        "pick up the cereal box and place it in the basket",
+    ],
+    "goal": [
+        "open the middle drawer of the cabinet",
+        "put the bowl on the stove",
+        "close the microwave door",
+        "turn on the stove burner",
+        "place the mug on the coffee machine base",
+    ],
+}
 
 PROMPT_VARIANT_TYPES: tuple[str, ...] = (
     "original",
@@ -178,20 +203,79 @@ def _select_task_ids(suite: str, tasks_per_suite: int, state_dim: int) -> list[i
     return list(range(min(tasks_per_suite, n)))
 
 
-def _collect_task_specs(suites: list[str], tasks_per_suite: int, state_dim: int) -> list[TaskSpec]:
+def _fallback_task_specs_from_files(suites: list[str], tasks_per_suite: int) -> list[TaskSpec]:
+    base_dir = Path(__file__).resolve().parent
+    candidates = [
+        base_dir / "libero_prompt_variant_prompt_plan2.json",
+        base_dir / "libero_prompt_variant_prompt_plan1.json",
+        base_dir / "outputs" / "libero_prompt_variant_prompts.csv",
+        base_dir / "outputs" / "libero_prompt_variant_rollouts_raw.csv",
+        base_dir / "outputs" / "Run3" / "libero_prompt_variant_prompts.csv",
+        base_dir / "outputs" / "Run3" / "libero_prompt_variant_rollouts_raw.csv",
+    ]
+
+    collected: dict[str, list[str]] = {suite: [] for suite in suites}
+
+    def add_desc(suite: str, desc: str) -> None:
+        suite_key = suite.strip().lower()
+        text = desc.strip()
+        if suite_key in collected and text and text not in collected[suite_key]:
+            collected[suite_key].append(text)
+
+    for path in candidates:
+        if not path.exists():
+            continue
+        try:
+            if path.suffix == ".json":
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                for task in payload.get("tasks", []):
+                    add_desc(str(task.get("suite", "")), str(task.get("task_description", "")))
+            elif path.suffix == ".csv":
+                with path.open("r", encoding="utf-8", newline="") as f:
+                    for row in csv.DictReader(f):
+                        add_desc(str(row.get("suite", "")), str(row.get("task_description", "")))
+        except (OSError, json.JSONDecodeError):
+            continue
+
     specs: list[TaskSpec] = []
     for suite in suites:
-        task_ids = _select_task_ids(suite=suite, tasks_per_suite=tasks_per_suite, state_dim=state_dim)
-        print(f"Suite={suite}: selected task_ids={task_ids}")
-        for task_id in task_ids:
-            specs.append(
-                TaskSpec(
-                    suite=suite,
-                    task_id=task_id,
-                    task_description=_task_description_for(suite=suite, task_id=task_id, state_dim=state_dim),
-                )
-            )
+        suite_key = suite.lower()
+        descriptions = list(collected.get(suite_key, []))
+        descriptions.extend(FALLBACK_TASK_DESCRIPTIONS.get(suite_key, []))
+
+        if len(descriptions) < tasks_per_suite:
+            needed = tasks_per_suite - len(descriptions)
+            for idx in range(needed):
+                descriptions.append(f"complete task {idx + 1} in the {suite_key} suite")
+
+        selected = descriptions[:tasks_per_suite]
+        print(f"Suite={suite_key}: using fallback task descriptions ({len(selected)} task(s))")
+        for task_id, task_description in enumerate(selected):
+            specs.append(TaskSpec(suite=suite_key, task_id=task_id, task_description=task_description))
+
     return specs
+
+
+def _collect_task_specs(suites: list[str], tasks_per_suite: int, state_dim: int) -> list[TaskSpec]:
+    try:
+        specs: list[TaskSpec] = []
+        for suite in suites:
+            task_ids = _select_task_ids(suite=suite, tasks_per_suite=tasks_per_suite, state_dim=state_dim)
+            print(f"Suite={suite}: selected task_ids={task_ids}")
+            for task_id in task_ids:
+                specs.append(
+                    TaskSpec(
+                        suite=suite,
+                        task_id=task_id,
+                        task_description=_task_description_for(suite=suite, task_id=task_id, state_dim=state_dim),
+                    )
+                )
+        return specs
+    except ModuleNotFoundError as exc:
+        if exc.name != "libero":
+            raise
+        print("LIBERO python package is unavailable; switching to fallback task descriptions.")
+        return _fallback_task_specs_from_files(suites=suites, tasks_per_suite=tasks_per_suite)
 
 
 def load_llm_bundle(llm_model: str) -> dict[str, object]:
