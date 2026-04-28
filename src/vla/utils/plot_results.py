@@ -9,6 +9,8 @@ Usage::
     uv run python -m vla.utils.plot_results --results-dir results/evals --suite spatial
     uv run python -m vla.utils.plot_results --results-dir results/evals \\
         --suite spatial --output assets/libero_spatial_comparison.png
+    uv run python -m vla.utils.plot_results --results-dir results/evals \\
+        --suite spatial --filter-training-job-id 28161033
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +31,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "assets"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+SEEDING_FIX_COMMIT = "ef79c3b5dce7212faf1b7c5b3b8bc81ff3d0cf16"
 
 
 _METHOD_LABELS: dict[str, str] = {
@@ -52,8 +57,83 @@ def _label_for_method(record: dict[str, Any]) -> str:
     return base
 
 
-def load_eval_records(results_dir: Path, suite: str | None = None) -> list[dict[str, Any]]:
+def _job_ids_from_name(name: str) -> list[int]:
+    """Extract scheduler-style numeric ids embedded as underscore-delimited tokens."""
+    ids: list[int] = []
+    for match in re.finditer(r"(?:^|_)(\d{6,})(?=_|$)", name):
+        try:
+            ids.append(int(match.group(1)))
+        except ValueError:
+            continue
+    return ids
+
+
+def _extract_eval_run_id(record: dict[str, Any]) -> int | None:
+    """Extract the evaluation run id from an eval record name."""
+    name = str(record.get("eval_name") or record.get("wandb_run_name") or record.get("_source", "")).strip()
+    name_job_ids = _job_ids_from_name(Path(name).stem)
+    if not name_job_ids:
+        return None
+    return name_job_ids[-1]
+
+
+def _extract_training_run_id(record: dict[str, Any]) -> int | None:
+    """Extract the training run id used for filtering an eval record.
+
+    RL eval names are generated as ``eval_rl_..._<training_job_id>_<eval_job_id>``.
+    """
+    name = str(record.get("eval_name") or record.get("wandb_run_name") or record.get("_source", "")).strip()
+    name = Path(name).stem
+    name_job_ids = _job_ids_from_name(name)
+    if len(name_job_ids) >= 2:
+        return name_job_ids[-2]
+    if len(name_job_ids) == 1 and (record.get("training_method", "") or "").lower() != "sft":
+        return name_job_ids[0]
+
+    save_dir = str(record.get("training_save_dir", "")).strip()
+    save_dir_job_ids = _job_ids_from_name(save_dir.replace("/", "_").replace("\\", "_"))
+    if save_dir_job_ids:
+        return save_dir_job_ids[-1]
+
+    if name_job_ids:
+        return name_job_ids[-1]
+
+    return None
+
+
+def _extract_filter_run_id(record: dict[str, Any]) -> int | None:
+    """Backward-compatible alias for training-run filtering."""
+    return _extract_training_run_id(record)
+
+
+def _commit_contains_ancestor(commit: str, ancestor: str) -> bool:
+    """Return whether ``ancestor`` is reachable from ``commit``."""
+    if not commit or not ancestor:
+        return False
+
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, commit],
+        cwd=PROJECT_ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def load_eval_records(
+    results_dir: Path,
+    suite: str | None = None,
+    *,
+    min_eval_run_id: int | None = None,
+    min_training_run_id: int | None = None,
+    min_filter_run_id: int | None = None,
+    required_eval_ancestor: str | None = None,
+) -> list[dict[str, Any]]:
     """Load all eval JSON files, optionally filtering by suite."""
+    if min_training_run_id is None:
+        min_training_run_id = min_filter_run_id
+
     records: list[dict[str, Any]] = []
     for json_path in sorted(results_dir.glob("*.json")):
         try:
@@ -68,8 +148,20 @@ def load_eval_records(results_dir: Path, suite: str | None = None) -> list[dict[
             continue
         if not record.get("task_metrics"):
             continue
-
         record["_source"] = json_path.name
+        if min_eval_run_id is not None:
+            eval_run_id = _extract_eval_run_id(record)
+            if eval_run_id is None or eval_run_id <= min_eval_run_id:
+                continue
+        if min_training_run_id is not None:
+            training_run_id = _extract_training_run_id(record)
+            if training_run_id is None or training_run_id <= min_training_run_id:
+                continue
+        if required_eval_ancestor:
+            eval_commit = str(record.get("git_commit", ""))
+            if not _commit_contains_ancestor(eval_commit, required_eval_ancestor):
+                continue
+
         records.append(record)
 
     return records
@@ -179,6 +271,21 @@ def plot_comparison(
 def main(
     results_dir: Path = typer.Option("results/evals", "--results-dir", "-r", help="Directory with eval JSON files"),  # noqa: B008
     suite: str = typer.Option("spatial", "--suite", "-s", help="Filter by suite name"),  # noqa: B008
+    filter_job_id: int | None = typer.Option(
+        None,
+        "--filter-job-id",
+        help="Only include evals whose evaluation job id is newer than this cutoff.",
+    ),
+    filter_training_job_id: int | None = typer.Option(
+        None,
+        "--filter-training-job-id",
+        help="Only include evals whose training job id is newer than this cutoff.",
+    ),
+    require_eval_commit: str | None = typer.Option(
+        SEEDING_FIX_COMMIT,
+        "--require-eval-commit",
+        help="Only include evals whose recorded git_commit contains this ancestor commit.",
+    ),
     output: Path = typer.Option(  # noqa: B008
         None, "--output", "-o", help="Output PNG path (default: assets/libero_<suite>_comparison.png)"
     ),
@@ -187,15 +294,26 @@ def main(
     results_path = Path(results_dir)
     if not results_path.is_absolute():
         # Resolve relative to project root
-        project_root = Path(__file__).resolve().parent.parent.parent.parent
-        results_path = project_root / results_path
+        results_path = PROJECT_ROOT / results_path
 
-    records = load_eval_records(results_path, suite=suite)
+    records = load_eval_records(
+        results_path,
+        suite=suite,
+        min_eval_run_id=filter_job_id,
+        min_training_run_id=filter_training_job_id,
+        required_eval_ancestor=require_eval_commit,
+    )
     if not records:
         logger.error("No eval records found in %s for suite=%s", results_path, suite)
         raise typer.Exit(1)
 
     logger.info("Found %d eval records for suite=%s", len(records), suite)
+    if filter_job_id is not None:
+        logger.info("Applied eval-run cutoff: keeping only run ids > %d", filter_job_id)
+    if filter_training_job_id is not None:
+        logger.info("Applied training-run cutoff: keeping only run ids > %d", filter_training_job_id)
+    if require_eval_commit:
+        logger.info("Applied eval commit filter: keeping commits containing %s", require_eval_commit)
     for r in records:
         logger.info("  %s — %s (%.1f%%)", r["_source"], r.get("training_method", "unknown"), r["success_rate"] * 100)
 
