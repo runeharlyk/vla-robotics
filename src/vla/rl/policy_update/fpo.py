@@ -36,6 +36,7 @@ def fpo_update(
     positive_only = bool(getattr(config, "fpo_positive_adv_only", False))
     negative_scale = float(getattr(config, "fpo_negative_adv_scale", 0.25))
     log_ratio_clip = float(getattr(config, "fpo_log_ratio_clip", 5.0))
+    full_chunk_target = bool(getattr(config, "fpo_full_chunk_target", True))
 
     with torch.no_grad():
         old_fm_per_traj = []
@@ -48,6 +49,7 @@ def fpo_update(
                 fixed_time[i],
                 batch_size=B,
                 reduction=reduction,
+                full_chunk_target=full_chunk_target,
             )
             old_fm_per_traj.append(old_fm.detach())
 
@@ -68,6 +70,7 @@ def fpo_update(
                     fixed_time[i],
                     batch_size=B,
                     reduction=reduction,
+                    full_chunk_target=full_chunk_target,
                 )
                 ref_fm_per_traj.append(ref_fm.detach())
 
@@ -86,6 +89,7 @@ def fpo_update(
                     fixed_time[i],
                     batch_size=B,
                     reduction=reduction,
+                    full_chunk_target=full_chunk_target,
                 )
                 sft_fm_per_traj.append(sft_fm.detach())
 
@@ -142,6 +146,7 @@ def fpo_update(
                     time_list=fixed_time[i],
                     batch_size=B,
                     reduction=reduction,
+                    full_chunk_target=full_chunk_target,
                 )
 
                 old_fm = old_fm_per_traj[i].to(device=device, dtype=torch.float32)

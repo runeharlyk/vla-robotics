@@ -41,10 +41,9 @@ class Trajectory:
     env steps (fewer only if the episode terminated mid-chunk).
 
     When chunk execution is active, ``executed_chunks`` and
-    ``chunk_mask`` are populated and the FPO/AWR loss path uses them
-    so that only the actions actually executed by the policy
-    contribute to the loss; the unexecuted tail of each sampled chunk
-    is masked out.
+    ``chunk_mask`` are populated.  The policy-update path can either use
+    them directly, or reconstruct v28-style sliding-window targets from
+    the flattened stream of actions actually executed in the environment.
     """
 
     images: torch.Tensor
@@ -194,10 +193,9 @@ def collect_single_episode_chunked(
     chunk of shape ``(chunk_size, action_dim)``.  The first
     ``n_action_steps`` actions of that chunk are executed against the
     environment before the policy is queried again.  Only one transition
-    is recorded per decision point (not per env step), which is what the
-    FPO/AWR loss consumes; storing decision-point-aligned data also
-    ensures the loss only penalises positions the policy actually
-    committed to.
+    is recorded per decision point (not per env step).  The executed
+    chunk data lets the update reconstruct dense sliding-window targets
+    from real env actions, or use the direct executed chunk with a mask.
 
     Args:
         adapter: Environment adapter.

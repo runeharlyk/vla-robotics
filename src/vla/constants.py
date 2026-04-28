@@ -29,6 +29,7 @@ class UpdateMethod(StrEnum):
     AWR = "awr"
     FPO = "fpo"
     PPO = "ppo"
+    SUCCESS_BC = "success_bc"
 
 
 class WorldModelType(StrEnum):

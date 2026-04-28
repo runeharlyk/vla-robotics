@@ -36,7 +36,14 @@ from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.advantage import leave_one_out_advantages_per_task, normalize_advantages_per_task
 from vla.rl.config import SRPOConfig, TaskSpec
-from vla.rl.policy_update import UpdateMetrics, _sample_fixed_noise_time, awr_update, fpo_update, ppo_update
+from vla.rl.policy_update import (
+    UpdateMetrics,
+    _sample_fixed_noise_time,
+    awr_update,
+    fpo_update,
+    ppo_update,
+    success_bc_update,
+)
 from vla.rl.rollout import RolloutEngine, Trajectory
 from vla.rl.srpo_reward import (
     MultiTaskWorldProgressReward,
@@ -60,6 +67,7 @@ __all__ = [
     "log_training_config",
     "ppo_update",
     "fpo_update",
+    "success_bc_update",
     "resample_uniform_reward_tasks",
     "train_srpo",
 ]
@@ -140,6 +148,8 @@ def log_training_config(
     lines.append(f"    awr_epochs:          {config.awr_epochs}")
     lines.append(f"    awr_temperature:     {config.awr_temperature}")
     lines.append(f"    awr_weight_clip:     {config.awr_weight_clip}")
+    lines.append(f"    success_bc_epochs:   {config.success_bc_epochs}")
+    lines.append(f"    success_bc_loss_reduction: {config.success_bc_loss_reduction}")
     lines.append(f"    adv_eps:             {config.adv_eps}")
     lines.append(f"    adv_skip_threshold:  {config.adv_skip_threshold}")
 
@@ -945,28 +955,36 @@ def train_srpo(
 
         # -- 3. Per-task advantage normalization --------------------------
         task_ids = [t.task_id for t in all_trajectories]
-        if config.advantage_mode == AdvantageMode.SRPO_ZSCORE:
-            adv_result = normalize_advantages_per_task(
-                g_values=g_values,
-                task_ids=task_ids,
-                eps=config.adv_eps,
-                skip_threshold=config.adv_skip_threshold,
-            )
-        elif config.advantage_mode == AdvantageMode.LEAVE_ONE_OUT:
-            adv_result = leave_one_out_advantages_per_task(
-                g_values=g_values,
-                task_ids=task_ids,
-                update_method=config.update_method,
-                skip_threshold=config.adv_skip_threshold,
-            )
+        if config.update_method is UpdateMethod.SUCCESS_BC:
+            advantages = [1.0 if t.success else 0.0 for t in all_trajectories]
+            skipped_tasks = []
+            per_task_g_mean = {}
+            for tid in sorted(set(task_ids)):
+                task_rewards = [g for g, t_tid in zip(g_values, task_ids, strict=True) if t_tid == tid]
+                per_task_g_mean[tid] = sum(task_rewards) / max(len(task_rewards), 1)
         else:
-            raise ValueError(f"Unknown advantage_mode: {config.advantage_mode}")
-        advantages = adv_result.advantages
-        skipped_tasks = adv_result.skipped_tasks
-        per_task_g_mean = adv_result.per_task_g_mean
+            if config.advantage_mode == AdvantageMode.SRPO_ZSCORE:
+                adv_result = normalize_advantages_per_task(
+                    g_values=g_values,
+                    task_ids=task_ids,
+                    eps=config.adv_eps,
+                    skip_threshold=config.adv_skip_threshold,
+                )
+            elif config.advantage_mode == AdvantageMode.LEAVE_ONE_OUT:
+                adv_result = leave_one_out_advantages_per_task(
+                    g_values=g_values,
+                    task_ids=task_ids,
+                    update_method=config.update_method,
+                    skip_threshold=config.adv_skip_threshold,
+                )
+            else:
+                raise ValueError(f"Unknown advantage_mode: {config.advantage_mode}")
+            advantages = adv_result.advantages
+            skipped_tasks = adv_result.skipped_tasks
+            per_task_g_mean = adv_result.per_task_g_mean
 
         skipped_task_set = set(skipped_tasks)
-        if len(skipped_tasks) == len(task_specs):
+        if config.update_method is not UpdateMethod.SUCCESS_BC and len(skipped_tasks) == len(task_specs):
             logger.info(
                 f"Iter {iteration}: skipping update - all tasks have uniform rewards (successes={total_successes})"
             )
@@ -1001,10 +1019,16 @@ def train_srpo(
         # forgetting on solved tasks.  AWR/PPO only need active trajectories.
         policy.eval()
         is_fpo = config.update_method is UpdateMethod.FPO
+        is_success_bc = config.update_method is UpdateMethod.SUCCESS_BC
         n_noise_samples = config.num_fm_noise_samples if is_fpo else 1
-        update_trajs = all_trajectories if is_fpo else active_trajs
-        update_advs = advantages if is_fpo else active_advs
-        update_instrs = [spec_lookup[t.task_id].instruction for t in all_trajectories] if is_fpo else active_instrs
+        if is_success_bc:
+            update_trajs = [t for t in all_trajectories if t.success]
+            update_advs = [1.0] * len(update_trajs)
+            update_instrs = [spec_lookup[t.task_id].instruction for t in update_trajs]
+        else:
+            update_trajs = all_trajectories if is_fpo else active_trajs
+            update_advs = advantages if is_fpo else active_advs
+            update_instrs = [spec_lookup[t.task_id].instruction for t in all_trajectories] if is_fpo else active_instrs
         update_noise: list[list[torch.Tensor]] = []
         update_time: list[list[torch.Tensor]] = []
         for traj in update_trajs:
@@ -1057,6 +1081,18 @@ def train_srpo(
                 [tl[0] for tl in update_time],
                 config,
             )
+        elif config.update_method is UpdateMethod.SUCCESS_BC:
+            update_metrics = success_bc_update(
+                policy,
+                optimizer,
+                trainable,
+                update_trajs,
+                update_instrs,
+                [nl[0] for nl in update_noise],
+                [tl[0] for tl in update_time],
+                config,
+                sft_policy=sft_policy,
+            )
         else:
             raise ValueError(f"Unknown update_method: {config.update_method}")
 
@@ -1085,6 +1121,8 @@ def train_srpo(
             loss_key = "fpo_loss"
         elif config.update_method == UpdateMethod.PPO:
             loss_key = "ppo_loss"
+        elif config.update_method == UpdateMethod.SUCCESS_BC:
+            loss_key = "success_bc_loss"
         else:
             raise ValueError(f"Unknown update_method: {config.update_method}")
         log_data = {
@@ -1107,6 +1145,10 @@ def train_srpo(
             log_data[f"{config.mode}/{_tid}/dynamic_sampling/gave_up"] = int(_tid in dynsample_gave_up)
         if config.update_method == UpdateMethod.AWR:
             log_data[f"{config.mode}/mean_weight"] = update_metrics.avg_weight
+        elif config.update_method == UpdateMethod.SUCCESS_BC:
+            log_data[f"{config.mode}/success_bc_update_trajs"] = len(update_trajs)
+            log_data[f"{config.mode}/sft_kl_coeff"] = config.sft_kl_coeff
+            log_data[f"{config.mode}/raw_sft_kl"] = update_metrics.raw_sft_kl
         elif config.update_method == UpdateMethod.FPO:
             log_data[f"{config.mode}/clip_frac"] = update_metrics.avg_weight
             log_data[f"{config.mode}/mean_shift"] = update_metrics.avg_shift

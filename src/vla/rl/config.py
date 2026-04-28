@@ -31,6 +31,8 @@ class SRPOConfig(BaseTrainingConfig):
     awr_epochs: int = 2
     awr_temperature: float = 5.0
     awr_weight_clip: float = 20.0
+    success_bc_epochs: int = 1
+    success_bc_loss_reduction: str = "mean"
     kl_coeff: float = 0.01
     sft_kl_coeff: float = 0.0
     save_dir: str = "checkpoints/srpo"
