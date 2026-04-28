@@ -177,17 +177,35 @@ def run_rollouts_from_prompt_file(
     prompt_rows: list[dict[str, object]] = []
 
     tasks = cast(list[dict[str, object]], prompt_payload.get("tasks", []))
-    total_prompt_runs = len(tasks) * len(PROMPT_VARIANT_TYPES)
-    prompt_runs_done = 0
+    total_prompt_runs = 0
+    task_prompt_types: list[tuple[dict[str, object], list[str]]] = []
 
     for task in tasks:
+        prompts = cast(dict[str, str], task["prompts"])
+        prompt_types = [variant_type for variant_type in PROMPT_VARIANT_TYPES if variant_type in prompts]
+        missing_types = [variant_type for variant_type in PROMPT_VARIANT_TYPES if variant_type not in prompts]
+
+        if missing_types:
+            suite = cast(str, task["suite"])
+            task_id = cast(int, task["task_id"])
+            print(
+                f"  Task {task_id} ({suite}): skipping missing variant(s) {missing_types}; "
+                f"running {len(prompt_types)} prompt(s) from saved plan"
+            )
+
+        task_prompt_types.append((task, prompt_types))
+        total_prompt_runs += len(prompt_types)
+
+    prompt_runs_done = 0
+
+    for task, prompt_types in task_prompt_types:
         suite = cast(str, task["suite"])
         task_id = cast(int, task["task_id"])
         task_description = cast(str, task["task_description"])
         prompts = cast(dict[str, str], task["prompts"])
 
         episode_seeds = _episode_seeds_for_task(args.seed, suite, task_id, args.episodes)
-        prompt_specs = [PromptSpec(variant_type=k, variant_index=0, prompt=prompts[k]) for k in PROMPT_VARIANT_TYPES]
+        prompt_specs = [PromptSpec(variant_type=k, variant_index=0, prompt=prompts[k]) for k in prompt_types]
 
         print(f"  Task {task_id} ({suite}): evaluating {len(prompt_specs)} prompt(s)")
 
