@@ -2,9 +2,20 @@
   "record_type": "training",
   "wandb_run_name": "v15-stackcube-trajs64_sparse_rl_stackcube_seed42_28133717",
   "method": "SPARSE_RL",
+  "update_method": "FPO",
   "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/stackcube_seed42_28133717",
   "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "sft_checkpoint": "None",
   "suite": "SPATIAL",
+  "seed": 42,
+  "num_tasks": 1,
+  "task_ids": [
+    "stackcube"
+  ],
+  "libero_task_indices": [],
+  "include_demos_in_update": false,
+  "success_replay_total_size": 0,
+  "trajs_per_task_per_iter": 64,
   "config": {
     "lr": 5e-06,
     "mode": "SPARSE_RL",
@@ -69,5 +80,19 @@
     "fpo_negative_adv_scale": 1,
     "gradient_checkpointing": true,
     "trajs_per_task_per_iter": 64
-  }
+  },
+  "wandb_id": "utyaaoe3",
+  "wandb_project": "srpo-smolvla",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/srpo-smolvla/runs/utyaaoe3",
+  "wandb_state": "failed",
+  "wandb_created_at": "2026-04-02T15:33:14Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "28133717",
+  "lsf_job_name": "",
+  "hostname": "n-62-13-17",
+  "git_commit": "72dbc61c8c924bbb0dfe8d913e37cb6efcf9ac27",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics"
 }

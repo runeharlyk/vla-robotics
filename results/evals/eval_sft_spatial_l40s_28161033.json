@@ -49,5 +49,20 @@
     }
   ],
   "training_save_dir": "",
-  "training_method": "sft"
+  "training_method": "sft",
+  "wandb_id": "ig5k9p70",
+  "wandb_project": "vla-libero-eval",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/vla-libero-eval/runs/ig5k9p70",
+  "wandb_state": "finished",
+  "wandb_created_at": "2026-04-08T09:47:19Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "28161033",
+  "lsf_job_name": "",
+  "hostname": "n-62-13-16",
+  "git_commit": "f8d89a7f84f627fe5515bf53218e5a9e021d80ca",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
+  "training_git_commit": "f8d89a7f84f627fe5515bf53218e5a9e021d80ca"
 }

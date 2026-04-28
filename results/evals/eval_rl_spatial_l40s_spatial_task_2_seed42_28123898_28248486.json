@@ -1,0 +1,68 @@
+{
+  "record_type": "evaluation",
+  "wandb_run_name": "eval_rl_spatial_l40s_spatial_task_2_seed42_28123898_28248486",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "simulator": "libero",
+  "suite": "spatial",
+  "success_rate": 0.491,
+  "mean_reward": 0.491,
+  "task_metrics": [
+    {
+      "task_id": 0,
+      "success_rate": 0.63
+    },
+    {
+      "task_id": 1,
+      "success_rate": 0.41
+    },
+    {
+      "task_id": 2,
+      "success_rate": 0.6
+    },
+    {
+      "task_id": 3,
+      "success_rate": 0.73
+    },
+    {
+      "task_id": 4,
+      "success_rate": 0.37
+    },
+    {
+      "task_id": 5,
+      "success_rate": 0.43
+    },
+    {
+      "task_id": 6,
+      "success_rate": 0.58
+    },
+    {
+      "task_id": 7,
+      "success_rate": 0.13
+    },
+    {
+      "task_id": 8,
+      "success_rate": 0.41
+    },
+    {
+      "task_id": 9,
+      "success_rate": 0.62
+    }
+  ],
+  "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_2_seed42_28123898/best",
+  "training_method": "sparse_rl",
+  "wandb_id": "1q88s6r4",
+  "wandb_project": "vla-libero-eval",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/vla-libero-eval/runs/1q88s6r4",
+  "wandb_state": "finished",
+  "wandb_created_at": "2026-04-22T00:36:58Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "28248486",
+  "lsf_job_name": "",
+  "hostname": "n-62-13-18",
+  "git_commit": "913a448c1fb16832f7055db2b334e32e81aaf7e2",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
+  "training_git_commit": "913a448c1fb16832f7055db2b334e32e81aaf7e2"
+}

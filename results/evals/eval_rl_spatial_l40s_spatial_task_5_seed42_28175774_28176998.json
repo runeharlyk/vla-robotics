@@ -49,5 +49,20 @@
     }
   ],
   "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28175774/best",
-  "training_method": "sparse_rl"
+  "training_method": "sparse_rl",
+  "wandb_id": "0uqejzfa",
+  "wandb_project": "vla-libero-eval",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/vla-libero-eval/runs/0uqejzfa",
+  "wandb_state": "finished",
+  "wandb_created_at": "2026-04-09T20:57:30Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "28176998",
+  "lsf_job_name": "",
+  "hostname": "n-62-13-18",
+  "git_commit": "e4990f44e055f780382fb5c2ec7235903ab20adb",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
+  "training_git_commit": "e4990f44e055f780382fb5c2ec7235903ab20adb"
 }
