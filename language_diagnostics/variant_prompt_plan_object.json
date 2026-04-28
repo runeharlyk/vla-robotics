@@ -1,0 +1,91 @@
+{
+  "generated_at_utc": "2026-04-27T09:22:48.854385+00:00",
+  "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "do_not_move"
+  ],
+  "tasks": [
+    {
+      "suite": "object",
+      "task_id": 0,
+      "task_description": "pick up the alphabet soup and place it in the basket",
+      "prompts": {
+        "original": "pick up the alphabet soup and place it in the basket",
+        "politeness": "please pick up the alphabet soup and place it in the basket",
+        "verb_paraphrase": "grab the alphabet soup and place it in the basket",
+        "sentence_structure": "the alphabet soup, pick it up and place it in the basket",
+        "verbosity": "in this task you have to  pick up the alphabet soup and place it in the basket for me",
+        "carefully": "pick up the alphabet soup and place it in the basket carefully",
+        "quickly": "pick up the alphabet soup and place it in the basket quickly",
+        "do_not_move": "do not move the alphabet soup and place it in the basket"
+      }
+    },
+    {
+      "suite": "object",
+      "task_id": 1,
+      "task_description": "pick up the cream cheese and place it in the basket",
+      "prompts": {
+        "original": "pick up the cream cheese and place it in the basket",
+        "politeness": "please pick up the cream cheese and place it in the basket",
+        "verb_paraphrase": "grab the cream cheese and place it in the basket",
+        "sentence_structure": "the cream cheese, pick it up and place it in the basket",
+        "verbosity": "in this task you have to pick up the cream cheese and place it in the basket for me",
+        "carefully": "pick up the cream cheese and place it in the basket carefully",
+        "quickly": "pick up the cream cheese and place it in the basket quickly",
+        "do_not_move": "do not move the cream cheese and place it in the basket"
+      }
+    },
+    {
+      "suite": "object",
+      "task_id": 2,
+      "task_description": "pick up the salad dressing and place it in the basket",
+      "prompts": {
+        "original": "pick up the salad dressing and place it in the basket",
+        "politeness": "please pick up the salad dressing and place it in the basket",
+        "verb_paraphrase": "grab the salad dressing and place it in the basket",
+        "sentence_structure": "the salad dressing, pick it up and place it in the basket",
+        "verbosity": "in this task you have to pick up the salad dressing and place it in the basket for me",
+        "carefully": "pick up the salad dressing and place it in the basket carefully",
+        "quickly": "pick up the salad dressing and place it in the basket quickly",
+        "do_not_move": "do not move the salad dressing and place it in the basket"
+      }
+    },
+    {
+      "suite": "object",
+      "task_id": 3,
+      "task_description": "pick up the bbq sauce and place it in the basket",
+      "prompts": {
+        "original": "pick up the bbq sauce and place it in the basket",
+        "politeness": "please pick up the bbq sauce and place it in the basket",
+        "verb_paraphrase": "grab the bbq sauce and place it in the basket",
+        "sentence_structure": "the bbq sauce, pick it up and place it in the basket",
+        "verbosity": "in this task you have to pick up the bbq sauce and place it in the basket for me",
+        "carefully": "pick up the bbq sauce and place it in the basket carefully",
+        "quickly": "pick up the bbq sauce and place it in the basket quickly",
+        "do_not_move": "do not move the bbq sauce and place it in the basket"
+      }
+    },
+    {
+      "suite": "object",
+      "task_id": 4,
+      "task_description": "pick up the ketchup and place it in the basket",
+      "prompts": {
+        "original": "pick up the ketchup and place it in the basket",
+        "politeness": "please pick up the ketchup and place it in the basket",
+        "verb_paraphrase": "grab the ketchup and place it in the basket",
+        "sentence_structure": "the ketchup, pick it up and place it in the basket",
+        "verbosity": "in this task you have to pick up the ketchup and place it in the basket for me",
+        "carefully": "pick up the ketchup and place it in the basket carefully",
+        "quickly": "pick up the ketchup and place it in the basket quickly",
+        "do_not_move": "do not move the ketchup and place it in the basket"
+      }
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "generated_at_utc": "2026-04-27T09:22:48.854385+00:00",
+  "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "do_not_move"
+  ],
+  "tasks": [
+    {
+      "suite": "goal",
+      "task_id": 0,
+      "task_description": "open the middle drawer of the cabinet",
+      "prompts": {
+        "original": "open the middle drawer of the cabinet",
+        "politeness": "please open the middle drawer of the cabinet",
+        "verb_paraphrase": "pull out the middle drawer of the cabinet",
+        "sentence_structure": "the middle drawer of the cabinet, open it",
+        "verbosity": "in this task you have to open the middle drawer of the cabinet for me",
+        "carefully": "open the middle drawer of the cabinet carefully",
+        "quickly": "open the middle drawer of the cabinet quickly",
+        "do_not_move": "do not open middle drawer of the cabinet"
+      }
+    },
+    {
+      "suite": "goal",
+      "task_id": 1,
+      "task_description": "put the bowl on the stove",
+      "prompts": {
+        "original": "put the bowl on the stove",
+        "politeness": "please put the bowl on the stove",
+        "verb_paraphrase": "place the bowl on the stove",
+        "sentence_structure": "the bowl, put it on the stove",
+        "verbosity": "in this task you have to put the bowl on the stove for me",
+        "carefully": "put the bowl on the stove carefully",
+        "quickly": "put the bowl on the stove quickly",
+        "do_not_move": "do not place the bowl on the stove"
+      }
+    },
+    {
+      "suite": "goal",
+      "task_id": 2,
+      "task_description": "put the wine bottle on top of the cabinet",
+      "prompts": {
+        "original": "put the wine bottle on top of the cabinet",
+        "politeness": "please put the wine bottle on top of the cabinet",
+        "verb_paraphrase": "place the wine bottle on top of the cabinet",
+        "sentence_structure": "the wine bottle, put it on top of the cabinet",
+        "verbosity": "in this task you have to put the wine bottle on top of the cabinet for me",
+        "carefully": "put the wine bottle on top of the cabinet carefully",
+        "quickly": "put the wine bottle on top of the cabinet quickly",
+        "do_not_move": "do not move the wine bottle on top of the cabinet"
+      }
+    },
+    {
+      "suite": "goal",
+      "task_id": 3,
+      "task_description": "open the top drawer and put the bowl inside",
+      "prompts": {
+        "original": "open the top drawer and put the bowl inside",
+        "politeness": "please open the top drawer and put the bowl inside",
+        "verb_paraphrase": "pull out the top drawer and put the bowl inside",
+        "sentence_structure": "the top drawer, open it and put the bowl inside",
+        "verbosity": "in this task you have to open the top drawer and put the bowl inside for me",
+        "carefully": "open the top drawer and put the bowl inside carefully",
+        "quickly": "open the top drawer and put the bowl inside quickly",
+        "do_not_move": "do not open the top drawer and put the bowl inside"
+      }
+    },
+    {
+      "suite": "goal",
+      "task_id": 4,
+      "task_description": "put the bowl on top of the cabinet",
+      "prompts": {
+        "original": "put the bowl on top of the cabinet",
+        "politeness": "please put the bowl on top of the cabinet",
+        "verb_paraphrase": "place the bowl on top of the cabinet",
+        "sentence_structure": "the bowl, put it on top of the cabinet",
+        "verbosity": "in this task you have to put the bowl on top of the cabinet for me",
+        "carefully": "put the bowl on top of the cabinet carefully",
+        "quickly": "put the bowl on top of the cabinet quickly",
+        "do_not_move": "do not put the bowl on top of the cabinet"
+      }
+    }
+  ]
+}

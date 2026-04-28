@@ -1,0 +1,91 @@
+{
+  "generated_at_utc": "2026-04-27T09:22:48.854385+00:00",
+  "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "do_not_move"
+  ],
+  "tasks": [
+    {
+      "suite": "spatial",
+      "task_id": 0,
+      "task_description": "pick up the black bowl between the plate and the ramekin and place it on the plate",
+      "prompts": {
+        "original": "pick up the black bowl between the plate and the ramekin and place it on the plate",
+        "politeness": "please pick up the black bowl between the plate and the ramekin and place it on the plate",
+        "verb_paraphrase": "grab the black bowl between the plate and the ramekin and place it on the plate",
+        "sentence_structure": "the black bowl between the plate and the ramekin, pick it up and place it on the plate",
+        "verbosity": "in this task you have to pick up the black bowl between the plate and the ramekin and place it on the plate for me",
+        "carefully": "pick up the black bowl between the plate and the ramekin and place it on the plate carefully",
+        "quickly": "pick up the black bowl between the plate and the ramekin and place it on the plate quickly",
+        "do_not_move": "do not move the black bowl between the plate and the ramekin and place it on the plate"
+      }
+    },
+    {
+      "suite": "spatial",
+      "task_id": 1,
+      "task_description": "pick up the black bowl next to the ramekin and place it on the plate",
+      "prompts": {
+        "original": "pick up the black bowl next to the ramekin and place it on the plate",
+        "politeness": "please pick up the black bowl next to the ramekin and place it on the plate",
+        "verb_paraphrase": "grab the black bowl next to the ramekin and place it on the plate",
+        "sentence_structure": "the black bowl next to the ramekin, pick it up and place it on the plate",
+        "verbosity": "in this task you have to pick up the black bowl next to the ramekin and place it on the plate for me",
+        "carefully": "pick up the black bowl next to the ramekin and place it on the plate carefully",
+        "quickly": "pick up the black bowl next to the ramekin and place it on the plate quickly",
+        "do_not_move": "do not move the black bowl next to the ramekin and place it on the plate"
+      }
+    },
+    {
+      "suite": "spatial",
+      "task_id": 2,
+      "task_description": "pick up the black bowl from table center and place it on the plate",
+      "prompts": {
+        "original": "pick up the black bowl from table center and place it on the plate",
+        "politeness": "please pick up the black bowl from table center and place it on the plate",
+        "verb_paraphrase": "grab the black bowl from table center and place it on the plate",
+        "sentence_structure": "the black bowl from table center, pick it up and place it on the plate",
+        "verbosity": "in this task you have to pick up the black bowl from table center and place it on the plate for me",
+        "carefully": "pick up the black bowl from table center and place it on the plate carefully",
+        "quickly": "pick up the black bowl from table center and place it on the plate quickly",
+        "do_not_move": "do not move the black bowl from table center and place it on the plate"
+      }
+    },
+    {
+      "suite": "spatial",
+      "task_id": 3,
+      "task_description": "pick up the black bowl on the cookie box and place it on the plate",
+      "prompts": {
+        "original": "pick up the black bowl on the cookie box and place it on the plate",
+        "politeness": "please pick up the black bowl on the cookie box and place it on the plate",
+        "verb_paraphrase": "grab the black bowl on the cookie box and place it on the plate",
+        "sentence_structure": "the black bow on the cookie box, pick it up and place it on the plate",
+        "verbosity": "in this task you have to pick up the black bowl on the cookie box and place it on the plate for me",
+        "carefully": "pick up the black bowl on the cookie box and place it on the plate carefully",
+        "quickly": "pick up the black bowl on the cookie box and place it on the plate quickly",
+        "do_not_move": "do not move the black bowl on the cookie box and place it on the plate"
+      }
+    },
+    {
+      "suite": "spatial",
+      "task_id": 4,
+      "task_description": "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+      "prompts": {
+        "original": "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+        "politeness": "please pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+        "verb_paraphrase": "grab the black bowl in the top drawer of the wooden cabinet and place it on the plate",
+        "sentence_structure": "the black bowl in the top drawer of the wooden cabinet, pick it up and place it on the plate",
+        "verbosity": "in this task you have to pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate for me",
+        "carefully": "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate carefully",
+        "quickly": "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate quickly",
+        "do_not_move": "do not move any other items while grabing the black bowl in the top drawer of the wooden cabinet and place it on the plate"
+      }
+    }
+  ]
+}
