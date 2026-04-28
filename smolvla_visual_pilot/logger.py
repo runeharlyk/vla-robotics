@@ -32,6 +32,8 @@ class TimestepRecord:
     timestep: int
     l2_distance: float
     rel_l2_distance: float
+    quality_delta_l2: float | None = None
+    quality_ratio_l2: float | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -43,6 +45,8 @@ class ResultLogger:
 
     def __init__(self) -> None:
         self._records: list[TimestepRecord] = []
+        self._per_dim_abs_by_noise: dict[str, list[np.ndarray]] = {}
+        self._per_dim_rel_by_noise: dict[str, list[np.ndarray]] = {}
 
     # -- recording --
 
@@ -59,6 +63,8 @@ class ResultLogger:
         timestep: int,
         l2_distance: float,
         rel_l2_distance: float,
+        quality_delta_l2: float | None = None,
+        quality_ratio_l2: float | None = None,
     ) -> None:
         self._records.append(
             TimestepRecord(
@@ -73,6 +79,8 @@ class ResultLogger:
                 timestep=timestep,
                 l2_distance=l2_distance,
                 rel_l2_distance=rel_l2_distance,
+                quality_delta_l2=quality_delta_l2,
+                quality_ratio_l2=quality_ratio_l2,
             )
         )
 
@@ -88,9 +96,41 @@ class ResultLogger:
         noise_severity: int,
         l2_distances: list[float] | np.ndarray,
         rel_l2_distances: list[float] | np.ndarray,
+        per_dim_abs_errors: np.ndarray | None = None,
+        per_dim_rel_errors: np.ndarray | None = None,
+        quality_delta_l2: list[float] | np.ndarray | None = None,
+        quality_ratio_l2: list[float] | np.ndarray | None = None,
     ) -> None:
         """Convenience: log all timesteps for one (rollout, noise_variant) pair."""
-        for t, (l2, rel_l2) in enumerate(zip(l2_distances, rel_l2_distances, strict=True)):
+        l2_arr = np.asarray(l2_distances, dtype=np.float64)
+        rel_l2_arr = np.asarray(rel_l2_distances, dtype=np.float64)
+        T = min(len(l2_arr), len(rel_l2_arr))
+
+        quality_delta_arr: np.ndarray | None = None
+        quality_ratio_arr: np.ndarray | None = None
+        if quality_delta_l2 is not None:
+            quality_delta_arr = np.asarray(quality_delta_l2, dtype=np.float64)
+            T = min(T, len(quality_delta_arr))
+        if quality_ratio_l2 is not None:
+            quality_ratio_arr = np.asarray(quality_ratio_l2, dtype=np.float64)
+            T = min(T, len(quality_ratio_arr))
+
+        if (per_dim_abs_errors is None) != (per_dim_rel_errors is None):
+            raise ValueError("per_dim_abs_errors and per_dim_rel_errors must be provided together")
+
+        if per_dim_abs_errors is not None and per_dim_rel_errors is not None:
+            per_dim_abs_arr = np.asarray(per_dim_abs_errors, dtype=np.float64)
+            per_dim_rel_arr = np.asarray(per_dim_rel_errors, dtype=np.float64)
+            if per_dim_abs_arr.shape != per_dim_rel_arr.shape:
+                raise ValueError("per-dimension absolute and relative error arrays must match in shape")
+            if per_dim_abs_arr.ndim != 2:
+                raise ValueError("per-dimension arrays must have shape (T, action_dim)")
+
+            T = min(T, per_dim_abs_arr.shape[0])
+            self._per_dim_abs_by_noise.setdefault(noise_type, []).append(per_dim_abs_arr[:T])
+            self._per_dim_rel_by_noise.setdefault(noise_type, []).append(per_dim_rel_arr[:T])
+
+        for t in range(T):
             self.log_timestep(
                 task_index=task_index,
                 task_name=task_name,
@@ -101,8 +141,10 @@ class ResultLogger:
                 noise_type=noise_type,
                 noise_severity=noise_severity,
                 timestep=t,
-                l2_distance=float(l2),
-                rel_l2_distance=float(rel_l2),
+                l2_distance=float(l2_arr[t]),
+                rel_l2_distance=float(rel_l2_arr[t]),
+                quality_delta_l2=(float(quality_delta_arr[t]) if quality_delta_arr is not None else None),
+                quality_ratio_l2=(float(quality_ratio_arr[t]) if quality_ratio_arr is not None else None),
             )
 
     @property
@@ -123,6 +165,8 @@ class ResultLogger:
         "timestep",
         "l2_distance",
         "rel_l2_distance",
+        "quality_delta_l2",
+        "quality_ratio_l2",
     ]
 
     def save_csv(self, path: str | Path) -> None:
@@ -146,6 +190,8 @@ class ResultLogger:
                         "timestep": r.timestep,
                         "l2_distance": f"{r.l2_distance:.6f}",
                         "rel_l2_distance": f"{r.rel_l2_distance:.6f}",
+                        "quality_delta_l2": ("" if r.quality_delta_l2 is None else f"{r.quality_delta_l2:.6f}"),
+                        "quality_ratio_l2": ("" if r.quality_ratio_l2 is None else f"{r.quality_ratio_l2:.6f}"),
                     }
                 )
         print(f"Saved CSV → {path}  ({len(self._records)} rows)")
@@ -182,10 +228,14 @@ class ResultLogger:
                     "severity": r.noise_severity,
                     "timestep_l2": [],
                     "timestep_rel_l2": [],
+                    "timestep_quality_delta_l2": [],
+                    "timestep_quality_ratio_l2": [],
                 },
             )
             variant["timestep_l2"].append(r.l2_distance)
             variant["timestep_rel_l2"].append(r.rel_l2_distance)
+            variant["timestep_quality_delta_l2"].append(r.quality_delta_l2)
+            variant["timestep_quality_ratio_l2"].append(r.quality_ratio_l2)
 
         # convert dict-of-dicts to lists
         payload = {
@@ -215,6 +265,8 @@ class ResultLogger:
 
         by_noise: dict[str, list[float]] = defaultdict(list)
         by_noise_rel: dict[str, list[float]] = defaultdict(list)
+        by_noise_quality_delta: dict[str, list[float]] = defaultdict(list)
+        by_noise_quality_ratio: dict[str, list[float]] = defaultdict(list)
         by_task: dict[int, list[float]] = defaultdict(list)
         by_task_noise: dict[tuple[int, str], list[float]] = defaultdict(list)
         by_source_noise: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
@@ -222,6 +274,10 @@ class ResultLogger:
         for r in self._records:
             by_noise[r.noise_type].append(r.l2_distance)
             by_noise_rel[r.noise_type].append(r.rel_l2_distance)
+            if r.quality_delta_l2 is not None:
+                by_noise_quality_delta[r.noise_type].append(r.quality_delta_l2)
+            if r.quality_ratio_l2 is not None:
+                by_noise_quality_ratio[r.noise_type].append(r.quality_ratio_l2)
             by_task[r.task_index].append(r.l2_distance)
             by_task_noise[(r.task_index, r.noise_type)].append(r.l2_distance)
             by_source_noise[r.source_h5][r.noise_type].append(r.l2_distance)
@@ -235,9 +291,27 @@ class ResultLogger:
                 "n_timesteps": len(vals),
             }
 
+        def _dim_stats(mats: list[np.ndarray]) -> dict:
+            stacked = np.concatenate(mats, axis=0)
+            return {
+                "mean": [float(v) for v in stacked.mean(axis=0)],
+                "std": [float(v) for v in stacked.std(axis=0)],
+                "max": [float(v) for v in stacked.max(axis=0)],
+                "n_timesteps": int(stacked.shape[0]),
+                "action_dim": int(stacked.shape[1]),
+            }
+
         return {
             "by_noise_type": {k: _stats(v) for k, v in sorted(by_noise.items())},
             "by_noise_type_relative": {k: _stats(v) for k, v in sorted(by_noise_rel.items())},
+            "by_noise_type_quality_delta_l2": {k: _stats(v) for k, v in sorted(by_noise_quality_delta.items())},
+            "by_noise_type_quality_ratio_l2": {k: _stats(v) for k, v in sorted(by_noise_quality_ratio.items())},
+            "by_noise_type_per_action_dim_abs": {
+                k: _dim_stats(v) for k, v in sorted(self._per_dim_abs_by_noise.items())
+            },
+            "by_noise_type_per_action_dim_relative": {
+                k: _dim_stats(v) for k, v in sorted(self._per_dim_rel_by_noise.items())
+            },
             "by_task": {str(k): _stats(v) for k, v in sorted(by_task.items())},
             "by_task_noise": {f"task{k[0]}_{k[1]}": _stats(v) for k, v in sorted(by_task_noise.items())},
             "by_source_h5_noise_type": {

@@ -34,16 +34,28 @@ import torch
 try:
     from .config import DEFAULT_EVAL_CAMERAS, NOISE_SEVERITY, NOISE_TYPES, EvalConfig
     from .data_loader import iter_demos
-    from .inference import load_policy_bundle, run_trajectory
+    from .inference import load_policy_bundle, run_trajectories_for_noises, run_trajectory
     from .logger import ResultLogger
-    from .metrics import compute_l2_distances, compute_relative_l2_distances
+    from .metrics import (
+        compute_l2_distances,
+        compute_per_dimension_absolute_errors,
+        compute_per_dimension_relative_errors,
+        compute_quality_degradation,
+        compute_relative_l2_distances,
+    )
     from .noise import get_noise_configs
 except ImportError:
     from config import DEFAULT_EVAL_CAMERAS, NOISE_SEVERITY, NOISE_TYPES, EvalConfig
     from data_loader import iter_demos
-    from inference import load_policy_bundle, run_trajectory
+    from inference import load_policy_bundle, run_trajectories_for_noises, run_trajectory
     from logger import ResultLogger
-    from metrics import compute_l2_distances, compute_relative_l2_distances
+    from metrics import (
+        compute_l2_distances,
+        compute_per_dimension_absolute_errors,
+        compute_per_dimension_relative_errors,
+        compute_quality_degradation,
+        compute_relative_l2_distances,
+    )
     from noise import get_noise_configs
 
 
@@ -97,6 +109,20 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=NOISE_SEVERITY,
         help="Corruption severity level 1-5 (default: 3).",
+    )
+    p.add_argument(
+        "--noise-batch-size",
+        type=int,
+        default=0,
+        help=("Number of noise variants to evaluate in one model forward pass. 0 means all configured noise types."),
+    )
+    p.add_argument(
+        "--timestep-batch-size",
+        type=int,
+        default=1,
+        help=(
+            "Number of timesteps to evaluate per model forward pass. Increase for throughput, decrease if you hit OOM."
+        ),
     )
     p.add_argument(
         "--max-tasks",
@@ -240,7 +266,11 @@ def run_evaluation(cfg: EvalConfig) -> None:
 
     # -- noise configs --
     noise_configs = get_noise_configs(cfg.noise_types, severity=cfg.noise_severity)
+    resolved_noise_batch = len(noise_configs) if cfg.noise_batch_size <= 0 else cfg.noise_batch_size
+    resolved_noise_batch = min(resolved_noise_batch, len(noise_configs))
     print(f"  Noise variants: {[str(nc) for nc in noise_configs]}")
+    print(f"  Noise batch size: {resolved_noise_batch}")
+    print(f"  Timestep batch size: {cfg.timestep_batch_size}")
 
     # -- logger --
     logger = ResultLogger()
@@ -310,6 +340,7 @@ def run_evaluation(cfg: EvalConfig) -> None:
                             policy_bundle,
                             noise_config=None,
                             seed=cfg.seed,
+                            timestep_batch_size=cfg.timestep_batch_size,
                         )
                         ref_source = "clean_model_prediction_fallback"
                     except Exception as exc:
@@ -327,6 +358,7 @@ def run_evaluation(cfg: EvalConfig) -> None:
                         policy_bundle,
                         noise_config=None,
                         seed=cfg.seed,
+                        timestep_batch_size=cfg.timestep_batch_size,
                     )
                     ref_source = "clean_model_prediction"
                 except Exception as exc:
@@ -343,23 +375,64 @@ def run_evaluation(cfg: EvalConfig) -> None:
 
             print(f"    Reference: {ref_source} — shape {tuple(ref_actions.shape)}")
 
-            # --- run each noise variant ---
-            for nc in noise_configs:
-                print(f"      [{nc}] running …", end="", flush=True)
+            # Optional quality metric anchor: compare noisy-vs-GT relative to clean-vs-GT.
+            # If clean actions are not already available, try to compute them once here.
+            clean_actions_for_quality: torch.Tensor | None = None
+            if ref_source.startswith("clean_model_prediction"):
+                clean_actions_for_quality = ref_actions
+            elif demo.gt_actions is not None:
+                try:
+                    clean_actions_for_quality = run_trajectory(
+                        demo.images,
+                        demo.states,
+                        demo.task_instruction,
+                        policy_bundle,
+                        noise_config=None,
+                        seed=cfg.seed,
+                        timestep_batch_size=cfg.timestep_batch_size,
+                    )
+                except Exception as exc:
+                    print(
+                        f"    (clean baseline unavailable for quality-degradation metric: {type(exc).__name__}: {exc})"
+                    )
 
-                predicted = run_trajectory(
-                    demo.images,
-                    demo.states,
-                    demo.task_instruction,
-                    policy_bundle,
-                    noise_config=nc,
-                    seed=cfg.seed,
-                )
+            # --- run all noise variants with batched model inference ---
+            print(
+                "      running noisy variants "
+                f"(noise_batch={resolved_noise_batch}, timestep_batch={cfg.timestep_batch_size}) ...",
+                flush=True,
+            )
+            predicted_by_noise = run_trajectories_for_noises(
+                demo.images,
+                demo.states,
+                demo.task_instruction,
+                policy_bundle,
+                noise_configs=noise_configs,
+                seed=cfg.seed,
+                noise_batch_size=resolved_noise_batch,
+                timestep_batch_size=cfg.timestep_batch_size,
+            )
+
+            for nc, predicted in zip(noise_configs, predicted_by_noise, strict=True):
+                print(f"      [{nc}] scoring ...", end="", flush=True)
 
                 # For each timestep t, compare noisy prediction a_noisy[t] against
                 # reference action a_ref[t] (clean-model or demo), then aggregate over T.
                 l2 = compute_l2_distances(predicted, ref_actions)
                 rel_l2 = compute_relative_l2_distances(predicted, ref_actions)
+                per_dim_abs = compute_per_dimension_absolute_errors(predicted, ref_actions)
+                per_dim_rel = compute_per_dimension_relative_errors(predicted, ref_actions)
+
+                quality_delta_l2 = None
+                quality_ratio_l2 = None
+                if clean_actions_for_quality is not None and demo.gt_actions is not None:
+                    quality = compute_quality_degradation(
+                        noisy_predicted=predicted,
+                        clean_predicted=clean_actions_for_quality,
+                        ground_truth=demo.gt_actions,
+                    )
+                    quality_delta_l2 = quality["degradation_delta_l2"].numpy()
+                    quality_ratio_l2 = quality["degradation_ratio_l2"].numpy()
 
                 logger.log_trajectory(
                     task_index=demo.task_index,
@@ -372,6 +445,10 @@ def run_evaluation(cfg: EvalConfig) -> None:
                     noise_severity=nc.severity,
                     l2_distances=l2.numpy(),
                     rel_l2_distances=rel_l2.numpy(),
+                    per_dim_abs_errors=per_dim_abs.numpy(),
+                    per_dim_rel_errors=per_dim_rel.numpy(),
+                    quality_delta_l2=quality_delta_l2,
+                    quality_ratio_l2=quality_ratio_l2,
                 )
 
                 mean_l2 = float(l2.mean())
@@ -425,6 +502,10 @@ def main() -> None:
             "Requested --device cuda, but CUDA is not available in this environment. "
             "Use --device cpu to run on CPU."
         )
+    if args.noise_batch_size < 0:
+        raise SystemExit("--noise-batch-size must be >= 0.")
+    if args.timestep_batch_size < 1:
+        raise SystemExit("--timestep-batch-size must be >= 1.")
 
     cfg = EvalConfig(
         checkpoint=args.checkpoint,
@@ -435,6 +516,8 @@ def main() -> None:
         cameras=cameras,
         noise_types=args.noise_types or list(NOISE_TYPES),
         noise_severity=args.noise_severity,
+        noise_batch_size=args.noise_batch_size,
+        timestep_batch_size=args.timestep_batch_size,
         max_tasks=args.max_tasks,
         max_demos=args.max_demos,
         output_dir=args.output_dir,

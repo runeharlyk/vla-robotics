@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-
 # The five Libero+ sensor noise types.
 NOISE_TYPES: list[str] = [
     "motion_blur",
@@ -39,6 +38,8 @@ class EvalConfig:
     # -- Noise --
     noise_types: list[str] = field(default_factory=lambda: list(NOISE_TYPES))
     noise_severity: int = NOISE_SEVERITY
+    noise_batch_size: int = 0  # 0 = use all configured noise types per forward pass
+    timestep_batch_size: int = 1  # timesteps per forward pass
 
     # -- Reference action source --
     # model: run clean (no-noise) policy actions as reference (default)
