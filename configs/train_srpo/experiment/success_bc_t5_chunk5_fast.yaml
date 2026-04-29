@@ -1,0 +1,35 @@
+# @package _global_
+
+metadata:
+  label: success-bc-t5-chunk5-fast
+  source_config: configs/train_srpo/experiment/success_bc_t5_chunk5.yaml
+  notes: "Faster success-filtered BC variant after job 28325371 showed near-zero policy movement with lr=1e-6 and one BC epoch."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: success_bc
+lr: 3e-6
+iterations: 80
+eval_every: 10
+eval_episodes: 100
+wandb_name: success-bc-t5-chunk5-fast-buffer320-lr3e6-epochs4-eval100
+
+kl:
+  coeff: 0.0
+  sft_coeff: 0.005
+
+replay:
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 1.0
+
+rollout:
+  n_action_steps: 5
+
+success_bc:
+  epochs: 4
+  loss_reduction: mean
+
+fpo:
+  full_chunk_target: true
