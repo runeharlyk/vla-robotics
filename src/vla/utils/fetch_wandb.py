@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import typer
-import wandb
 from tqdm import tqdm
 
+import wandb
 from vla.constants import RESULTS_DIR
 from vla.results_registry import sanitize_name
 
@@ -99,7 +99,13 @@ def _extract_git_metadata(config: dict, summary: dict, metadata: dict) -> dict:
         or _safe_attr(metadata, "commit", None)
     )
     branch = _first_value(config, summary, metadata, git_meta, keys=("git_branch", "branch", "git.branch"))
-    remote = _first_value(config, summary, metadata, git_meta, keys=("git_remote", "remote", "git.remote", "remote_url"))
+    remote = _first_value(
+        config,
+        summary,
+        metadata,
+        git_meta,
+        keys=("git_remote", "remote", "git.remote", "remote_url"),
+    )
     return {
         "git_commit": str(commit or ""),
         "git_branch": str(branch or ""),
@@ -275,8 +281,17 @@ def reconstruct_eval_record(run) -> dict:
         "record_type": "evaluation",
         "wandb_run_name": run.name,
         "checkpoint": cfg.get("checkpoint", ""),
+        "checkpoint_dir": cfg.get("checkpoint_dir") or "",
         "simulator": cfg.get("simulator", "libero"),
         "suite": suite,
+        "env_id": cfg.get("env_id", ""),
+        "num_episodes": cfg.get("num_episodes"),
+        "num_envs": cfg.get("num_envs"),
+        "n_action_steps": cfg.get("n_action_steps"),
+        "max_steps": cfg.get("max_steps"),
+        "seed": cfg.get("seed"),
+        "fixed_noise_seed": cfg.get("fixed_noise_seed"),
+        "task_id": cfg.get("task_id"),
         "success_rate": summary.get(f"eval/{suite}/overall/success_rate", 0.0),
         "mean_reward": summary.get(f"eval/{suite}/overall/mean_reward", 0.0),
         "task_metrics": task_metrics,

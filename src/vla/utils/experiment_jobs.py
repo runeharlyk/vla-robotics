@@ -56,6 +56,7 @@ class TrainEvalTarget:
     max_steps: int | None
     seed: int
     num_envs: int
+    n_action_steps: int
     fixed_noise_seed: int
     wandb_name: str
     training_record: dict[str, Any]
@@ -588,6 +589,7 @@ def train_eval_target(
     wandb_name = sanitize_job_part(f"eval_{experiment}_{normalized_checkpoint}{run_suffix}")
     rollout_config = composed.get("rollout") or {}
     num_envs = int(rollout_config.get("eval_num_envs") or rollout_config.get("num_envs") or 8)
+    n_action_steps = int(rollout_config.get("n_action_steps") or 1)
 
     return TrainEvalTarget(
         experiment=experiment,
@@ -601,6 +603,7 @@ def train_eval_target(
         max_steps=int(composed["max_steps"]) if composed.get("max_steps") is not None else None,
         seed=int(composed.get("seed") or 42),
         num_envs=num_envs,
+        n_action_steps=n_action_steps,
         fixed_noise_seed=int(composed.get("seed") or 42),
         wandb_name=wandb_name,
         training_record=record,
@@ -618,6 +621,7 @@ def train_eval_config(target: TrainEvalTarget) -> dict[str, Any]:
         "max_steps": target.max_steps,
         "seed": target.seed,
         "num_envs": target.num_envs,
+        "n_action_steps": target.n_action_steps,
         "fixed_noise_seed": target.fixed_noise_seed,
         "wandb": True,
         "wandb_name": target.wandb_name,

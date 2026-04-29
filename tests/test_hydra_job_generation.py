@@ -84,7 +84,7 @@ def test_validate_train_eval_submit_resolves_checkpoint_from_training_experiment
         "eval_episodes": 8,
         "max_steps": 220,
         "seed": 42,
-        "rollout": {"eval_num_envs": 2, "num_envs": 8},
+        "rollout": {"eval_num_envs": 2, "num_envs": 8, "n_action_steps": 5},
     }
     record = {
         "wandb_run_name": "unit-train_sparse_rl_spatial_task_5_seed42_123",
@@ -104,6 +104,8 @@ def test_validate_train_eval_submit_resolves_checkpoint_from_training_experiment
     assert validation.summary["eval_targets"][0]["training_job_id"] == "123"
     assert "--checkpoint-dir" in validation.summary["args"]
     assert str(checkpoint_dir).replace("\\", "/") in validation.summary["args"]
+    assert "--n-action-steps" in validation.summary["args"]
+    assert "5" in validation.summary["args"]
 
 
 def test_training_run_matches_config_by_wandb_prefix_or_job_id() -> None:
