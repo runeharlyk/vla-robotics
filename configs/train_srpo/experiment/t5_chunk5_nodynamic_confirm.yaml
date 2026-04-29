@@ -1,0 +1,29 @@
+# @package _global_
+
+metadata:
+  label: t5-chunk5-nodynamic-confirm
+  source_doc: docs/libero_spatial_rl_experiment_plan.md
+  notes: "Task-5 chunk-5 confirmation without dynamic sampling. Matches the strongest new task-5 signal from job 28263586, but with 100-episode evals."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: t5-chunk5-nodynamic-lr3e6-sftkl005-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+fpo:
+  full_chunk_target: true
