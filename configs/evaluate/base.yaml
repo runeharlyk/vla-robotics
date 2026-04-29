@@ -23,6 +23,7 @@ num_episodes: 100
 max_steps: 220
 seed: 42
 num_envs: 8
+n_action_steps: 1
 task_id: null
 fixed_noise_seed: 42
 wandb: true

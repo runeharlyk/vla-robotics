@@ -7,7 +7,6 @@ from omegaconf import OmegaConf
 
 from scripts.evaluate_hydra import config_to_evaluate_args, expand_eval_configs
 
-
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs" / "evaluate"
 
 
@@ -19,6 +18,7 @@ def test_eval_hydra_config_to_evaluate_args_uses_cli_flags() -> None:
             "simulator": "libero",
             "suite": "spatial",
             "num_episodes": 100,
+            "n_action_steps": 5,
             "fixed_noise_seed": 42,
             "wandb": False,
             "metadata": {"label": "ignored"},
@@ -30,6 +30,8 @@ def test_eval_hydra_config_to_evaluate_args_uses_cli_flags() -> None:
     assert "--checkpoint-dir" in args
     assert "/tmp/checkpoint/best" in args
     assert "--num-episodes" in args
+    assert "--n-action-steps" in args
+    assert "5" in args
     assert "--fixed-noise-seed" in args
     assert "--no-wandb" in args
     assert "--metadata.label" not in args
@@ -56,3 +58,12 @@ def test_eval_hydra_protocol_expands_multiple_eval_runs() -> None:
     assert expanded[1]["checkpoint_dir"].endswith("spatial_task_5_seed42_28188629/best")
     assert expanded[2]["checkpoint_dir"].endswith("spatial_task_5_seed42_28263586/best")
     assert {item["fixed_noise_seed"] for item in expanded} == {42}
+
+
+def test_eval_hydra_action_chunk_experiment_sets_steps() -> None:
+    with initialize_config_dir(config_dir=str(CONFIG_DIR), version_base=None):
+        cfg = compose(config_name="base", overrides=["experiment=spatial_sft_n10_seeded"])
+
+    assert cfg.n_action_steps == 10
+    assert cfg.checkpoint_dir is None
+    assert cfg.wandb_name == "eval_sft_spatial_current_seed42_n10"
