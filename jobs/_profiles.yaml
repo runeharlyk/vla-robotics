@@ -45,3 +45,9 @@ l40s-16:
   walltime: "24:00"
   cores: 16
   mem: 4GB
+
+l40s-16-6h:
+  queue: gpul40s
+  walltime: "06:00"
+  cores: 16
+  mem: 4GB
