@@ -58,6 +58,52 @@ Current SmolVLA LIBERO results:
 uv run python -m vla.utils.plot_results --results-dir results/evals --suite spatial
 ``` -->
 
+## Experiments And HPC Jobs
+
+Training and eval runs are defined as Hydra configs, while `jobs/` only contains shared LSF environment/profile helpers and a few legacy SFT/eval wrappers.
+
+- Train configs: `configs/train_srpo/experiment/`
+- Eval configs: `configs/evaluate/experiment/`
+- Queue profiles: `jobs/_profiles.yaml`
+- Generated submit scripts: `jobs/generated/` (gitignored)
+
+List and inspect configured experiments:
+
+```bash
+uv run invoke list-experiments --kind train
+uv run invoke list-experiments --kind eval
+uv run invoke list-training-runs --experiment fpo_t5_v28_control
+uv run invoke list-unrun-experiments
+```
+
+Create a validated LSF submit script:
+
+```bash
+# Train from a training experiment config.
+uv run invoke submit-train --experiment fpo_t5_v28_control --profile l40s-16
+
+# Evaluate the base SFT checkpoint from an eval experiment config.
+uv run invoke submit-eval --experiment spatial_sft_seeded --profile a10-10h
+
+# Evaluate a checkpoint produced by a training experiment.
+uv run invoke submit-eval --experiment fpo_t5_v28_control --checkpoint best --profile a10-10h
+```
+
+`submit-train` always reads from `configs/train_srpo/experiment/`. `submit-eval` first checks whether `--experiment` names a training experiment; if it does, it finds the matching local training record, resolves `--checkpoint best`, `last`, or `best-rollout`, and checks that the selected checkpoint is visible before real submission. If no training experiment matches, `submit-eval` falls back to `configs/evaluate/experiment/`, which is used for SFT baseline evals and explicit comparison protocols such as `spatial_current_protocol`.
+
+The submit tasks validate that configs exist, Hydra composes, generated CLI arguments match the underlying Typer entrypoint, the profile exists, and expected HPC prerequisites are visible.
+
+On HPC you can prepare the shell first:
+
+```bash
+source jobs/_env.sh
+uv run --no-sync invoke submit-train --experiment fpo_t5_v28_control --profile l40s-16
+uv run --no-sync invoke submit-eval --experiment spatial_sft_seeded --profile a10-10h
+uv run --no-sync invoke submit-eval --experiment fpo_t5_v28_control --checkpoint best --profile a10-10h
+```
+
+Generated jobs use `uv run --no-sync` after sourcing `jobs/_env.sh`, because `_env.sh` already runs `uv sync`.
+
 ## Studies
 
 ### Perturbation study

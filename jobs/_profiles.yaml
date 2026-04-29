@@ -4,8 +4,44 @@ a100:
   cores: 8
   mem: 8GB
 
+a100-12:
+  queue: gpua100
+  walltime: "12:00"
+  cores: 12
+  mem: 8GB
+
+a100-16:
+  queue: gpua100
+  walltime: "24:00"
+  cores: 16
+  mem: 8GB
+
+a10-10h:
+  queue: gpua10
+  walltime: "10:00"
+  cores: 12
+  mem: 4GB
+
+a40-10h:
+  queue: gpua40
+  walltime: "10:00"
+  cores: 12
+  mem: 4GB
+
 l40s:
   queue: gpul40s
   walltime: "06:00"
   cores: 4
+  mem: 4GB
+
+l40s-12:
+  queue: gpul40s
+  walltime: "12:00"
+  cores: 12
+  mem: 4GB
+
+l40s-16:
+  queue: gpul40s
+  walltime: "24:00"
+  cores: 16
   mem: 4GB

@@ -4,11 +4,11 @@ Supports both ManiSkill and LIBERO simulators with vectorised rollouts.
 
 Usage:
     # ManiSkill (default, vectorised with 16 parallel envs):
-    uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/best --num-rollout-envs 16
+    uv run python scripts/train_srpo.py --sft-checkpoint checkpoints/sft/best --rollout.num-envs 16
 
     # LIBERO single-task:
     uv run python scripts/train_srpo.py --simulator libero --suite spatial \
-        --task-ids 0 --libero-suite spatial --mode srpo --num-rollout-envs 8
+        --task-ids 0 --libero-suite spatial --mode srpo --rollout.num-envs 8
 
     # LIBERO 4 specific tasks:
     uv run python scripts/train_srpo.py --simulator libero --suite spatial \
@@ -49,7 +49,19 @@ from vla.results_registry import (
     write_json,
     write_training_registry,
 )
-from vla.rl.config import SRPOConfig, TaskSpec
+from vla.rl.config import (
+    AWRConfig,
+    AdvantageConfig,
+    DynamicSamplingConfig,
+    FPOConfig,
+    KLConfig,
+    PPOConfig,
+    ReplayConfig,
+    RolloutConfig,
+    SRPOConfig,
+    SuccessBCConfig,
+    TaskSpec,
+)
 from vla.rl.demo_replay import replay_demo_rollouts
 from vla.rl.rollout import Trajectory
 from vla.utils import get_device, run_id, seed_everything
@@ -240,37 +252,53 @@ def main(
     task_ids: str = typer.Option("0", "--task-ids", help="Comma-separated task indices (e.g. '0,2,5,7') or 'all'"),
     trajs_per_task: int = typer.Option(4, "--trajs-per-task", help="Trajectories per task per iteration"),
     num_rollout_envs: int = typer.Option(
-        1, "--num-rollout-envs", help="Parallel envs per task for vectorised rollouts"
+        1, "--rollout.num-envs", help="Parallel envs per task for vectorised rollouts"
     ),
     num_envs: int = typer.Option(
-        0, "--num-envs", help="Parallel envs for vectorised eval (0 = same as num-rollout-envs)"
+        0, "--rollout.eval-num-envs", help="Parallel envs for vectorised eval (0 = same as rollout.num-envs)"
     ),
-    fm_batch_size: int = typer.Option(32, "--fm-batch-size", help="Timesteps per FM forward pass"),
+    fm_batch_size: int = typer.Option(32, "--rollout.fm-batch-size", help="Timesteps per FM forward pass"),
     lr: float = typer.Option(1e-5, "--lr"),
     max_grad_norm: float = typer.Option(10.0, "--max-grad-norm", help="Max gradient norm for clipping"),
     num_iterations: int = typer.Option(100, "--iterations"),
-    update_method: UpdateMethod = typer.Option("awr", "--update-method", help="Policy update: awr or ppo"),
+    update_method: UpdateMethod = typer.Option(
+        "awr",
+        "--update-method",
+        help="Policy update: awr, fpo, ppo, or success_bc",
+    ),
     advantage_mode: AdvantageMode = typer.Option(
-        AdvantageMode.LEAVE_ONE_OUT, "--advantage-mode", help="Advantage method: zscore or leave-one-out"
+        AdvantageMode.LEAVE_ONE_OUT, "--adv.mode", help="Advantage method: zscore or leave-one-out"
     ),
-    ppo_epochs: int = typer.Option(4, "--ppo-epochs"),
-    ppo_minibatch_trajs: int = typer.Option(4, "--ppo-minibatch-trajs"),
-    clip_epsilon: float = typer.Option(0.2, "--clip-epsilon"),
-    clip_epsilon_high: float = typer.Option(0.28, "--clip-epsilon-high", help="Upper clip bound (asymmetric clipping)"),
+    ppo_epochs: int = typer.Option(4, "--ppo.epochs"),
+    ppo_minibatch_trajs: int = typer.Option(4, "--ppo.minibatch-trajs"),
+    clip_epsilon: float = typer.Option(0.2, "--ppo.clip-epsilon"),
+    clip_epsilon_high: float = typer.Option(
+        0.28, "--ppo.clip-epsilon-high", help="Upper clip bound (asymmetric clipping)"
+    ),
     num_fm_noise_samples: int = typer.Option(
-        4, "--num-fm-noise-samples", help="FPO: noise/time samples per action for variance reduction"
+        4, "--fpo.num-fm-noise-samples", help="FPO: noise/time samples per action for variance reduction"
     ),
-    awr_epochs: int = typer.Option(2, "--awr-epochs", help="Regression epochs per iteration (AWR)"),
-    awr_temperature: float = typer.Option(5.0, "--awr-temperature", help="AWR weight sharpness (beta)"),
-    awr_weight_clip: float = typer.Option(20.0, "--awr-weight-clip", help="Max AWR weight"),
-    kl_coeff: float = typer.Option(0.01, "--kl-coeff"),
+    awr_epochs: int = typer.Option(2, "--awr.epochs", help="Regression epochs per iteration (AWR)"),
+    awr_temperature: float = typer.Option(5.0, "--awr.temperature", help="AWR weight sharpness (beta)"),
+    awr_weight_clip: float = typer.Option(20.0, "--awr.weight-clip", help="Max AWR weight"),
+    success_bc_epochs: int = typer.Option(
+        1,
+        "--success-bc.epochs",
+        help="BC/SFT epochs per iteration for --update-method success_bc.",
+    ),
+    success_bc_loss_reduction: str = typer.Option(
+        "mean",
+        "--success-bc.loss-reduction",
+        help="Chunk-position reduction for success_bc: mean or sum.",
+    ),
+    kl_coeff: float = typer.Option(0.01, "--kl.coeff"),
     sft_kl_coeff: float = typer.Option(
         0.0,
-        "--sft-kl-coeff",
+        "--kl.sft-coeff",
         help="Additional KL penalty against the immutable initial policy checkpoint to limit cumulative drift.",
     ),
-    adv_eps: float = typer.Option(1e-8, "--adv-eps"),
-    adv_skip_threshold: float = typer.Option(1e-6, "--adv-skip-threshold"),
+    adv_eps: float = typer.Option(1e-8, "--adv.eps"),
+    adv_skip_threshold: float = typer.Option(1e-6, "--adv.skip-threshold"),
     eval_every: int = typer.Option(10, "--eval-every"),
     eval_episodes: int = typer.Option(50, "--eval-episodes"),
     max_steps: int = typer.Option(280, "--max-steps", help="Override max steps (default: from checkpoint metadata)"),
@@ -279,7 +307,7 @@ def main(
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
     gradient_checkpointing: bool = typer.Option(
         False,
-        "--gradient-checkpointing/--no-gradient-checkpointing",
+        "--rollout.gradient-checkpointing/--no-rollout.gradient-checkpointing",
         help="Enable gradient checkpointing to reduce VRAM",
     ),
     world_model: WorldModelType = typer.Option("vjepa2", "--world-model", help="dinov2 or vjepa2"),
@@ -302,69 +330,76 @@ def main(
     ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
     wandb_name: str = typer.Option(None, "--wandb-name", help="Optional prefix for the wandb run name"),
-    fpo_full_chunk_target: bool = typer.Option(True, "--fpo-full-chunk-target/--no-fpo-full-chunk-target"),
-    fpo_loss_reduction: str = typer.Option("sum", "--fpo-loss-reduction"),
-    fpo_positive_adv_only: bool = typer.Option(False, "--fpo-positive-adv-only/--no-fpo-positive-adv-only"),
-    fpo_negative_adv_scale: float = typer.Option(0.25, "--fpo-negative-adv-scale"),
-    fpo_log_ratio_clip: float = typer.Option(5.0, "--fpo-log-ratio-clip"),
+    fpo_full_chunk_target: bool = typer.Option(
+        True,
+        "--fpo.full-chunk-target/--no-fpo.full-chunk-target",
+        help=(
+            "For chunked rollouts, train on v28-style sliding windows reconstructed from executed actions. "
+            "Disable to train only on directly executed positions inside each sampled chunk."
+        ),
+    ),
+    fpo_loss_reduction: str = typer.Option("sum", "--fpo.loss-reduction"),
+    fpo_positive_adv_only: bool = typer.Option(False, "--fpo.positive-adv-only/--no-fpo.positive-adv-only"),
+    fpo_negative_adv_scale: float = typer.Option(0.25, "--fpo.negative-adv-scale"),
+    fpo_log_ratio_clip: float = typer.Option(5.0, "--fpo.log-ratio-clip"),
     fpo_use_ref_policy_kl: bool = typer.Option(
         False,
-        "--fpo-use-ref-policy-kl/--no-fpo-use-ref-policy-kl",
+        "--fpo.use-ref-policy-kl/--no-fpo.use-ref-policy-kl",
         help="Anchor KL penalty to a reference policy instead of cached old_fm losses.",
     ),
-    eval_zero_sample: bool = typer.Option(True, "--eval-zero-sample/--no-eval-zero-sample"),
+    eval_zero_sample: bool = typer.Option(True, "--rollout.eval-zero-sample/--no-rollout.eval-zero-sample"),
     adaptive_kl: bool = typer.Option(
         False,
-        "--adaptive-kl/--no-adaptive-kl",
+        "--kl.adaptive/--no-kl.adaptive",
         help="Adaptively adjust kl_coeff each iteration to track kl_target",
     ),
-    kl_target: float = typer.Option(0.01, "--kl-target", help="Target KL for adaptive adjustment"),
-    kl_adapt_factor: float = typer.Option(1.5, "--kl-adapt-factor", help="Multiplicative factor for adaptive KL"),
+    kl_target: float = typer.Option(0.01, "--kl.target", help="Target KL for adaptive adjustment"),
+    kl_adapt_factor: float = typer.Option(1.5, "--kl.adapt-factor", help="Multiplicative factor for adaptive KL"),
     include_demos_in_update: bool = typer.Option(
         False,
-        "--include-demos-in-update/--no-include-demos-in-update",
+        "--replay.include-demos/--no-replay.include-demos",
         help="Include demonstration trajectories in every policy update iteration (online SFT).",
     ),
     success_replay_buffer_size: int = typer.Option(
-        0, "--success-replay-buffer-size", help="Replay successful trajectories from previous iterations."
+        0, "--replay.success-buffer-size", help="Replay successful trajectories from previous iterations."
     ),
     success_replay_total_size: int = typer.Option(
         0,
-        "--success-replay-total-size",
-        help="Global capacity for balanced success replay across tasks. Overrides --success-replay-buffer-size.",
+        "--replay.success-total-size",
+        help="Global capacity for balanced success replay across tasks. Overrides --replay.success-buffer-size.",
     ),
     success_replay_alpha: float = typer.Option(
         1.0,
-        "--success-replay-alpha",
+        "--replay.success-alpha",
         help="Inverse-success weighting strength for balanced replay (0 disables balancing, 1 is linear inverse).",
     ),
     success_replay_ema_decay: float = typer.Option(
         0.8,
-        "--success-replay-ema-decay",
+        "--replay.success-ema-decay",
         help="EMA decay for per-task success-rate estimates used by balanced replay.",
     ),
     success_replay_max_ratio: float = typer.Option(
         1.0,
-        "--success-replay-max-ratio",
+        "--replay.success-max-ratio",
         help="Maximum replayed trajectories per iteration as a multiple of fresh rollout trajectories.",
     ),
     dynamic_sampling: bool = typer.Option(
         False,
-        "--dynamic-sampling/--no-dynamic-sampling",
-        help="DAPO-style replacement sampling: re-collect rollouts for tasks whose reward std is below --adv-skip-threshold.",
+        "--sampling.dynamic/--no-sampling.dynamic",
+        help="DAPO-style replacement sampling: re-collect rollouts for tasks whose reward std is below --adv.skip-threshold.",
     ),
     dynamic_sampling_max_retries: int = typer.Option(
         2,
-        "--dynamic-sampling-max-retries",
+        "--sampling.dynamic-max-retries",
         help="Max number of replacement draws per uniform-reward task before giving up.",
     ),
     n_action_steps: int = typer.Option(
         1,
-        "--n-action-steps",
+        "--rollout.n-action-steps",
         help="Number of actions to execute from each sampled policy chunk before re-planning. "
         "1 (default) preserves the legacy single-step rollout behaviour; H>1 reduces rollout "
-        "compute by ~H× and trains the FPO/AWR loss only on the first H chunk positions "
-        "(the unexecuted tail is masked out).",
+        "compute by ~H×. By default policy updates reconstruct v28-style sliding-window targets "
+        "from the executed action stream.",
     ),
 ) -> None:
     import wandb
@@ -438,19 +473,42 @@ def main(
         max_grad_norm=max_grad_norm,
         num_iterations=num_iterations,
         update_method=update_method,
-        ppo_epochs=ppo_epochs,
-        ppo_minibatch_trajs=ppo_minibatch_trajs,
-        clip_epsilon=clip_epsilon,
-        clip_epsilon_high=clip_epsilon_high,
-        num_fm_noise_samples=num_fm_noise_samples,
-        awr_epochs=awr_epochs,
-        awr_temperature=awr_temperature,
-        awr_weight_clip=awr_weight_clip,
-        advantage_mode=advantage_mode,
-        kl_coeff=kl_coeff,
-        sft_kl_coeff=sft_kl_coeff,
-        adv_eps=adv_eps,
-        adv_skip_threshold=adv_skip_threshold,
+        advantage=AdvantageConfig(
+            mode=advantage_mode,
+            eps=adv_eps,
+            skip_threshold=adv_skip_threshold,
+        ),
+        ppo=PPOConfig(
+            epochs=ppo_epochs,
+            minibatch_trajs=ppo_minibatch_trajs,
+            clip_epsilon=clip_epsilon,
+            clip_epsilon_high=clip_epsilon_high,
+        ),
+        awr=AWRConfig(
+            epochs=awr_epochs,
+            temperature=awr_temperature,
+            weight_clip=awr_weight_clip,
+        ),
+        fpo=FPOConfig(
+            num_fm_noise_samples=num_fm_noise_samples,
+            full_chunk_target=fpo_full_chunk_target,
+            loss_reduction=fpo_loss_reduction,
+            positive_adv_only=fpo_positive_adv_only,
+            negative_adv_scale=fpo_negative_adv_scale,
+            log_ratio_clip=fpo_log_ratio_clip,
+            use_ref_policy_kl=fpo_use_ref_policy_kl,
+        ),
+        success_bc=SuccessBCConfig(
+            epochs=success_bc_epochs,
+            loss_reduction=success_bc_loss_reduction,
+        ),
+        kl=KLConfig(
+            coeff=kl_coeff,
+            sft_coeff=sft_kl_coeff,
+            adaptive=adaptive_kl,
+            target=kl_target,
+            adapt_factor=kl_adapt_factor,
+        ),
         eval_every=eval_every,
         eval_episodes=eval_episodes,
         max_steps=resolved_max_steps,
@@ -470,29 +528,26 @@ def main(
         suite=suite,
         task_id=task_specs[0].libero_task_idx,
         state_dim=resolved_state_dim,
-        num_rollout_envs=num_rollout_envs,
-        num_envs=resolved_eval_envs,
-        fm_batch_size=fm_batch_size,
-        gradient_checkpointing=gradient_checkpointing,
-        fpo_full_chunk_target=fpo_full_chunk_target,
-        fpo_loss_reduction=fpo_loss_reduction,
-        fpo_positive_adv_only=fpo_positive_adv_only,
-        fpo_negative_adv_scale=fpo_negative_adv_scale,
-        fpo_log_ratio_clip=fpo_log_ratio_clip,
-        fpo_use_ref_policy_kl=fpo_use_ref_policy_kl,
-        eval_zero_sample=eval_zero_sample,
-        adaptive_kl=adaptive_kl,
-        kl_target=kl_target,
-        kl_adapt_factor=kl_adapt_factor,
-        include_demos_in_update=include_demos_in_update,
-        success_replay_buffer_size=success_replay_buffer_size,
-        success_replay_total_size=success_replay_total_size,
-        success_replay_alpha=success_replay_alpha,
-        success_replay_ema_decay=success_replay_ema_decay,
-        success_replay_max_ratio=success_replay_max_ratio,
-        dynamic_sampling=dynamic_sampling,
-        dynamic_sampling_max_retries=dynamic_sampling_max_retries,
-        n_action_steps=n_action_steps,
+        replay=ReplayConfig(
+            include_demos_in_update=include_demos_in_update,
+            success_buffer_size=success_replay_buffer_size,
+            success_total_size=success_replay_total_size,
+            success_alpha=success_replay_alpha,
+            success_ema_decay=success_replay_ema_decay,
+            success_max_ratio=success_replay_max_ratio,
+        ),
+        sampling=DynamicSamplingConfig(
+            enabled=dynamic_sampling,
+            max_retries=dynamic_sampling_max_retries,
+        ),
+        rollout=RolloutConfig(
+            num_envs=num_rollout_envs,
+            eval_num_envs=resolved_eval_envs,
+            fm_batch_size=fm_batch_size,
+            gradient_checkpointing=gradient_checkpointing,
+            eval_zero_sample=eval_zero_sample,
+            n_action_steps=n_action_steps,
+        ),
     )
 
     logger.info(

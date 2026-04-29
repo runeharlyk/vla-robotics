@@ -1,0 +1,24 @@
+# @package _global_
+
+metadata:
+  label: v3-awr-sparse-t2
+  source_job: jobs/sparse_awr_l40s.sh
+  notes: "Early sparse-RL AWR baseline on LIBERO spatial task 2."
+
+task_ids: "2"
+mode: sparse_rl
+update_method: awr
+lr: 5e-6
+iterations: 50
+eval_every: 5
+eval_episodes: 50
+max_steps: 220
+wandb_name: v3_awr_sparse_t2
+
+awr:
+  epochs: 2
+  temperature: 0.3
+  weight_clip: 40.0
+
+kl:
+  coeff: 0.001

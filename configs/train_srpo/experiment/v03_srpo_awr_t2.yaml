@@ -1,0 +1,23 @@
+# @package _global_
+
+metadata:
+  label: v3-srpo-awr-t2
+  source_job: jobs/srpo_awr_l40s.sh
+  notes: "Early SRPO AWR baseline on LIBERO spatial task 2."
+
+task_ids: "2"
+mode: srpo
+update_method: awr
+lr: 5e-6
+iterations: 50
+eval_every: 5
+eval_episodes: 50
+max_steps: 280
+wandb_name: v3_srpo_awr
+
+awr:
+  epochs: 3
+  temperature: 0.5
+
+kl:
+  coeff: 0.01

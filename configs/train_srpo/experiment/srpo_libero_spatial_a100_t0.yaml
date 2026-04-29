@@ -1,0 +1,26 @@
+# @package _global_
+
+metadata:
+  label: srpo-libero-spatial-a100-t0
+  source_job: jobs/srpo_libero_spatial_a100.sh
+  notes: "Older A100 SRPO spatial task-0 run from preprocessed spatial.pt."
+
+sft_checkpoint: /work3/s234814/vla-robotics/checkpoints/sft/best
+data: /work3/s234814/vla-robotics/data/preprocessed/spatial.pt
+task_ids: "0"
+mode: srpo
+num_demos: 50
+lr: 1e-5
+iterations: 100
+eval_every: 10
+eval_episodes: 50
+max_steps: 280
+world_model: vjepa2
+wandb_name: srpo-libero-spatial-a100-t0
+
+rollout:
+  fm_batch_size: 128
+
+ppo:
+  epochs: 1
+  clip_epsilon: 0.2

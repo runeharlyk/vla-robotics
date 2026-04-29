@@ -1,0 +1,34 @@
+# @package _global_
+
+metadata:
+  label: srpo-libero-smoke-a100-awr-all
+  source_job: jobs/srpo_libero_smoke_a100.sh
+  notes: "A100 all-task SRPO AWR smoke run; original job had no explicit wandb_name."
+
+task_ids: all
+mode: srpo
+update_method: awr
+num_demos: 1
+lr: 5e-6
+iterations: 200
+trajs_per_task: 4
+eval_every: 20
+eval_episodes: 10
+max_steps: 280
+world_model: vjepa2
+subsample_every: 5
+dbscan_eps: 60
+dbscan_min_samples: 2
+wandb_name: srpo-libero-smoke-a100-awr-all
+
+rollout:
+  fm_batch_size: 128
+
+awr:
+  epochs: 2
+  temperature: 5.0
+  weight_clip: 20.0
+
+ppo:
+  epochs: 1
+  clip_epsilon: 0.2

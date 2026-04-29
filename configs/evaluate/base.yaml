@@ -1,0 +1,35 @@
+defaults:
+  - _self_
+  - optional experiment: null
+
+# Keep Hydra from changing relative paths or creating per-run cwd surprises on HPC.
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: .
+  output_subdir: null
+
+metadata:
+  label: base-eval
+  notes: "Shared defaults for seeded LIBERO evals."
+
+checkpoint_dir: null
+checkpoint: HuggingFaceVLA/smolvla_libero
+simulator: libero
+env: null
+suite: spatial
+num_episodes: 100
+max_steps: 220
+seed: 42
+num_envs: 8
+task_id: null
+fixed_noise_seed: 42
+wandb: true
+wandb_project: vla-libero-eval
+wandb_name: null
+wandb_entity: null
+instruction: null
+control_mode: null
+action_dim: 7
+state_dim: 8

@@ -1,0 +1,99 @@
+defaults:
+  - _self_
+  - optional experiment: null
+
+# Keep Hydra from changing relative paths or creating per-run cwd surprises on HPC.
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: .
+  output_subdir: null
+
+sft_checkpoint: null
+checkpoint: HuggingFaceVLA/smolvla_libero
+data: null
+data_dir: null
+libero_suite: spatial
+num_demos: 5
+mode: sparse_rl
+simulator: libero
+suite: spatial
+task_ids: "5"
+trajs_per_task: 32
+lr: 3e-6
+max_grad_norm: 10.0
+iterations: 100
+update_method: fpo
+eval_every: 20
+eval_episodes: 100
+max_steps: 220
+seed: 42
+env: null
+instruction: null
+world_model: vjepa2
+subsample_every: 1
+dbscan_eps: 0.5
+dbscan_min_samples: 2
+distance_metric: normalized_l2
+dbscan_auto_eps: false
+failure_rewards: true
+standard_scaler: false
+wandb: true
+wandb_name: null
+
+adv:
+  mode: leave_one_out
+  eps: 1e-8
+  skip_threshold: 1e-6
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+awr:
+  epochs: 2
+  temperature: 5.0
+  weight_clip: 20.0
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  loss_reduction: sum
+  positive_adv_only: false
+  negative_adv_scale: 1.0
+  log_ratio_clip: 5.0
+  use_ref_policy_kl: false
+
+success_bc:
+  epochs: 1
+  loss_reduction: mean
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+  adaptive: false
+  target: 0.01
+  adapt_factor: 1.5
+
+replay:
+  include_demos: false
+  success_buffer_size: 0
+  success_total_size: 0
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 1.0
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  num_envs: 8
+  eval_num_envs: 0
+  fm_batch_size: 64
+  gradient_checkpointing: true
+  eval_zero_sample: true
+  n_action_steps: 1

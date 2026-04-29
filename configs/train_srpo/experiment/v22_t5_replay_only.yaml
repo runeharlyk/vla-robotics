@@ -1,0 +1,21 @@
+# @package _global_
+
+metadata:
+  label: v22-t5-replay-only
+  source_job: jobs/sparse_fpo_l40s.sh
+  notes: "Task-5 sparse FPO with success replay only."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 25
+eval_episodes: 100
+wandb_name: v22-t5-replay-only
+
+replay:
+  success_total_size: 64
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
