@@ -1,6 +1,6 @@
 {
   "record_type": "evaluation",
-  "wandb_run_name": "eval_sft_spatial_l40s_28242119",
+  "wandb_run_name": "eval_sft_spatial_current_seed42_n15",
   "checkpoint": "HuggingFaceVLA/smolvla_libero",
   "checkpoint_dir": "",
   "simulator": "libero",
@@ -8,70 +8,70 @@
   "env_id": "libero_spatial",
   "num_episodes": 100,
   "num_envs": 8,
-  "n_action_steps": null,
+  "n_action_steps": 15,
   "max_steps": 220,
   "seed": 42,
   "fixed_noise_seed": 42,
   "task_id": null,
-  "success_rate": 0.743,
-  "mean_reward": 0.743,
+  "success_rate": 0.583,
+  "mean_reward": 0.583,
   "task_metrics": [
     {
       "task_id": 0,
-      "success_rate": 0.69
+      "success_rate": 0.64
     },
     {
       "task_id": 1,
-      "success_rate": 0.96
+      "success_rate": 0.68
     },
     {
       "task_id": 2,
-      "success_rate": 0.91
+      "success_rate": 0.68
     },
     {
       "task_id": 3,
-      "success_rate": 0.65
+      "success_rate": 0.53
     },
     {
       "task_id": 4,
-      "success_rate": 0.75
+      "success_rate": 0.61
     },
     {
       "task_id": 5,
-      "success_rate": 0.37
+      "success_rate": 0.28
     },
     {
       "task_id": 6,
-      "success_rate": 0.8
+      "success_rate": 0.58
     },
     {
       "task_id": 7,
-      "success_rate": 0.75
+      "success_rate": 0.62
     },
     {
       "task_id": 8,
-      "success_rate": 0.8
+      "success_rate": 0.57
     },
     {
       "task_id": 9,
-      "success_rate": 0.75
+      "success_rate": 0.64
     }
   ],
   "training_save_dir": "",
   "training_method": "sft",
-  "wandb_id": "xkeikygl",
+  "wandb_id": "clzdydo5",
   "wandb_project": "vla-libero-eval",
   "wandb_entity": "bachelor-vla",
-  "wandb_url": "https://wandb.ai/bachelor-vla/vla-libero-eval/runs/xkeikygl",
+  "wandb_url": "https://wandb.ai/bachelor-vla/vla-libero-eval/runs/clzdydo5",
   "wandb_state": "finished",
-  "wandb_created_at": "2026-04-20T23:34:08Z",
+  "wandb_created_at": "2026-04-30T13:30:42Z",
   "wandb_updated_at": "",
   "wandb_tags": [],
-  "lsf_job_id": "28242119",
+  "lsf_job_id": "",
   "lsf_job_name": "",
-  "hostname": "n-62-13-16",
-  "git_commit": "ef79c3b5dce7212faf1b7c5b3b8bc81ff3d0cf16",
+  "hostname": "n-62-18-5",
+  "git_commit": "c7a8c565f492096c257758da5b791bcde0b5fb38",
   "git_branch": "",
   "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
-  "training_git_commit": "ef79c3b5dce7212faf1b7c5b3b8bc81ff3d0cf16"
+  "training_git_commit": "c7a8c565f492096c257758da5b791bcde0b5fb38"
 }
