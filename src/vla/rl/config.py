@@ -46,6 +46,16 @@ class FPOConfig:
 
 
 @dataclass
+class FlowGRPOConfig:
+    sigma: float = 0.10
+    sde_steps: int = 0
+    logprob_reduction: str = "mean"
+    log_ratio_clip: float = 5.0
+    positive_adv_only: bool = False
+    negative_adv_scale: float = 1.0
+
+
+@dataclass
 class SuccessBCConfig:
     epochs: int = 1
     loss_reduction: str = "mean"
@@ -114,6 +124,7 @@ class SRPOConfig(BaseTrainingConfig):
     ppo: PPOConfig = field(default_factory=PPOConfig)
     awr: AWRConfig = field(default_factory=AWRConfig)
     fpo: FPOConfig = field(default_factory=FPOConfig)
+    flow_grpo: FlowGRPOConfig = field(default_factory=FlowGRPOConfig)
     success_bc: SuccessBCConfig = field(default_factory=SuccessBCConfig)
     kl: KLConfig = field(default_factory=KLConfig)
     replay: ReplayConfig = field(default_factory=ReplayConfig)
@@ -235,6 +246,30 @@ class SRPOConfig(BaseTrainingConfig):
     @property
     def fpo_use_ref_policy_kl(self) -> bool:
         return self.fpo.use_ref_policy_kl
+
+    @property
+    def flow_grpo_sigma(self) -> float:
+        return self.flow_grpo.sigma
+
+    @property
+    def flow_grpo_sde_steps(self) -> int:
+        return self.flow_grpo.sde_steps
+
+    @property
+    def flow_grpo_logprob_reduction(self) -> str:
+        return self.flow_grpo.logprob_reduction
+
+    @property
+    def flow_grpo_log_ratio_clip(self) -> float:
+        return self.flow_grpo.log_ratio_clip
+
+    @property
+    def flow_grpo_positive_adv_only(self) -> bool:
+        return self.flow_grpo.positive_adv_only
+
+    @property
+    def flow_grpo_negative_adv_scale(self) -> float:
+        return self.flow_grpo.negative_adv_scale
 
     @property
     def include_demos_in_update(self) -> bool:

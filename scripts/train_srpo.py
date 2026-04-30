@@ -50,9 +50,10 @@ from vla.results_registry import (
     write_training_registry,
 )
 from vla.rl.config import (
-    AWRConfig,
     AdvantageConfig,
+    AWRConfig,
     DynamicSamplingConfig,
+    FlowGRPOConfig,
     FPOConfig,
     KLConfig,
     PPOConfig,
@@ -264,7 +265,7 @@ def main(
     update_method: UpdateMethod = typer.Option(
         "awr",
         "--update-method",
-        help="Policy update: awr, fpo, ppo, or success_bc",
+        help="Policy update: awr, fpo, flow_grpo, ppo, or success_bc",
     ),
     advantage_mode: AdvantageMode = typer.Option(
         AdvantageMode.LEAVE_ONE_OUT, "--adv.mode", help="Advantage method: zscore or leave-one-out"
@@ -347,6 +348,27 @@ def main(
         "--fpo.use-ref-policy-kl/--no-fpo.use-ref-policy-kl",
         help="Anchor KL penalty to a reference policy instead of cached old_fm losses.",
     ),
+    flow_grpo_sigma: float = typer.Option(
+        0.10,
+        "--flow-grpo.sigma",
+        help="Flow-GRPO SDE noise scale. Per-step std is sigma * sqrt(dt).",
+    ),
+    flow_grpo_sde_steps: int = typer.Option(
+        0,
+        "--flow-grpo.sde-steps",
+        help="Flow-GRPO denoising SDE steps (0 = checkpoint/model default).",
+    ),
+    flow_grpo_logprob_reduction: str = typer.Option(
+        "mean",
+        "--flow-grpo.logprob-reduction",
+        help="Flow-GRPO path log-prob reduction over action dimensions: mean or sum.",
+    ),
+    flow_grpo_log_ratio_clip: float = typer.Option(5.0, "--flow-grpo.log-ratio-clip"),
+    flow_grpo_positive_adv_only: bool = typer.Option(
+        False,
+        "--flow-grpo.positive-adv-only/--no-flow-grpo.positive-adv-only",
+    ),
+    flow_grpo_negative_adv_scale: float = typer.Option(1.0, "--flow-grpo.negative-adv-scale"),
     eval_zero_sample: bool = typer.Option(True, "--rollout.eval-zero-sample/--no-rollout.eval-zero-sample"),
     adaptive_kl: bool = typer.Option(
         False,
@@ -386,7 +408,10 @@ def main(
     dynamic_sampling: bool = typer.Option(
         False,
         "--sampling.dynamic/--no-sampling.dynamic",
-        help="DAPO-style replacement sampling: re-collect rollouts for tasks whose reward std is below --adv.skip-threshold.",
+        help=(
+            "DAPO-style replacement sampling: re-collect rollouts for tasks whose reward std "
+            "is below --adv.skip-threshold."
+        ),
     ),
     dynamic_sampling_max_retries: int = typer.Option(
         2,
@@ -497,6 +522,14 @@ def main(
             negative_adv_scale=fpo_negative_adv_scale,
             log_ratio_clip=fpo_log_ratio_clip,
             use_ref_policy_kl=fpo_use_ref_policy_kl,
+        ),
+        flow_grpo=FlowGRPOConfig(
+            sigma=flow_grpo_sigma,
+            sde_steps=flow_grpo_sde_steps,
+            logprob_reduction=flow_grpo_logprob_reduction,
+            log_ratio_clip=flow_grpo_log_ratio_clip,
+            positive_adv_only=flow_grpo_positive_adv_only,
+            negative_adv_scale=flow_grpo_negative_adv_scale,
         ),
         success_bc=SuccessBCConfig(
             epochs=success_bc_epochs,

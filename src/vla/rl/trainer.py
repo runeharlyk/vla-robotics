@@ -11,6 +11,9 @@ Implements the full SRPO algorithm (Section 3.3 of the paper):
      **PPO** (legacy, for discrete-token policies):
        - Cache FM losses under θ_old and π_ref
        - Clipped surrogate loss + KL regularisation
+     **Flow-GRPO**:
+       - Sample rollouts with stochastic reverse-flow transitions
+       - Use Gaussian transition log-prob ratios for clipped GRPO updates
   5. Update θ_old ← θ, add any new successes to reference set.
 
 The rollout engine is **simulator-agnostic**: pass in any object that
@@ -40,6 +43,7 @@ from vla.rl.policy_update import (
     UpdateMetrics,
     _sample_fixed_noise_time,
     awr_update,
+    flow_grpo_update,
     fpo_update,
     ppo_update,
     success_bc_update,
@@ -64,6 +68,7 @@ __all__ = [
     "build_rollout_engine",
     "collect_all_trajectories",
     "evaluate_and_checkpoint",
+    "flow_grpo_update",
     "log_training_config",
     "ppo_update",
     "fpo_update",
@@ -162,6 +167,15 @@ def log_training_config(
     lines.append(f"    fpo_loss_reduction:      {config.fpo_loss_reduction}")
     lines.append(f"    fpo_full_chunk_target:   {config.fpo_full_chunk_target}")
     lines.append(f"    fpo_use_ref_policy_kl:   {config.fpo_use_ref_policy_kl}")
+
+    lines.append("")
+    lines.append("  Flow-GRPO-specific:")
+    lines.append(f"    flow_grpo_sigma:             {config.flow_grpo_sigma}")
+    lines.append(f"    flow_grpo_sde_steps:         {config.flow_grpo_sde_steps}")
+    lines.append(f"    flow_grpo_logprob_reduction: {config.flow_grpo_logprob_reduction}")
+    lines.append(f"    flow_grpo_log_ratio_clip:    {config.flow_grpo_log_ratio_clip}")
+    lines.append(f"    flow_grpo_negative_adv_scale: {config.flow_grpo_negative_adv_scale}")
+    lines.append(f"    flow_grpo_positive_adv_only: {config.flow_grpo_positive_adv_only}")
 
     lines.append("")
     lines.append("  Rollout & eval:")
@@ -407,6 +421,36 @@ def _reward_std(trajs: list[Trajectory]) -> float:
     return var**0.5
 
 
+def _rollout_policy_fns(
+    policy: SmolVLAPolicy,
+    config: SRPOConfig,
+    *,
+    use_vectorized: bool,
+    chunked: bool,
+) -> dict[str, Any]:
+    """Return rollout callables, switching to SDE sampling for Flow-GRPO."""
+    if config.update_method is UpdateMethod.FLOW_GRPO:
+        policy.configure_flow_grpo_sampler(
+            sigma=config.flow_grpo_sigma,
+            sde_steps=config.flow_grpo_sde_steps,
+        )
+        return {
+            "policy_fn": policy.predict_action_flow_grpo,
+            "policy_batch_fn": policy.predict_action_flow_grpo_batch if use_vectorized else None,
+            "policy_chunk_fn": policy.predict_action_chunk_flow_grpo if chunked else None,
+            "policy_chunk_batch_fn": (
+                policy.predict_action_chunk_flow_grpo_batch if chunked and use_vectorized else None
+            ),
+        }
+
+    return {
+        "policy_fn": policy.predict_action,
+        "policy_batch_fn": policy.predict_action_batch if use_vectorized else None,
+        "policy_chunk_fn": policy.predict_action_chunk if chunked else None,
+        "policy_chunk_batch_fn": policy.predict_action_chunk_batch if chunked and use_vectorized else None,
+    }
+
+
 def resample_uniform_reward_tasks(
     policy: SmolVLAPolicy,
     rollout_trajectories: list[Trajectory],
@@ -447,6 +491,7 @@ def resample_uniform_reward_tasks(
 
     use_vectorized = config.num_rollout_envs > 1
     chunked = config.n_action_steps > 1
+    policy_fns = _rollout_policy_fns(policy, config, use_vectorized=use_vectorized, chunked=chunked)
     retries_per_task: dict[str, int] = {}
     gave_up_tasks: list[str] = []
 
@@ -458,14 +503,14 @@ def resample_uniform_reward_tasks(
             retries += 1
             engine = _get_or_build_engine(rollout_engines, config, spec)
             new_trajs = engine.collect_batch(
-                policy_fn=policy.predict_action,
+                policy_fn=policy_fns["policy_fn"],
                 instruction=spec.instruction,
                 num_trajectories=trajs_per_task,
                 seed=config.seed + iteration * 1000 + retries * 100003,
-                policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
+                policy_batch_fn=policy_fns["policy_batch_fn"],
                 n_action_steps=config.n_action_steps,
-                policy_chunk_fn=policy.predict_action_chunk if chunked else None,
-                policy_chunk_batch_fn=policy.predict_action_chunk_batch if chunked and use_vectorized else None,
+                policy_chunk_fn=policy_fns["policy_chunk_fn"],
+                policy_chunk_batch_fn=policy_fns["policy_chunk_batch_fn"],
             )
             for t in new_trajs:
                 t.task_id = tid
@@ -530,18 +575,19 @@ def collect_all_trajectories(
     per_task_successes: dict[str, int] = {}
     use_vectorized = config.num_rollout_envs > 1
     chunked = config.n_action_steps > 1
+    policy_fns = _rollout_policy_fns(policy, config, use_vectorized=use_vectorized, chunked=chunked)
 
     for spec in task_specs:
         engine = _get_or_build_engine(rollout_engines, config, spec)
         trajs = engine.collect_batch(
-            policy_fn=policy.predict_action,
+            policy_fn=policy_fns["policy_fn"],
             instruction=spec.instruction,
             num_trajectories=trajs_per_task,
             seed=config.seed + iteration * 1000,
-            policy_batch_fn=policy.predict_action_batch if use_vectorized else None,
+            policy_batch_fn=policy_fns["policy_batch_fn"],
             n_action_steps=config.n_action_steps,
-            policy_chunk_fn=policy.predict_action_chunk if chunked else None,
-            policy_chunk_batch_fn=policy.predict_action_chunk_batch if chunked and use_vectorized else None,
+            policy_chunk_fn=policy_fns["policy_chunk_fn"],
+            policy_chunk_batch_fn=policy_fns["policy_chunk_batch_fn"],
         )
         for t in trajs:
             t.task_id = spec.task_id
@@ -707,7 +753,7 @@ def train_srpo(
       1. Collects trajectories from every task via per-task rollout engines.
       2. Computes per-task world-progress rewards (DBSCAN clustering).
       3. Normalises advantages **per task** (with 1 task this equals global).
-      4. Runs the policy update (AWR or PPO or FPO).
+      4. Runs the policy update (AWR, FPO, Flow-GRPO, PPO, or success-BC).
       5. Periodically evaluates and checkpoints.
 
     Args:
@@ -734,7 +780,7 @@ def train_srpo(
     optimizer, trainable = config.build_optimizer(policy)
 
     # Create a reference policy for KL regularisation.
-    # AWR/PPO always use it. FPO only uses it when explicitly requested
+    # AWR/PPO/Flow-GRPO always use it. FPO only uses it when explicitly requested
     # for debugging, since the default FPO path reuses cached old_fm
     # losses as the KL anchor.
     ref_policy: SmolVLAPolicy | None = None
@@ -899,6 +945,14 @@ def train_srpo(
         else:
             replay_counts = {}
 
+        if config.update_method is UpdateMethod.FLOW_GRPO and extra_trajectories:
+            logger.warning(
+                "Flow-GRPO update ignores demo/replay trajectories because they do not carry paths "
+                "sampled by the current old policy."
+            )
+            extra_trajectories = []
+            replay_counts = {}
+
         all_trajectories = rollout_trajectories + extra_trajectories
 
         total_successes = sum(1 for t in all_trajectories if t.success)
@@ -1019,6 +1073,7 @@ def train_srpo(
         # forgetting on solved tasks.  AWR/PPO only need active trajectories.
         policy.eval()
         is_fpo = config.update_method is UpdateMethod.FPO
+        is_flow_grpo = config.update_method is UpdateMethod.FLOW_GRPO
         is_success_bc = config.update_method is UpdateMethod.SUCCESS_BC
         n_noise_samples = config.num_fm_noise_samples if is_fpo else 1
         if is_success_bc:
@@ -1031,10 +1086,11 @@ def train_srpo(
             update_instrs = [spec_lookup[t.task_id].instruction for t in all_trajectories] if is_fpo else active_instrs
         update_noise: list[list[torch.Tensor]] = []
         update_time: list[list[torch.Tensor]] = []
-        for traj in update_trajs:
-            noise_list, time_list = _sample_fixed_noise_time(traj, policy, n_samples=n_noise_samples)
-            update_noise.append(noise_list)
-            update_time.append(time_list)
+        if not is_flow_grpo:
+            for traj in update_trajs:
+                noise_list, time_list = _sample_fixed_noise_time(traj, policy, n_samples=n_noise_samples)
+                update_noise.append(noise_list)
+                update_time.append(time_list)
 
         # -- 5. Policy update ---------------------------------------------
         if config.update_method is UpdateMethod.AWR:
@@ -1065,6 +1121,19 @@ def train_srpo(
                 config,
                 ref_policy=ref_policy,
                 sft_policy=sft_policy,
+            )
+        elif config.update_method is UpdateMethod.FLOW_GRPO:
+            assert ref_policy is not None
+            update_metrics = flow_grpo_update(
+                policy,
+                ref_policy,
+                sft_policy,
+                optimizer,
+                trainable,
+                update_trajs,
+                update_advs,
+                update_instrs,
+                config,
             )
         elif config.update_method is UpdateMethod.PPO:
             assert ref_policy is not None
@@ -1100,7 +1169,11 @@ def train_srpo(
         update_time.clear()
 
         # -- 6. Adaptive KL adjustment ------------------------------------
-        if config.adaptive_kl and config.update_method is UpdateMethod.FPO and update_metrics.raw_kl > 0:
+        if (
+            config.adaptive_kl
+            and config.update_method in (UpdateMethod.FPO, UpdateMethod.FLOW_GRPO)
+            and update_metrics.raw_kl > 0
+        ):
             old_kl_coeff = config.kl_coeff
             if update_metrics.raw_kl > 2.0 * config.kl_target:
                 config.kl_coeff = min(config.kl_coeff * config.kl_adapt_factor, 1.0)
@@ -1119,6 +1192,8 @@ def train_srpo(
             loss_key = "awr_loss"
         elif config.update_method == UpdateMethod.FPO:
             loss_key = "fpo_loss"
+        elif config.update_method == UpdateMethod.FLOW_GRPO:
+            loss_key = "flow_grpo_loss"
         elif config.update_method == UpdateMethod.PPO:
             loss_key = "ppo_loss"
         elif config.update_method == UpdateMethod.SUCCESS_BC:
@@ -1149,7 +1224,7 @@ def train_srpo(
             log_data[f"{config.mode}/success_bc_update_trajs"] = len(update_trajs)
             log_data[f"{config.mode}/sft_kl_coeff"] = config.sft_kl_coeff
             log_data[f"{config.mode}/raw_sft_kl"] = update_metrics.raw_sft_kl
-        elif config.update_method == UpdateMethod.FPO:
+        elif config.update_method in (UpdateMethod.FPO, UpdateMethod.FLOW_GRPO):
             log_data[f"{config.mode}/clip_frac"] = update_metrics.avg_weight
             log_data[f"{config.mode}/mean_shift"] = update_metrics.avg_shift
             log_data[f"{config.mode}/raw_kl"] = update_metrics.raw_kl
@@ -1172,7 +1247,7 @@ def train_srpo(
                     log_data.update(diag.as_dict(prefix=f"{config.mode}/{_tid}/cluster"))
 
         ratio_info = ""
-        if config.update_method is UpdateMethod.FPO:
+        if config.update_method in (UpdateMethod.FPO, UpdateMethod.FLOW_GRPO):
             ratio_info = (
                 f"  raw_kl={update_metrics.raw_kl:.6f}"
                 f"  raw_sft_kl={update_metrics.raw_sft_kl:.6f}"

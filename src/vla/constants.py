@@ -28,6 +28,7 @@ class AdvantageMode(StrEnum):
 class UpdateMethod(StrEnum):
     AWR = "awr"
     FPO = "fpo"
+    FLOW_GRPO = "flow_grpo"
     PPO = "ppo"
     SUCCESS_BC = "success_bc"
 

@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +31,28 @@ from vla.utils.tensor import to_float01
 
 DEFAULT_CHECKPOINT = "HuggingFaceVLA/smolvla_libero"
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class FlowActionSample:
+    """Action sample plus the SDE path used to generate it."""
+
+    actions: torch.Tensor
+    flow_states: torch.Tensor
+    flow_next_states: torch.Tensor
+    flow_times: torch.Tensor
+    flow_dts: torch.Tensor
+    flow_sigmas: torch.Tensor
+
+    def select(self, index: int) -> FlowActionSample:
+        return FlowActionSample(
+            actions=self.actions[index],
+            flow_states=self.flow_states[index],
+            flow_next_states=self.flow_next_states[index],
+            flow_times=self.flow_times[index],
+            flow_dts=self.flow_dts[index],
+            flow_sigmas=self.flow_sigmas[index],
+        )
 
 
 def _hf_local_files_only() -> bool:
@@ -87,6 +111,8 @@ class SmolVLAPolicy(nn.Module):
         self.eval_zero_sample = False
         self.eval_fixed_noise_seed: int | None = None
         self._eval_noise_counter = 0
+        self.flow_grpo_sigma = 0.10
+        self.flow_grpo_sde_steps = 0
 
         ckpt_config = self._load_ckpt_config(checkpoint)
         self.ckpt_config = ckpt_config
@@ -362,6 +388,15 @@ class SmolVLAPolicy(nn.Module):
         )
         return noise.to(self.device, dtype=self.dtype)
 
+    def configure_flow_grpo_sampler(self, *, sigma: float, sde_steps: int = 0) -> None:
+        """Set rollout-time SDE sampler parameters for Flow-GRPO."""
+        if sigma <= 0:
+            raise ValueError(f"Flow-GRPO sigma must be > 0, got {sigma}")
+        if sde_steps < 0:
+            raise ValueError(f"Flow-GRPO sde_steps must be >= 0, got {sde_steps}")
+        self.flow_grpo_sigma = float(sigma)
+        self.flow_grpo_sde_steps = int(sde_steps)
+
     def predict_action(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Predict a single action from an image observation.
 
@@ -460,6 +495,198 @@ class SmolVLAPolicy(nn.Module):
             actions = self.model.sample_actions(img_list, mask_list, tokens, tmasks, s, noise=noise)
             raw = actions[:, :, : self.action_dim].float()
             return self._denormalize_action(raw)
+
+    def _sample_flow_grpo_chunk_batch(
+        self,
+        images: torch.Tensor,
+        instruction: str,
+        states: torch.Tensor | None = None,
+    ) -> FlowActionSample:
+        if images.ndim not in (4, 5):
+            raise ValueError(f"Expected image batch shape (B,C,H,W) or (B,N,C,H,W), got {tuple(images.shape)}")
+        imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
+        img_list, mask_list = self._prepare_images(imgs)
+        tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
+        s = self._prepare_state_input(states, batch_size=imgs.shape[0])
+        actions, path = self.model.sample_actions_sde(
+            img_list,
+            mask_list,
+            tokens,
+            tmasks,
+            s,
+            sigma=self.flow_grpo_sigma,
+            num_steps=self.flow_grpo_sde_steps,
+        )
+        raw = actions[:, :, : self.action_dim].float()
+        denorm = self._denormalize_action(raw)
+        path_cpu = {name: tensor.detach().to("cpu", dtype=torch.float32) for name, tensor in path.items()}
+        return FlowActionSample(actions=denorm, **path_cpu)
+
+    def predict_action_flow_grpo(
+        self,
+        image: torch.Tensor,
+        instruction: str,
+        state: torch.Tensor | None = None,
+    ) -> FlowActionSample:
+        """Sample one action with the Flow-GRPO SDE sampler and keep its path."""
+        self.eval()
+        with torch.no_grad():
+            img = self._to_float01(image)
+            if img.ndim not in (3, 4):
+                raise ValueError(f"Expected image shape (C,H,W) or (N,C,H,W), got {tuple(img.shape)}")
+            sample = self._sample_flow_grpo_chunk_batch(img.unsqueeze(0), instruction, state)
+            selected = sample.select(0)
+            return FlowActionSample(
+                actions=selected.actions[0],
+                flow_states=selected.flow_states,
+                flow_next_states=selected.flow_next_states,
+                flow_times=selected.flow_times,
+                flow_dts=selected.flow_dts,
+                flow_sigmas=selected.flow_sigmas,
+            )
+
+    def predict_action_flow_grpo_batch(
+        self,
+        images: torch.Tensor,
+        instruction: str,
+        states: torch.Tensor | None = None,
+    ) -> FlowActionSample:
+        """Sample batched first actions with the Flow-GRPO SDE sampler."""
+        self.eval()
+        with torch.no_grad():
+            sample = self._sample_flow_grpo_chunk_batch(images, instruction, states)
+            return FlowActionSample(
+                actions=sample.actions[:, 0],
+                flow_states=sample.flow_states,
+                flow_next_states=sample.flow_next_states,
+                flow_times=sample.flow_times,
+                flow_dts=sample.flow_dts,
+                flow_sigmas=sample.flow_sigmas,
+            )
+
+    def predict_action_chunk_flow_grpo(
+        self,
+        image: torch.Tensor,
+        instruction: str,
+        state: torch.Tensor | None = None,
+    ) -> FlowActionSample:
+        """Sample one action chunk with the Flow-GRPO SDE sampler."""
+        self.eval()
+        with torch.no_grad():
+            img = self._to_float01(image)
+            if img.ndim not in (3, 4):
+                raise ValueError(f"Expected image shape (C,H,W) or (N,C,H,W), got {tuple(img.shape)}")
+            return self._sample_flow_grpo_chunk_batch(img.unsqueeze(0), instruction, state).select(0)
+
+    def predict_action_chunk_flow_grpo_batch(
+        self,
+        images: torch.Tensor,
+        instruction: str,
+        states: torch.Tensor | None = None,
+    ) -> FlowActionSample:
+        """Sample batched action chunks with the Flow-GRPO SDE sampler."""
+        self.eval()
+        with torch.no_grad():
+            return self._sample_flow_grpo_chunk_batch(images, instruction, states)
+
+    def compute_flow_path_log_probs(
+        self,
+        images: torch.Tensor,
+        instruction: str,
+        states: torch.Tensor | None,
+        path_states: torch.Tensor,
+        path_next_states: torch.Tensor,
+        path_times: torch.Tensor,
+        path_dts: torch.Tensor,
+        path_sigmas: torch.Tensor,
+        chunk_mask: torch.Tensor | None = None,
+        batch_size: int = 32,
+        reduction: str = "mean",
+    ) -> torch.Tensor:
+        """Compute per-decision Gaussian log-probs for stored Flow-GRPO paths."""
+        if path_states.ndim != 4:
+            raise ValueError(f"path_states must be (T,K,C,A), got {tuple(path_states.shape)}")
+        if path_next_states.shape != path_states.shape:
+            raise ValueError("path_next_states must match path_states shape")
+        if path_times.shape != path_states.shape[:2]:
+            raise ValueError("path_times must have shape (T,K)")
+        if path_dts.shape != path_states.shape[:2] or path_sigmas.shape != path_states.shape[:2]:
+            raise ValueError("path_dts and path_sigmas must have shape (T,K)")
+        if reduction not in {"mean", "sum"}:
+            raise ValueError(f"Unknown flow log-prob reduction: {reduction}")
+
+        T, K = path_states.shape[:2]
+        if T == 0:
+            return torch.empty(0, device=self.device)
+
+        pos_mask = torch.zeros((T, self.chunk_size), dtype=torch.bool)
+        if chunk_mask is None:
+            pos_mask[:, 0] = True
+        else:
+            cm = chunk_mask.detach().to("cpu", dtype=torch.bool)
+            h_eff = min(cm.shape[1], self.chunk_size)
+            pos_mask[:, :h_eff] = cm[:, :h_eff]
+
+        dim_mask = torch.zeros((T, self.chunk_size, self.max_action_dim), dtype=torch.float32)
+        dim_mask[:, :, : self.action_dim] = pos_mask.unsqueeze(-1).float()
+
+        path_states = path_states.to(self.device, dtype=self.dtype)
+        path_next_states = path_next_states.to(self.device, dtype=self.dtype)
+        path_times = path_times.to(self.device, dtype=self.dtype)
+        path_dts = path_dts.to(self.device, dtype=self.dtype)
+        path_sigmas = path_sigmas.to(self.device, dtype=self.dtype).clamp(min=1e-6)
+        dim_mask = dim_mask.to(self.device)
+
+        total = T * K
+        batch_size = max(1, int(batch_size))
+        out = torch.zeros(T, device=self.device, dtype=torch.float32)
+        counts = torch.zeros(T, device=self.device, dtype=torch.float32)
+        use_amp = self.device.type == "cuda"
+
+        flat_indices = torch.arange(total, device=self.device)
+        log_two_pi = math.log(2.0 * math.pi)
+        for start in range(0, total, batch_size):
+            end = min(start + batch_size, total)
+            idx = flat_indices[start:end]
+            dec_idx = torch.div(idx, K, rounding_mode="floor")
+            step_idx = idx - dec_idx * K
+
+            imgs = self._to_float01(images[dec_idx.detach().cpu()]).to(self.device, dtype=self.dtype)
+            img_list, mask_list = self._prepare_images(imgs)
+            tokens, tmasks = self._tokenize(instruction, batch_size=idx.numel())
+            state_raw = states[dec_idx.detach().cpu()] if states is not None else None
+            state = self._prepare_state_input(state_raw, batch_size=idx.numel())
+
+            x_t = path_states[dec_idx, step_idx]
+            x_next = path_next_states[dec_idx, step_idx]
+            time = path_times[dec_idx, step_idx]
+            dt = path_dts[dec_idx, step_idx].view(-1, 1, 1)
+            sigma = path_sigmas[dec_idx, step_idx].float().view(-1, 1, 1)
+            valid = dim_mask[dec_idx]
+
+            with torch.autocast("cuda", enabled=use_amp):
+                v_t = self.model.predict_velocity(img_list, mask_list, tokens, tmasks, state, x_t, time)
+
+            mean = self.model.flow_grpo_transition_mean(
+                x_t,
+                v_t,
+                time,
+                dt.squeeze(-1).squeeze(-1),
+                sigma.squeeze(-1).squeeze(-1),
+            )
+            var = sigma.square()
+            elem_logp = -0.5 * (((x_next.float() - mean).square() / var) + torch.log(var) + log_two_pi)
+            masked = elem_logp * valid
+            if reduction == "sum":
+                per_transition = masked.sum(dim=(1, 2))
+            else:
+                denom = valid.sum(dim=(1, 2)).clamp(min=1.0)
+                per_transition = masked.sum(dim=(1, 2)) / denom
+
+            out.index_add_(0, dec_idx, per_transition)
+            counts.index_add_(0, dec_idx, torch.ones_like(per_transition))
+
+        return out / counts.clamp(min=1.0)
 
     def forward(
         self,

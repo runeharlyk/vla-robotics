@@ -17,7 +17,6 @@ from typing import Any
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TRAIN_SRPO = REPO_ROOT / "scripts" / "train_srpo.py"
 
@@ -29,6 +28,7 @@ PAIRED_BOOL_FLAGS = {
     "fpo.full-chunk-target",
     "fpo.positive-adv-only",
     "fpo.use-ref-policy-kl",
+    "flow-grpo.positive-adv-only",
     "rollout.eval-zero-sample",
     "kl.adaptive",
     "replay.include-demos",

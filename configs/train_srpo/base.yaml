@@ -67,6 +67,14 @@ fpo:
   log_ratio_clip: 5.0
   use_ref_policy_kl: false
 
+flow_grpo:
+  sigma: 0.10
+  sde_steps: 0
+  logprob_reduction: mean
+  log_ratio_clip: 5.0
+  positive_adv_only: false
+  negative_adv_scale: 1.0
+
 success_bc:
   epochs: 1
   loss_reduction: mean
