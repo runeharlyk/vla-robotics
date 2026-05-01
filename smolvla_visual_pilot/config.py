@@ -53,6 +53,9 @@ class EvalConfig:
     # -- Output --
     output_dir: str = "smolvla_visual_pilot/outputs"
 
+    # -- Resume --
+    resume: bool = True  # if True, skip already-completed (file, noise) combos
+
     def resolve_output_dir(self) -> Path:
         p = Path(self.output_dir)
         p.mkdir(parents=True, exist_ok=True)

@@ -41,12 +41,25 @@ class TimestepRecord:
 # ---------------------------------------------------------------------------
 
 class ResultLogger:
-    """Accumulates :class:`TimestepRecord` objects and writes them out."""
+    """Accumulates :class:`TimestepRecord` objects and writes them out.
+
+    Supports two modes:
+
+    * **Batch mode** (original): accumulate all records in memory, then call
+      :meth:`save_csv` / :meth:`save_json` at the end.
+    * **Streaming mode**: call :meth:`open_csv` before the loop, then use
+      :meth:`flush_trajectory` to write rows to disk immediately.  On crash
+      the CSV contains all work completed so far.
+    """
 
     def __init__(self) -> None:
         self._records: list[TimestepRecord] = []
         self._per_dim_abs_by_noise: dict[str, list[np.ndarray]] = {}
         self._per_dim_rel_by_noise: dict[str, list[np.ndarray]] = {}
+
+        # Streaming CSV state
+        self._csv_file = None
+        self._csv_writer = None
 
     # -- recording --
 
@@ -150,6 +163,137 @@ class ResultLogger:
     @property
     def n_records(self) -> int:
         return len(self._records)
+
+    # -- streaming CSV (incremental append) --
+
+    def open_csv(self, path: str | Path) -> None:
+        """Open a CSV file for incremental appending.
+
+        If the file already exists the header is skipped (resume scenario).
+        If the file does not exist (or is empty) the header is written first.
+        """
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        file_exists = path.exists() and path.stat().st_size > 0
+        self._csv_file = open(path, "a", newline="", encoding="utf-8")  # noqa: SIM115
+        self._csv_writer = csv.DictWriter(self._csv_file, fieldnames=self._CSV_COLUMNS)
+        if not file_exists:
+            self._csv_writer.writeheader()
+            self._csv_file.flush()
+
+    def _write_record_to_csv(self, r: TimestepRecord) -> None:
+        """Write a single record to the streaming CSV (if open)."""
+        if self._csv_writer is None:
+            return
+        self._csv_writer.writerow(
+            {
+                "task_index": r.task_index,
+                "task_name": r.task_name,
+                "rollout_index": r.rollout_index,
+                "source_h5": r.source_h5,
+                "source_chunk": r.source_chunk,
+                "source_episode": r.source_episode,
+                "noise_type": r.noise_type,
+                "noise_severity": r.noise_severity,
+                "timestep": r.timestep,
+                "l2_distance": f"{r.l2_distance:.6f}",
+                "rel_l2_distance": f"{r.rel_l2_distance:.6f}",
+                "quality_delta_l2": ("" if r.quality_delta_l2 is None else f"{r.quality_delta_l2:.6f}"),
+                "quality_ratio_l2": ("" if r.quality_ratio_l2 is None else f"{r.quality_ratio_l2:.6f}"),
+            }
+        )
+
+    def flush_trajectory(
+        self,
+        task_index: int,
+        task_name: str,
+        rollout_index: int,
+        source_h5: str,
+        source_chunk: str,
+        source_episode: str,
+        noise_type: str,
+        noise_severity: int,
+        l2_distances: list[float] | np.ndarray,
+        rel_l2_distances: list[float] | np.ndarray,
+        per_dim_abs_errors: np.ndarray | None = None,
+        per_dim_rel_errors: np.ndarray | None = None,
+        quality_delta_l2: list[float] | np.ndarray | None = None,
+        quality_ratio_l2: list[float] | np.ndarray | None = None,
+    ) -> None:
+        """Log a full trajectory AND immediately flush rows to the open CSV.
+
+        This is the streaming equivalent of :meth:`log_trajectory`.  It stores
+        records in memory (so :meth:`get_summary` works) **and** writes each
+        row to the CSV file on disk.
+        """
+        n_before = len(self._records)
+        self.log_trajectory(
+            task_index=task_index,
+            task_name=task_name,
+            rollout_index=rollout_index,
+            source_h5=source_h5,
+            source_chunk=source_chunk,
+            source_episode=source_episode,
+            noise_type=noise_type,
+            noise_severity=noise_severity,
+            l2_distances=l2_distances,
+            rel_l2_distances=rel_l2_distances,
+            per_dim_abs_errors=per_dim_abs_errors,
+            per_dim_rel_errors=per_dim_rel_errors,
+            quality_delta_l2=quality_delta_l2,
+            quality_ratio_l2=quality_ratio_l2,
+        )
+        # Write only the newly-appended records to the CSV.
+        for r in self._records[n_before:]:
+            self._write_record_to_csv(r)
+        if self._csv_file is not None:
+            self._csv_file.flush()
+
+    def close_csv(self) -> None:
+        """Flush and close the streaming CSV file."""
+        if self._csv_file is not None:
+            self._csv_file.flush()
+            self._csv_file.close()
+            self._csv_file = None
+            self._csv_writer = None
+
+    # -- resume: reload prior results from a CSV --
+
+    @classmethod
+    def load_csv(cls, path: str | Path) -> "ResultLogger":
+        """Create a :class:`ResultLogger` pre-populated from an existing CSV.
+
+        This is used on resume: prior results are loaded into memory so that
+        :meth:`get_summary` covers the full run (old + new).
+        """
+        path = Path(path)
+        logger = cls()
+        if not path.exists():
+            return logger
+
+        with open(path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                q_delta = row.get("quality_delta_l2", "")
+                q_ratio = row.get("quality_ratio_l2", "")
+                logger.log_timestep(
+                    task_index=int(row["task_index"]),
+                    task_name=row["task_name"],
+                    rollout_index=int(row["rollout_index"]),
+                    source_h5=row["source_h5"],
+                    source_chunk=row["source_chunk"],
+                    source_episode=row["source_episode"],
+                    noise_type=row["noise_type"],
+                    noise_severity=int(row["noise_severity"]),
+                    timestep=int(row["timestep"]),
+                    l2_distance=float(row["l2_distance"]),
+                    rel_l2_distance=float(row["rel_l2_distance"]),
+                    quality_delta_l2=(float(q_delta) if q_delta else None),
+                    quality_ratio_l2=(float(q_ratio) if q_ratio else None),
+                )
+        print(f"Resumed {logger.n_records} records from {path}")
+        return logger
 
     # -- serialisation: CSV --
 

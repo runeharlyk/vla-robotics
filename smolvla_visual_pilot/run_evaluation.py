@@ -20,6 +20,12 @@ The pipeline:
           - Compares it to the reference action at the same timestep t.
           - Repeats for all timesteps in the episode.
     4. Writes results to JSON + CSV and saves a summary deviation diagram.
+
+Resume support:
+    Results are written incrementally to ``results.csv`` after each noise
+    variant is scored.  A ``checkpoint.json`` tracks completed
+    (source_h5, noise_type, severity) tuples so that a restarted run
+    skips already-finished work.  Pass ``--no-resume`` to start fresh.
 """
 
 from __future__ import annotations
@@ -141,6 +147,15 @@ def parse_args() -> argparse.Namespace:
         default="smolvla_visual_pilot/outputs",
         help="Directory for result JSON, CSV, and summary.",
     )
+    p.add_argument(
+        "--resume",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Resume from a previous run (default: True).  "
+            "Use --no-resume to overwrite existing results and start fresh."
+        ),
+    )
     return p.parse_args()
 
 
@@ -241,11 +256,47 @@ def save_noise_deviation_diagram(summary: dict, output_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Checkpoint helpers  (resume support)
+# ---------------------------------------------------------------------------
+
+_CHECKPOINT_FILE = "checkpoint.json"
+
+
+def _checkpoint_key(source_h5: str, noise_type: str, severity: int) -> str:
+    """Return a deterministic string key for one unit of completed work."""
+    return f"{source_h5}|{noise_type}|s{severity}"
+
+
+def load_checkpoint(out_dir: Path) -> set[str]:
+    """Load the set of completed work-unit keys from ``checkpoint.json``."""
+    path = out_dir / _CHECKPOINT_FILE
+    if not path.exists():
+        return set()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return set(data.get("completed", []))
+    except (json.JSONDecodeError, KeyError):
+        print(f"Warning: corrupt checkpoint file {path}; starting fresh.")
+        return set()
+
+
+def save_checkpoint(out_dir: Path, completed: set[str]) -> None:
+    """Persist the set of completed work-unit keys to ``checkpoint.json``."""
+    path = out_dir / _CHECKPOINT_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"completed": sorted(completed)}, indent=2),
+        encoding="utf-8",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
 
 def run_evaluation(cfg: EvalConfig) -> None:
     out_dir = cfg.resolve_output_dir()
+    csv_path = out_dir / "results.csv"
 
     if cfg.reference_source not in {"model", "demo"}:
         raise ValueError(f"Invalid reference_source='{cfg.reference_source}'. Expected one of: model, demo.")
@@ -260,6 +311,13 @@ def run_evaluation(cfg: EvalConfig) -> None:
     print(f"  Cameras: {cfg.cameras}")
     print(f"  Reference source mode: {cfg.reference_source}")
 
+    # -- resume: load prior progress --
+    completed: set[str] = set()
+    if cfg.resume:
+        completed = load_checkpoint(out_dir)
+        if completed:
+            print(f"  Resuming — {len(completed)} work-units already completed.")
+
     # -- load policy --
     print("Loading SmolVLA policy …")
     policy_bundle = load_policy_bundle(cfg.checkpoint, cfg.device)
@@ -272,66 +330,112 @@ def run_evaluation(cfg: EvalConfig) -> None:
     print(f"  Noise batch size: {resolved_noise_batch}")
     print(f"  Timestep batch size: {cfg.timestep_batch_size}")
 
-    # -- logger --
-    logger = ResultLogger()
+    # -- logger (with optional prior-result reload) --
+    if cfg.resume and csv_path.exists() and completed:
+        logger = ResultLogger.load_csv(csv_path)
+    else:
+        logger = ResultLogger()
+        # If not resuming, ensure a clean CSV (overwrite any stale file).
+        if not cfg.resume and csv_path.exists():
+            csv_path.unlink()
+            ckpt_path = out_dir / _CHECKPOINT_FILE
+            if ckpt_path.exists():
+                ckpt_path.unlink()
+
+    # Open the CSV for incremental appending.
+    logger.open_csv(csv_path)
+
     t0 = time.time()
     seen_tasks: dict[int, int] = {}  # task_index -> processed demos
     processed_demos = 0
     skipped_files: list[str] = []
+    newly_completed: set[str] = set()  # keys completed in *this* session
 
     # -- iterate --
-    for file_idx, h5_path in enumerate(rollout_files, start=1):
-        source_h5 = to_source_id(h5_path, rollout_root)
-        source_chunk, source_episode = parse_chunk_episode(h5_path)
+    try:
+        for file_idx, h5_path in enumerate(rollout_files, start=1):
+            source_h5 = to_source_id(h5_path, rollout_root)
+            source_chunk, source_episode = parse_chunk_episode(h5_path)
 
-        print(f"\n[File {file_idx}/{len(rollout_files)}] {source_h5}", flush=True)
+            print(f"\n[File {file_idx}/{len(rollout_files)}] {source_h5}", flush=True)
 
-        try:
-            demos = iter_demos(
-                str(h5_path),
-                max_tasks=None,
-                max_demos=None,
-                cameras=cfg.cameras,
-            )
-        except Exception as exc:
-            skipped_files.append(source_h5)
-            print(f"  Skipping unreadable file ({type(exc).__name__}): {exc}")
-            continue
-
-        if not demos:
-            print("  No demos found in this file; skipping.")
-            continue
-
-        for local_demo_idx, demo in enumerate(demos, start=1):
-            task_count = seen_tasks.get(demo.task_index, 0)
-
-            if demo.task_index not in seen_tasks:
-                if cfg.max_tasks is not None and len(seen_tasks) >= cfg.max_tasks:
-                    continue
-                seen_tasks[demo.task_index] = 0
-
-            if cfg.max_demos is not None and task_count >= cfg.max_demos:
+            try:
+                demos = iter_demos(
+                    str(h5_path),
+                    max_tasks=None,
+                    max_demos=None,
+                    cameras=cfg.cameras,
+                )
+            except Exception as exc:
+                skipped_files.append(source_h5)
+                print(f"  Skipping unreadable file ({type(exc).__name__}): {exc}")
                 continue
 
-            seen_tasks[demo.task_index] = seen_tasks.get(demo.task_index, 0) + 1
-            rollout_index = processed_demos
-            processed_demos += 1
+            if not demos:
+                print("  No demos found in this file; skipping.")
+                continue
 
-            print(
-                f"  [Demo {local_demo_idx}/{len(demos)} | global={processed_demos}] "
-                f"task={demo.task_index} "
-                f"instruction='{demo.task_instruction}' "
-                f"T={demo.images.shape[0]}",
-                flush=True,
-            )
+            for local_demo_idx, demo in enumerate(demos, start=1):
+                task_count = seen_tasks.get(demo.task_index, 0)
 
-            # --- obtain reference actions (selected source, with fallback) ---
-            if cfg.reference_source == "demo":
-                if demo.gt_actions is not None:
-                    ref_actions = demo.gt_actions
-                    ref_source = "h5_ground_truth"
+                if demo.task_index not in seen_tasks:
+                    if cfg.max_tasks is not None and len(seen_tasks) >= cfg.max_tasks:
+                        continue
+                    seen_tasks[demo.task_index] = 0
+
+                if cfg.max_demos is not None and task_count >= cfg.max_demos:
+                    continue
+
+                seen_tasks[demo.task_index] = seen_tasks.get(demo.task_index, 0) + 1
+                rollout_index = processed_demos
+                processed_demos += 1
+
+                print(
+                    f"  [Demo {local_demo_idx}/{len(demos)} | global={processed_demos}] "
+                    f"task={demo.task_index} "
+                    f"instruction='{demo.task_instruction}' "
+                    f"T={demo.images.shape[0]}",
+                    flush=True,
+                )
+
+                # ----- check which noise variants are already done -----
+                noise_configs_todo = []
+                for nc in noise_configs:
+                    key = _checkpoint_key(source_h5, nc.noise_type, nc.severity)
+                    if key in completed:
+                        print(f"      [{nc}] already completed — skipping")
+                    else:
+                        noise_configs_todo.append(nc)
+
+                if not noise_configs_todo:
+                    print("      All noise variants already completed for this file; skipping demo.")
+                    continue
+
+                # --- obtain reference actions (selected source, with fallback) ---
+                if cfg.reference_source == "demo":
+                    if demo.gt_actions is not None:
+                        ref_actions = demo.gt_actions
+                        ref_source = "h5_ground_truth"
+                    else:
+                        print("    (reference-source=demo but no GT actions; running clean baseline)")
+                        try:
+                            ref_actions = run_trajectory(
+                                demo.images,
+                                demo.states,
+                                demo.task_instruction,
+                                policy_bundle,
+                                noise_config=None,
+                                seed=cfg.seed,
+                                timestep_batch_size=cfg.timestep_batch_size,
+                            )
+                            ref_source = "clean_model_prediction_fallback"
+                        except Exception as exc:
+                            print(
+                                "    (demo reference unavailable and clean baseline failed; "
+                                f"skipping demo: {type(exc).__name__}: {exc})"
+                            )
+                            continue
                 else:
-                    print("    (reference-source=demo but no GT actions; running clean baseline)")
                     try:
                         ref_actions = run_trajectory(
                             demo.images,
@@ -342,117 +446,119 @@ def run_evaluation(cfg: EvalConfig) -> None:
                             seed=cfg.seed,
                             timestep_batch_size=cfg.timestep_batch_size,
                         )
-                        ref_source = "clean_model_prediction_fallback"
+                        ref_source = "clean_model_prediction"
+                    except Exception as exc:
+                        if demo.gt_actions is None:
+                            print(
+                                "    (clean baseline failed and no GT actions available; "
+                                f"skipping demo: {type(exc).__name__}: {exc})"
+                            )
+                            continue
+
+                        print(f"    (clean baseline failed; falling back to GT actions: {type(exc).__name__}: {exc})")
+                        ref_actions = demo.gt_actions
+                        ref_source = "h5_ground_truth_fallback"
+
+                print(f"    Reference: {ref_source} — shape {tuple(ref_actions.shape)}")
+
+                # Optional quality metric anchor: compare noisy-vs-GT relative to clean-vs-GT.
+                # If clean actions are not already available, try to compute them once here.
+                clean_actions_for_quality: torch.Tensor | None = None
+                if ref_source.startswith("clean_model_prediction"):
+                    clean_actions_for_quality = ref_actions
+                elif demo.gt_actions is not None:
+                    try:
+                        clean_actions_for_quality = run_trajectory(
+                            demo.images,
+                            demo.states,
+                            demo.task_instruction,
+                            policy_bundle,
+                            noise_config=None,
+                            seed=cfg.seed,
+                            timestep_batch_size=cfg.timestep_batch_size,
+                        )
                     except Exception as exc:
                         print(
-                            "    (demo reference unavailable and clean baseline failed; "
-                            f"skipping demo: {type(exc).__name__}: {exc})"
+                            f"    (clean baseline unavailable for quality-degradation metric: {type(exc).__name__}: {exc})"
                         )
-                        continue
-            else:
-                try:
-                    ref_actions = run_trajectory(
-                        demo.images,
-                        demo.states,
-                        demo.task_instruction,
-                        policy_bundle,
-                        noise_config=None,
-                        seed=cfg.seed,
-                        timestep_batch_size=cfg.timestep_batch_size,
-                    )
-                    ref_source = "clean_model_prediction"
-                except Exception as exc:
-                    if demo.gt_actions is None:
-                        print(
-                            "    (clean baseline failed and no GT actions available; "
-                            f"skipping demo: {type(exc).__name__}: {exc})"
-                        )
-                        continue
 
-                    print(f"    (clean baseline failed; falling back to GT actions: {type(exc).__name__}: {exc})")
-                    ref_actions = demo.gt_actions
-                    ref_source = "h5_ground_truth_fallback"
-
-            print(f"    Reference: {ref_source} — shape {tuple(ref_actions.shape)}")
-
-            # Optional quality metric anchor: compare noisy-vs-GT relative to clean-vs-GT.
-            # If clean actions are not already available, try to compute them once here.
-            clean_actions_for_quality: torch.Tensor | None = None
-            if ref_source.startswith("clean_model_prediction"):
-                clean_actions_for_quality = ref_actions
-            elif demo.gt_actions is not None:
-                try:
-                    clean_actions_for_quality = run_trajectory(
-                        demo.images,
-                        demo.states,
-                        demo.task_instruction,
-                        policy_bundle,
-                        noise_config=None,
-                        seed=cfg.seed,
-                        timestep_batch_size=cfg.timestep_batch_size,
-                    )
-                except Exception as exc:
-                    print(
-                        f"    (clean baseline unavailable for quality-degradation metric: {type(exc).__name__}: {exc})"
-                    )
-
-            # --- run all noise variants with batched model inference ---
-            print(
-                "      running noisy variants "
-                f"(noise_batch={resolved_noise_batch}, timestep_batch={cfg.timestep_batch_size}) ...",
-                flush=True,
-            )
-            predicted_by_noise = run_trajectories_for_noises(
-                demo.images,
-                demo.states,
-                demo.task_instruction,
-                policy_bundle,
-                noise_configs=noise_configs,
-                seed=cfg.seed,
-                noise_batch_size=resolved_noise_batch,
-                timestep_batch_size=cfg.timestep_batch_size,
-            )
-
-            for nc, predicted in zip(noise_configs, predicted_by_noise, strict=True):
-                print(f"      [{nc}] scoring ...", end="", flush=True)
-
-                # For each timestep t, compare noisy prediction a_noisy[t] against
-                # reference action a_ref[t] (clean-model or demo), then aggregate over T.
-                l2 = compute_l2_distances(predicted, ref_actions)
-                rel_l2 = compute_relative_l2_distances(predicted, ref_actions)
-                per_dim_abs = compute_per_dimension_absolute_errors(predicted, ref_actions)
-                per_dim_rel = compute_per_dimension_relative_errors(predicted, ref_actions)
-
-                quality_delta_l2 = None
-                quality_ratio_l2 = None
-                if clean_actions_for_quality is not None and demo.gt_actions is not None:
-                    quality = compute_quality_degradation(
-                        noisy_predicted=predicted,
-                        clean_predicted=clean_actions_for_quality,
-                        ground_truth=demo.gt_actions,
-                    )
-                    quality_delta_l2 = quality["degradation_delta_l2"].numpy()
-                    quality_ratio_l2 = quality["degradation_ratio_l2"].numpy()
-
-                logger.log_trajectory(
-                    task_index=demo.task_index,
-                    task_name=demo.task_instruction,
-                    rollout_index=rollout_index,
-                    source_h5=source_h5,
-                    source_chunk=source_chunk,
-                    source_episode=source_episode,
-                    noise_type=nc.noise_type,
-                    noise_severity=nc.severity,
-                    l2_distances=l2.numpy(),
-                    rel_l2_distances=rel_l2.numpy(),
-                    per_dim_abs_errors=per_dim_abs.numpy(),
-                    per_dim_rel_errors=per_dim_rel.numpy(),
-                    quality_delta_l2=quality_delta_l2,
-                    quality_ratio_l2=quality_ratio_l2,
+                # --- run all noise variants with batched model inference ---
+                print(
+                    "      running noisy variants "
+                    f"(noise_batch={resolved_noise_batch}, timestep_batch={cfg.timestep_batch_size}) ...",
+                    flush=True,
                 )
 
-                mean_l2 = float(l2.mean())
-                print(f"  mean L2 = {mean_l2:.4f}")
+                # Use only the TODO noise configs for inference.
+                todo_batch = min(resolved_noise_batch, len(noise_configs_todo))
+                predicted_by_noise = run_trajectories_for_noises(
+                    demo.images,
+                    demo.states,
+                    demo.task_instruction,
+                    policy_bundle,
+                    noise_configs=noise_configs_todo,
+                    seed=cfg.seed,
+                    noise_batch_size=todo_batch,
+                    timestep_batch_size=cfg.timestep_batch_size,
+                )
+
+                for nc, predicted in zip(noise_configs_todo, predicted_by_noise, strict=True):
+                    print(f"      [{nc}] scoring ...", end="", flush=True)
+
+                    # For each timestep t, compare noisy prediction a_noisy[t] against
+                    # reference action a_ref[t] (clean-model or demo), then aggregate over T.
+                    l2 = compute_l2_distances(predicted, ref_actions)
+                    rel_l2 = compute_relative_l2_distances(predicted, ref_actions)
+                    per_dim_abs = compute_per_dimension_absolute_errors(predicted, ref_actions)
+                    per_dim_rel = compute_per_dimension_relative_errors(predicted, ref_actions)
+
+                    quality_delta_l2 = None
+                    quality_ratio_l2 = None
+                    if clean_actions_for_quality is not None and demo.gt_actions is not None:
+                        quality = compute_quality_degradation(
+                            noisy_predicted=predicted,
+                            clean_predicted=clean_actions_for_quality,
+                            ground_truth=demo.gt_actions,
+                        )
+                        quality_delta_l2 = quality["degradation_delta_l2"].numpy()
+                        quality_ratio_l2 = quality["degradation_ratio_l2"].numpy()
+
+                    # Write to memory + incrementally flush to CSV.
+                    logger.flush_trajectory(
+                        task_index=demo.task_index,
+                        task_name=demo.task_instruction,
+                        rollout_index=rollout_index,
+                        source_h5=source_h5,
+                        source_chunk=source_chunk,
+                        source_episode=source_episode,
+                        noise_type=nc.noise_type,
+                        noise_severity=nc.severity,
+                        l2_distances=l2.numpy(),
+                        rel_l2_distances=rel_l2.numpy(),
+                        per_dim_abs_errors=per_dim_abs.numpy(),
+                        per_dim_rel_errors=per_dim_rel.numpy(),
+                        quality_delta_l2=quality_delta_l2,
+                        quality_ratio_l2=quality_ratio_l2,
+                    )
+
+                    # Mark this (file, noise) combo as done.
+                    key = _checkpoint_key(source_h5, nc.noise_type, nc.severity)
+                    completed.add(key)
+                    newly_completed.add(key)
+
+                    mean_l2 = float(l2.mean())
+                    print(f"  mean L2 = {mean_l2:.4f}")
+
+                # Persist checkpoint after all noise variants for this demo.
+                save_checkpoint(out_dir, completed)
+
+    finally:
+        # Ensure the CSV is properly closed even on crash / KeyboardInterrupt.
+        logger.close_csv()
+        # Always persist checkpoint so partial progress is saved.
+        if newly_completed:
+            save_checkpoint(out_dir, completed)
+            print(f"\nCheckpoint saved — {len(newly_completed)} new work-units completed this session.")
 
     if logger.n_records == 0:
         raise RuntimeError(
@@ -464,7 +570,9 @@ def run_evaluation(cfg: EvalConfig) -> None:
     if skipped_files:
         print(f"Skipped {len(skipped_files)} unreadable files.")
 
-    # -- save --
+    # -- save final outputs (JSON + summary) --
+    # The CSV was already written incrementally; re-save a clean copy
+    # so it matches the in-memory state exactly (old + new records).
     logger.save_csv(out_dir / "results.csv")
     logger.save_json(out_dir / "results.json")
 
@@ -521,6 +629,7 @@ def main() -> None:
         max_tasks=args.max_tasks,
         max_demos=args.max_demos,
         output_dir=args.output_dir,
+        resume=args.resume,
     )
 
     run_evaluation(cfg)
