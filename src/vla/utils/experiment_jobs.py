@@ -5,6 +5,7 @@ import os
 import re
 import shlex
 import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from enum import Enum
@@ -255,6 +256,71 @@ def parse_gb(value: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _quantity_to_gib(value: str) -> float | None:
+    text = str(value).strip()
+    if not text or text.lower() == "unlimited":
+        return None
+
+    parts = text.split()
+    if len(parts) < 2:
+        return None
+
+    try:
+        number = float(parts[0])
+    except ValueError:
+        return None
+
+    unit = parts[1]
+    if unit in {"Byte", "Bytes"}:
+        return number / 1024 / 1024 / 1024
+    if unit == "KiB":
+        return number / 1024 / 1024
+    if unit == "MiB":
+        return number / 1024
+    if unit == "GiB":
+        return number
+    if unit == "TiB":
+        return number * 1024
+    return None
+
+
+def work3_free_gib() -> float | None:
+    quota_cmd = shutil.which("getquota_work3.sh")
+    if quota_cmd is not None:
+        try:
+            result = subprocess.run(
+                [quota_cmd],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except Exception:
+            result = None
+
+        if result is not None and result.returncode == 0:
+            user = os.environ.get("USER") or os.environ.get("LOGNAME")
+            free_values: list[float] = []
+            for line in result.stdout.splitlines():
+                cols = [part.strip() for part in line.split("|")]
+                if len(cols) < 5:
+                    continue
+                if user and cols[0] != user:
+                    continue
+                used = _quantity_to_gib(cols[3])
+                hard = _quantity_to_gib(cols[4])
+                if used is not None and hard is not None:
+                    free_values.append(hard - used)
+            if free_values:
+                return min(free_values)
+
+    work3 = Path(os.environ.get("VLA_WORK3", "/work3/s234814/vla-robotics"))
+    if work3.exists():
+        usage = shutil.disk_usage(work3)
+        return usage.free / 1024 / 1024 / 1024
+    return None
+
+
 def cli_path(value: Path | str) -> str:
     return str(value).replace("\\", "/")
 
@@ -287,6 +353,19 @@ def hpc_setup_issues(*, submit: bool) -> tuple[list[str], list[str]]:
     for env_name in ("VLA_WORK3", "HF_HOME", "WANDB_DIR", "UV_PROJECT_ENVIRONMENT"):
         if not os.environ.get(env_name):
             warnings.append(f"env:{env_name} (source jobs/_env.sh to set)")
+
+    try:
+        min_free_gib = float(os.environ.get("VLA_MIN_WORK3_FREE_GIB", "10"))
+    except ValueError:
+        min_free_gib = 10.0
+    free_gib = work3_free_gib()
+    if free_gib is None:
+        warnings.append("work3:free-space unknown")
+    elif free_gib < min_free_gib:
+        item = f"work3:only {free_gib:.2f} GiB free, need >= {min_free_gib:.2f} GiB"
+        warnings.append(item)
+    else:
+        warnings.append(f"work3:{free_gib:.2f} GiB free")
 
     return missing, warnings
 

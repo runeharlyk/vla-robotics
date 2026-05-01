@@ -30,6 +30,86 @@ export PYTHONUNBUFFERED=1
 export SAPIEN_DISABLE_RAY_TRACING=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
+export VLA_MIN_WORK3_FREE_GIB="${VLA_MIN_WORK3_FREE_GIB:-10}"
+
+_vla_quota_free_gib() {
+  if ! command -v getquota_work3.sh >/dev/null 2>&1; then
+    return 1
+  fi
+
+  getquota_work3.sh 2>/dev/null | awk -F'|' -v user="${USER:-}" '
+    function trim(s) {
+      gsub(/^[ \t]+|[ \t]+$/, "", s)
+      return s
+    }
+    function to_gib(raw,   parts, value, unit) {
+      raw = trim(raw)
+      if (raw == "" || raw == "unlimited") {
+        return -1
+      }
+      split(raw, parts, /[ \t]+/)
+      value = parts[1] + 0
+      unit = parts[2]
+      if (unit == "Byte" || unit == "Bytes") {
+        return value / 1024 / 1024 / 1024
+      }
+      if (unit == "KiB") {
+        return value / 1024 / 1024
+      }
+      if (unit == "MiB") {
+        return value / 1024
+      }
+      if (unit == "GiB") {
+        return value
+      }
+      if (unit == "TiB") {
+        return value * 1024
+      }
+      return -1
+    }
+    $1 ~ user && NF >= 5 {
+      used = to_gib($4)
+      hard = to_gib($5)
+      if (hard >= 0 && used >= 0) {
+        free = hard - used
+        if (!seen || free < min_free) {
+          min_free = free
+          seen = 1
+        }
+      }
+    }
+    END {
+      if (seen) {
+        printf "%.2f\n", min_free
+      } else {
+        exit 1
+      }
+    }
+  '
+}
+
+_vla_df_free_gib() {
+  df -Pk "$VLA_WORK3" 2>/dev/null | awk 'NR == 2 { printf "%.2f\n", $4 / 1024 / 1024 }'
+}
+
+_vla_check_work3_space() {
+  free_gib="$(_vla_quota_free_gib || _vla_df_free_gib || true)"
+  if [ -z "$free_gib" ]; then
+    echo "Warning: could not determine free space for $VLA_WORK3"
+    return 0
+  fi
+
+  is_low="$(awk -v free="$free_gib" -v min="$VLA_MIN_WORK3_FREE_GIB" 'BEGIN { print (free < min) ? 1 : 0 }')"
+  if [ "$is_low" -eq 1 ]; then
+    msg="Warning: only ${free_gib} GiB free for $VLA_WORK3; need at least ${VLA_MIN_WORK3_FREE_GIB} GiB"
+    echo "$msg"
+  else
+    echo "Work3 free-space check OK: ${free_gib} GiB available (minimum ${VLA_MIN_WORK3_FREE_GIB} GiB)"
+  fi
+}
+
+_vla_check_work3_space
+
 mkdir -p "$HF_HOME" "$WANDB_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT" \
        "$VLA_WORK3/data" "$VLA_WORK3/checkpoints" "$VLA_WORK3/outputs" "$VLA_WORK3/models" \
        "logs/${LSB_JOBNAME:-manual}"
