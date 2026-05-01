@@ -1,0 +1,29 @@
+# @package _global_
+
+metadata:
+  label: fpo-t5-chunk5-lowsft-kl
+  source_doc: docs/flow_grpo_paper_overview.md
+  notes: "FPO chunk-5 control with SFT-KL reduced 5x to 0.001. Tests whether the SFT-KL drift that stalled FPO nodynamic at 62% can be overcome. If this jumps past 64%, SFT-KL reduction is the key insight regardless of Flow-GRPO vs FPO."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: fpo-t5-chunk5-nodynamic-sftkl001-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.001
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+fpo:
+  full_chunk_target: true
