@@ -200,10 +200,18 @@ def iter_demos(
                 if len(task_index_arr) > 0:
                     task_index = int(task_index_arr[0])
 
+            task_instruction = ""
+            if "task_instruction" in f.attrs:
+                task_instruction = str(f.attrs.get("task_instruction", "")).strip()
+            if not task_instruction and "meta" in f:
+                task_instruction = str(f["meta"].attrs.get("task_instruction", "")).strip()
+            if not task_instruction:
+                task_instruction = f"{' + '.join(selected_cameras)} rollout"
+
             demos.append(
                 Demo(
                     task_index=task_index,
-                    task_instruction=f"{' + '.join(selected_cameras)} rollout",
+                    task_instruction=task_instruction,
                     images=images,
                     states=states,
                     gt_actions=gt_actions,

@@ -17,8 +17,8 @@ NOISE_TYPES: list[str] = [
 # Fixed severity level (user chose L3).
 NOISE_SEVERITY: int = 3
 DEFAULT_EVAL_CAMERAS: list[str] = [
-    "observation.images.front",
-    "observation.images.wrist",
+    "observation.images.image",
+    "observation.images.wrist_image",
 ]
 
 

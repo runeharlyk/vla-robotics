@@ -50,6 +50,7 @@ try:
         compute_relative_l2_distances,
     )
     from .noise import get_noise_configs
+    from .raw_action_logger import RawActionLogger
 except ImportError:
     from config import DEFAULT_EVAL_CAMERAS, NOISE_SEVERITY, NOISE_TYPES, EvalConfig
     from data_loader import iter_demos
@@ -63,6 +64,7 @@ except ImportError:
         compute_relative_l2_distances,
     )
     from noise import get_noise_configs
+    from raw_action_logger import RawActionLogger
 
 
 # ---------------------------------------------------------------------------
@@ -75,10 +77,10 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--rollout",
-        default="libero_demo_samples/combined_data",
+        default="libero_clean_data/libero_10",
         help=(
             "Path to one Libero+ h5 file OR to a directory that contains "
-            "chunk-*/episode_*.h5 files (recursively discovered)."
+            "dataset_name/chunk_*/episode_*.h5 files (recursively discovered)."
         ),
     )
     p.add_argument(
@@ -262,9 +264,9 @@ def save_noise_deviation_diagram(summary: dict, output_path: Path) -> None:
 _CHECKPOINT_FILE = "checkpoint.json"
 
 
-def _checkpoint_key(source_h5: str, noise_type: str, severity: int) -> str:
+def _checkpoint_key(source_h5: str, rollout_index: int, noise_type: str, severity: int) -> str:
     """Return a deterministic string key for one unit of completed work."""
-    return f"{source_h5}|{noise_type}|s{severity}"
+    return f"{source_h5}|ep{rollout_index}|{noise_type}|s{severity}"
 
 
 def load_checkpoint(out_dir: Path) -> set[str]:
@@ -294,9 +296,29 @@ def save_checkpoint(out_dir: Path, completed: set[str]) -> None:
 # Main loop
 # ---------------------------------------------------------------------------
 
+def _resolve_task_instruction(h5_path: Path, demo_instruction: str) -> str:
+    """Return the real task instruction, preferring h5 root attrs over the
+    Layout-B fallback (which is the camera-name string)."""
+    try:
+        import h5py
+        with h5py.File(str(h5_path), "r") as hf:
+            instr = hf.attrs.get("task_instruction", "").strip()
+            if instr:
+                return instr
+            # Also check meta sub-group
+            if "meta" in hf:
+                instr = hf["meta"].attrs.get("task_instruction", "").strip()
+                if instr:
+                    return instr
+    except Exception:
+        pass
+    return demo_instruction
+
+
 def run_evaluation(cfg: EvalConfig) -> None:
     out_dir = cfg.resolve_output_dir()
     csv_path = out_dir / "results.csv"
+    raw_actions_path = out_dir / "raw_actions.h5"
 
     if cfg.reference_source not in {"model", "demo"}:
         raise ValueError(f"Invalid reference_source='{cfg.reference_source}'. Expected one of: model, demo.")
@@ -345,6 +367,10 @@ def run_evaluation(cfg: EvalConfig) -> None:
     # Open the CSV for incremental appending.
     logger.open_csv(csv_path)
 
+    # -- raw action logger (per-joint, per-timestep) --
+    raw_logger = RawActionLogger(raw_actions_path)
+    print(f"  Raw action log: {raw_actions_path}")
+
     t0 = time.time()
     seen_tasks: dict[int, int] = {}  # task_index -> processed demos
     processed_demos = 0
@@ -352,7 +378,7 @@ def run_evaluation(cfg: EvalConfig) -> None:
     newly_completed: set[str] = set()  # keys completed in *this* session
 
     # -- iterate --
-    try:
+    try:  # noqa: SIM105  (finally block below closes raw_logger)
         for file_idx, h5_path in enumerate(rollout_files, start=1):
             source_h5 = to_source_id(h5_path, rollout_root)
             source_chunk, source_episode = parse_chunk_episode(h5_path)
@@ -375,6 +401,12 @@ def run_evaluation(cfg: EvalConfig) -> None:
                 print("  No demos found in this file; skipping.")
                 continue
 
+            # Resolve real task instruction (fixes the camera-name fallback bug)
+            for demo in demos:
+                resolved = _resolve_task_instruction(h5_path, demo.task_instruction)
+                if resolved != demo.task_instruction:
+                    demo.task_instruction = resolved
+
             for local_demo_idx, demo in enumerate(demos, start=1):
                 task_count = seen_tasks.get(demo.task_index, 0)
 
@@ -386,9 +418,13 @@ def run_evaluation(cfg: EvalConfig) -> None:
                 if cfg.max_demos is not None and task_count >= cfg.max_demos:
                     continue
 
-                seen_tasks[demo.task_index] = seen_tasks.get(demo.task_index, 0) + 1
-                rollout_index = processed_demos
+                rollout_index = task_count
+                seen_tasks[demo.task_index] = task_count + 1
                 processed_demos += 1
+
+                # Validate instruction
+                if not demo.task_instruction or "rollout" in demo.task_instruction.lower():
+                    print(f"    WARNING: Suspicious or empty task instruction: '{demo.task_instruction}'")
 
                 print(
                     f"  [Demo {local_demo_idx}/{len(demos)} | global={processed_demos}] "
@@ -401,7 +437,7 @@ def run_evaluation(cfg: EvalConfig) -> None:
                 # ----- check which noise variants are already done -----
                 noise_configs_todo = []
                 for nc in noise_configs:
-                    key = _checkpoint_key(source_h5, nc.noise_type, nc.severity)
+                    key = _checkpoint_key(source_h5, rollout_index, nc.noise_type, nc.severity)
                     if key in completed:
                         print(f"      [{nc}] already completed — skipping")
                     else:
@@ -541,8 +577,25 @@ def run_evaluation(cfg: EvalConfig) -> None:
                         quality_ratio_l2=quality_ratio_l2,
                     )
 
+                    # -- raw per-joint action log --
+                    ep_key = (
+                        f"task{demo.task_index}_ep{rollout_index}"
+                        f"_{nc.noise_type}_s{nc.severity}"
+                    )
+                    raw_logger.record(
+                        episode_key=ep_key,
+                        task_index=demo.task_index,
+                        task_name=demo.task_instruction,
+                        rollout_index=rollout_index,
+                        source_h5=source_h5,
+                        noise_type=nc.noise_type,
+                        noise_severity=nc.severity,
+                        predicted_actions=predicted,
+                        gt_actions=ref_actions,   # store whatever we used as reference
+                    )
+
                     # Mark this (file, noise) combo as done.
-                    key = _checkpoint_key(source_h5, nc.noise_type, nc.severity)
+                    key = _checkpoint_key(source_h5, rollout_index, nc.noise_type, nc.severity)
                     completed.add(key)
                     newly_completed.add(key)
 
@@ -555,6 +608,7 @@ def run_evaluation(cfg: EvalConfig) -> None:
     finally:
         # Ensure the CSV is properly closed even on crash / KeyboardInterrupt.
         logger.close_csv()
+        raw_logger.close()
         # Always persist checkpoint so partial progress is saved.
         if newly_completed:
             save_checkpoint(out_dir, completed)

@@ -47,7 +47,7 @@ def load_policy_bundle(
             "Use --device cpu or fix your CUDA environment."
         )
 
-    policy = SmolVLAPolicy(checkpoint, action_dim=7, device=str(device_obj))
+    policy = SmolVLAPolicy(checkpoint, action_dim=7, state_dim=8, device=str(device_obj))
     policy.eval()
 
     return {
@@ -204,7 +204,7 @@ def run_trajectories_for_noises(
             img_chunk = images[t_start:t_end]
             state_chunk = states[t_start:t_end]
             if state_chunk.ndim == 1:
-                state_chunk = state_chunk.unsqueeze(-1)
+                state_chunk = state_chunk.unsqueeze(0)
             chunk_steps = state_chunk.shape[0]
 
             for n_start in range(0, n_noises, noise_batch_size):

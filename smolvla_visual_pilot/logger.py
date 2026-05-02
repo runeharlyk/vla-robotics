@@ -32,6 +32,13 @@ class TimestepRecord:
     timestep: int
     l2_distance: float
     rel_l2_distance: float
+    abs_err_x: float | None = None
+    abs_err_y: float | None = None
+    abs_err_z: float | None = None
+    abs_err_roll: float | None = None
+    abs_err_pitch: float | None = None
+    abs_err_yaw: float | None = None
+    abs_err_gripper: float | None = None
     quality_delta_l2: float | None = None
     quality_ratio_l2: float | None = None
 
@@ -76,6 +83,13 @@ class ResultLogger:
         timestep: int,
         l2_distance: float,
         rel_l2_distance: float,
+        abs_err_x: float | None = None,
+        abs_err_y: float | None = None,
+        abs_err_z: float | None = None,
+        abs_err_roll: float | None = None,
+        abs_err_pitch: float | None = None,
+        abs_err_yaw: float | None = None,
+        abs_err_gripper: float | None = None,
         quality_delta_l2: float | None = None,
         quality_ratio_l2: float | None = None,
     ) -> None:
@@ -92,6 +106,13 @@ class ResultLogger:
                 timestep=timestep,
                 l2_distance=l2_distance,
                 rel_l2_distance=rel_l2_distance,
+                abs_err_x=abs_err_x,
+                abs_err_y=abs_err_y,
+                abs_err_z=abs_err_z,
+                abs_err_roll=abs_err_roll,
+                abs_err_pitch=abs_err_pitch,
+                abs_err_yaw=abs_err_yaw,
+                abs_err_gripper=abs_err_gripper,
                 quality_delta_l2=quality_delta_l2,
                 quality_ratio_l2=quality_ratio_l2,
             )
@@ -156,6 +177,13 @@ class ResultLogger:
                 timestep=t,
                 l2_distance=float(l2_arr[t]),
                 rel_l2_distance=float(rel_l2_arr[t]),
+                abs_err_x=float(per_dim_abs_arr[t, 0]) if per_dim_abs_errors is not None else None,
+                abs_err_y=float(per_dim_abs_arr[t, 1]) if per_dim_abs_errors is not None else None,
+                abs_err_z=float(per_dim_abs_arr[t, 2]) if per_dim_abs_errors is not None else None,
+                abs_err_roll=float(per_dim_abs_arr[t, 3]) if per_dim_abs_errors is not None else None,
+                abs_err_pitch=float(per_dim_abs_arr[t, 4]) if per_dim_abs_errors is not None else None,
+                abs_err_yaw=float(per_dim_abs_arr[t, 5]) if per_dim_abs_errors is not None else None,
+                abs_err_gripper=float(per_dim_abs_arr[t, 6]) if per_dim_abs_errors is not None else None,
                 quality_delta_l2=(float(quality_delta_arr[t]) if quality_delta_arr is not None else None),
                 quality_ratio_l2=(float(quality_ratio_arr[t]) if quality_ratio_arr is not None else None),
             )
@@ -199,6 +227,13 @@ class ResultLogger:
                 "timestep": r.timestep,
                 "l2_distance": f"{r.l2_distance:.6f}",
                 "rel_l2_distance": f"{r.rel_l2_distance:.6f}",
+                "abs_err_x": ("" if r.abs_err_x is None else f"{r.abs_err_x:.6f}"),
+                "abs_err_y": ("" if r.abs_err_y is None else f"{r.abs_err_y:.6f}"),
+                "abs_err_z": ("" if r.abs_err_z is None else f"{r.abs_err_z:.6f}"),
+                "abs_err_roll": ("" if r.abs_err_roll is None else f"{r.abs_err_roll:.6f}"),
+                "abs_err_pitch": ("" if r.abs_err_pitch is None else f"{r.abs_err_pitch:.6f}"),
+                "abs_err_yaw": ("" if r.abs_err_yaw is None else f"{r.abs_err_yaw:.6f}"),
+                "abs_err_gripper": ("" if r.abs_err_gripper is None else f"{r.abs_err_gripper:.6f}"),
                 "quality_delta_l2": ("" if r.quality_delta_l2 is None else f"{r.quality_delta_l2:.6f}"),
                 "quality_ratio_l2": ("" if r.quality_ratio_l2 is None else f"{r.quality_ratio_l2:.6f}"),
             }
@@ -289,6 +324,13 @@ class ResultLogger:
                     timestep=int(row["timestep"]),
                     l2_distance=float(row["l2_distance"]),
                     rel_l2_distance=float(row["rel_l2_distance"]),
+                    abs_err_x=(float(row["abs_err_x"]) if row.get("abs_err_x") else None),
+                    abs_err_y=(float(row["abs_err_y"]) if row.get("abs_err_y") else None),
+                    abs_err_z=(float(row["abs_err_z"]) if row.get("abs_err_z") else None),
+                    abs_err_roll=(float(row["abs_err_roll"]) if row.get("abs_err_roll") else None),
+                    abs_err_pitch=(float(row["abs_err_pitch"]) if row.get("abs_err_pitch") else None),
+                    abs_err_yaw=(float(row["abs_err_yaw"]) if row.get("abs_err_yaw") else None),
+                    abs_err_gripper=(float(row["abs_err_gripper"]) if row.get("abs_err_gripper") else None),
                     quality_delta_l2=(float(q_delta) if q_delta else None),
                     quality_ratio_l2=(float(q_ratio) if q_ratio else None),
                 )
@@ -309,6 +351,13 @@ class ResultLogger:
         "timestep",
         "l2_distance",
         "rel_l2_distance",
+        "abs_err_x",
+        "abs_err_y",
+        "abs_err_z",
+        "abs_err_roll",
+        "abs_err_pitch",
+        "abs_err_yaw",
+        "abs_err_gripper",
         "quality_delta_l2",
         "quality_ratio_l2",
     ]
@@ -334,6 +383,13 @@ class ResultLogger:
                         "timestep": r.timestep,
                         "l2_distance": f"{r.l2_distance:.6f}",
                         "rel_l2_distance": f"{r.rel_l2_distance:.6f}",
+                        "abs_err_x": ("" if r.abs_err_x is None else f"{r.abs_err_x:.6f}"),
+                        "abs_err_y": ("" if r.abs_err_y is None else f"{r.abs_err_y:.6f}"),
+                        "abs_err_z": ("" if r.abs_err_z is None else f"{r.abs_err_z:.6f}"),
+                        "abs_err_roll": ("" if r.abs_err_roll is None else f"{r.abs_err_roll:.6f}"),
+                        "abs_err_pitch": ("" if r.abs_err_pitch is None else f"{r.abs_err_pitch:.6f}"),
+                        "abs_err_yaw": ("" if r.abs_err_yaw is None else f"{r.abs_err_yaw:.6f}"),
+                        "abs_err_gripper": ("" if r.abs_err_gripper is None else f"{r.abs_err_gripper:.6f}"),
                         "quality_delta_l2": ("" if r.quality_delta_l2 is None else f"{r.quality_delta_l2:.6f}"),
                         "quality_ratio_l2": ("" if r.quality_ratio_l2 is None else f"{r.quality_ratio_l2:.6f}"),
                     }
@@ -408,6 +464,7 @@ class ResultLogger:
         from collections import defaultdict
 
         by_noise: dict[str, list[float]] = defaultdict(list)
+        by_noise_dim_abs: dict[str, list[list[float]]] = defaultdict(list)
         by_noise_rel: dict[str, list[float]] = defaultdict(list)
         by_noise_quality_delta: dict[str, list[float]] = defaultdict(list)
         by_noise_quality_ratio: dict[str, list[float]] = defaultdict(list)
@@ -425,6 +482,11 @@ class ResultLogger:
             by_task[r.task_index].append(r.l2_distance)
             by_task_noise[(r.task_index, r.noise_type)].append(r.l2_distance)
             by_source_noise[r.source_h5][r.noise_type].append(r.l2_distance)
+            if r.abs_err_x is not None:
+                by_noise_dim_abs[r.noise_type].append([
+                    r.abs_err_x, r.abs_err_y, r.abs_err_z,
+                    r.abs_err_roll, r.abs_err_pitch, r.abs_err_yaw, r.abs_err_gripper
+                ])
 
         def _stats(vals: list[float]) -> dict:
             a = np.array(vals)
@@ -451,7 +513,7 @@ class ResultLogger:
             "by_noise_type_quality_delta_l2": {k: _stats(v) for k, v in sorted(by_noise_quality_delta.items())},
             "by_noise_type_quality_ratio_l2": {k: _stats(v) for k, v in sorted(by_noise_quality_ratio.items())},
             "by_noise_type_per_action_dim_abs": {
-                k: _dim_stats(v) for k, v in sorted(self._per_dim_abs_by_noise.items())
+                k: _dim_stats([np.array(v)]) for k, v in sorted(by_noise_dim_abs.items())
             },
             "by_noise_type_per_action_dim_relative": {
                 k: _dim_stats(v) for k, v in sorted(self._per_dim_rel_by_noise.items())
