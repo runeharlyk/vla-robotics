@@ -1,0 +1,42 @@
+# @package _global_
+
+metadata:
+  label: fpo-t5-chunk5-sftkl002
+  source_doc: docs/libero_spatial_rl_experiment_plan.md
+  notes: |
+    FPO chunk-5 with the SFT-anchor coefficient pushed to 0.02 (4x the
+    0.005 used by 28327579 / "t5_chunk5_nodynamic_confirm" and 20x the
+    0.001 used by 28335554 / "fpo_t5_chunk5_lowsft_kl"). Both prior runs
+    plateaued near 0.64-0.65 train-eval on task-5 with raw_sft_kl drifting
+    to 1.4-3.2 (vs the kl_target of 0.01) - i.e. the SFT-KL term was not
+    binding. Hypothesis: a stronger SFT anchor keeps raw_sft_kl in the
+    0.05-0.2 band (matching the historical 28188629 recipe) and unlocks
+    further task-5 improvement without the late-collapse risk seen in
+    Flow-GRPO at sigma=0.10.
+
+    Decision rule: if train-eval task-5 best > 0.70 with no late drop and
+    held-out full-suite > 0.70, sft_coeff=0.02 becomes the new chunk-5
+    default; if equal to or worse than 0.65, drop the lever.
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: fpo-t5-chunk5-nodynamic-sftkl002-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+fpo:
+  full_chunk_target: true
