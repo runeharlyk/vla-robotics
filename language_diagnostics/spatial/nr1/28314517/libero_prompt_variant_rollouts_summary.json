@@ -1,0 +1,28 @@
+{
+  "generated_at_utc": "2026-04-30T04:27:29.772201+00:00",
+  "args": {
+    "episodes": 50,
+    "max_steps": 280,
+    "seed": 0,
+    "state_dim": 8,
+    "action_dim": 7,
+    "device": "cuda",
+    "output_dir": "language_diagnostics/outputs/spatial/nr1/28314517",
+    "prompt_plan_path": "language_diagnostics/variant_prompt_plan_spatial_nr1.json",
+    "progress_every": 10,
+    "step_progress_every": 0
+  },
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "do_not_move"
+  ],
+  "prompt_plan_path": "language_diagnostics/variant_prompt_plan_spatial_nr1.json",
+  "num_rollout_rows": 800,
+  "num_prompt_rows": 16
+}

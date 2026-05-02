@@ -1,0 +1,801 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,0,200000,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,1,200001,True,133
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,2,200002,True,120
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,3,200003,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,4,200004,True,185
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,5,200005,True,133
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,6,200006,True,118
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,7,200007,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,8,200008,True,145
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,9,200009,True,138
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,10,200010,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,11,200011,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,12,200012,True,119
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,13,200013,True,139
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,14,200014,True,124
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,15,200015,True,131
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,16,200016,True,133
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,17,200017,True,128
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,18,200018,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,19,200019,True,139
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,20,200020,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,21,200021,True,138
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,22,200022,True,133
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,23,200023,True,209
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,24,200024,True,252
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,25,200025,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,26,200026,True,221
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,27,200027,True,124
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,28,200028,True,172
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,29,200029,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,30,200030,True,245
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,31,200031,True,132
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,32,200032,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,33,200033,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,34,200034,True,157
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,35,200035,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,36,200036,True,136
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,37,200037,True,159
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,38,200038,True,125
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,39,200039,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,40,200040,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,41,200041,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,42,200042,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,43,200043,True,140
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,44,200044,True,120
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,45,200045,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,46,200046,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,47,200047,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,48,200048,False,280
+goal,0,open the middle drawer of the cabinet,200000,original,0,open the middle drawer of the cabinet,49,200049,True,144
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,0,200000,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,1,200001,True,126
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,2,200002,True,124
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,3,200003,True,135
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,4,200004,True,154
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,5,200005,True,156
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,6,200006,True,120
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,7,200007,True,124
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,8,200008,True,138
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,9,200009,True,131
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,10,200010,True,180
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,11,200011,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,12,200012,True,119
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,13,200013,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,14,200014,True,133
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,15,200015,True,116
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,16,200016,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,17,200017,True,115
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,18,200018,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,19,200019,True,142
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,20,200020,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,21,200021,True,131
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,22,200022,True,140
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,23,200023,True,132
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,24,200024,True,144
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,25,200025,True,128
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,26,200026,True,125
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,27,200027,True,126
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,28,200028,True,120
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,29,200029,True,135
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,30,200030,True,135
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,31,200031,True,127
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,32,200032,True,118
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,33,200033,True,136
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,34,200034,True,126
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,35,200035,True,120
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,36,200036,True,117
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,37,200037,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,38,200038,True,132
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,39,200039,True,121
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,40,200040,True,150
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,41,200041,True,144
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,42,200042,True,148
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,43,200043,False,280
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,44,200044,True,121
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,45,200045,True,143
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,46,200046,True,149
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,47,200047,True,122
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,48,200048,True,136
+goal,0,open the middle drawer of the cabinet,200000,politeness,0,please open the middle drawer of the cabinet,49,200049,True,182
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,0,200000,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,1,200001,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,2,200002,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,3,200003,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,4,200004,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,5,200005,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,6,200006,True,160
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,7,200007,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,8,200008,True,158
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,9,200009,True,149
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,10,200010,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,11,200011,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,12,200012,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,13,200013,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,14,200014,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,15,200015,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,16,200016,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,17,200017,True,141
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,18,200018,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,19,200019,True,201
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,20,200020,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,21,200021,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,22,200022,True,151
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,23,200023,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,24,200024,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,25,200025,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,26,200026,True,152
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,27,200027,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,28,200028,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,29,200029,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,30,200030,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,31,200031,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,32,200032,True,275
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,33,200033,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,34,200034,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,35,200035,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,36,200036,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,37,200037,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,38,200038,True,246
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,39,200039,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,40,200040,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,41,200041,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,42,200042,True,180
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,43,200043,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,44,200044,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,45,200045,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,46,200046,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,47,200047,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,48,200048,False,280
+goal,0,open the middle drawer of the cabinet,200000,verb_paraphrase,0,pull out the middle drawer of the cabinet,49,200049,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",0,200000,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",1,200001,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",2,200002,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",3,200003,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",4,200004,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",5,200005,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",6,200006,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",7,200007,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",8,200008,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",9,200009,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",10,200010,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",11,200011,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",12,200012,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",13,200013,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",14,200014,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",15,200015,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",16,200016,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",17,200017,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",18,200018,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",19,200019,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",20,200020,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",21,200021,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",22,200022,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",23,200023,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",24,200024,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",25,200025,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",26,200026,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",27,200027,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",28,200028,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",29,200029,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",30,200030,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",31,200031,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",32,200032,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",33,200033,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",34,200034,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",35,200035,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",36,200036,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",37,200037,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",38,200038,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",39,200039,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",40,200040,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",41,200041,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",42,200042,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",43,200043,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",44,200044,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",45,200045,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",46,200046,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",47,200047,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",48,200048,False,280
+goal,0,open the middle drawer of the cabinet,200000,sentence_structure,0,"the middle drawer of the cabinet, open it",49,200049,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,0,200000,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,1,200001,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,2,200002,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,3,200003,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,4,200004,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,5,200005,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,6,200006,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,7,200007,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,8,200008,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,9,200009,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,10,200010,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,11,200011,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,12,200012,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,13,200013,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,14,200014,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,15,200015,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,16,200016,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,17,200017,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,18,200018,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,19,200019,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,20,200020,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,21,200021,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,22,200022,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,23,200023,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,24,200024,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,25,200025,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,26,200026,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,27,200027,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,28,200028,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,29,200029,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,30,200030,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,31,200031,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,32,200032,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,33,200033,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,34,200034,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,35,200035,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,36,200036,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,37,200037,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,38,200038,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,39,200039,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,40,200040,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,41,200041,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,42,200042,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,43,200043,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,44,200044,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,45,200045,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,46,200046,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,47,200047,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,48,200048,False,280
+goal,0,open the middle drawer of the cabinet,200000,verbosity,0,in this task you have to open the middle drawer of the cabinet for me,49,200049,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,0,200000,True,129
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,1,200001,True,133
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,2,200002,True,245
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,3,200003,True,132
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,4,200004,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,5,200005,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,6,200006,True,115
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,7,200007,True,126
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,8,200008,True,193
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,9,200009,True,151
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,10,200010,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,11,200011,True,112
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,12,200012,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,13,200013,True,150
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,14,200014,True,116
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,15,200015,True,119
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,16,200016,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,17,200017,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,18,200018,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,19,200019,True,120
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,20,200020,True,127
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,21,200021,True,128
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,22,200022,True,118
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,23,200023,True,125
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,24,200024,True,145
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,25,200025,True,155
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,26,200026,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,27,200027,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,28,200028,True,125
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,29,200029,True,123
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,30,200030,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,31,200031,True,130
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,32,200032,True,121
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,33,200033,True,136
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,34,200034,True,122
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,35,200035,True,137
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,36,200036,True,129
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,37,200037,True,135
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,38,200038,True,124
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,39,200039,True,126
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,40,200040,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,41,200041,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,42,200042,True,137
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,43,200043,False,280
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,44,200044,True,120
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,45,200045,True,135
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,46,200046,True,134
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,47,200047,True,120
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,48,200048,True,114
+goal,0,open the middle drawer of the cabinet,200000,carefully,0,open the middle drawer of the cabinet carefully,49,200049,True,134
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,0,200000,True,126
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,1,200001,True,125
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,2,200002,True,261
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,3,200003,True,123
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,4,200004,True,162
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,5,200005,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,6,200006,True,122
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,7,200007,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,8,200008,True,113
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,9,200009,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,10,200010,True,178
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,11,200011,True,121
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,12,200012,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,13,200013,True,259
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,14,200014,True,117
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,15,200015,True,123
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,16,200016,True,130
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,17,200017,True,202
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,18,200018,True,224
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,19,200019,True,130
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,20,200020,True,198
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,21,200021,True,197
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,22,200022,True,125
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,23,200023,True,133
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,24,200024,True,149
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,25,200025,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,26,200026,True,116
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,27,200027,True,130
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,28,200028,True,158
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,29,200029,True,131
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,30,200030,True,124
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,31,200031,True,124
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,32,200032,True,130
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,33,200033,True,128
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,34,200034,True,119
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,35,200035,True,122
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,36,200036,True,121
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,37,200037,True,132
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,38,200038,True,187
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,39,200039,True,140
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,40,200040,True,132
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,41,200041,True,161
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,42,200042,True,122
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,43,200043,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,44,200044,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,45,200045,True,192
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,46,200046,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,47,200047,False,280
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,48,200048,True,215
+goal,0,open the middle drawer of the cabinet,200000,quickly,0,open the middle drawer of the cabinet quickly,49,200049,True,128
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,0,200000,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,1,200001,True,121
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,2,200002,True,128
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,3,200003,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,4,200004,True,126
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,5,200005,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,6,200006,True,110
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,7,200007,True,117
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,8,200008,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,9,200009,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,10,200010,True,111
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,11,200011,True,138
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,12,200012,True,135
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,13,200013,True,108
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,14,200014,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,15,200015,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,16,200016,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,17,200017,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,18,200018,True,147
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,19,200019,True,116
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,20,200020,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,21,200021,True,136
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,22,200022,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,23,200023,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,24,200024,True,121
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,25,200025,True,133
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,26,200026,True,121
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,27,200027,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,28,200028,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,29,200029,True,134
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,30,200030,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,31,200031,True,123
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,32,200032,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,33,200033,True,104
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,34,200034,True,115
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,35,200035,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,36,200036,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,37,200037,True,106
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,38,200038,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,39,200039,True,139
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,40,200040,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,41,200041,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,42,200042,True,141
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,43,200043,True,129
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,44,200044,True,112
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,45,200045,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,46,200046,True,139
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,47,200047,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,48,200048,False,280
+goal,0,open the middle drawer of the cabinet,200000,do_not_move,0,do not open middle drawer of the cabinet,49,200049,False,280
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,0,201000,False,280
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,1,201001,True,95
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,2,201002,True,100
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,3,201003,True,89
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,4,201004,False,280
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,5,201005,True,94
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,6,201006,True,96
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,7,201007,True,91
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,8,201008,True,88
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,9,201009,True,91
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,10,201010,True,100
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,11,201011,True,89
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,12,201012,True,93
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,13,201013,True,90
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,14,201014,True,95
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,15,201015,True,84
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,16,201016,True,91
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,17,201017,True,88
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,18,201018,True,95
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,19,201019,True,97
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,20,201020,True,96
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,21,201021,True,94
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,22,201022,True,91
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,23,201023,True,95
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,24,201024,False,280
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,25,201025,True,88
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,26,201026,True,109
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,27,201027,True,98
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,28,201028,True,95
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,29,201029,True,93
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,30,201030,True,85
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,31,201031,True,84
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,32,201032,True,89
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,33,201033,True,91
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,34,201034,True,94
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,35,201035,True,97
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,36,201036,True,97
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,37,201037,True,97
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,38,201038,True,99
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,39,201039,True,89
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,40,201040,True,90
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,41,201041,False,280
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,42,201042,True,93
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,43,201043,True,85
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,44,201044,True,109
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,45,201045,True,96
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,46,201046,True,92
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,47,201047,True,92
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,48,201048,True,98
+goal,1,put the bowl on the stove,201000,original,0,put the bowl on the stove,49,201049,True,90
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,0,201000,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,1,201001,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,2,201002,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,3,201003,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,4,201004,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,5,201005,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,6,201006,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,7,201007,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,8,201008,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,9,201009,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,10,201010,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,11,201011,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,12,201012,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,13,201013,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,14,201014,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,15,201015,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,16,201016,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,17,201017,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,18,201018,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,19,201019,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,20,201020,True,128
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,21,201021,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,22,201022,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,23,201023,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,24,201024,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,25,201025,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,26,201026,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,27,201027,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,28,201028,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,29,201029,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,30,201030,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,31,201031,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,32,201032,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,33,201033,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,34,201034,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,35,201035,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,36,201036,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,37,201037,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,38,201038,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,39,201039,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,40,201040,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,41,201041,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,42,201042,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,43,201043,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,44,201044,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,45,201045,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,46,201046,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,47,201047,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,48,201048,False,280
+goal,1,put the bowl on the stove,201000,politeness,0,please put the bowl on the stove,49,201049,False,280
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,0,201000,True,97
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,1,201001,True,113
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,2,201002,True,99
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,3,201003,True,102
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,4,201004,True,105
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,5,201005,True,92
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,6,201006,True,97
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,7,201007,True,91
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,8,201008,True,93
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,9,201009,True,94
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,10,201010,True,93
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,11,201011,True,92
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,12,201012,True,92
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,13,201013,True,97
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,14,201014,True,99
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,15,201015,True,101
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,16,201016,True,90
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,17,201017,True,93
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,18,201018,True,96
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,19,201019,True,96
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,20,201020,True,99
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,21,201021,True,99
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,22,201022,True,116
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,23,201023,True,100
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,24,201024,True,99
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,25,201025,True,82
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,26,201026,True,102
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,27,201027,True,98
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,28,201028,True,89
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,29,201029,True,98
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,30,201030,True,88
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,31,201031,True,97
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,32,201032,True,100
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,33,201033,True,92
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,34,201034,True,92
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,35,201035,True,91
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,36,201036,True,98
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,37,201037,True,90
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,38,201038,True,96
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,39,201039,True,99
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,40,201040,True,105
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,41,201041,True,102
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,42,201042,True,94
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,43,201043,True,94
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,44,201044,True,100
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,45,201045,True,94
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,46,201046,True,97
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,47,201047,True,101
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,48,201048,True,97
+goal,1,put the bowl on the stove,201000,verb_paraphrase,0,place the bowl on the stove,49,201049,True,92
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",0,201000,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",1,201001,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",2,201002,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",3,201003,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",4,201004,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",5,201005,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",6,201006,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",7,201007,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",8,201008,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",9,201009,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",10,201010,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",11,201011,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",12,201012,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",13,201013,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",14,201014,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",15,201015,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",16,201016,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",17,201017,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",18,201018,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",19,201019,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",20,201020,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",21,201021,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",22,201022,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",23,201023,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",24,201024,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",25,201025,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",26,201026,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",27,201027,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",28,201028,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",29,201029,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",30,201030,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",31,201031,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",32,201032,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",33,201033,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",34,201034,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",35,201035,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",36,201036,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",37,201037,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",38,201038,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",39,201039,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",40,201040,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",41,201041,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",42,201042,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",43,201043,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",44,201044,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",45,201045,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",46,201046,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",47,201047,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",48,201048,False,280
+goal,1,put the bowl on the stove,201000,sentence_structure,0,"the bowl, put it on the stove",49,201049,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,0,201000,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,1,201001,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,2,201002,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,3,201003,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,4,201004,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,5,201005,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,6,201006,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,7,201007,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,8,201008,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,9,201009,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,10,201010,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,11,201011,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,12,201012,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,13,201013,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,14,201014,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,15,201015,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,16,201016,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,17,201017,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,18,201018,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,19,201019,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,20,201020,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,21,201021,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,22,201022,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,23,201023,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,24,201024,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,25,201025,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,26,201026,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,27,201027,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,28,201028,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,29,201029,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,30,201030,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,31,201031,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,32,201032,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,33,201033,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,34,201034,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,35,201035,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,36,201036,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,37,201037,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,38,201038,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,39,201039,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,40,201040,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,41,201041,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,42,201042,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,43,201043,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,44,201044,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,45,201045,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,46,201046,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,47,201047,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,48,201048,False,280
+goal,1,put the bowl on the stove,201000,verbosity,0,in this task you have to put the bowl on the stove for me,49,201049,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,0,201000,True,267
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,1,201001,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,2,201002,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,3,201003,True,138
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,4,201004,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,5,201005,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,6,201006,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,7,201007,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,8,201008,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,9,201009,True,272
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,10,201010,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,11,201011,True,143
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,12,201012,True,142
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,13,201013,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,14,201014,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,15,201015,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,16,201016,True,158
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,17,201017,True,233
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,18,201018,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,19,201019,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,20,201020,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,21,201021,True,156
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,22,201022,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,23,201023,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,24,201024,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,25,201025,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,26,201026,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,27,201027,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,28,201028,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,29,201029,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,30,201030,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,31,201031,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,32,201032,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,33,201033,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,34,201034,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,35,201035,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,36,201036,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,37,201037,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,38,201038,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,39,201039,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,40,201040,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,41,201041,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,42,201042,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,43,201043,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,44,201044,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,45,201045,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,46,201046,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,47,201047,True,128
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,48,201048,False,280
+goal,1,put the bowl on the stove,201000,carefully,0,put the bowl on the stove carefully,49,201049,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,0,201000,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,1,201001,True,154
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,2,201002,True,156
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,3,201003,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,4,201004,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,5,201005,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,6,201006,True,149
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,7,201007,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,8,201008,True,134
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,9,201009,True,125
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,10,201010,True,134
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,11,201011,True,179
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,12,201012,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,13,201013,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,14,201014,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,15,201015,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,16,201016,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,17,201017,True,155
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,18,201018,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,19,201019,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,20,201020,True,121
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,21,201021,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,22,201022,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,23,201023,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,24,201024,True,134
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,25,201025,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,26,201026,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,27,201027,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,28,201028,True,223
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,29,201029,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,30,201030,True,225
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,31,201031,True,134
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,32,201032,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,33,201033,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,34,201034,True,150
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,35,201035,True,244
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,36,201036,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,37,201037,True,163
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,38,201038,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,39,201039,True,143
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,40,201040,True,124
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,41,201041,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,42,201042,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,43,201043,True,190
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,44,201044,True,122
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,45,201045,True,201
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,46,201046,True,127
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,47,201047,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,48,201048,False,280
+goal,1,put the bowl on the stove,201000,quickly,0,put the bowl on the stove quickly,49,201049,True,136
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,0,201000,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,1,201001,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,2,201002,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,3,201003,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,4,201004,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,5,201005,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,6,201006,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,7,201007,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,8,201008,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,9,201009,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,10,201010,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,11,201011,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,12,201012,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,13,201013,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,14,201014,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,15,201015,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,16,201016,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,17,201017,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,18,201018,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,19,201019,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,20,201020,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,21,201021,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,22,201022,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,23,201023,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,24,201024,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,25,201025,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,26,201026,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,27,201027,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,28,201028,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,29,201029,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,30,201030,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,31,201031,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,32,201032,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,33,201033,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,34,201034,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,35,201035,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,36,201036,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,37,201037,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,38,201038,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,39,201039,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,40,201040,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,41,201041,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,42,201042,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,43,201043,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,44,201044,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,45,201045,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,46,201046,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,47,201047,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,48,201048,False,280
+goal,1,put the bowl on the stove,201000,do_not_move,0,do not place the bowl on the stove,49,201049,False,280
