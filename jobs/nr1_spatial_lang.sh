@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
-#BSUB -J libero_prompt_eval
-#BSUB -q gpul40s
+#BSUB -J spatial_lang_eval_nr1
+#BSUB -q gpua40
 #BSUB -W 24:00
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
@@ -11,7 +11,7 @@
 #BSUB -u s234809@dtu.dk
 #BSUB -B
 #BSUB -N
-#BSUB -oo logs/libero_prompt_eval/%J.out
+#BSUB -oo logs/libero_prompt_eval_nr1/%J.out
 # -------------------------------------------------
 
 . jobs/_env.sh
@@ -22,10 +22,10 @@ printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero;
 
 # Run your script
 uv run python language_diagnostics/libero_prompt_variant_run.py \
-  --prompt-plan-path language_diagnostics/variant_prompt_plan_spatial.json \
+  --prompt-plan-path language_diagnostics/variant_prompt_plan_spatial_nr1.json \
   --episodes 50 \
   --device cuda \
   --progress-every 10 \
-  --output-dir language_diagnostics/outputs/spatial/$LSB_JOBID
+  --output-dir language_diagnostics/outputs/spatial/nr1/$LSB_JOBID
 
 

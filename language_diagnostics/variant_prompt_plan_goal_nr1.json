@@ -1,0 +1,46 @@
+{
+  "generated_at_utc": "2026-04-27T09:22:48.854385+00:00",
+  "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "do_not_move"
+  ],
+  "tasks": [
+    {
+      "suite": "goal",
+      "task_id": 0,
+      "task_description": "open the middle drawer of the cabinet",
+      "prompts": {
+        "original": "open the middle drawer of the cabinet",
+        "politeness": "please open the middle drawer of the cabinet",
+        "verb_paraphrase": "pull out the middle drawer of the cabinet",
+        "sentence_structure": "the middle drawer of the cabinet, open it",
+        "verbosity": "in this task you have to open the middle drawer of the cabinet for me",
+        "carefully": "open the middle drawer of the cabinet carefully",
+        "quickly": "open the middle drawer of the cabinet quickly",
+        "do_not_move": "do not open middle drawer of the cabinet"
+      }
+    },
+    {
+      "suite": "goal",
+      "task_id": 1,
+      "task_description": "put the bowl on the stove",
+      "prompts": {
+        "original": "put the bowl on the stove",
+        "politeness": "please put the bowl on the stove",
+        "verb_paraphrase": "place the bowl on the stove",
+        "sentence_structure": "the bowl, put it on the stove",
+        "verbosity": "in this task you have to put the bowl on the stove for me",
+        "carefully": "put the bowl on the stove carefully",
+        "quickly": "put the bowl on the stove quickly",
+        "do_not_move": "do not place the bowl on the stove"
+      }
+    }
+  ]
+}

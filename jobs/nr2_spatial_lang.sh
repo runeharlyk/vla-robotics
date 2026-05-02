@@ -1,9 +1,9 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
-#BSUB -J libero_prompt_eval
-#BSUB -q gpul40s
-#BSUB -W 10:00
+#BSUB -J spatial_lang_eval_nr2
+#BSUB -q gpua40
+#BSUB -W 24:00
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=6GB]"
@@ -22,7 +22,10 @@ printf "Y\n/work3/s234814/libero\nY\n" | uv run python -c "import libero.libero;
 
 # Run your script
 uv run python language_diagnostics/libero_prompt_variant_run.py \
-  --episodes 5 \
+  --prompt-plan-path language_diagnostics/variant_prompt_plan_spatial_nr2.json \
+  --episodes 50 \
   --device cuda \
-  --progress-every 10
-  --output-dir language_diagnostics/outputs/$LSB_JOBID
+  --progress-every 10 \
+  --output-dir language_diagnostics/outputs/spatial/nr2/$LSB_JOBID
+
+
