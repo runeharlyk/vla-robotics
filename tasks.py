@@ -247,21 +247,51 @@ def submit_eval(
     profile: str = "l40s-16",
     checkpoint: str = "best",
     submit: bool = False,
+    n_action_steps: int = 0,
+    num_episodes: int = 0,
+    checkpoint_dir: str = "",
+    training_job_id: str = "",
 ) -> None:
-    """Create or submit an eval job for a train experiment checkpoint."""
+    """Create or submit an eval job for a train experiment checkpoint.
+
+    Overrides (default 0/empty = inherit from train config / matched record):
+        --n-action-steps   eval at this chunk depth (e.g. 1 for fairest n=1 comparison)
+        --num-episodes     episodes per task (e.g. 100 for thesis-grade numbers)
+        --checkpoint-dir   bypass record matching and evaluate this exact path
+        --training-job-id  pin record matching to a single LSF job id (e.g. 28338903)
+    """
     if not experiment:
         print("Usage: invoke submit-eval --experiment <train-config> [--checkpoint best|last|best-rollout]")
+        print("  Optional overrides: --n-action-steps INT --num-episodes INT --checkpoint-dir PATH --training-job-id ID")
         print(f"  GPU profiles: {', '.join(load_yaml(PROFILES_PATH))}")
         raise SystemExit(1)
 
+    overrides = {
+        "n_action_steps": n_action_steps if n_action_steps > 0 else None,
+        "num_episodes": num_episodes if num_episodes > 0 else None,
+        "checkpoint_dir": checkpoint_dir or None,
+        "training_job_id": training_job_id or None,
+    }
+
     train_experiment_path = hydra_experiment_dir("train") / f"{experiment}.yaml"
-    if train_experiment_path.exists():
-        validation = validate_train_eval_submit(experiment, profile, checkpoint, submit=submit)
+    if train_experiment_path.exists() or overrides["checkpoint_dir"]:
+        validation = validate_train_eval_submit(
+            experiment,
+            profile,
+            checkpoint,
+            submit=submit,
+            **overrides,
+        )
         print_submit_validation(validation)
         if validation.errors:
             raise SystemExit(1)
 
-        generated = generate_train_eval_job_script(experiment, profile, checkpoint)
+        generated = generate_train_eval_job_script(
+            experiment,
+            profile,
+            checkpoint,
+            **overrides,
+        )
         GENERATED_JOBS_DIR.mkdir(parents=True, exist_ok=True)
         script_path = GENERATED_JOBS_DIR / f"{generated.name}.sh"
         script_path.write_text(generated.script, newline="\n")

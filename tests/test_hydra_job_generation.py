@@ -102,10 +102,165 @@ def test_validate_train_eval_submit_resolves_checkpoint_from_training_experiment
     assert validation.errors == []
     assert validation.summary["eval_targets"][0]["checkpoint_dir"] == str(checkpoint_dir).replace("\\", "/")
     assert validation.summary["eval_targets"][0]["training_job_id"] == "123"
+    assert validation.summary["eval_targets"][0]["n_action_steps"] == "5"
+    assert validation.summary["eval_targets"][0]["num_episodes"] == "8"
+    assert validation.summary["eval_targets"][0]["match_reason"] == "wandb_name"
     assert "--checkpoint-dir" in validation.summary["args"]
     assert str(checkpoint_dir).replace("\\", "/") in validation.summary["args"]
     assert "--n-action-steps" in validation.summary["args"]
     assert "5" in validation.summary["args"]
+
+
+def test_submit_eval_overrides_n_action_steps_and_num_episodes(monkeypatch) -> None:
+    checkpoint_dir = Path(".tmp") / "test_hydra_job_generation" / "run_overrides" / "best"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    (checkpoint_dir / "policy.pt").write_text("stub", encoding="utf-8")
+    train_config = {"wandb_name": "unit-train"}
+    composed_config = {
+        "checkpoint": "HuggingFaceVLA/smolvla_libero",
+        "simulator": "libero",
+        "suite": "spatial",
+        "eval_episodes": 10,
+        "max_steps": 220,
+        "seed": 42,
+        "rollout": {"num_envs": 8, "n_action_steps": 5},
+    }
+    record = {
+        "wandb_run_name": "unit-train_sparse_rl_spatial_task_5_seed42_999",
+        "lsf_job_id": "999",
+        "best_checkpoint_dir": str(checkpoint_dir),
+    }
+
+    monkeypatch.setattr(jobs, "load_train_experiment", lambda _experiment: (Path("unit.yaml"), train_config))
+    monkeypatch.setattr(jobs, "compose_train_experiment_dict", lambda _experiment: composed_config)
+    monkeypatch.setattr(jobs, "load_training_records", lambda: [record])
+
+    validation = jobs.validate_train_eval_submit(
+        "unit_train",
+        "a10-10h",
+        "best",
+        submit=False,
+        n_action_steps=1,
+        num_episodes=100,
+    )
+
+    target = validation.summary["eval_targets"][0]
+    assert target["n_action_steps"] == "1"
+    assert target["num_episodes"] == "100"
+    args = validation.summary["args"]
+    assert "--n-action-steps" in args
+    n_idx = args.index("--n-action-steps")
+    assert args[n_idx + 1] == "1"
+    assert "--num-episodes" in args
+    e_idx = args.index("--num-episodes")
+    assert args[e_idx + 1] == "100"
+
+
+def test_submit_eval_with_explicit_checkpoint_dir_bypasses_record_match(monkeypatch) -> None:
+    explicit_dir = Path(".tmp") / "test_hydra_job_generation" / "explicit" / "best"
+    explicit_dir.mkdir(parents=True, exist_ok=True)
+    (explicit_dir / "policy.pt").write_text("stub", encoding="utf-8")
+    train_config = {"wandb_name": "unit-train"}
+    composed_config = {
+        "checkpoint": "HuggingFaceVLA/smolvla_libero",
+        "simulator": "libero",
+        "suite": "spatial",
+        "eval_episodes": 10,
+        "seed": 42,
+        "rollout": {"num_envs": 8, "n_action_steps": 5},
+    }
+
+    def _fail_load_records() -> list[dict]:
+        raise AssertionError("checkpoint_dir override should bypass record matching")
+
+    monkeypatch.setattr(jobs, "load_train_experiment", lambda _experiment: (Path("unit.yaml"), train_config))
+    monkeypatch.setattr(jobs, "compose_train_experiment_dict", lambda _experiment: composed_config)
+    monkeypatch.setattr(jobs, "load_training_records", _fail_load_records)
+
+    validation = jobs.validate_train_eval_submit(
+        "unit_train",
+        "a10-10h",
+        "best",
+        submit=False,
+        n_action_steps=1,
+        num_episodes=100,
+        checkpoint_dir=str(explicit_dir),
+        training_job_id="28338903",
+    )
+
+    target = validation.summary["eval_targets"][0]
+    assert target["checkpoint_dir"] == str(explicit_dir).replace("\\", "/")
+    assert target["match_reason"] == "explicit_checkpoint_dir"
+    assert target["training_job_id"] == "28338903"
+    assert "28338903" in target["wandb_name"]
+    assert validation.errors == []
+
+
+def test_submit_eval_pinned_training_job_id_filters_records(monkeypatch) -> None:
+    wrong_dir = Path(".tmp") / "test_hydra_job_generation" / "wrong" / "best"
+    wrong_dir.mkdir(parents=True, exist_ok=True)
+    (wrong_dir / "policy.pt").write_text("stub", encoding="utf-8")
+    right_dir = Path(".tmp") / "test_hydra_job_generation" / "right" / "best"
+    right_dir.mkdir(parents=True, exist_ok=True)
+    (right_dir / "policy.pt").write_text("stub", encoding="utf-8")
+
+    train_config = {"wandb_name": "unit-train"}
+    composed_config = {
+        "checkpoint": "HuggingFaceVLA/smolvla_libero",
+        "simulator": "libero",
+        "suite": "spatial",
+        "eval_episodes": 100,
+        "seed": 42,
+        "rollout": {"num_envs": 8, "n_action_steps": 1},
+    }
+    records = [
+        {
+            "wandb_run_name": "unit-train_sparse_rl_spatial_task_5_seed42_111",
+            "lsf_job_id": "111",
+            "best_checkpoint_dir": str(wrong_dir),
+        },
+        {
+            "wandb_run_name": "unit-train_sparse_rl_spatial_task_5_seed42_222",
+            "lsf_job_id": "222",
+            "best_checkpoint_dir": str(right_dir),
+        },
+    ]
+
+    monkeypatch.setattr(jobs, "load_train_experiment", lambda _experiment: (Path("unit.yaml"), train_config))
+    monkeypatch.setattr(jobs, "compose_train_experiment_dict", lambda _experiment: composed_config)
+    monkeypatch.setattr(jobs, "load_training_records", lambda: records)
+
+    validation = jobs.validate_train_eval_submit(
+        "unit_train",
+        "a10-10h",
+        "best",
+        submit=False,
+        training_job_id="222",
+    )
+
+    target = validation.summary["eval_targets"][0]
+    assert target["training_job_id"] == "222"
+    assert target["checkpoint_dir"] == str(right_dir).replace("\\", "/")
+
+
+def test_submit_eval_pinned_training_job_id_unknown_errors(monkeypatch) -> None:
+    train_config = {"wandb_name": "unit-train"}
+    composed_config = {"rollout": {"n_action_steps": 1}, "eval_episodes": 100, "seed": 42}
+    records = [{"wandb_run_name": "unit-train_x", "lsf_job_id": "111", "save_dir": str(Path(".tmp"))}]
+    monkeypatch.setattr(jobs, "load_train_experiment", lambda _experiment: (Path("unit.yaml"), train_config))
+    monkeypatch.setattr(jobs, "compose_train_experiment_dict", lambda _experiment: composed_config)
+    monkeypatch.setattr(jobs, "load_training_records", lambda: records)
+
+    validation = jobs.validate_train_eval_submit(
+        "unit_train",
+        "a10-10h",
+        "best",
+        submit=False,
+        training_job_id="222",
+    )
+
+    assert validation.errors
+    assert "lsf_job_id='222'" in validation.errors[0]
 
 
 def test_training_run_matches_config_by_wandb_prefix_or_job_id() -> None:

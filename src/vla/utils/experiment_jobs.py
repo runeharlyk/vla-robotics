@@ -365,8 +365,19 @@ def print_submit_validation(validation: SubmitValidation) -> None:
                 details.append(f"wandb={target['wandb_name']}")
             if target["training_job_id"]:
                 details.append(f"job={target['training_job_id']}")
+            if target.get("match_reason"):
+                details.append(f"match={target['match_reason']}")
             detail_text = f" ({', '.join(details)})" if details else ""
             print(f"  {index}. {target['label']}: {source}{detail_text}")
+            extras = []
+            if target.get("n_action_steps"):
+                extras.append(f"n_action_steps={target['n_action_steps']}")
+            if target.get("num_episodes"):
+                extras.append(f"num_episodes={target['num_episodes']}")
+            if target.get("suite"):
+                extras.append(f"suite={target['suite']}")
+            if extras:
+                print(f"     {' '.join(extras)}")
         if len(summary["eval_targets"]) > 1:
             print(f"  note: this config launches {len(summary['eval_targets'])} separate eval runs.")
 
@@ -573,37 +584,94 @@ def train_eval_target(
     checkpoint_kind: str,
     *,
     fuzzy: bool = True,
+    n_action_steps: int | None = None,
+    num_episodes: int | None = None,
+    checkpoint_dir: str | None = None,
+    training_job_id: str | None = None,
 ) -> TrainEvalTarget:
+    """Resolve eval target for a train experiment, with optional overrides.
+
+    Overrides (all optional; ``None`` means "inherit from train config / record"):
+        n_action_steps   - explicit eval chunk depth (decoupled from training)
+        num_episodes     - explicit episodes per task
+        checkpoint_dir   - explicit checkpoint path; bypasses record matching
+        training_job_id  - pin record matching to a single LSF job id
+    """
     _, train_config = load_train_experiment(experiment)
-    composed = compose_train_experiment_dict(experiment)
+    try:
+        composed = compose_train_experiment_dict(experiment)
+    except Exception:
+        composed = {}
+    rollout_config = composed.get("rollout") or {}
+    num_envs = int(rollout_config.get("eval_num_envs") or rollout_config.get("num_envs") or 8)
+
+    resolved_n_action_steps = (
+        int(n_action_steps) if n_action_steps is not None else int(rollout_config.get("n_action_steps") or 1)
+    )
+    resolved_num_episodes = (
+        int(num_episodes) if num_episodes is not None else int(composed.get("eval_episodes") or 100)
+    )
+    normalized_checkpoint = checkpoint_kind.replace("_", "-").lower() if checkpoint_kind else "explicit"
+
+    if checkpoint_dir:
+        explicit_dir = Path(str(checkpoint_dir))
+        suffix = f"_{training_job_id}" if training_job_id else "_explicit"
+        wandb_name = sanitize_job_part(f"eval_{experiment}_{normalized_checkpoint}{suffix}")
+        record: dict[str, Any] = {
+            "_record_path": "explicit_override",
+            "lsf_job_id": str(training_job_id or ""),
+            "best_checkpoint_dir": str(explicit_dir),
+        }
+        return TrainEvalTarget(
+            experiment=experiment,
+            checkpoint_kind=normalized_checkpoint,
+            checkpoint_dir=explicit_dir,
+            policy_path=explicit_dir / "policy.pt",
+            checkpoint=str(composed.get("checkpoint") or "HuggingFaceVLA/smolvla_libero"),
+            simulator=str(composed.get("simulator") or "libero"),
+            suite=str(composed.get("suite") or "spatial"),
+            num_episodes=resolved_num_episodes,
+            max_steps=int(composed["max_steps"]) if composed.get("max_steps") is not None else None,
+            seed=int(composed.get("seed") or 42),
+            num_envs=num_envs,
+            n_action_steps=resolved_n_action_steps,
+            fixed_noise_seed=int(composed.get("seed") or 42),
+            wandb_name=wandb_name,
+            training_record=record,
+            match_reason="explicit_checkpoint_dir",
+        )
+
     matches = matching_training_records(experiment, train_config, load_training_records(), fuzzy=fuzzy)
+    if training_job_id:
+        pinned = [item for item in matches if str(item[1].get("lsf_job_id") or "") == str(training_job_id)]
+        if not pinned:
+            raise ValueError(
+                f"no training record with lsf_job_id={training_job_id!r} for train experiment {experiment!r}"
+            )
+        matches = pinned
     if not matches:
         raise ValueError(f"no local training record matches train experiment {experiment!r}")
 
     reason, record = matches[0]
-    checkpoint_dir = checkpoint_dir_from_record(record, checkpoint_kind)
-    policy_path = checkpoint_dir / "policy.pt"
+    checkpoint_dir_resolved = checkpoint_dir_from_record(record, checkpoint_kind)
+    policy_path = checkpoint_dir_resolved / "policy.pt"
     lsf_job_id = str(record.get("lsf_job_id") or "")
     run_suffix = f"_{lsf_job_id}" if lsf_job_id else ""
-    normalized_checkpoint = checkpoint_kind.replace("_", "-").lower()
     wandb_name = sanitize_job_part(f"eval_{experiment}_{normalized_checkpoint}{run_suffix}")
-    rollout_config = composed.get("rollout") or {}
-    num_envs = int(rollout_config.get("eval_num_envs") or rollout_config.get("num_envs") or 8)
-    n_action_steps = int(rollout_config.get("n_action_steps") or 1)
 
     return TrainEvalTarget(
         experiment=experiment,
         checkpoint_kind=normalized_checkpoint,
-        checkpoint_dir=checkpoint_dir,
+        checkpoint_dir=checkpoint_dir_resolved,
         policy_path=policy_path,
         checkpoint=str(record.get("checkpoint") or composed.get("checkpoint") or "HuggingFaceVLA/smolvla_libero"),
         simulator=str(composed.get("simulator") or "libero"),
         suite=str(composed.get("suite") or "spatial"),
-        num_episodes=int(composed.get("eval_episodes") or 100),
+        num_episodes=resolved_num_episodes,
         max_steps=int(composed["max_steps"]) if composed.get("max_steps") is not None else None,
         seed=int(composed.get("seed") or 42),
         num_envs=num_envs,
-        n_action_steps=n_action_steps,
+        n_action_steps=resolved_n_action_steps,
         fixed_noise_seed=int(composed.get("seed") or 42),
         wandb_name=wandb_name,
         training_record=record,
@@ -653,6 +721,10 @@ def validate_train_eval_submit(
     *,
     submit: bool,
     fuzzy: bool = True,
+    n_action_steps: int | None = None,
+    num_episodes: int | None = None,
+    checkpoint_dir: str | None = None,
+    training_job_id: str | None = None,
 ) -> SubmitValidation:
     errors: list[str] = []
     profiles = load_yaml(PROFILES_PATH)
@@ -666,7 +738,15 @@ def validate_train_eval_submit(
     args: list[str] = []
     warnings: list[str] = []
     try:
-        target = train_eval_target(experiment, checkpoint_kind, fuzzy=fuzzy)
+        target = train_eval_target(
+            experiment,
+            checkpoint_kind,
+            fuzzy=fuzzy,
+            n_action_steps=n_action_steps,
+            num_episodes=num_episodes,
+            checkpoint_dir=checkpoint_dir,
+            training_job_id=training_job_id,
+        )
         from scripts.evaluate_hydra import config_to_evaluate_args
 
         args = config_to_evaluate_args(train_eval_config(target))
@@ -677,6 +757,11 @@ def validate_train_eval_submit(
                 errors.append(message)
             else:
                 warnings.append(message)
+        if target.match_reason == "fuzzy":
+            warnings.append(
+                f"matched training record by fuzzy label only (lsf_job_id={target.training_record.get('lsf_job_id') or '?'!r}); "
+                "pin with --training-job-id or --checkpoint-dir to be safe"
+            )
     except Exception as exc:
         errors.append(str(exc))
 
@@ -695,6 +780,9 @@ def validate_train_eval_submit(
             "training_job_id": str(target.training_record.get("lsf_job_id") or ""),
             "match_reason": target.match_reason,
             "policy_path": cli_path(target.policy_path),
+            "n_action_steps": str(target.n_action_steps),
+            "num_episodes": str(target.num_episodes),
+            "suite": target.suite,
         }
 
     return SubmitValidation(
@@ -716,8 +804,24 @@ def validate_train_eval_submit(
     )
 
 
-def generate_train_eval_job_script(experiment: str, profile_name: str, checkpoint_kind: str) -> GeneratedJob:
-    target = train_eval_target(experiment, checkpoint_kind)
+def generate_train_eval_job_script(
+    experiment: str,
+    profile_name: str,
+    checkpoint_kind: str,
+    *,
+    n_action_steps: int | None = None,
+    num_episodes: int | None = None,
+    checkpoint_dir: str | None = None,
+    training_job_id: str | None = None,
+) -> GeneratedJob:
+    target = train_eval_target(
+        experiment,
+        checkpoint_kind,
+        n_action_steps=n_action_steps,
+        num_episodes=num_episodes,
+        checkpoint_dir=checkpoint_dir,
+        training_job_id=training_job_id,
+    )
     job_name = sanitize_job_part(f"eval_{experiment}_{target.checkpoint_kind}_{profile_name}")
     command = train_eval_command(target)
     return generated_job_script(
