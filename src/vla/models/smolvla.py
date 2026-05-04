@@ -1013,6 +1013,7 @@ class SmolVLAPolicy(nn.Module):
         batch_size: int,
         reduction: str,
         chunk_mask: torch.Tensor | None = None,
+        return_per_sample: bool = False,
     ) -> torch.Tensor:
         """KV-cache path: caches full VLM transformer forward per mini-batch."""
         T = images.shape[0]
@@ -1074,10 +1075,11 @@ class SmolVLAPolicy(nn.Module):
                     raise ValueError(f"Unknown reduction: {reduction}")
 
                 sample_losses.append(per_step)
+            
+            stacked = torch.stack(sample_losses)
+            all_losses.append(stacked if return_per_sample else stacked.mean(dim=0))
 
-            all_losses.append(torch.stack(sample_losses).mean(dim=0))
-
-        return torch.cat(all_losses)
+        return torch.cat(all_losses, dim=1) if return_per_sample else torch.cat(all_losses)
 
     def _multi_sample_prefix_cache(
         self,

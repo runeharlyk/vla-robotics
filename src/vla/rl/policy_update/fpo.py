@@ -50,6 +50,7 @@ def fpo_update(
                 batch_size=B,
                 reduction=reduction,
                 full_chunk_target=full_chunk_target,
+                return_per_sample=True,
             )
             old_fm_per_traj.append(old_fm.detach())
 
@@ -71,6 +72,7 @@ def fpo_update(
                     batch_size=B,
                     reduction=reduction,
                     full_chunk_target=full_chunk_target,
+                    return_per_sample=True,
                 )
                 ref_fm_per_traj.append(ref_fm.detach())
 
@@ -90,6 +92,7 @@ def fpo_update(
                     batch_size=B,
                     reduction=reduction,
                     full_chunk_target=full_chunk_target,
+                    return_per_sample=True,
                 )
                 sft_fm_per_traj.append(sft_fm.detach())
 
@@ -105,6 +108,8 @@ def fpo_update(
     total_raw_sft_kl = 0.0
     total_mean_ratio = 0.0
     total_max_log_ratio = 0.0
+    total_sample_clip_frac = 0.0
+    total_sample_max_log_ratio = 0.0
     num_updates = 0
 
     for _ in range(max(config.ppo_epochs, 1)):
@@ -125,6 +130,8 @@ def fpo_update(
             mb_raw_sft_kl = 0.0
             mb_max_log_ratio = 0.0
             mb_sum_ratio = 0.0
+            mb_sample_clip_frac = 0.0
+            mb_sample_max_log_ratio = 0.0
             used = 0
 
             for i in idxs:
@@ -147,11 +154,13 @@ def fpo_update(
                     batch_size=B,
                     reduction=reduction,
                     full_chunk_target=full_chunk_target,
+                    return_per_sample=True,
                 )
 
                 old_fm = old_fm_per_traj[i].to(device=device, dtype=torch.float32)
                 new_fm_f = new_fm.float()
 
+                # FPO++: compute ratio per noise sample
                 log_ratio = (old_fm - new_fm_f).clamp(-log_ratio_clip, log_ratio_clip)
                 ratio = torch.exp(log_ratio)
 
@@ -186,13 +195,22 @@ def fpo_update(
                 with torch.no_grad():
                     det_log_ratio = log_ratio.detach()
                     det_ratio = ratio.detach()
+                    avg_log_ratio = det_log_ratio.mean(dim=0)
+                    avg_ratio = det_ratio.mean(dim=0)
 
                 mb_loss += loss_i.item()
                 mb_shift += (new_fm_f.detach().mean() - old_fm.mean()).abs().item() / n_idxs
-                mb_clip_frac += (
+                
+                # Sample-level FPO++ metrics
+                mb_sample_clip_frac += (
                     (det_ratio < 1.0 - config.clip_epsilon) | (det_ratio > 1.0 + config.clip_epsilon_high)
                 ).float().mean().item() / n_idxs
-                mb_max_log_ratio = max(mb_max_log_ratio, det_log_ratio.abs().max().item())
+                mb_sample_max_log_ratio = max(mb_sample_max_log_ratio, det_log_ratio.abs().max().item())
+                mb_clip_frac += (
+                    (avg_ratio < 1.0 - config.clip_epsilon) | (avg_ratio > 1.0 + config.clip_epsilon_high)
+                ).float().mean().item() / n_idxs
+                mb_max_log_ratio = max(mb_max_log_ratio, avg_log_ratio.abs().max().item())
+                
                 mb_sum_ratio += det_ratio.mean().item() / n_idxs
                 if use_kl:
                     kl_anchor = ref_fm_per_traj[i].to(device=device, dtype=torch.float32) if ref_fm_per_traj else old_fm
@@ -212,11 +230,16 @@ def fpo_update(
             total_local_kl += mb_local_kl
             total_sft_kl += mb_sft_kl
             total_shift += mb_shift
+            
             total_clip_frac += mb_clip_frac
+            total_max_log_ratio = max(total_max_log_ratio, mb_max_log_ratio)
+            
+            total_sample_clip_frac += mb_sample_clip_frac
+            total_sample_max_log_ratio = max(total_sample_max_log_ratio, mb_sample_max_log_ratio)
+            
             total_raw_kl += mb_raw_kl
             total_raw_sft_kl += mb_raw_sft_kl
             total_mean_ratio += mb_sum_ratio
-            total_max_log_ratio = max(total_max_log_ratio, mb_max_log_ratio)
             num_updates += 1
 
     denom = max(num_updates, 1)
@@ -225,11 +248,11 @@ def fpo_update(
         avg_kl=total_local_kl / denom,
         avg_sft_kl=total_sft_kl / denom,
         avg_shift=total_shift / denom,
-        avg_weight=total_clip_frac / denom,
+        avg_weight=total_sample_clip_frac / denom, # Export sample clip fraction as primary weight
         raw_kl=total_raw_kl / denom,
         raw_sft_kl=total_raw_sft_kl / denom,
         mean_ratio=total_mean_ratio / denom,
-        max_log_ratio=total_max_log_ratio,
+        max_log_ratio=total_sample_max_log_ratio, # Export sample max log ratio as primary max
     )
 
 

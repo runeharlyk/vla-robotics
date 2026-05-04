@@ -65,6 +65,7 @@ def _compute_fm_loss_multi_sample(
     batch_size: int,
     reduction: str = "mean",
     full_chunk_target: bool = True,
+    return_per_sample: bool = False,
 ) -> torch.Tensor:
     """Compute per-timestep FM loss averaged over N noise/time samples."""
     T = traj.length
@@ -83,6 +84,7 @@ def _compute_fm_loss_multi_sample(
         batch_size=batch_size,
         reduction=reduction,
         chunk_mask=chunk_mask,
+        return_per_sample=return_per_sample,
     )
 
 
