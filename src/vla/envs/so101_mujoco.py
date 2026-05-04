@@ -80,7 +80,7 @@ class SO101MujocoEnv(SimEnv):
                     self._model.actuator_ctrlrange[actuator_id] = self._model.jnt_range[joint_id]
                     self._model.actuator_ctrllimited[actuator_id] = 1
 
-        for camera in ("workspace_front", "wrist"):
+        for camera in ("workspace_front", "workspace_side", "wrist"):
             if mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_CAMERA, camera) < 0:
                 raise ValueError(f"Missing camera: {camera}")
 
@@ -99,7 +99,14 @@ class SO101MujocoEnv(SimEnv):
         self._object_joint_qpos = _freejoint_qpos_addresses(
             self._model,
             mujoco,
-            ("cube_free",),
+            (
+                "red_1cm_free",
+                "red_2cm_free",
+                "red_3cm_free",
+                "blue_1cm_free",
+                "blue_2cm_free",
+                "blue_3cm_free",
+            ),
         )
 
         base_body_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_BODY, "base")
@@ -179,8 +186,8 @@ class SO101MujocoEnv(SimEnv):
         qpos_target = self._normalized_action_to_qpos(action)
         if self._has_actuators:
             self._data.ctrl[self._actuator_ids] = qpos_target
-            # 30 Hz control loop (15 * 0.002s) - smoother for teleop lift
-            for _ in range(15):
+            # 30 Hz control loop (30 * 0.001s) - smoother for teleop lift
+            for _ in range(30):
                 self._mujoco.mj_step(self._model, self._data)
         else:
             self._data.qpos[self._qposadr] = qpos_target
@@ -202,18 +209,22 @@ class SO101MujocoEnv(SimEnv):
     def obs_to_batch(self, raw_obs: dict, device: torch.device | None = None) -> dict:
         front = to_float01(torch.from_numpy(raw_obs["pixels"]["front"]))
         wrist = to_float01(torch.from_numpy(raw_obs["pixels"]["wrist"]))
+        side = to_float01(torch.from_numpy(raw_obs["pixels"]["side"]))
         front = front.permute(2, 0, 1).unsqueeze(0).contiguous()
         wrist = wrist.permute(2, 0, 1).unsqueeze(0).contiguous()
+        side = side.permute(2, 0, 1).unsqueeze(0).contiguous()
         state = torch.from_numpy(raw_obs["agent_state"]).float().unsqueeze(0)
 
         if device is not None:
             front = front.to(device, non_blocking=True)
             wrist = wrist.to(device, non_blocking=True)
+            side = side.to(device, non_blocking=True)
             state = state.to(device, non_blocking=True)
 
         return {
             "observation.images.front": front,
             "observation.images.wrist": wrist,
+            "observation.images.side": side,
             "observation.state": state,
             "task": [self.task_description],
         }
@@ -253,10 +264,14 @@ class SO101MujocoEnv(SimEnv):
         self._renderer.update_scene(self._data, camera="wrist")
         wrist_pixels = self._renderer.render().astype(np.uint8)
 
+        self._renderer.update_scene(self._data, camera="workspace_side")
+        side_pixels = self._renderer.render().astype(np.uint8)
+
         return {
             "pixels": {
                 "front": front_pixels,
                 "wrist": wrist_pixels,
+                "side": side_pixels,
             },
             "agent_state": self._state(),
         }
@@ -296,11 +311,17 @@ class SO101MujocoEnv(SimEnv):
         if not self._objects_enabled:
             return
 
-        # Fixed cube reset position for rigorous diagnosis
-        cube_addr = self._object_joint_qpos.get("cube_free")
-        if cube_addr is not None:
-            self._data.qpos[cube_addr : cube_addr + 3] = [-0.25, -0.08, 0.021]
-            self._data.qpos[cube_addr + 3 : cube_addr + 7] = [1, 0, 0, 0]
+        cube_names = ["red_1cm", "red_2cm", "red_3cm", "blue_1cm", "blue_2cm", "blue_3cm"]
+
+        for i, name in enumerate(cube_names):
+            addr = self._object_joint_qpos.get(f"{name}_free")
+            if addr is not None:
+                # Randomize within reachable workbox (-0.4 < x < -0.15, -0.25 < y < 0.25)
+                x = self._rng.uniform(-0.4, -0.15)
+                y = self._rng.uniform(-0.25, 0.25)
+                size = [0.005, 0.01, 0.015][i % 3]
+                self._data.qpos[addr : addr + 3] = [x, y, 0.001 + size]
+                self._data.qpos[addr + 3 : addr + 7] = [1, 0, 0, 0]
 
 
 def _resolve_asset_path(asset_path: Path | str | None) -> Path:
@@ -403,9 +424,14 @@ def _interactive_scene_xml(asset_path: Path) -> tuple[str, str]:
     # Full Robot collision baseline (Moderate friction)
     robot_xml, n_collision = re.subn(
         r'<geom\s+group="3"\s*/>',
-        '<geom group="3" friction="0.8 0.005 0.0001" condim="3" solimp="0.9 0.95 0.001" solref="0.02 1" margin="0.0005" gap="0"/>',
+        '<geom group="3" friction="0.8 0.005 0.0001" condim="3" solimp="0.99 0.99 0.01" solref="0.005 1" margin="0.0005" gap="0"/>',
         robot_xml,
     )
+    # Make robot materials black (replace default yellow/orange)
+    robot_xml = re.sub(r'rgba="1\s+0\.82\s+0\.12\s+1"', r'rgba="0.1 0.1 0.1 1"', robot_xml)
+    # Disable default mesh collisions (use custom pads instead)
+    robot_xml = re.sub(r'(<geom\s+[^>]*?class="collision")', r'\1 contype="0" conaffinity="0"', robot_xml)
+    robot_xml = re.sub(r'(<default\s+class="collision">\s*<geom\s+)', r'\1contype="0" conaffinity="0" ', robot_xml)
     print(f"[DEBUG] Patched {n_collision} robot collision geoms.")
 
     static_pad = """
@@ -414,12 +440,12 @@ def _interactive_scene_xml(asset_path: Path) -> tuple[str, str]:
         pos="-0.013 0 -0.0899"
         friction="3.0 0.08 0.002"
         condim="4"
-        solref="0.008 1"
-        solimp="0.95 0.99 0.001"
+        solref="0.005 1"
+        solimp="0.99 0.99 0.01"
         margin="0.001"
         contype="1"
         conaffinity="1"
-        rgba="1 0.5 0.5 0.8"/>
+        rgba="0 0 0 0"/>
     """
 
     moving_pad = """
@@ -428,12 +454,12 @@ def _interactive_scene_xml(asset_path: Path) -> tuple[str, str]:
         pos="-0.0055 -0.06699 0.019"
         friction="3.0 0.08 0.002"
         condim="4"
-        solref="0.008 1"
-        solimp="0.95 0.99 0.001"
+        solref="0.005 1"
+        solimp="0.99 0.99 0.01"
         margin="0.001"
         contype="1"
         conaffinity="1"
-        rgba="0.5 0.5 1 0.8"/>
+        rgba="0 0 0 0"/>
     """
 
     robot_xml, n_static_pad = re.subn(
@@ -461,7 +487,7 @@ def _interactive_scene_xml(asset_path: Path) -> tuple[str, str]:
     <position name="elbow_flex" joint="elbow_flex" kp="250"/>
     <position name="wrist_flex" joint="wrist_flex" kp="150"/>
     <position name="wrist_roll" joint="wrist_roll" kp="100"/>
-    <position name="gripper" joint="gripper" kp="80" forcerange="-30 30"/>
+    <position name="gripper" joint="gripper" kp="200" forcerange="-30 30"/>
   </actuator>"""
 
     robot_xml, n_actuators = re.subn(r"<actuator>.*?</actuator>", actuator_xml, robot_xml, flags=re.DOTALL)
@@ -474,12 +500,12 @@ def _interactive_scene_xml(asset_path: Path) -> tuple[str, str]:
   <include file="__ROBOT_INCLUDE__"/>
 
   <option
-    timestep="0.002"
+    timestep="0.001"
     gravity="0 0 -9.81"
     integrator="implicitfast"
     cone="elliptic"
     impratio="20"
-    iterations="100"
+    iterations="200"
     tolerance="1e-10"
     density="1.2"
     viscosity="0.00002"
@@ -495,23 +521,73 @@ def _interactive_scene_xml(asset_path: Path) -> tuple[str, str]:
     <material name="wood_mat" rgba="0.6 0.4 0.2 1" reflectance="0.1"/>
     <material name="metal_mat" rgba="0.7 0.7 0.7 1" reflectance="0.8" shininess="0.9"/>
     <material name="plastic_red_mat" rgba="0.8 0.1 0.1 1" reflectance="0.1"/>
+    <material name="plastic_blue_mat" rgba="0.1 0.1 0.8 1" reflectance="0.1"/>
   </asset>
 
   <worldbody>
-    <camera name="workspace_front" pos="0.30 -0.55 0.35" xyaxes="0.88 0.48 0 -0.23 0.42 0.88" fovy="58"/>
+    <camera name="workspace_front" pos="-0.75 0 0.45" xyaxes="0 -1 0 0.594843 0 0.803842" fovy="55"/>
+    <camera name="workspace_side" pos="-0.25 -0.75 0.45" xyaxes="1 0 0 0 0.442424 0.896806" fovy="50"/>
     <light name="workspace_key" pos="-0.5 -1.0 1.5" dir="0.5 1.0 -1" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" castshadow="true"/>
     <light name="workspace_fill" pos="0.5 0.5 1.5" dir="-0.5 -0.5 -1" diffuse="0.3 0.3 0.3"/>
     <light name="workspace_top" pos="0 0 3" dir="0 0 -1" diffuse="0.4 0.4 0.4" ambient="0.2 0.2 0.2"/>
  
     <geom name="floor" size="10 10 0.1" pos="0 0 -0.05" type="plane" material="groundplane"/>
-    <geom name="workspace_table" type="box" pos="-0.28 0 -0.024" size="0.40 0.30 0.025"
+    <geom name="workspace_table" type="box" pos="-0.2 0 -0.024" size="0.5 0.5 0.025"
           material="workspace_table_mat" friction="0.9 0.01 0.001" condim="3"
-          solimp="0.9 0.97 0.001" solref="0.01 1" contype="1" conaffinity="1"/>
-    <body name="red_cube" pos="-0.25 -0.08 0.021">
-      <freejoint name="cube_free"/>
-      <geom name="red_cube_geom" type="box" size="0.02 0.02 0.02" mass="0.03"
+          solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+
+    <!-- Bin (Box) to put cubes in -->
+    <body name="bin" pos="-0.1 0.25 0.026">
+      <geom name="bin_bottom" type="box" size="0.08 0.08 0.005" material="wood_mat"
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+      <geom name="bin_side_1" type="box" pos="0.08 0 0.02" size="0.005 0.08 0.02" material="wood_mat"
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+      <geom name="bin_side_2" type="box" pos="-0.08 0 0.02" size="0.005 0.08 0.02" material="wood_mat"
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+      <geom name="bin_side_3" type="box" pos="0 0.08 0.02" size="0.08 0.005 0.02" material="wood_mat"
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+      <geom name="bin_side_4" type="box" pos="0 -0.08 0.02" size="0.08 0.005 0.02" material="wood_mat"
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Collection of Red Cubes -->
+    <body name="red_1cm" pos="-0.3 -0.1 0.006">
+      <freejoint name="red_1cm_free"/>
+      <geom name="red_1cm_geom" type="box" size="0.005 0.005 0.005" mass="0.0007"
             material="plastic_red_mat" friction="1.0 0.005 0.0001" condim="4" 
-            solimp="0.9 0.95 0.001" solref="0.02 1" contype="1" conaffinity="1"/>
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="red_2cm" pos="-0.3 -0.0 0.011">
+      <freejoint name="red_2cm_free"/>
+      <geom name="red_2cm_geom" type="box" size="0.01 0.01 0.01" mass="0.0035"
+            material="plastic_red_mat" friction="1.0 0.005 0.0001" condim="4" 
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="red_3cm" pos="-0.3 0.1 0.016">
+      <freejoint name="red_3cm_free"/>
+      <geom name="red_3cm_geom" type="box" size="0.015 0.015 0.015" mass="0.008"
+            material="plastic_red_mat" friction="1.0 0.005 0.0001" condim="4" 
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Collection of Blue Cubes -->
+    <body name="blue_1cm" pos="-0.4 -0.1 0.006">
+      <freejoint name="blue_1cm_free"/>
+      <geom name="blue_1cm_geom" type="box" size="0.005 0.005 0.005" mass="0.0007"
+            material="plastic_blue_mat" friction="1.0 0.005 0.0001" condim="4" 
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="blue_2cm" pos="-0.4 -0.0 0.011">
+      <freejoint name="blue_2cm_free"/>
+      <geom name="blue_2cm_geom" type="box" size="0.01 0.01 0.01" mass="0.0035"
+            material="plastic_blue_mat" friction="1.0 0.005 0.0001" condim="4" 
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="blue_3cm" pos="-0.4 0.1 0.016">
+      <freejoint name="blue_3cm_free"/>
+      <geom name="blue_3cm_geom" type="box" size="0.015 0.015 0.015" mass="0.008"
+            material="plastic_blue_mat" friction="1.0 0.005 0.0001" condim="4" 
+            solimp="0.99 0.99 0.01" solref="0.005 1" contype="1" conaffinity="1"/>
     </body>
   </worldbody>
 </mujoco>
