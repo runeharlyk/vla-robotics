@@ -76,71 +76,86 @@ def ppo_update(
     total_kl = 0.0
     total_sft_kl = 0.0
     used_count_total = 0
+    num_updates = 0
+
+    minibatch_trajs = min(getattr(config, "ppo_minibatch_trajs", 4), M)
 
     for _ppo_epoch in range(config.ppo_epochs):
-        optimizer.zero_grad()
-        epoch_clip_loss = 0.0
-        epoch_kl = 0.0
-        epoch_sft_kl = 0.0
-        used_count = 0
+        order = torch.randperm(M).tolist()
 
-        for i in range(M):
-            traj = trajectories[i]
-            adv_i = advantages[i]
-            old_losses_t = old_losses_per_traj[i]
-            ref_losses_t = ref_losses_per_traj[i]
+        for start in range(0, M, minibatch_trajs):
+            idxs = order[start : start + minibatch_trajs]
+            n_idxs = len(idxs)
 
-            new_losses_t = _compute_fm_loss_batched(
-                policy,
-                traj,
-                instrs_per_traj[i],
-                fixed_noise[i],
-                fixed_time[i],
-                batch_size=B,
-            )
+            optimizer.zero_grad(set_to_none=True)
 
-            log_ratios = old_losses_t - new_losses_t
-            ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
+            mb_clip_loss = 0.0
+            mb_kl = 0.0
+            mb_sft_kl = 0.0
+            used_count = 0
 
-            adv_t = torch.full_like(ratios, adv_i)
-            surr1 = ratios * adv_t
-            surr2 = (
-                torch.clamp(
-                    ratios,
-                    1.0 - config.clip_epsilon,
-                    1.0 + config.clip_epsilon_high,
+            for i in idxs:
+                traj = trajectories[i]
+                adv_i = advantages[i]
+                old_losses_t = old_losses_per_traj[i]
+                ref_losses_t = ref_losses_per_traj[i]
+
+                new_losses_t = _compute_fm_loss_batched(
+                    policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
                 )
-                * adv_t
-            )
-            clip_loss = -torch.min(surr1, surr2).mean()
 
-            log_ratio_ref = ref_losses_t - new_losses_t
-            kl_approx = 0.5 * (log_ratio_ref**2).mean()
-            kl_penalty = config.kl_coeff * kl_approx
+                log_ratios = old_losses_t - new_losses_t
+                ratios = torch.exp(log_ratios.clamp(-10.0, 10.0))
 
-            traj_loss = (clip_loss + kl_penalty) / M
-            if sft_losses_per_traj:
-                sft_losses_t = sft_losses_per_traj[i]
-                log_ratio_sft = sft_losses_t - new_losses_t
-                sft_kl_approx = 0.5 * (log_ratio_sft**2).mean()
-                sft_kl_penalty = sft_kl_coeff * sft_kl_approx
-                traj_loss = traj_loss + sft_kl_penalty / M
-                epoch_sft_kl += sft_kl_penalty.item()
-            traj_loss.backward()
+                adv_t = torch.full_like(ratios, adv_i)
+                surr1 = ratios * adv_t
+                surr2 = (
+                    torch.clamp(
+                        ratios,
+                        1.0 - config.clip_epsilon,
+                        1.0 + config.clip_epsilon_high,
+                    )
+                    * adv_t
+                )
+                clip_loss = -torch.min(surr1, surr2).mean()
 
-            epoch_clip_loss += clip_loss.item()
-            epoch_kl += kl_penalty.item()
-            used_count += 1
+                log_ratio_ref = ref_losses_t - new_losses_t
+                kl_approx = 0.5 * (log_ratio_ref**2).mean()
+                kl_penalty = config.kl_coeff * kl_approx
 
-        torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-        optimizer.step()
+                traj_loss = (clip_loss + kl_penalty) / n_idxs
+                if sft_losses_per_traj:
+                    sft_losses_t = sft_losses_per_traj[i]
+                    log_ratio_sft = sft_losses_t - new_losses_t
+                    sft_kl_approx = 0.5 * (log_ratio_sft**2).mean()
+                    sft_kl_penalty = sft_kl_coeff * sft_kl_approx
+                    traj_loss = traj_loss + sft_kl_penalty / n_idxs
+                    mb_sft_kl += sft_kl_penalty.item() / n_idxs
+                
+                traj_loss.backward()
 
-        total_surrogate += epoch_clip_loss
-        total_kl += epoch_kl
-        total_sft_kl += epoch_sft_kl
-        used_count_total += used_count
+                mb_clip_loss += clip_loss.item() / n_idxs
+                mb_kl += kl_penalty.item() / n_idxs
+                used_count += 1
 
-    denom = max(used_count_total, 1)
+            if used_count == 0:
+                continue
+
+            torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+            optimizer.step()
+
+            total_surrogate += mb_clip_loss
+            total_kl += mb_kl
+            total_sft_kl += mb_sft_kl
+            used_count_total += used_count
+            num_updates += 1
+
+    denom = max(num_updates, 1)
     return UpdateMetrics(
         avg_loss=total_surrogate / denom,
         avg_kl=total_kl / denom,

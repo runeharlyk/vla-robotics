@@ -62,56 +62,65 @@ def success_bc_update(
     total_sft_kl = 0.0
     total_raw_sft_kl = 0.0
     used_total = 0
+    num_updates = 0
+
+    minibatch_trajs = min(getattr(config, "ppo_minibatch_trajs", 4), M)
 
     for _ in range(max(getattr(config, "success_bc_epochs", 1), 1)):
         order = torch.randperm(M).tolist()
-        optimizer.zero_grad(set_to_none=True)
 
-        epoch_loss = 0.0
-        epoch_sft_kl = 0.0
-        epoch_raw_sft_kl = 0.0
-        used = 0
+        for start in range(0, M, minibatch_trajs):
+            idxs = order[start : start + minibatch_trajs]
+            n_idxs = len(idxs)
 
-        for i in order:
-            fm_loss_t = _compute_fm_loss_batched(
-                policy,
-                trajectories[i],
-                instrs_per_traj[i],
-                fixed_noise[i],
-                fixed_time[i],
-                batch_size=B,
-                reduction=reduction,
-                full_chunk_target=full_chunk_target,
-            )
+            optimizer.zero_grad(set_to_none=True)
 
-            fm_loss = fm_loss_t.mean()
-            loss_i = fm_loss / M
+            mb_loss = 0.0
+            mb_sft_kl = 0.0
+            mb_raw_sft_kl = 0.0
+            used = 0
 
-            if sft_losses_per_traj:
-                sft_fm_t = sft_losses_per_traj[i].to(device=fm_loss_t.device, dtype=torch.float32)
-                fm_loss_f = fm_loss_t.float()
-                sft_kl_per_step = 0.5 * (sft_fm_t - fm_loss_f) ** 2
-                sft_kl = sft_kl_per_step.mean()
-                loss_i = loss_i + (sft_kl_coeff * sft_kl) / M
-                epoch_sft_kl += (sft_kl_coeff * sft_kl).item()
-                epoch_raw_sft_kl += sft_kl.item()
+            for i in idxs:
+                fm_loss_t = _compute_fm_loss_batched(
+                    policy,
+                    trajectories[i],
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
+                    reduction=reduction,
+                    full_chunk_target=full_chunk_target,
+                )
 
-            loss_i.backward()
-            epoch_loss += fm_loss.item()
-            used += 1
+                fm_loss = fm_loss_t.mean()
+                loss_i = fm_loss / n_idxs
 
-        if used == 0:
-            continue
+                if sft_losses_per_traj:
+                    sft_fm_t = sft_losses_per_traj[i].to(device=fm_loss_t.device, dtype=torch.float32)
+                    fm_loss_f = fm_loss_t.float()
+                    sft_kl_per_step = 0.5 * (sft_fm_t - fm_loss_f) ** 2
+                    sft_kl = sft_kl_per_step.mean()
+                    loss_i = loss_i + (sft_kl_coeff * sft_kl) / n_idxs
+                    mb_sft_kl += (sft_kl_coeff * sft_kl).item() / n_idxs
+                    mb_raw_sft_kl += sft_kl.item() / n_idxs
 
-        torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-        optimizer.step()
+                loss_i.backward()
+                mb_loss += fm_loss.item() / n_idxs
+                used += 1
 
-        total_loss += epoch_loss
-        total_sft_kl += epoch_sft_kl
-        total_raw_sft_kl += epoch_raw_sft_kl
-        used_total += used
+            if used == 0:
+                continue
 
-    denom = max(used_total, 1)
+            torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+            optimizer.step()
+
+            total_loss += mb_loss
+            total_sft_kl += mb_sft_kl
+            total_raw_sft_kl += mb_raw_sft_kl
+            used_total += used
+            num_updates += 1
+
+    denom = max(num_updates, 1)
     return UpdateMetrics(
         avg_loss=total_loss / denom,
         avg_sft_kl=total_sft_kl / denom,
