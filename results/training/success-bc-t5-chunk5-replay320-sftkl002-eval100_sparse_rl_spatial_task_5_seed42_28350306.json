@@ -1,9 +1,9 @@
 {
   "record_type": "training",
-  "wandb_run_name": "fpo-t5-chunk1-nodynamic-sftkl005-eval100-v28-redo_sparse_rl_spatial_task_5_seed42_28337763",
+  "wandb_run_name": "success-bc-t5-chunk5-replay320-sftkl002-eval100_sparse_rl_spatial_task_5_seed42_28350306",
   "method": "SPARSE_RL",
-  "update_method": "FPO",
-  "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28337763",
+  "update_method": "SUCCESS_BC",
+  "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28350306",
   "checkpoint": "HuggingFaceVLA/smolvla_libero",
   "sft_checkpoint": "None",
   "suite": "SPATIAL",
@@ -18,13 +18,13 @@
   "trajs_per_task_per_iter": 32,
   "config": {
     "kl": {
-      "coeff": 0.01,
+      "coeff": 0,
       "target": 0.01,
       "adaptive": false,
-      "sft_coeff": 0.005,
+      "sft_coeff": 0.02,
       "adapt_factor": 1.5
     },
-    "lr": 3e-06,
+    "lr": 1e-06,
     "awr": {
       "epochs": 2,
       "temperature": 5,
@@ -62,14 +62,14 @@
       "success_ema_decay": 0.8,
       "success_max_ratio": 1,
       "success_total_size": 0,
-      "success_buffer_size": 0,
-      "include_demos_in_update": false
+      "success_buffer_size": 320,
+      "include_demos_in_update": true
     },
     "rollout": {
       "num_envs": 8,
       "eval_num_envs": 8,
       "fm_batch_size": 64,
-      "n_action_steps": 1,
+      "n_action_steps": 5,
       "eval_zero_sample": true,
       "gradient_checkpointing": true
     },
@@ -78,7 +78,7 @@
       "enabled": false,
       "max_retries": 2
     },
-    "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28337763",
+    "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28350306",
     "advantage": {
       "eps": 1e-08,
       "mode": "LEAVE_ONE_OUT",
@@ -107,7 +107,7 @@
     "weight_decay": 1e-10,
     "eval_episodes": 100,
     "max_grad_norm": 10,
-    "update_method": "FPO",
+    "update_method": "SUCCESS_BC",
     "num_iterations": 100,
     "sft_checkpoint": "None",
     "dbscan_auto_eps": false,
@@ -119,26 +119,26 @@
     "use_standard_scaler": false,
     "trajs_per_task_per_iter": 32
   },
-  "wandb_id": "hjpz0ti4",
+  "wandb_id": "ukllk9pc",
   "wandb_project": "srpo-smolvla",
   "wandb_entity": "bachelor-vla",
-  "wandb_url": "https://wandb.ai/bachelor-vla/srpo-smolvla/runs/hjpz0ti4",
+  "wandb_url": "https://wandb.ai/bachelor-vla/srpo-smolvla/runs/ukllk9pc",
   "wandb_state": "finished",
-  "wandb_created_at": "2026-05-02T14:41:05Z",
+  "wandb_created_at": "2026-05-04T22:10:41Z",
   "wandb_updated_at": "",
   "wandb_tags": [],
-  "lsf_job_id": "28337763",
+  "lsf_job_id": "28350306",
   "lsf_job_name": "",
-  "hostname": "n-62-13-19",
-  "git_commit": "a60f7f4dd2ff1bbb132eb0554685164c43a19226",
+  "hostname": "n-62-12-21",
+  "git_commit": "60c345f09b35869409a8f8076ae3c0eb43f86ab7",
   "git_branch": "",
   "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
-  "metrics_jsonl": "C:\\data\\Repos\\vla-robotics\\results\\training_curves\\fpo-t5-chunk1-nodynamic-sftkl005-eval100-v28-redo_sparse_rl_spatial_task_5_seed42_28337763.jsonl",
+  "metrics_jsonl": "C:\\data\\Repos\\vla-robotics\\results\\training_curves\\success-bc-t5-chunk5-replay320-sftkl002-eval100_sparse_rl_spatial_task_5_seed42_28350306.jsonl",
   "history_points": 101,
   "best_eval_metric_key": "sparse_rl/eval/success_rate",
-  "best_eval_metric_value": 0.62,
+  "best_eval_metric_value": 0.48,
   "best_eval_iteration": 80,
   "final_eval_metric_key": "sparse_rl/eval/success_rate",
-  "final_eval_metric_value": 0.51,
+  "final_eval_metric_value": 0.42,
   "final_eval_iteration": 100
 }
