@@ -847,6 +847,7 @@ class SmolVLAPolicy(nn.Module):
         batch_size: int = 32,
         reduction: str = "mean",
         chunk_mask: torch.Tensor | None = None,
+        return_per_sample: bool = False,
     ) -> torch.Tensor:
         """Compute per-timestep flow-matching loss in mini-batches.
 
@@ -921,7 +922,8 @@ class SmolVLAPolicy(nn.Module):
 
             all_losses.append(per_step)
 
-        return torch.cat(all_losses)
+        res = torch.cat(all_losses)
+        return res.unsqueeze(0) if return_per_sample else res
 
     def compute_fm_loss_multi_sample(
         self,
@@ -934,6 +936,7 @@ class SmolVLAPolicy(nn.Module):
         batch_size: int = 32,
         reduction: str = "mean",
         chunk_mask: torch.Tensor | None = None,
+        return_per_sample: bool = False,
     ) -> torch.Tensor:
         """Compute per-timestep FM loss averaged over multiple noise samples.
 
@@ -951,9 +954,10 @@ class SmolVLAPolicy(nn.Module):
             time_list: N tensors of shape ``(T,)``.
             batch_size: Number of timesteps per forward pass.
             reduction: ``"mean"`` or ``"sum"`` across chunk positions.
+            return_per_sample: If True, returns ``(N, T)`` instead of ``(T,)``.
 
         Returns:
-            ``(T,)`` per-step mean FM loss (averaged over noise samples).
+            ``(T,)`` or ``(N, T)`` per-step mean FM loss (averaged over noise samples).
         """
         N = len(noise_list)
         if N == 1:
@@ -967,6 +971,7 @@ class SmolVLAPolicy(nn.Module):
                 batch_size,
                 reduction,
                 chunk_mask=chunk_mask,
+                return_per_sample=return_per_sample,
             )
 
         try:
@@ -980,6 +985,7 @@ class SmolVLAPolicy(nn.Module):
                 batch_size,
                 reduction,
                 chunk_mask=chunk_mask,
+                return_per_sample=return_per_sample,
             )
         except RuntimeError as exc:
             if "mask/KV mismatch" not in str(exc) and "expanded size" not in str(exc):
@@ -1000,6 +1006,7 @@ class SmolVLAPolicy(nn.Module):
                 batch_size,
                 reduction,
                 chunk_mask=chunk_mask,
+                return_per_sample=return_per_sample,
             )
 
     def _multi_sample_kv_cache(
@@ -1092,6 +1099,7 @@ class SmolVLAPolicy(nn.Module):
         batch_size: int,
         reduction: str,
         chunk_mask: torch.Tensor | None = None,
+        return_per_sample: bool = False,
     ) -> torch.Tensor:
         """Prefix-embedding-cache fallback: caches ViT + masks per mini-batch."""
         T = images.shape[0]
@@ -1153,9 +1161,10 @@ class SmolVLAPolicy(nn.Module):
 
                 sample_losses.append(per_step)
 
-            all_losses.append(torch.stack(sample_losses).mean(dim=0))
+            stacked = torch.stack(sample_losses)
+            all_losses.append(stacked if return_per_sample else stacked.mean(dim=0))
 
-        return torch.cat(all_losses)
+        return torch.cat(all_losses, dim=1) if return_per_sample else torch.cat(all_losses)
 
     def get_embedding(self, image: torch.Tensor, instruction: str, state: torch.Tensor | None = None) -> torch.Tensor:
         """Return the VLM backbone embedding for a single observation (for Tier B SRPO).
