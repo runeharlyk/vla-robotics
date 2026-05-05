@@ -45,7 +45,14 @@ def plot_results(csv_paths, out_dir):
 
     # Plot 2: Individual Dimensions grouped by Noise Type
     dimensions = ['abs_err_x', 'abs_err_y', 'abs_err_z', 'abs_err_roll','abs_err_pitch','abs_err_yaw','abs_err_gripper']
-    
+
+    # Normalize each dimension by the ground-truth standard deviation of the Libero dataset.
+    # This translates the physical error (meters/radians) into a "0 to 1+" scale representing
+    # the percentage of an average human demonstration's natural variance for that dimension.
+    action_stds = [0.33552372, 0.378447, 0.4447286, 0.03924354, 0.06339297, 0.07797027, 0.99876714]
+    for dim, std_val in zip(dimensions, action_stds):
+        df[dim] = df[dim] / std_val
+
     df_melt = df[['noise_type', 'noise_severity'] + dimensions].copy()
     df_melt = df_melt.melt(id_vars=['noise_type', 'noise_severity'], 
                            value_vars=dimensions, 
