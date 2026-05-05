@@ -82,7 +82,7 @@ def plot_results(csv_paths, out_dir):
         sharey=False 
     )
     
-    g.set_axis_labels("Action Dimension", "Mean Absolute Error (Fraction of 1 std)")
+    g.set_axis_labels("Action Dimension", "Mean Absolute Error normalized")
     g.set_titles("Noise Type: {col_name}")
     
     for ax in g.axes.flatten():
