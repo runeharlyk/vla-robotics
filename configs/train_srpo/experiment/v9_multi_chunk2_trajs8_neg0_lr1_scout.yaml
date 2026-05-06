@@ -1,0 +1,46 @@
+# @package _global_
+
+metadata:
+  label: v9-multi-chunk2-trajs8-neg0-lr1-scout
+  source_config: configs/train_srpo/experiment/v9_multi_chunk1_trajs8_neg0_scout.yaml
+  notes: |
+    Parallel v9 ablation for mild chunk execution.
+
+    This keeps lr=1e-6 and negative_adv_scale=0.0 from the anchor run, but
+    changes n_action_steps from 1 to 2.  It is a safer chunking probe than
+    jumping back to n=5: n=2 tests whether modest rollout amortisation helps
+    without fully committing to the chunk-5 transfer risk already seen in v8.
+    Judge against the n=1 anchor under the same internal eval cadence before
+    considering n=5.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 1e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 6
+eval_episodes: 20
+wandb_name: v9-multi-n2-trajs8-neg0-lr1e6-scout
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 2
+
+fpo:
+  full_chunk_target: true
+  negative_adv_scale: 0.0
