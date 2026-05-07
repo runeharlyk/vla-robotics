@@ -17,6 +17,7 @@ wandb_name: v3_srpo_awr
 
 awr:
   epochs: 3
+  minibatch_trajs: 4
   temperature: 0.5
 
 kl:

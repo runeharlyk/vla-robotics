@@ -29,6 +29,7 @@ rollout:
 
 success_bc:
   epochs: 4
+  minibatch_trajs: 4
   loss_reduction: mean
 
 fpo:

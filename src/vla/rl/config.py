@@ -30,6 +30,7 @@ class PPOConfig:
 @dataclass
 class AWRConfig:
     epochs: int = 2
+    minibatch_trajs: int = 4
     temperature: float = 5.0
     weight_clip: float = 20.0
 
@@ -58,6 +59,7 @@ class FlowGRPOConfig:
 @dataclass
 class SuccessBCConfig:
     epochs: int = 1
+    minibatch_trajs: int = 4
     loss_reduction: str = "mean"
 
 
@@ -180,6 +182,10 @@ class SRPOConfig(BaseTrainingConfig):
         return self.awr.epochs
 
     @property
+    def awr_minibatch_trajs(self) -> int:
+        return self.awr.minibatch_trajs
+
+    @property
     def awr_temperature(self) -> float:
         return self.awr.temperature
 
@@ -190,6 +196,10 @@ class SRPOConfig(BaseTrainingConfig):
     @property
     def success_bc_epochs(self) -> int:
         return self.success_bc.epochs
+
+    @property
+    def success_bc_minibatch_trajs(self) -> int:
+        return self.success_bc.minibatch_trajs
 
     @property
     def success_bc_loss_reduction(self) -> str:

@@ -55,6 +55,7 @@ ppo:
 
 awr:
   epochs: 2
+  minibatch_trajs: 4
   temperature: 5.0
   weight_clip: 20.0
 
@@ -77,6 +78,7 @@ flow_grpo:
 
 success_bc:
   epochs: 1
+  minibatch_trajs: 4
   loss_reduction: mean
 
 kl:

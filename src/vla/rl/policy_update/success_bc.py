@@ -8,7 +8,7 @@ from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.config import SRPOConfig
 from vla.rl.rollout import Trajectory
 
-from .base import UpdateMetrics, _compute_fm_loss_batched
+from .base import UpdateMetrics, _compute_fm_loss_batched, _resolve_minibatch_trajs
 
 
 def success_bc_update(
@@ -64,7 +64,7 @@ def success_bc_update(
     used_total = 0
     num_updates = 0
 
-    minibatch_trajs = min(getattr(config, "ppo_minibatch_trajs", 4), M)
+    minibatch_trajs = _resolve_minibatch_trajs(config.success_bc_minibatch_trajs, M)
 
     for _ in range(max(getattr(config, "success_bc_epochs", 1), 1)):
         order = torch.randperm(M).tolist()

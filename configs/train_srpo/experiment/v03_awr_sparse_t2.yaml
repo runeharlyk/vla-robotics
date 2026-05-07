@@ -17,6 +17,7 @@ wandb_name: v3_awr_sparse_t2
 
 awr:
   epochs: 2
+  minibatch_trajs: 4
   temperature: 0.3
   weight_clip: 40.0
 

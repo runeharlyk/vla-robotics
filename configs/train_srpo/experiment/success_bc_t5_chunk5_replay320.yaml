@@ -32,10 +32,8 @@ replay:
 # 1 epoch is standard for online RL to prevent overfitting to the current batch
 success_bc:
   epochs: 1
-  loss_reduction: mean
-
-ppo:
   minibatch_trajs: 4
+  loss_reduction: mean
 
 sampling:
   dynamic: false

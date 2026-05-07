@@ -26,6 +26,13 @@ def _sample_fixed_noise_time(
     return noise_list, time_list
 
 
+def _resolve_minibatch_trajs(value: int, num_trajectories: int) -> int:
+    """Clamp a trajectory minibatch size to a valid positive range."""
+    if value <= 0:
+        raise ValueError(f"minibatch_trajs must be positive, got {value}")
+    return min(value, num_trajectories)
+
+
 def _compute_fm_loss_batched(
     policy: SmolVLAPolicy,
     traj: Trajectory,
@@ -161,5 +168,6 @@ __all__ = [
     "_actions_and_mask_for_loss",
     "_compute_fm_loss_batched",
     "_compute_fm_loss_multi_sample",
+    "_resolve_minibatch_trajs",
     "_sample_fixed_noise_time",
 ]

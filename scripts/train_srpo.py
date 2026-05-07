@@ -280,12 +280,20 @@ def main(
         4, "--fpo.num-fm-noise-samples", help="FPO: noise/time samples per action for variance reduction"
     ),
     awr_epochs: int = typer.Option(2, "--awr.epochs", help="Regression epochs per iteration (AWR)"),
+    awr_minibatch_trajs: int = typer.Option(
+        4, "--awr.minibatch-trajs", help="AWR trajectories per optimizer minibatch"
+    ),
     awr_temperature: float = typer.Option(5.0, "--awr.temperature", help="AWR weight sharpness (beta)"),
     awr_weight_clip: float = typer.Option(20.0, "--awr.weight-clip", help="Max AWR weight"),
     success_bc_epochs: int = typer.Option(
         1,
         "--success-bc.epochs",
         help="BC/SFT epochs per iteration for --update-method success_bc.",
+    ),
+    success_bc_minibatch_trajs: int = typer.Option(
+        4,
+        "--success-bc.minibatch-trajs",
+        help="Success-BC trajectories per optimizer minibatch.",
     ),
     success_bc_loss_reduction: str = typer.Option(
         "mean",
@@ -511,6 +519,7 @@ def main(
         ),
         awr=AWRConfig(
             epochs=awr_epochs,
+            minibatch_trajs=awr_minibatch_trajs,
             temperature=awr_temperature,
             weight_clip=awr_weight_clip,
         ),
@@ -533,6 +542,7 @@ def main(
         ),
         success_bc=SuccessBCConfig(
             epochs=success_bc_epochs,
+            minibatch_trajs=success_bc_minibatch_trajs,
             loss_reduction=success_bc_loss_reduction,
         ),
         kl=KLConfig(

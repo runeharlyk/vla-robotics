@@ -26,6 +26,7 @@ rollout:
 
 awr:
   epochs: 2
+  minibatch_trajs: 4
   temperature: 5.0
   weight_clip: 20.0
 
