@@ -1202,6 +1202,27 @@ def train_srpo(
             loss_key = "success_bc_loss"
         else:
             raise ValueError(f"Unknown update_method: {config.update_method}")
+        # Advantage-side diagnostics (mirrors OpenVLA-OFT's RIPT-VLA logging
+        # of mean_advantage / non_zero_adv_ratio). Helps detect cases where
+        # most trajectories carry no learning signal even when
+        # `skipped_tasks` is zero (e.g. balanced groups with std below
+        # adv_skip_threshold but above 0).
+        try:
+            adv_t = torch.tensor(advantages, dtype=torch.float32)
+            score_t = torch.tensor(g_values, dtype=torch.float32)
+            mean_advantage = float(adv_t.mean().item()) if adv_t.numel() else 0.0
+            mean_abs_advantage = float(adv_t.abs().mean().item()) if adv_t.numel() else 0.0
+            non_zero_adv_ratio = (
+                float((adv_t.abs() > config.adv_skip_threshold).float().mean().item())
+                if adv_t.numel()
+                else 0.0
+            )
+            mean_score = float(score_t.mean().item()) if score_t.numel() else 0.0
+            score_std = float(score_t.std(unbiased=False).item()) if score_t.numel() > 1 else 0.0
+        except Exception:
+            mean_advantage = mean_abs_advantage = non_zero_adv_ratio = 0.0
+            mean_score = score_std = 0.0
+
         log_data = {
             f"{config.mode}/{loss_key}": update_metrics.avg_loss,
             f"{config.mode}/kl_penalty": update_metrics.avg_kl + update_metrics.avg_sft_kl,
@@ -1212,11 +1233,20 @@ def train_srpo(
             f"{config.mode}/replay_successes": sum(replay_counts.values()),
             f"{config.mode}/success_buffer_size": sum(len(buf) for buf in success_buffer.values()),
             f"{config.mode}/skipped_tasks": len(skipped_tasks),
+            f"{config.mode}/mean_advantage": mean_advantage,
+            f"{config.mode}/mean_abs_advantage": mean_abs_advantage,
+            f"{config.mode}/non_zero_adv_ratio": non_zero_adv_ratio,
+            f"{config.mode}/mean_score": mean_score,
+            f"{config.mode}/score_std": score_std,
             f"{config.mode}/dynamic_sampling/resampled_tasks": len(dynsample_retries),
             f"{config.mode}/dynamic_sampling/total_retries": sum(dynsample_retries.values()),
             f"{config.mode}/dynamic_sampling/gave_up_tasks": len(dynsample_gave_up),
             f"{config.mode}/iteration": iteration,
         }
+        if update_metrics.avg_loss != 0.0:
+            log_data[f"{config.mode}/sft_kl_dominance"] = (
+                update_metrics.avg_sft_kl / abs(update_metrics.avg_loss)
+            )
         for _tid, n_retries in dynsample_retries.items():
             log_data[f"{config.mode}/{_tid}/dynamic_sampling/retries"] = n_retries
             log_data[f"{config.mode}/{_tid}/dynamic_sampling/gave_up"] = int(_tid in dynsample_gave_up)
