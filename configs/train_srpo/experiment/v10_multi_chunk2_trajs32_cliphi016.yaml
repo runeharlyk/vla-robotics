@@ -1,58 +1,85 @@
 # @package _global_
 
 metadata:
-  label: v10-multi-chunk2-trajs32-cliphi016
+  label: v10-multi-chunk2-trajs32-stochrollouts
   source_doc: docs/sparse_rl_path_to_90_spatial.md
   notes: |
-    Production-grade multi-task FPO run. First multi-task config with
-    eval_episodes=100 under the post-3c291f23 env reset distribution.
-    Closes two open questions left by v8 (chunk-5 trajs=8 scout) and
-    v9 (chunk-1 trajs=8 scout, chunk-5 trajs=8 cliphi=0.12 scout):
+    PRODUCTION-GRADE single-variable test of the dominant ceiling
+    hypothesis. v10 keeps the entire v7 stability recipe (lr=2e-6,
+    sft_kl_coeff=0.02, clip 0.05/0.08, demos+replay+dynsample) and
+    flips exactly ONE knob versus every prior FPO run on this branch:
+
+        rollout.eval_zero_sample: true -> false
+
+    Why this matters
+    ----------------
+    Audit trail: every results/training/*.json (50+ runs) records
+    "eval_zero_sample": true. The trainer's _build_eval_noise() returns
+    a literal zeros tensor as the FM-sampler initial noise whenever this
+    flag is true. Combined with deterministic ODE solving, that means
+    every rollout trajectory was the modal action of the snapshot
+    policy. The only source of variance in the rollout buffer was env
+    init-state seeding.
+
+    Implication: the FPO advantage signal had no action-space variance
+    to credit-assign over. SimpleVLA-RL gets exploration from
+    temperature=1.6, piRL gets it from Flow-SDE / Flow-Noise; we got
+    it from nothing. This explains the persistent symptoms across
+    every multi-task run we have:
+      - mean_ratio glued to 1.000-1.007 (FM loss at the same modal
+        action barely moves under small weight updates).
+      - clip_frac collapsing to 0 by iter ~12 (no off-policy
+        disagreement to clip).
+      - Internal eval (which DOES use stochastic noise via the
+        eval_periodically toggle) often beating rollout success rate.
+      - Flat suite-avg curves regardless of clip_epsilon_high,
+        sft_kl_coeff, or negative_adv_scale.
+
+    With eval_zero_sample=false and eval_fixed_noise_seed=None during
+    training, _build_eval_noise() returns None and the underlying
+    SmolVLA flow sampler draws fresh Gaussian noise per call. With
+    trajs_per_task=32 each task gets 32 distinct (init_state, noise)
+    pairs per iteration. This is the standard stochastic on-policy
+    setup that FPO's surrogate is mathematically derived for.
 
     Hypotheses tested
     -----------------
-    H1: With trajs_per_task=32 (proper LOO baseline), 100-episode eval,
-        and 30 iterations, the v7 stability recipe (sftkl=0.02 + demos
-        + replay + dynamic sampling) beats SFT 0.743 on suite-average
-        by >= 5 pp at 95 percent CI. v7 at trajs=32 reported 0.795 best
-        but only at 20 ep so the result was never statistically
-        confirmed.
-    H2: Clip-higher 0.05/0.16 (the priority-a lever from
-        sparse_rl_path_to_90_spatial.md section 8) lets the FPO trust
-        region actually bind. Diagnostic: mean_ratio should drift
-        away from 1.0 more than v8/v9 (which were stuck at 1.000-1.007),
-        and clip_frac should stay non-zero throughout instead of
-        collapsing to 0 after iter ~12. Existing v9 run with cliphi=0.12
-        at trajs=8 already showed signs of life on this metric but eval
-        was scout-noisy.
-    H3: chunk-2 training transfers to chunk-1 eval acceptably (4 pp
-        SFT degradation vs 12 pp at chunk-5 in our eval table). If the
-        chunk-1 external eval is materially worse than the chunk-2
-        internal eval, multi-task chunk-aware training under the new
-        env is broken and v11 must train at chunk-1 despite the wall
-        clock cost.
+    H1 (primary): With stochastic rollouts and the v7 stability
+        recipe at production scale (trajs=32, eval=100, 30 iters),
+        suite-avg under the post-3c291f23 env beats SFT 0.743 by
+        >= 5 pp at 95 percent CI. The 0.795 v7 scout result becomes
+        either confirmed or refuted at 1000-episode resolution.
+    H2 (mechanism): clip_frac stays > 0.05 throughout, mean_ratio
+        drifts noticeably away from 1.0, and non_zero_adv_ratio
+        (new diagnostic) stays > 0.5. If any of these three are
+        violated the new exploration is still insufficient and the
+        next move is bigger structural change (Flow-SDE per piRL,
+        or temperature plumbing in libero_rollout.py).
+    H3 (negative): If suite-avg < 0.74 with stochastic rollouts,
+        the deterministic-rollout regime was actually a stabiliser
+        and FPO without it is unstable; pivot to RIPT-VLA-style
+        REINFORCE-LOO or PPO with proper logprobs.
 
     Decision rules
     --------------
-    - Suite-avg at 100 ep at iter 30 >= 0.78 AND chunk-1 external eval
-      of the best checkpoint is >= 0.77: confirmed beat. Promote to
-      WiSE-FT alpha sweep (W5) and queue v11 with cliphi=0.20 plus the
-      W9 rollout-temperature plumbing.
-    - Suite-avg in [0.74, 0.78]: marginal beat at the protocol level;
-      chunk-2 transfer is the dominant uncertainty. Submit v11 at
-      chunk-1 (eat the wall-clock cost) before drawing conclusions
-      about clip-higher.
-    - Suite-avg < 0.74: regression vs SFT. Read clip_frac, mean_ratio,
-      raw_sft_kl, non_zero_adv_ratio per iter to diagnose.
-        a) If clip_frac stays < 0.05 and mean_ratio stuck at 1.0:
-           trust region never bound; rollout temperature (W9) is the
-           next experiment.
-        b) If raw_sft_kl > 1.0 by iter 20: SFT anchor failure mode
-           from section 11 reappeared at trajs=32; raise sft_kl_coeff
-           to 0.04 or anchor on demos only.
-        c) If non_zero_adv_ratio < 0.5 by iter 15: per-task LOO is
-           dropping too many groups; switch to global RLOO via the
-           rloo_over_all_rollouts flag added with the diagnostic patch.
+    - Suite-avg @ 100 ep iter 30 >= 0.78 AND chunk-1 external eval of
+      best_rollout >= 0.77: confirmed beat. Promote to WiSE-FT alpha
+      sweep (W5, ~half day code), queue v11 with clip_epsilon_high
+      raised to 0.16 to layer the second DAPO ingredient.
+    - Suite-avg in [0.74, 0.78]: beat is marginal. Submit v11 with
+      stochastic rollouts AND cliphi=0.16 to test if the two stack.
+    - Suite-avg < 0.74 OR raw_sft_kl > 1.0 by iter 20: stochastic
+      rollouts caused instability. Revert to eval_zero_sample=true,
+      keep diagnostics, plumb proper rollout temperature (W9) instead.
+
+    Held constant vs v7 reference recipe
+    ------------------------------------
+    Everything else exactly matches the v7 recipe that produced our
+    current best multi-task scout (0.795 best at 20 ep). The only
+    changes are scale (trajs 8 -> 32, eval 20 -> 100, iters 25 -> 30,
+    n_action_steps 1 -> 2 for wall-clock) and the eval_zero_sample
+    fix. Clip stays at 0.05/0.08, sft_kl_coeff stays at 0.02,
+    negative_adv_scale stays at 1.0, no other knobs touched.
 
 task_ids: all
 mode: sparse_rl
@@ -64,13 +91,13 @@ eval_every: 10
 eval_episodes: 100
 max_steps: 220
 seed: 42
-wandb_name: v10-multi-chunk2-trajs32-cliphi016-eval100
+wandb_name: v10-multi-chunk2-trajs32-stochrollouts-eval100
 
 ppo:
   epochs: 1
   minibatch_trajs: 4
   clip_epsilon: 0.05
-  clip_epsilon_high: 0.16
+  clip_epsilon_high: 0.08
 
 kl:
   coeff: 0.01
@@ -89,6 +116,7 @@ sampling:
 
 rollout:
   n_action_steps: 2
+  eval_zero_sample: false
 
 fpo:
   full_chunk_target: true
