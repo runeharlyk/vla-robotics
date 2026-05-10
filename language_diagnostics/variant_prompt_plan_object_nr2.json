@@ -14,36 +14,6 @@
   "tasks": [
     {
       "suite": "object",
-      "task_id": 2,
-      "task_description": "pick up the salad dressing and place it in the basket",
-      "prompts": {
-        "original": "pick up the salad dressing and place it in the basket",
-        "politeness": "please pick up the salad dressing and place it in the basket",
-        "verb_paraphrase": "grab the salad dressing and place it in the basket",
-        "sentence_structure": "the salad dressing, pick it up and place it in the basket",
-        "verbosity": "in this task you have to pick up the salad dressing and place it in the basket for me",
-        "carefully": "pick up the salad dressing and place it in the basket carefully",
-        "quickly": "pick up the salad dressing and place it in the basket quickly",
-        "do_not_move": "do not move the salad dressing and place it in the basket"
-      }
-    },
-    {
-      "suite": "object",
-      "task_id": 3,
-      "task_description": "pick up the bbq sauce and place it in the basket",
-      "prompts": {
-        "original": "pick up the bbq sauce and place it in the basket",
-        "politeness": "please pick up the bbq sauce and place it in the basket",
-        "verb_paraphrase": "grab the bbq sauce and place it in the basket",
-        "sentence_structure": "the bbq sauce, pick it up and place it in the basket",
-        "verbosity": "in this task you have to pick up the bbq sauce and place it in the basket for me",
-        "carefully": "pick up the bbq sauce and place it in the basket carefully",
-        "quickly": "pick up the bbq sauce and place it in the basket quickly",
-        "do_not_move": "do not move the bbq sauce and place it in the basket"
-      }
-    },
-    {
-      "suite": "object",
       "task_id": 4,
       "task_description": "pick up the ketchup and place it in the basket",
       "prompts": {

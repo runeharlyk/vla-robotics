@@ -14,36 +14,6 @@
   "tasks": [
     {
       "suite": "goal",
-      "task_id": 2,
-      "task_description": "put the wine bottle on top of the cabinet",
-      "prompts": {
-        "original": "put the wine bottle on top of the cabinet",
-        "politeness": "please put the wine bottle on top of the cabinet",
-        "verb_paraphrase": "place the wine bottle on top of the cabinet",
-        "sentence_structure": "the wine bottle, put it on top of the cabinet",
-        "verbosity": "in this task you have to put the wine bottle on top of the cabinet for me",
-        "carefully": "put the wine bottle on top of the cabinet carefully",
-        "quickly": "put the wine bottle on top of the cabinet quickly",
-        "do_not_move": "do not move the wine bottle on top of the cabinet"
-      }
-    },
-    {
-      "suite": "goal",
-      "task_id": 3,
-      "task_description": "open the top drawer and put the bowl inside",
-      "prompts": {
-        "original": "open the top drawer and put the bowl inside",
-        "politeness": "please open the top drawer and put the bowl inside",
-        "verb_paraphrase": "pull out the top drawer and put the bowl inside",
-        "sentence_structure": "the top drawer, open it and put the bowl inside",
-        "verbosity": "in this task you have to open the top drawer and put the bowl inside for me",
-        "carefully": "open the top drawer and put the bowl inside carefully",
-        "quickly": "open the top drawer and put the bowl inside quickly",
-        "do_not_move": "do not open the top drawer and put the bowl inside"
-      }
-    },
-    {
-      "suite": "goal",
       "task_id": 4,
       "task_description": "put the bowl on top of the cabinet",
       "prompts": {
