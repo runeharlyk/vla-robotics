@@ -1,0 +1,17 @@
+suite,task_id,task_description,variant_type,prompt
+object,2,pick up the salad dressing and place it in the basket,original,pick up the salad dressing and place it in the basket
+object,2,pick up the salad dressing and place it in the basket,politeness,please pick up the salad dressing and place it in the basket
+object,2,pick up the salad dressing and place it in the basket,verb_paraphrase,grab the salad dressing and place it in the basket
+object,2,pick up the salad dressing and place it in the basket,sentence_structure,"the salad dressing, pick it up and place it in the basket"
+object,2,pick up the salad dressing and place it in the basket,verbosity,in this task you have to pick up the salad dressing and place it in the basket for me
+object,2,pick up the salad dressing and place it in the basket,carefully,pick up the salad dressing and place it in the basket carefully
+object,2,pick up the salad dressing and place it in the basket,quickly,pick up the salad dressing and place it in the basket quickly
+object,2,pick up the salad dressing and place it in the basket,do_not_move,do not move the salad dressing and place it in the basket
+object,3,pick up the bbq sauce and place it in the basket,original,pick up the bbq sauce and place it in the basket
+object,3,pick up the bbq sauce and place it in the basket,politeness,please pick up the bbq sauce and place it in the basket
+object,3,pick up the bbq sauce and place it in the basket,verb_paraphrase,grab the bbq sauce and place it in the basket
+object,3,pick up the bbq sauce and place it in the basket,sentence_structure,"the bbq sauce, pick it up and place it in the basket"
+object,3,pick up the bbq sauce and place it in the basket,verbosity,in this task you have to pick up the bbq sauce and place it in the basket for me
+object,3,pick up the bbq sauce and place it in the basket,carefully,pick up the bbq sauce and place it in the basket carefully
+object,3,pick up the bbq sauce and place it in the basket,quickly,pick up the bbq sauce and place it in the basket quickly
+object,3,pick up the bbq sauce and place it in the basket,do_not_move,do not move the bbq sauce and place it in the basket

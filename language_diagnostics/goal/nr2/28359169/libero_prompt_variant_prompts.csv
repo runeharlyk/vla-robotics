@@ -1,0 +1,9 @@
+suite,task_id,task_description,variant_type,prompt
+goal,4,put the bowl on top of the cabinet,original,put the bowl on top of the cabinet
+goal,4,put the bowl on top of the cabinet,politeness,please put the bowl on top of the cabinet
+goal,4,put the bowl on top of the cabinet,verb_paraphrase,place the bowl on top of the cabinet
+goal,4,put the bowl on top of the cabinet,sentence_structure,"the bowl, put it on top of the cabinet"
+goal,4,put the bowl on top of the cabinet,verbosity,in this task you have to put the bowl on top of the cabinet for me
+goal,4,put the bowl on top of the cabinet,carefully,put the bowl on top of the cabinet carefully
+goal,4,put the bowl on top of the cabinet,quickly,put the bowl on top of the cabinet quickly
+goal,4,put the bowl on top of the cabinet,do_not_move,do not put the bowl on top of the cabinet

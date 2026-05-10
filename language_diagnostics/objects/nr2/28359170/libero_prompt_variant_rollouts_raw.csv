@@ -1,0 +1,401 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,0,104000,True,178
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,1,104001,True,183
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,2,104002,True,191
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,3,104003,True,146
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,4,104004,True,242
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,5,104005,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,6,104006,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,7,104007,True,247
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,8,104008,True,150
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,9,104009,True,160
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,10,104010,True,157
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,11,104011,True,154
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,12,104012,True,151
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,13,104013,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,14,104014,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,15,104015,True,184
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,16,104016,True,142
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,17,104017,True,166
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,18,104018,True,239
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,19,104019,True,164
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,20,104020,True,151
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,21,104021,True,150
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,22,104022,True,178
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,23,104023,True,157
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,24,104024,True,155
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,25,104025,True,233
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,26,104026,True,152
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,27,104027,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,28,104028,True,152
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,29,104029,True,171
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,30,104030,True,158
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,31,104031,True,194
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,32,104032,True,147
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,33,104033,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,34,104034,True,162
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,35,104035,True,161
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,36,104036,True,165
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,37,104037,True,156
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,38,104038,True,207
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,39,104039,True,156
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,40,104040,True,145
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,41,104041,True,184
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,42,104042,True,152
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,43,104043,True,276
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,44,104044,True,155
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,45,104045,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,46,104046,False,280
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,47,104047,True,139
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,48,104048,True,147
+object,4,pick up the ketchup and place it in the basket,104000,original,0,pick up the ketchup and place it in the basket,49,104049,True,153
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,0,104000,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,1,104001,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,2,104002,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,3,104003,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,4,104004,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,5,104005,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,6,104006,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,7,104007,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,8,104008,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,9,104009,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,10,104010,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,11,104011,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,12,104012,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,13,104013,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,14,104014,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,15,104015,True,190
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,16,104016,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,17,104017,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,18,104018,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,19,104019,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,20,104020,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,21,104021,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,22,104022,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,23,104023,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,24,104024,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,25,104025,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,26,104026,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,27,104027,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,28,104028,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,29,104029,True,238
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,30,104030,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,31,104031,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,32,104032,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,33,104033,True,186
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,34,104034,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,35,104035,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,36,104036,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,37,104037,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,38,104038,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,39,104039,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,40,104040,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,41,104041,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,42,104042,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,43,104043,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,44,104044,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,45,104045,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,46,104046,True,206
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,47,104047,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,48,104048,False,280
+object,4,pick up the ketchup and place it in the basket,104000,politeness,0,please pick up the ketchup and place it in the basket,49,104049,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,0,104000,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,1,104001,True,204
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,2,104002,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,3,104003,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,4,104004,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,5,104005,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,6,104006,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,7,104007,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,8,104008,True,243
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,9,104009,True,202
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,10,104010,True,218
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,11,104011,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,12,104012,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,13,104013,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,14,104014,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,15,104015,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,16,104016,True,215
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,17,104017,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,18,104018,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,19,104019,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,20,104020,True,182
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,21,104021,True,215
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,22,104022,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,23,104023,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,24,104024,True,223
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,25,104025,True,195
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,26,104026,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,27,104027,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,28,104028,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,29,104029,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,30,104030,True,213
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,31,104031,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,32,104032,True,262
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,33,104033,True,231
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,34,104034,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,35,104035,True,205
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,36,104036,True,202
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,37,104037,True,203
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,38,104038,True,206
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,39,104039,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,40,104040,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,41,104041,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,42,104042,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,43,104043,True,187
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,44,104044,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,45,104045,True,190
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,46,104046,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,47,104047,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,48,104048,True,228
+object,4,pick up the ketchup and place it in the basket,104000,verb_paraphrase,0,grab the ketchup and place it in the basket,49,104049,True,214
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",0,104000,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",1,104001,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",2,104002,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",3,104003,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",4,104004,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",5,104005,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",6,104006,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",7,104007,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",8,104008,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",9,104009,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",10,104010,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",11,104011,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",12,104012,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",13,104013,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",14,104014,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",15,104015,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",16,104016,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",17,104017,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",18,104018,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",19,104019,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",20,104020,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",21,104021,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",22,104022,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",23,104023,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",24,104024,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",25,104025,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",26,104026,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",27,104027,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",28,104028,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",29,104029,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",30,104030,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",31,104031,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",32,104032,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",33,104033,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",34,104034,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",35,104035,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",36,104036,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",37,104037,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",38,104038,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",39,104039,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",40,104040,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",41,104041,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",42,104042,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",43,104043,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",44,104044,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",45,104045,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",46,104046,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",47,104047,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",48,104048,False,280
+object,4,pick up the ketchup and place it in the basket,104000,sentence_structure,0,"the ketchup, pick it up and place it in the basket",49,104049,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,0,104000,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,1,104001,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,2,104002,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,3,104003,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,4,104004,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,5,104005,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,6,104006,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,7,104007,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,8,104008,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,9,104009,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,10,104010,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,11,104011,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,12,104012,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,13,104013,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,14,104014,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,15,104015,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,16,104016,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,17,104017,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,18,104018,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,19,104019,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,20,104020,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,21,104021,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,22,104022,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,23,104023,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,24,104024,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,25,104025,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,26,104026,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,27,104027,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,28,104028,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,29,104029,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,30,104030,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,31,104031,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,32,104032,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,33,104033,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,34,104034,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,35,104035,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,36,104036,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,37,104037,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,38,104038,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,39,104039,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,40,104040,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,41,104041,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,42,104042,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,43,104043,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,44,104044,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,45,104045,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,46,104046,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,47,104047,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,48,104048,False,280
+object,4,pick up the ketchup and place it in the basket,104000,verbosity,0,in this task you have to pick up the ketchup and place it in the basket for me,49,104049,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,0,104000,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,1,104001,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,2,104002,True,169
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,3,104003,True,168
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,4,104004,True,180
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,5,104005,True,172
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,6,104006,True,154
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,7,104007,True,192
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,8,104008,True,164
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,9,104009,True,168
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,10,104010,True,159
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,11,104011,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,12,104012,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,13,104013,True,150
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,14,104014,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,15,104015,True,163
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,16,104016,True,197
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,17,104017,True,157
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,18,104018,True,167
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,19,104019,True,175
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,20,104020,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,21,104021,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,22,104022,True,164
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,23,104023,True,173
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,24,104024,True,162
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,25,104025,True,167
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,26,104026,True,151
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,27,104027,True,154
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,28,104028,True,179
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,29,104029,True,168
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,30,104030,True,187
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,31,104031,True,162
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,32,104032,True,173
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,33,104033,True,167
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,34,104034,True,151
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,35,104035,True,165
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,36,104036,True,169
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,37,104037,True,172
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,38,104038,True,166
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,39,104039,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,40,104040,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,41,104041,True,190
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,42,104042,False,280
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,43,104043,True,177
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,44,104044,True,172
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,45,104045,True,162
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,46,104046,True,180
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,47,104047,True,169
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,48,104048,True,164
+object,4,pick up the ketchup and place it in the basket,104000,carefully,0,pick up the ketchup and place it in the basket carefully,49,104049,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,0,104000,True,148
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,1,104001,True,155
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,2,104002,True,157
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,3,104003,True,155
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,4,104004,True,168
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,5,104005,True,175
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,6,104006,True,142
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,7,104007,True,165
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,8,104008,True,176
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,9,104009,True,154
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,10,104010,True,167
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,11,104011,True,187
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,12,104012,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,13,104013,True,154
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,14,104014,True,155
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,15,104015,True,162
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,16,104016,True,159
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,17,104017,True,157
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,18,104018,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,19,104019,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,20,104020,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,21,104021,True,153
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,22,104022,True,162
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,23,104023,True,171
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,24,104024,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,25,104025,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,26,104026,True,158
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,27,104027,True,159
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,28,104028,True,153
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,29,104029,True,152
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,30,104030,True,220
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,31,104031,True,169
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,32,104032,True,159
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,33,104033,True,167
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,34,104034,True,158
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,35,104035,True,160
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,36,104036,True,171
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,37,104037,True,164
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,38,104038,True,157
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,39,104039,True,146
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,40,104040,True,156
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,41,104041,True,167
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,42,104042,True,145
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,43,104043,True,168
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,44,104044,True,200
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,45,104045,True,171
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,46,104046,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,47,104047,True,233
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,48,104048,False,280
+object,4,pick up the ketchup and place it in the basket,104000,quickly,0,pick up the ketchup and place it in the basket quickly,49,104049,True,150
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,0,104000,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,1,104001,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,2,104002,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,3,104003,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,4,104004,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,5,104005,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,6,104006,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,7,104007,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,8,104008,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,9,104009,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,10,104010,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,11,104011,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,12,104012,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,13,104013,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,14,104014,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,15,104015,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,16,104016,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,17,104017,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,18,104018,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,19,104019,True,269
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,20,104020,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,21,104021,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,22,104022,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,23,104023,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,24,104024,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,25,104025,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,26,104026,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,27,104027,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,28,104028,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,29,104029,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,30,104030,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,31,104031,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,32,104032,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,33,104033,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,34,104034,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,35,104035,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,36,104036,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,37,104037,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,38,104038,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,39,104039,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,40,104040,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,41,104041,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,42,104042,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,43,104043,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,44,104044,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,45,104045,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,46,104046,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,47,104047,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,48,104048,False,280
+object,4,pick up the ketchup and place it in the basket,104000,do_not_move,0,do not move the ketchup and place it in the basket,49,104049,False,280

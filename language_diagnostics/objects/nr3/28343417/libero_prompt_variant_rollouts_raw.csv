@@ -1,0 +1,801 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,0,102000,True,123
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,1,102001,True,109
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,2,102002,True,123
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,3,102003,True,117
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,4,102004,True,111
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,5,102005,True,129
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,6,102006,True,143
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,7,102007,True,119
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,8,102008,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,9,102009,True,112
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,10,102010,True,120
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,11,102011,True,112
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,12,102012,True,117
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,13,102013,True,144
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,14,102014,True,115
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,15,102015,True,122
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,16,102016,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,17,102017,True,118
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,18,102018,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,19,102019,True,114
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,20,102020,True,114
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,21,102021,True,126
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,22,102022,True,127
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,23,102023,True,116
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,24,102024,True,131
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,25,102025,True,127
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,26,102026,True,131
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,27,102027,True,125
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,28,102028,True,124
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,29,102029,True,146
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,30,102030,True,150
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,31,102031,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,32,102032,True,126
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,33,102033,True,124
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,34,102034,True,119
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,35,102035,True,127
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,36,102036,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,37,102037,True,124
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,38,102038,True,122
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,39,102039,True,114
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,40,102040,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,41,102041,True,114
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,42,102042,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,43,102043,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,44,102044,True,143
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,45,102045,True,137
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,46,102046,True,122
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,47,102047,True,144
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,48,102048,True,134
+object,2,pick up the salad dressing and place it in the basket,102000,original,0,pick up the salad dressing and place it in the basket,49,102049,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,0,102000,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,1,102001,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,2,102002,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,3,102003,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,4,102004,True,119
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,5,102005,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,6,102006,True,124
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,7,102007,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,8,102008,True,125
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,9,102009,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,10,102010,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,11,102011,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,12,102012,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,13,102013,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,14,102014,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,15,102015,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,16,102016,True,127
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,17,102017,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,18,102018,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,19,102019,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,20,102020,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,21,102021,True,263
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,22,102022,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,23,102023,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,24,102024,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,25,102025,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,26,102026,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,27,102027,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,28,102028,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,29,102029,True,123
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,30,102030,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,31,102031,True,140
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,32,102032,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,33,102033,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,34,102034,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,35,102035,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,36,102036,True,129
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,37,102037,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,38,102038,True,120
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,39,102039,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,40,102040,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,41,102041,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,42,102042,True,138
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,43,102043,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,44,102044,True,145
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,45,102045,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,46,102046,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,47,102047,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,48,102048,True,142
+object,2,pick up the salad dressing and place it in the basket,102000,politeness,0,please pick up the salad dressing and place it in the basket,49,102049,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,0,102000,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,1,102001,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,2,102002,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,3,102003,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,4,102004,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,5,102005,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,6,102006,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,7,102007,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,8,102008,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,9,102009,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,10,102010,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,11,102011,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,12,102012,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,13,102013,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,14,102014,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,15,102015,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,16,102016,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,17,102017,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,18,102018,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,19,102019,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,20,102020,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,21,102021,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,22,102022,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,23,102023,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,24,102024,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,25,102025,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,26,102026,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,27,102027,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,28,102028,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,29,102029,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,30,102030,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,31,102031,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,32,102032,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,33,102033,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,34,102034,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,35,102035,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,36,102036,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,37,102037,True,127
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,38,102038,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,39,102039,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,40,102040,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,41,102041,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,42,102042,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,43,102043,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,44,102044,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,45,102045,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,46,102046,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,47,102047,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,48,102048,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verb_paraphrase,0,grab the salad dressing and place it in the basket,49,102049,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",0,102000,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",1,102001,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",2,102002,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",3,102003,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",4,102004,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",5,102005,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",6,102006,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",7,102007,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",8,102008,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",9,102009,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",10,102010,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",11,102011,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",12,102012,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",13,102013,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",14,102014,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",15,102015,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",16,102016,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",17,102017,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",18,102018,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",19,102019,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",20,102020,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",21,102021,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",22,102022,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",23,102023,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",24,102024,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",25,102025,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",26,102026,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",27,102027,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",28,102028,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",29,102029,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",30,102030,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",31,102031,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",32,102032,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",33,102033,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",34,102034,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",35,102035,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",36,102036,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",37,102037,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",38,102038,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",39,102039,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",40,102040,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",41,102041,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",42,102042,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",43,102043,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",44,102044,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",45,102045,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",46,102046,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",47,102047,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",48,102048,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,sentence_structure,0,"the salad dressing, pick it up and place it in the basket",49,102049,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,0,102000,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,1,102001,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,2,102002,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,3,102003,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,4,102004,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,5,102005,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,6,102006,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,7,102007,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,8,102008,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,9,102009,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,10,102010,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,11,102011,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,12,102012,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,13,102013,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,14,102014,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,15,102015,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,16,102016,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,17,102017,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,18,102018,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,19,102019,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,20,102020,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,21,102021,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,22,102022,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,23,102023,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,24,102024,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,25,102025,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,26,102026,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,27,102027,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,28,102028,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,29,102029,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,30,102030,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,31,102031,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,32,102032,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,33,102033,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,34,102034,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,35,102035,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,36,102036,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,37,102037,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,38,102038,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,39,102039,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,40,102040,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,41,102041,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,42,102042,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,43,102043,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,44,102044,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,45,102045,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,46,102046,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,47,102047,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,48,102048,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,verbosity,0,in this task you have to pick up the salad dressing and place it in the basket for me,49,102049,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,0,102000,True,132
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,1,102001,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,2,102002,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,3,102003,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,4,102004,True,128
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,5,102005,True,140
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,6,102006,True,134
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,7,102007,True,132
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,8,102008,True,123
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,9,102009,True,160
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,10,102010,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,11,102011,True,111
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,12,102012,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,13,102013,True,122
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,14,102014,True,168
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,15,102015,True,148
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,16,102016,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,17,102017,True,133
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,18,102018,True,124
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,19,102019,True,141
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,20,102020,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,21,102021,True,129
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,22,102022,True,132
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,23,102023,True,131
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,24,102024,True,137
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,25,102025,True,120
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,26,102026,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,27,102027,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,28,102028,True,131
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,29,102029,True,133
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,30,102030,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,31,102031,True,134
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,32,102032,True,142
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,33,102033,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,34,102034,True,146
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,35,102035,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,36,102036,True,136
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,37,102037,True,126
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,38,102038,True,151
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,39,102039,True,141
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,40,102040,True,124
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,41,102041,True,137
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,42,102042,True,128
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,43,102043,True,139
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,44,102044,True,139
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,45,102045,True,145
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,46,102046,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,47,102047,True,153
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,48,102048,True,149
+object,2,pick up the salad dressing and place it in the basket,102000,carefully,0,pick up the salad dressing and place it in the basket carefully,49,102049,True,137
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,0,102000,True,132
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,1,102001,True,119
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,2,102002,True,138
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,3,102003,True,142
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,4,102004,True,122
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,5,102005,True,144
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,6,102006,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,7,102007,True,136
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,8,102008,True,138
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,9,102009,True,144
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,10,102010,True,138
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,11,102011,True,143
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,12,102012,True,119
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,13,102013,True,144
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,14,102014,True,128
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,15,102015,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,16,102016,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,17,102017,True,127
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,18,102018,True,115
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,19,102019,True,117
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,20,102020,True,143
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,21,102021,True,133
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,22,102022,True,129
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,23,102023,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,24,102024,True,131
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,25,102025,True,119
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,26,102026,True,120
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,27,102027,True,128
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,28,102028,True,134
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,29,102029,True,146
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,30,102030,True,120
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,31,102031,True,119
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,32,102032,True,116
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,33,102033,True,135
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,34,102034,True,105
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,35,102035,True,125
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,36,102036,True,131
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,37,102037,True,133
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,38,102038,True,113
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,39,102039,True,116
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,40,102040,True,125
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,41,102041,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,42,102042,True,121
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,43,102043,True,131
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,44,102044,True,126
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,45,102045,True,123
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,46,102046,True,129
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,47,102047,True,128
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,48,102048,True,115
+object,2,pick up the salad dressing and place it in the basket,102000,quickly,0,pick up the salad dressing and place it in the basket quickly,49,102049,True,130
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,0,102000,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,1,102001,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,2,102002,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,3,102003,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,4,102004,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,5,102005,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,6,102006,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,7,102007,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,8,102008,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,9,102009,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,10,102010,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,11,102011,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,12,102012,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,13,102013,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,14,102014,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,15,102015,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,16,102016,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,17,102017,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,18,102018,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,19,102019,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,20,102020,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,21,102021,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,22,102022,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,23,102023,True,208
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,24,102024,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,25,102025,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,26,102026,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,27,102027,True,204
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,28,102028,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,29,102029,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,30,102030,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,31,102031,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,32,102032,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,33,102033,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,34,102034,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,35,102035,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,36,102036,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,37,102037,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,38,102038,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,39,102039,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,40,102040,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,41,102041,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,42,102042,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,43,102043,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,44,102044,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,45,102045,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,46,102046,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,47,102047,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,48,102048,False,280
+object,2,pick up the salad dressing and place it in the basket,102000,do_not_move,0,do not move the salad dressing and place it in the basket,49,102049,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,0,103000,True,132
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,1,103001,True,123
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,2,103002,True,147
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,3,103003,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,4,103004,True,132
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,5,103005,True,135
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,6,103006,True,131
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,7,103007,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,8,103008,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,9,103009,True,126
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,10,103010,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,11,103011,True,115
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,12,103012,True,135
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,13,103013,True,128
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,14,103014,True,127
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,15,103015,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,16,103016,True,140
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,17,103017,True,141
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,18,103018,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,19,103019,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,20,103020,True,148
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,21,103021,True,141
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,22,103022,True,138
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,23,103023,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,24,103024,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,25,103025,True,125
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,26,103026,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,27,103027,True,125
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,28,103028,True,147
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,29,103029,True,142
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,30,103030,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,31,103031,True,123
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,32,103032,True,130
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,33,103033,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,34,103034,True,127
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,35,103035,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,36,103036,True,132
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,37,103037,True,138
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,38,103038,True,151
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,39,103039,True,138
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,40,103040,True,131
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,41,103041,True,119
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,42,103042,True,131
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,43,103043,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,44,103044,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,45,103045,True,122
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,46,103046,True,141
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,47,103047,True,204
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,48,103048,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,original,0,pick up the bbq sauce and place it in the basket,49,103049,True,144
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,0,103000,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,1,103001,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,2,103002,True,167
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,3,103003,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,4,103004,True,190
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,5,103005,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,6,103006,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,7,103007,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,8,103008,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,9,103009,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,10,103010,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,11,103011,True,156
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,12,103012,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,13,103013,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,14,103014,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,15,103015,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,16,103016,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,17,103017,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,18,103018,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,19,103019,True,173
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,20,103020,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,21,103021,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,22,103022,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,23,103023,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,24,103024,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,25,103025,True,157
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,26,103026,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,27,103027,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,28,103028,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,29,103029,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,30,103030,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,31,103031,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,32,103032,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,33,103033,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,34,103034,True,160
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,35,103035,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,36,103036,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,37,103037,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,38,103038,True,188
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,39,103039,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,40,103040,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,41,103041,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,42,103042,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,43,103043,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,44,103044,True,206
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,45,103045,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,46,103046,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,47,103047,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,48,103048,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,politeness,0,please pick up the bbq sauce and place it in the basket,49,103049,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,0,103000,True,149
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,1,103001,True,145
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,2,103002,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,3,103003,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,4,103004,True,122
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,5,103005,True,122
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,6,103006,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,7,103007,True,149
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,8,103008,True,117
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,9,103009,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,10,103010,True,139
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,11,103011,True,127
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,12,103012,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,13,103013,True,121
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,14,103014,True,132
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,15,103015,True,148
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,16,103016,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,17,103017,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,18,103018,True,132
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,19,103019,True,131
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,20,103020,True,141
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,21,103021,True,130
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,22,103022,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,23,103023,True,127
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,24,103024,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,25,103025,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,26,103026,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,27,103027,True,141
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,28,103028,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,29,103029,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,30,103030,True,126
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,31,103031,True,123
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,32,103032,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,33,103033,True,146
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,34,103034,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,35,103035,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,36,103036,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,37,103037,True,130
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,38,103038,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,39,103039,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,40,103040,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,41,103041,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,42,103042,True,131
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,43,103043,True,138
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,44,103044,True,141
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,45,103045,True,160
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,46,103046,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,47,103047,True,169
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,48,103048,True,149
+object,3,pick up the bbq sauce and place it in the basket,103000,verb_paraphrase,0,grab the bbq sauce and place it in the basket,49,103049,True,130
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",0,103000,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",1,103001,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",2,103002,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",3,103003,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",4,103004,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",5,103005,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",6,103006,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",7,103007,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",8,103008,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",9,103009,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",10,103010,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",11,103011,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",12,103012,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",13,103013,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",14,103014,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",15,103015,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",16,103016,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",17,103017,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",18,103018,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",19,103019,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",20,103020,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",21,103021,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",22,103022,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",23,103023,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",24,103024,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",25,103025,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",26,103026,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",27,103027,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",28,103028,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",29,103029,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",30,103030,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",31,103031,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",32,103032,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",33,103033,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",34,103034,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",35,103035,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",36,103036,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",37,103037,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",38,103038,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",39,103039,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",40,103040,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",41,103041,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",42,103042,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",43,103043,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",44,103044,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",45,103045,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",46,103046,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",47,103047,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",48,103048,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,sentence_structure,0,"the bbq sauce, pick it up and place it in the basket",49,103049,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,0,103000,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,1,103001,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,2,103002,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,3,103003,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,4,103004,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,5,103005,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,6,103006,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,7,103007,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,8,103008,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,9,103009,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,10,103010,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,11,103011,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,12,103012,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,13,103013,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,14,103014,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,15,103015,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,16,103016,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,17,103017,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,18,103018,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,19,103019,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,20,103020,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,21,103021,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,22,103022,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,23,103023,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,24,103024,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,25,103025,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,26,103026,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,27,103027,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,28,103028,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,29,103029,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,30,103030,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,31,103031,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,32,103032,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,33,103033,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,34,103034,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,35,103035,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,36,103036,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,37,103037,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,38,103038,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,39,103039,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,40,103040,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,41,103041,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,42,103042,True,223
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,43,103043,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,44,103044,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,45,103045,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,46,103046,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,47,103047,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,48,103048,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,verbosity,0,in this task you have to pick up the bbq sauce and place it in the basket for me,49,103049,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,0,103000,True,170
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,1,103001,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,2,103002,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,3,103003,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,4,103004,True,164
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,5,103005,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,6,103006,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,7,103007,True,122
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,8,103008,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,9,103009,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,10,103010,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,11,103011,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,12,103012,True,135
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,13,103013,True,144
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,14,103014,True,128
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,15,103015,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,16,103016,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,17,103017,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,18,103018,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,19,103019,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,20,103020,True,135
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,21,103021,True,135
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,22,103022,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,23,103023,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,24,103024,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,25,103025,True,142
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,26,103026,True,138
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,27,103027,True,128
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,28,103028,True,135
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,29,103029,True,140
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,30,103030,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,31,103031,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,32,103032,True,139
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,33,103033,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,34,103034,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,35,103035,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,36,103036,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,37,103037,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,38,103038,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,39,103039,True,127
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,40,103040,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,41,103041,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,42,103042,True,143
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,43,103043,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,44,103044,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,45,103045,True,139
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,46,103046,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,47,103047,True,135
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,48,103048,True,126
+object,3,pick up the bbq sauce and place it in the basket,103000,carefully,0,pick up the bbq sauce and place it in the basket carefully,49,103049,True,159
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,0,103000,True,132
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,1,103001,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,2,103002,True,130
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,3,103003,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,4,103004,True,121
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,5,103005,True,144
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,6,103006,True,144
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,7,103007,True,125
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,8,103008,True,112
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,9,103009,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,10,103010,True,125
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,11,103011,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,12,103012,True,131
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,13,103013,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,14,103014,True,115
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,15,103015,True,136
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,16,103016,True,153
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,17,103017,True,126
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,18,103018,True,122
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,19,103019,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,20,103020,True,125
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,21,103021,True,146
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,22,103022,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,23,103023,True,139
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,24,103024,True,127
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,25,103025,True,121
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,26,103026,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,27,103027,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,28,103028,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,29,103029,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,30,103030,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,31,103031,True,127
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,32,103032,True,139
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,33,103033,True,133
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,34,103034,True,130
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,35,103035,True,147
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,36,103036,True,134
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,37,103037,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,38,103038,True,123
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,39,103039,True,137
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,40,103040,True,139
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,41,103041,True,144
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,42,103042,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,43,103043,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,44,103044,True,131
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,45,103045,True,124
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,46,103046,True,129
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,47,103047,True,119
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,48,103048,True,120
+object,3,pick up the bbq sauce and place it in the basket,103000,quickly,0,pick up the bbq sauce and place it in the basket quickly,49,103049,True,128
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,0,103000,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,1,103001,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,2,103002,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,3,103003,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,4,103004,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,5,103005,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,6,103006,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,7,103007,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,8,103008,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,9,103009,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,10,103010,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,11,103011,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,12,103012,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,13,103013,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,14,103014,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,15,103015,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,16,103016,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,17,103017,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,18,103018,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,19,103019,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,20,103020,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,21,103021,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,22,103022,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,23,103023,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,24,103024,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,25,103025,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,26,103026,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,27,103027,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,28,103028,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,29,103029,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,30,103030,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,31,103031,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,32,103032,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,33,103033,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,34,103034,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,35,103035,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,36,103036,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,37,103037,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,38,103038,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,39,103039,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,40,103040,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,41,103041,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,42,103042,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,43,103043,True,208
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,44,103044,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,45,103045,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,46,103046,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,47,103047,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,48,103048,False,280
+object,3,pick up the bbq sauce and place it in the basket,103000,do_not_move,0,do not move the bbq sauce and place it in the basket,49,103049,False,280

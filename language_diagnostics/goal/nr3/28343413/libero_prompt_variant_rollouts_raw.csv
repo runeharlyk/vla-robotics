@@ -1,0 +1,801 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,0,202000,True,83
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,1,202001,True,95
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,2,202002,True,131
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,3,202003,True,89
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,4,202004,True,95
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,5,202005,True,87
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,6,202006,True,104
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,7,202007,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,8,202008,True,88
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,9,202009,True,93
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,10,202010,True,89
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,11,202011,True,97
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,12,202012,True,87
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,13,202013,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,14,202014,True,87
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,15,202015,True,82
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,16,202016,True,86
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,17,202017,True,87
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,18,202018,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,19,202019,True,86
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,20,202020,True,100
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,21,202021,True,94
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,22,202022,True,97
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,23,202023,True,102
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,24,202024,True,92
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,25,202025,True,78
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,26,202026,True,83
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,27,202027,True,86
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,28,202028,True,95
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,29,202029,True,82
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,30,202030,True,99
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,31,202031,True,86
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,32,202032,True,90
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,33,202033,True,103
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,34,202034,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,35,202035,True,106
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,36,202036,True,91
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,37,202037,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,38,202038,True,86
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,39,202039,True,99
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,40,202040,True,114
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,41,202041,True,92
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,42,202042,True,99
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,43,202043,True,93
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,44,202044,True,83
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,45,202045,True,87
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,46,202046,True,81
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,47,202047,True,95
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,48,202048,True,88
+goal,2,put the wine bottle on top of the cabinet,202000,original,0,put the wine bottle on top of the cabinet,49,202049,True,93
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,0,202000,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,1,202001,True,109
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,2,202002,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,3,202003,True,102
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,4,202004,True,97
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,5,202005,True,91
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,6,202006,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,7,202007,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,8,202008,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,9,202009,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,10,202010,True,102
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,11,202011,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,12,202012,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,13,202013,True,133
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,14,202014,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,15,202015,True,93
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,16,202016,True,99
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,17,202017,True,89
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,18,202018,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,19,202019,True,100
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,20,202020,True,98
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,21,202021,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,22,202022,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,23,202023,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,24,202024,True,95
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,25,202025,True,88
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,26,202026,True,114
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,27,202027,True,113
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,28,202028,True,118
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,29,202029,True,112
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,30,202030,True,100
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,31,202031,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,32,202032,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,33,202033,True,116
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,34,202034,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,35,202035,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,36,202036,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,37,202037,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,38,202038,True,131
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,39,202039,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,40,202040,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,41,202041,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,42,202042,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,43,202043,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,44,202044,True,88
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,45,202045,True,118
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,46,202046,True,125
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,47,202047,True,199
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,48,202048,True,114
+goal,2,put the wine bottle on top of the cabinet,202000,politeness,0,please put the wine bottle on top of the cabinet,49,202049,True,88
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,0,202000,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,1,202001,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,2,202002,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,3,202003,True,110
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,4,202004,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,5,202005,True,111
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,6,202006,True,110
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,7,202007,True,98
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,8,202008,True,97
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,9,202009,True,102
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,10,202010,True,118
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,11,202011,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,12,202012,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,13,202013,True,95
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,14,202014,True,110
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,15,202015,True,124
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,16,202016,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,17,202017,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,18,202018,True,108
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,19,202019,True,117
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,20,202020,True,99
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,21,202021,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,22,202022,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,23,202023,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,24,202024,True,106
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,25,202025,True,106
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,26,202026,True,112
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,27,202027,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,28,202028,True,100
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,29,202029,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,30,202030,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,31,202031,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,32,202032,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,33,202033,True,180
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,34,202034,True,94
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,35,202035,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,36,202036,True,92
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,37,202037,True,91
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,38,202038,True,116
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,39,202039,True,117
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,40,202040,True,92
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,41,202041,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,42,202042,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,43,202043,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,44,202044,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,45,202045,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,46,202046,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,47,202047,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,48,202048,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,verb_paraphrase,0,place the wine bottle on top of the cabinet,49,202049,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",0,202000,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",1,202001,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",2,202002,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",3,202003,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",4,202004,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",5,202005,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",6,202006,True,152
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",7,202007,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",8,202008,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",9,202009,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",10,202010,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",11,202011,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",12,202012,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",13,202013,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",14,202014,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",15,202015,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",16,202016,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",17,202017,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",18,202018,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",19,202019,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",20,202020,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",21,202021,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",22,202022,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",23,202023,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",24,202024,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",25,202025,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",26,202026,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",27,202027,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",28,202028,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",29,202029,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",30,202030,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",31,202031,True,150
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",32,202032,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",33,202033,True,154
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",34,202034,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",35,202035,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",36,202036,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",37,202037,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",38,202038,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",39,202039,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",40,202040,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",41,202041,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",42,202042,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",43,202043,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",44,202044,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",45,202045,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",46,202046,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",47,202047,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",48,202048,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,sentence_structure,0,"the wine bottle, put it on top of the cabinet",49,202049,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,0,202000,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,1,202001,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,2,202002,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,3,202003,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,4,202004,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,5,202005,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,6,202006,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,7,202007,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,8,202008,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,9,202009,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,10,202010,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,11,202011,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,12,202012,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,13,202013,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,14,202014,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,15,202015,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,16,202016,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,17,202017,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,18,202018,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,19,202019,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,20,202020,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,21,202021,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,22,202022,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,23,202023,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,24,202024,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,25,202025,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,26,202026,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,27,202027,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,28,202028,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,29,202029,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,30,202030,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,31,202031,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,32,202032,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,33,202033,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,34,202034,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,35,202035,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,36,202036,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,37,202037,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,38,202038,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,39,202039,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,40,202040,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,41,202041,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,42,202042,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,43,202043,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,44,202044,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,45,202045,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,46,202046,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,47,202047,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,48,202048,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,verbosity,0,in this task you have to put the wine bottle on top of the cabinet for me,49,202049,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,0,202000,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,1,202001,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,2,202002,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,3,202003,True,100
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,4,202004,True,104
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,5,202005,True,99
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,6,202006,True,115
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,7,202007,True,108
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,8,202008,True,93
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,9,202009,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,10,202010,True,111
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,11,202011,True,110
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,12,202012,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,13,202013,True,114
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,14,202014,True,100
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,15,202015,True,99
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,16,202016,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,17,202017,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,18,202018,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,19,202019,True,96
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,20,202020,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,21,202021,True,109
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,22,202022,True,94
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,23,202023,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,24,202024,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,25,202025,True,115
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,26,202026,True,106
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,27,202027,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,28,202028,True,102
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,29,202029,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,30,202030,True,106
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,31,202031,True,86
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,32,202032,True,97
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,33,202033,True,114
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,34,202034,True,116
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,35,202035,True,98
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,36,202036,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,37,202037,True,85
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,38,202038,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,39,202039,True,112
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,40,202040,True,107
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,41,202041,True,122
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,42,202042,True,106
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,43,202043,True,109
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,44,202044,True,105
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,45,202045,True,122
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,46,202046,True,117
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,47,202047,True,98
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,48,202048,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,carefully,0,put the wine bottle on top of the cabinet carefully,49,202049,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,0,202000,True,113
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,1,202001,True,122
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,2,202002,True,144
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,3,202003,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,4,202004,True,108
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,5,202005,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,6,202006,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,7,202007,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,8,202008,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,9,202009,True,135
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,10,202010,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,11,202011,True,110
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,12,202012,True,113
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,13,202013,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,14,202014,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,15,202015,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,16,202016,True,128
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,17,202017,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,18,202018,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,19,202019,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,20,202020,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,21,202021,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,22,202022,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,23,202023,True,134
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,24,202024,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,25,202025,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,26,202026,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,27,202027,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,28,202028,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,29,202029,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,30,202030,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,31,202031,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,32,202032,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,33,202033,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,34,202034,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,35,202035,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,36,202036,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,37,202037,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,38,202038,True,110
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,39,202039,True,106
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,40,202040,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,41,202041,True,118
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,42,202042,True,113
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,43,202043,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,44,202044,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,45,202045,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,46,202046,True,101
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,47,202047,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,48,202048,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,quickly,0,put the wine bottle on top of the cabinet quickly,49,202049,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,0,202000,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,1,202001,True,276
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,2,202002,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,3,202003,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,4,202004,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,5,202005,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,6,202006,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,7,202007,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,8,202008,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,9,202009,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,10,202010,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,11,202011,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,12,202012,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,13,202013,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,14,202014,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,15,202015,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,16,202016,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,17,202017,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,18,202018,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,19,202019,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,20,202020,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,21,202021,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,22,202022,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,23,202023,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,24,202024,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,25,202025,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,26,202026,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,27,202027,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,28,202028,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,29,202029,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,30,202030,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,31,202031,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,32,202032,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,33,202033,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,34,202034,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,35,202035,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,36,202036,True,228
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,37,202037,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,38,202038,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,39,202039,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,40,202040,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,41,202041,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,42,202042,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,43,202043,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,44,202044,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,45,202045,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,46,202046,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,47,202047,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,48,202048,False,280
+goal,2,put the wine bottle on top of the cabinet,202000,do_not_move,0,do not move the wine bottle on top of the cabinet,49,202049,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,0,203000,True,180
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,1,203001,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,2,203002,True,182
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,5,203005,True,189
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,6,203006,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,8,203008,True,188
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,9,203009,True,169
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,10,203010,True,184
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,11,203011,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,12,203012,True,172
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,13,203013,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,17,203017,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,19,203019,True,158
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,20,203020,True,175
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,21,203021,True,173
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,22,203022,True,191
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,24,203024,True,184
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,25,203025,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,26,203026,True,199
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,30,203030,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,31,203031,True,171
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,32,203032,True,197
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,34,203034,True,189
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,36,203036,True,169
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,38,203038,True,197
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,40,203040,True,173
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,41,203041,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,43,203043,True,180
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,44,203044,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,45,203045,True,180
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,original,0,open the top drawer and put the bowl inside,49,203049,True,205
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,0,203000,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,1,203001,True,182
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,2,203002,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,5,203005,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,6,203006,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,8,203008,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,9,203009,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,10,203010,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,11,203011,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,12,203012,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,13,203013,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,17,203017,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,19,203019,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,20,203020,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,21,203021,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,22,203022,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,24,203024,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,25,203025,True,263
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,26,203026,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,30,203030,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,31,203031,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,32,203032,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,34,203034,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,36,203036,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,38,203038,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,40,203040,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,41,203041,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,43,203043,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,44,203044,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,45,203045,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,politeness,0,please open the top drawer and put the bowl inside,49,203049,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,0,203000,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,1,203001,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,2,203002,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,5,203005,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,6,203006,True,219
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,8,203008,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,9,203009,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,10,203010,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,11,203011,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,12,203012,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,13,203013,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,17,203017,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,19,203019,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,20,203020,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,21,203021,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,22,203022,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,24,203024,True,207
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,25,203025,True,220
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,26,203026,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,30,203030,True,229
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,31,203031,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,32,203032,True,266
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,34,203034,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,36,203036,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,38,203038,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,40,203040,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,41,203041,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,43,203043,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,44,203044,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,45,203045,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verb_paraphrase,0,pull out the top drawer and put the bowl inside,49,203049,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",0,203000,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",1,203001,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",2,203002,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",5,203005,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",6,203006,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",8,203008,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",9,203009,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",10,203010,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",11,203011,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",12,203012,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",13,203013,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",17,203017,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",19,203019,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",20,203020,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",21,203021,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",22,203022,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",24,203024,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",25,203025,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",26,203026,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",30,203030,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",31,203031,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",32,203032,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",34,203034,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",36,203036,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",38,203038,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",40,203040,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",41,203041,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",43,203043,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",44,203044,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",45,203045,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,sentence_structure,0,"the top drawer, open it and put the bowl inside",49,203049,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,0,203000,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,1,203001,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,2,203002,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,5,203005,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,6,203006,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,8,203008,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,9,203009,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,10,203010,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,11,203011,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,12,203012,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,13,203013,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,17,203017,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,19,203019,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,20,203020,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,21,203021,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,22,203022,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,24,203024,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,25,203025,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,26,203026,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,30,203030,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,31,203031,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,32,203032,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,34,203034,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,36,203036,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,38,203038,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,40,203040,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,41,203041,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,43,203043,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,44,203044,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,45,203045,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,verbosity,0,in this task you have to open the top drawer and put the bowl inside for me,49,203049,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,0,203000,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,1,203001,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,2,203002,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,5,203005,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,6,203006,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,8,203008,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,9,203009,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,10,203010,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,11,203011,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,12,203012,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,13,203013,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,17,203017,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,19,203019,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,20,203020,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,21,203021,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,22,203022,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,24,203024,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,25,203025,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,26,203026,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,30,203030,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,31,203031,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,32,203032,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,34,203034,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,36,203036,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,38,203038,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,40,203040,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,41,203041,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,43,203043,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,44,203044,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,45,203045,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,carefully,0,open the top drawer and put the bowl inside carefully,49,203049,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,0,203000,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,1,203001,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,2,203002,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,5,203005,True,243
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,6,203006,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,8,203008,True,208
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,9,203009,True,176
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,10,203010,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,11,203011,True,192
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,12,203012,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,13,203013,True,199
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,17,203017,True,199
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,19,203019,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,20,203020,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,21,203021,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,22,203022,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,24,203024,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,25,203025,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,26,203026,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,30,203030,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,31,203031,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,32,203032,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,34,203034,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,36,203036,True,180
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,38,203038,True,226
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,40,203040,True,189
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,41,203041,True,191
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,43,203043,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,44,203044,True,194
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,45,203045,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,quickly,0,open the top drawer and put the bowl inside quickly,49,203049,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,0,203000,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,1,203001,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,2,203002,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,3,203003,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,4,203004,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,5,203005,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,6,203006,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,7,203007,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,8,203008,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,9,203009,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,10,203010,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,11,203011,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,12,203012,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,13,203013,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,14,203014,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,15,203015,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,16,203016,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,17,203017,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,18,203018,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,19,203019,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,20,203020,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,21,203021,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,22,203022,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,23,203023,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,24,203024,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,25,203025,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,26,203026,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,27,203027,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,28,203028,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,29,203029,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,30,203030,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,31,203031,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,32,203032,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,33,203033,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,34,203034,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,35,203035,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,36,203036,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,37,203037,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,38,203038,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,39,203039,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,40,203040,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,41,203041,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,42,203042,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,43,203043,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,44,203044,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,45,203045,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,46,203046,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,47,203047,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,48,203048,False,280
+goal,3,open the top drawer and put the bowl inside,203000,do_not_move,0,do not open the top drawer and put the bowl inside,49,203049,False,280

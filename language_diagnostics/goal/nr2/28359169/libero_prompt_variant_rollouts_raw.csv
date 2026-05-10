@@ -1,0 +1,401 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,2,204002,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,4,204004,True,90
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,5,204005,True,90
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,7,204007,True,89
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,9,204009,True,96
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,10,204010,True,90
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,14,204014,True,88
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,15,204015,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,21,204021,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,22,204022,True,85
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,23,204023,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,24,204024,True,96
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,25,204025,True,87
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,26,204026,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,27,204027,True,77
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,30,204030,True,80
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,31,204031,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,33,204033,True,89
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,34,204034,True,92
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,35,204035,True,95
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,39,204039,True,77
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,41,204041,True,70
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,42,204042,True,82
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,44,204044,True,96
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,45,204045,True,76
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,46,204046,True,81
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,47,204047,True,95
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,48,204048,True,85
+goal,4,put the bowl on top of the cabinet,204000,original,0,put the bowl on top of the cabinet,49,204049,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,2,204002,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,4,204004,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,5,204005,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,7,204007,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,9,204009,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,10,204010,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,14,204014,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,15,204015,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,21,204021,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,22,204022,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,23,204023,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,24,204024,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,25,204025,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,26,204026,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,27,204027,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,30,204030,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,31,204031,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,33,204033,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,34,204034,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,35,204035,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,39,204039,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,41,204041,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,42,204042,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,44,204044,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,45,204045,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,46,204046,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,47,204047,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,48,204048,False,280
+goal,4,put the bowl on top of the cabinet,204000,politeness,0,please put the bowl on top of the cabinet,49,204049,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,2,204002,True,87
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,4,204004,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,5,204005,True,84
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,7,204007,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,9,204009,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,10,204010,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,14,204014,True,84
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,15,204015,True,97
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,21,204021,True,99
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,22,204022,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,23,204023,True,77
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,24,204024,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,25,204025,True,85
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,26,204026,True,86
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,27,204027,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,30,204030,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,31,204031,True,87
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,33,204033,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,34,204034,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,35,204035,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,39,204039,True,86
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,41,204041,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,42,204042,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,44,204044,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,45,204045,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,46,204046,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,47,204047,False,280
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,48,204048,True,87
+goal,4,put the bowl on top of the cabinet,204000,verb_paraphrase,0,place the bowl on top of the cabinet,49,204049,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",2,204002,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",4,204004,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",5,204005,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",7,204007,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",9,204009,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",10,204010,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",14,204014,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",15,204015,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",21,204021,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",22,204022,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",23,204023,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",24,204024,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",25,204025,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",26,204026,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",27,204027,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",30,204030,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",31,204031,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",33,204033,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",34,204034,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",35,204035,True,132
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",39,204039,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",41,204041,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",42,204042,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",44,204044,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",45,204045,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",46,204046,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",47,204047,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",48,204048,False,280
+goal,4,put the bowl on top of the cabinet,204000,sentence_structure,0,"the bowl, put it on top of the cabinet",49,204049,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,2,204002,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,4,204004,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,5,204005,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,7,204007,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,9,204009,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,10,204010,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,14,204014,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,15,204015,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,21,204021,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,22,204022,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,23,204023,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,24,204024,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,25,204025,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,26,204026,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,27,204027,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,30,204030,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,31,204031,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,33,204033,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,34,204034,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,35,204035,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,39,204039,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,41,204041,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,42,204042,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,44,204044,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,45,204045,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,46,204046,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,47,204047,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,48,204048,False,280
+goal,4,put the bowl on top of the cabinet,204000,verbosity,0,in this task you have to put the bowl on top of the cabinet for me,49,204049,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,2,204002,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,4,204004,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,5,204005,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,7,204007,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,9,204009,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,10,204010,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,14,204014,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,15,204015,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,21,204021,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,22,204022,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,23,204023,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,24,204024,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,25,204025,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,26,204026,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,27,204027,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,30,204030,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,31,204031,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,33,204033,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,34,204034,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,35,204035,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,39,204039,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,41,204041,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,42,204042,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,44,204044,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,45,204045,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,46,204046,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,47,204047,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,48,204048,False,280
+goal,4,put the bowl on top of the cabinet,204000,carefully,0,put the bowl on top of the cabinet carefully,49,204049,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,2,204002,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,4,204004,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,5,204005,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,7,204007,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,9,204009,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,10,204010,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,14,204014,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,15,204015,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,21,204021,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,22,204022,True,198
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,23,204023,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,24,204024,True,171
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,25,204025,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,26,204026,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,27,204027,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,30,204030,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,31,204031,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,33,204033,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,34,204034,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,35,204035,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,39,204039,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,41,204041,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,42,204042,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,44,204044,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,45,204045,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,46,204046,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,47,204047,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,48,204048,False,280
+goal,4,put the bowl on top of the cabinet,204000,quickly,0,put the bowl on top of the cabinet quickly,49,204049,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,0,204000,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,1,204001,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,2,204002,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,3,204003,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,4,204004,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,5,204005,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,6,204006,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,7,204007,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,8,204008,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,9,204009,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,10,204010,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,11,204011,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,12,204012,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,13,204013,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,14,204014,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,15,204015,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,16,204016,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,17,204017,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,18,204018,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,19,204019,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,20,204020,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,21,204021,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,22,204022,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,23,204023,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,24,204024,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,25,204025,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,26,204026,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,27,204027,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,28,204028,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,29,204029,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,30,204030,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,31,204031,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,32,204032,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,33,204033,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,34,204034,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,35,204035,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,36,204036,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,37,204037,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,38,204038,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,39,204039,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,40,204040,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,41,204041,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,42,204042,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,43,204043,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,44,204044,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,45,204045,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,46,204046,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,47,204047,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,48,204048,False,280
+goal,4,put the bowl on top of the cabinet,204000,do_not_move,0,do not put the bowl on top of the cabinet,49,204049,False,280

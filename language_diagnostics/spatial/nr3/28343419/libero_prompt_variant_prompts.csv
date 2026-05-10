@@ -1,0 +1,17 @@
+suite,task_id,task_description,variant_type,prompt
+spatial,2,pick up the black bowl from table center and place it on the plate,original,pick up the black bowl from table center and place it on the plate
+spatial,2,pick up the black bowl from table center and place it on the plate,politeness,please pick up the black bowl from table center and place it on the plate
+spatial,2,pick up the black bowl from table center and place it on the plate,verb_paraphrase,grab the black bowl from table center and place it on the plate
+spatial,2,pick up the black bowl from table center and place it on the plate,sentence_structure,"the black bowl from table center, pick it up and place it on the plate"
+spatial,2,pick up the black bowl from table center and place it on the plate,verbosity,in this task you have to pick up the black bowl from table center and place it on the plate for me
+spatial,2,pick up the black bowl from table center and place it on the plate,carefully,pick up the black bowl from table center and place it on the plate carefully
+spatial,2,pick up the black bowl from table center and place it on the plate,quickly,pick up the black bowl from table center and place it on the plate quickly
+spatial,2,pick up the black bowl from table center and place it on the plate,do_not_move,do not move the black bowl from table center and place it on the plate
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,original,pick up the black bowl on the cookie box and place it on the plate
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,politeness,please pick up the black bowl on the cookie box and place it on the plate
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,verb_paraphrase,grab the black bowl on the cookie box and place it on the plate
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,sentence_structure,"the black bow on the cookie box, pick it up and place it on the plate"
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,verbosity,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,carefully,pick up the black bowl on the cookie box and place it on the plate carefully
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,quickly,pick up the black bowl on the cookie box and place it on the plate quickly
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,do_not_move,do not move the black bowl on the cookie box and place it on the plate
