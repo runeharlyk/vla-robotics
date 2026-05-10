@@ -33,6 +33,8 @@ PAIRED_BOOL_FLAGS = {
     "kl.adaptive",
     "replay.include-demos",
     "sampling.dynamic",
+    "success-bc.balanced-demo-sampling",
+    "demo-replay",
 }
 
 KEY_ALIASES = {

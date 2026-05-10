@@ -143,7 +143,7 @@
   "wandb_project": "srpo-smolvla",
   "wandb_entity": "bachelor-vla",
   "wandb_url": "https://wandb.ai/bachelor-vla/srpo-smolvla/runs/cbhvtfug",
-  "wandb_state": "running",
+  "wandb_state": "finished",
   "wandb_created_at": "2026-05-10T05:33:17Z",
   "wandb_updated_at": "",
   "wandb_tags": [],
@@ -154,11 +154,11 @@
   "git_branch": "",
   "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
   "metrics_jsonl": "C:\\data\\Repos\\vla-robotics\\results\\training_curves\\v10b-multi-chunk2-trajs16-stochrollouts-negadv0-fastiter_sparse_rl_10tasks_spatial_seed42_28394556.jsonl",
-  "history_points": 19,
+  "history_points": 21,
   "best_eval_metric_key": "sparse_rl/eval/success_rate",
   "best_eval_metric_value": 0.8,
   "best_eval_iteration": 0,
   "final_eval_metric_key": "sparse_rl/eval/success_rate",
-  "final_eval_metric_value": 0.7100000000000001,
-  "final_eval_iteration": 10
+  "final_eval_metric_value": 0.765,
+  "final_eval_iteration": 20
 }

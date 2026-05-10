@@ -174,6 +174,7 @@ def _build_tasks(
                 trajs = task_dataset.episodes_as_trajectories(task_id=tidx)
                 for traj in trajs:
                     traj.task_id = task_key
+                    traj.is_demo = True
                 demo_trajectories[task_key] = trajs
 
         return task_specs, demo_trajectories, state_dim, ACTION_DIM
@@ -208,6 +209,7 @@ def _build_tasks(
             trajs = ds.episodes_as_trajectories()
             for traj in trajs:
                 traj.task_id = task_id_str
+                traj.is_demo = True
             demo_trajectories[task_id_str] = trajs
 
     resolved_action_dim = ACTION_DIM if simulator == "libero" else datasets[0].action_dim
@@ -247,6 +249,14 @@ def main(
         None, "--libero-suite", help="Load demos from HuggingFace LeRobot dataset instead of .pt (e.g. spatial)"
     ),
     num_demos: int = typer.Option(5, "--num-demos", "-n"),
+    demo_replay: bool = typer.Option(
+        True,
+        "--demo-replay/--no-demo-replay",
+        help="Replay demo actions in the simulator before training to align observations to "
+        "the env render path. Set --no-demo-replay to feed raw recorded demo observations "
+        "directly (faster startup, on the SFT distribution; recommended when the SFT "
+        "checkpoint was trained on the same LeRobot dataset).",
+    ),
     mode: Mode = typer.Option("srpo", "--mode", "-m", help="srpo or sparse_rl"),
     simulator: Simulator = typer.Option("maniskill", "--simulator", help="maniskill or libero"),
     suite: LiberoSuite = typer.Option("spatial", "--suite", help="LIBERO suite (spatial, object, goal, long)"),
@@ -290,15 +300,29 @@ def main(
         "--success-bc.epochs",
         help="BC/SFT epochs per iteration for --update-method success_bc.",
     ),
-    success_bc_minibatch_trajs: int = typer.Option(
-        4,
-        "--success-bc.minibatch-trajs",
-        help="Success-BC trajectories per optimizer minibatch.",
-    ),
     success_bc_loss_reduction: str = typer.Option(
         "mean",
         "--success-bc.loss-reduction",
         help="Chunk-position reduction for success_bc: mean or sum.",
+    ),
+    success_bc_minibatch_trajs: int = typer.Option(
+        4,
+        "--success-bc.minibatch-trajs",
+        help="Trajectories per minibatch for success_bc updates.",
+    ),
+    success_bc_balanced_demo_sampling: bool = typer.Option(
+        False,
+        "--success-bc.balanced-demo-sampling/--no-success-bc.balanced-demo-sampling",
+        help=(
+            "RLPD-style symmetric sampling: each minibatch is composed of "
+            "demos and online (rollout/replay) trajs in a configurable "
+            "ratio. Best-effort -- when one pool is empty the other fills."
+        ),
+    ),
+    success_bc_demo_sampling_ratio: float = typer.Option(
+        0.5,
+        "--success-bc.demo-sampling-ratio",
+        help="Fraction of each minibatch drawn from demos when balanced sampling is enabled.",
     ),
     kl_coeff: float = typer.Option(0.01, "--kl.coeff"),
     sft_kl_coeff: float = typer.Option(
@@ -482,9 +506,21 @@ def main(
     else:
         logger.info("No SFT checkpoint - using pretrained %s weights directly", checkpoint)
 
-    if demo_trajectories:
-        logger.info("Replacing raw demo trajectories with simulator-replayed trajectories before training uses them.")
-        demo_trajectories = replay_demo_rollouts(
+    demo_replay_success_rate: dict[str, float] = {}
+    pre_replay_counts = {tid: len(t) for tid, t in (demo_trajectories or {}).items()}
+    if demo_trajectories and not demo_replay:
+        total_raw = sum(pre_replay_counts.values())
+        logger.info(
+            "Skipping demo replay (--no-demo-replay): using %d raw recorded demos directly. "
+            "These are 2-camera and on the SFT distribution, so they slot into success_bc as-is.",
+            total_raw,
+        )
+    if demo_trajectories and demo_replay:
+        logger.info(
+            "Replaying demos in the simulator. Failed replays fall back to the raw recorded "
+            "demo (success=True by construction) so every task keeps its full demo pool."
+        )
+        demo_trajectories, demo_replay_success_rate = replay_demo_rollouts(
             task_specs=task_specs,
             demo_trajectories=demo_trajectories,
             simulator=simulator,
@@ -492,7 +528,23 @@ def main(
             max_steps=resolved_max_steps,
             seed=seed,
             state_dim=resolved_state_dim,
+            drop_failed_replays=False,
+            fallback_to_raw_demo=True,
         )
+        if demo_replay_success_rate:
+            avg = sum(demo_replay_success_rate.values()) / len(demo_replay_success_rate)
+            logger.info(
+                "Demo replay success rate: %.2f (suite avg) -- per-task: %s",
+                avg,
+                ", ".join(f"{k}={v:.2f}" for k, v in sorted(demo_replay_success_rate.items())),
+            )
+            total_pre = sum(pre_replay_counts.values())
+            total_post = sum(len(t) for t in (demo_trajectories or {}).values())
+            logger.info(
+                "Demo pool kept %d/%d after replay (failed replays fell back to raw recorded demos).",
+                total_post,
+                total_pre,
+            )
 
     if len(task_specs) > 1:
         task_tag = f"{len(task_specs)}tasks_{suite}"
@@ -544,6 +596,8 @@ def main(
             epochs=success_bc_epochs,
             minibatch_trajs=success_bc_minibatch_trajs,
             loss_reduction=success_bc_loss_reduction,
+            balanced_demo_sampling=success_bc_balanced_demo_sampling,
+            demo_sampling_ratio=success_bc_demo_sampling_ratio,
         ),
         kl=KLConfig(
             coeff=kl_coeff,
@@ -676,6 +730,7 @@ def main(
         config,
         task_specs,
         demo_trajectories=demo_trajectories,
+        demo_replay_success_rate=demo_replay_success_rate,
         metrics_logger=ml,
         trajs_per_task_per_iter=trajs_per_task,
     )

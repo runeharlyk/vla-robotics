@@ -743,6 +743,7 @@ def train_srpo(
     config: SRPOConfig,
     task_specs: list[TaskSpec],
     demo_trajectories: dict[str, list[Trajectory]] | None = None,
+    demo_replay_success_rate: dict[str, float] | None = None,
     metrics_logger: MetricsLogger | None = None,
     trajs_per_task_per_iter: int = 4,
     rollout_engines: dict[str, RolloutEngine] | None = None,
@@ -764,6 +765,13 @@ def train_srpo(
         task_specs: One or more :class:`TaskSpec` describing the task(s).
         demo_trajectories: ``{task_id: [Trajectory, ...]}`` for seeding the
             per-task reward models.  Pass ``None`` to skip demo seeding.
+        demo_replay_success_rate: ``{task_id: success_rate}`` reporting the
+            fraction of demos that still reach the goal when their
+            recorded actions are replayed in a freshly-seeded env. Surfaced
+            as a wandb metric on iter 0; a low value means the demos are
+            being replayed against a different env init state than the one
+            they were recorded against, so they no longer succeed and
+            contribute zero gradient to success-BC.
         metrics_logger: Optional :class:`MetricsLogger` for W&B and JSONL
             persistence.  When ``None``, a JSONL-only logger is created
             from ``config.save_dir``.
@@ -854,6 +862,19 @@ def train_srpo(
         f"{config.mode}/iteration": 0,
         f"{config.mode}/pre_rl_eval": 1,
     }
+    if demo_replay_success_rate:
+        for _tid, _rate in demo_replay_success_rate.items():
+            log_data[f"{config.mode}/{_tid}/demo_replay_success_rate"] = _rate
+        log_data[f"{config.mode}/demo_replay_success_rate"] = sum(demo_replay_success_rate.values()) / len(
+            demo_replay_success_rate
+        )
+    if demo_trajectories is not None:
+        total_kept = 0
+        for _spec in task_specs:
+            kept = len(demo_trajectories.get(_spec.task_id, []))
+            total_kept += kept
+            log_data[f"{config.mode}/{_spec.task_id}/demos_kept_after_replay"] = kept
+        log_data[f"{config.mode}/demos_kept_after_replay_total"] = total_kept
     best_success = evaluate_and_checkpoint(  # Evaluate for iteration 0 to get a baseline for improvements
         policy,
         config,
@@ -1256,6 +1277,8 @@ def train_srpo(
             log_data[f"{config.mode}/success_bc_update_trajs"] = len(update_trajs)
             log_data[f"{config.mode}/sft_kl_coeff"] = config.sft_kl_coeff
             log_data[f"{config.mode}/raw_sft_kl"] = update_metrics.raw_sft_kl
+            log_data[f"{config.mode}/success_bc/demo_fraction"] = update_metrics.demo_fraction
+            log_data[f"{config.mode}/success_bc/online_fraction"] = update_metrics.online_fraction
         elif config.update_method in (UpdateMethod.FPO, UpdateMethod.FLOW_GRPO):
             log_data[f"{config.mode}/clip_frac"] = update_metrics.avg_weight
             log_data[f"{config.mode}/mean_shift"] = update_metrics.avg_shift

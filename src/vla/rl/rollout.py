@@ -63,6 +63,8 @@ class Trajectory:
     flow_times: torch.Tensor | None = None
     flow_dts: torch.Tensor | None = None
     flow_sigmas: torch.Tensor | None = None
+    is_demo: bool = False
+    init_state_id: int | None = None
 
 
 _FLOW_FIELDS = (

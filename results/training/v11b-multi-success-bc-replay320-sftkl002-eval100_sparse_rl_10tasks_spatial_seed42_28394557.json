@@ -154,7 +154,7 @@
   "git_branch": "",
   "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
   "metrics_jsonl": "C:\\data\\Repos\\vla-robotics\\results\\training_curves\\v11b-multi-success-bc-replay320-sftkl002-eval100_sparse_rl_10tasks_spatial_seed42_28394557.jsonl",
-  "history_points": 15,
+  "history_points": 18,
   "best_eval_metric_key": "sparse_rl/eval/success_rate",
   "best_eval_metric_value": 0.748,
   "best_eval_iteration": 12,

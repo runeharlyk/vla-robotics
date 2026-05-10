@@ -161,6 +161,8 @@ class UpdateMetrics:
     raw_sft_kl: float = 0.0
     mean_ratio: float = 1.0
     max_log_ratio: float = 0.0
+    demo_fraction: float = 0.0
+    online_fraction: float = 0.0
 
 
 __all__ = [

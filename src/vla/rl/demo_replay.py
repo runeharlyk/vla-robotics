@@ -51,7 +51,13 @@ def _batch_to_replay_obs(
 
 
 def _replay_single_demo(env: SimEnv, demo: Trajectory, seed: int) -> Trajectory:
-    raw_obs, _info = env.reset(seed=seed)
+    if demo.init_state_id is not None:
+        try:
+            raw_obs, _info = env.reset(seed=seed, init_state_id=demo.init_state_id)
+        except TypeError:
+            raw_obs, _info = env.reset(seed=seed)
+    else:
+        raw_obs, _info = env.reset(seed=seed)
 
     images: list[torch.Tensor] = []
     states: list[torch.Tensor] = []
@@ -95,6 +101,8 @@ def _replay_single_demo(env: SimEnv, demo: Trajectory, seed: int) -> Trajectory:
         success=success,
         length=used,
         task_id=demo.task_id,
+        init_state_id=demo.init_state_id,
+        is_demo=True,
     )
 
 
@@ -119,8 +127,41 @@ def _replay_cache_path(
     key.update(str(state_dim).encode("utf-8"))
     for demo in demos:
         key.update(str(int(demo.length or demo.actions.shape[0])).encode("utf-8"))
+        key.update(str(demo.init_state_id).encode("utf-8"))
         key.update(demo.actions.detach().cpu().numpy().tobytes())
     return cache_dir / f"{spec.task_id}_{key.hexdigest()[:16]}.pt"
+
+
+def _resolve_kept_trajs(
+    replayed_trajs: list[Trajectory],
+    *,
+    raw_demos: list[Trajectory],
+    fallback_to_raw_demo: bool,
+    drop_failed_replays: bool,
+    task_id: str,
+) -> list[Trajectory]:
+    """Apply on-failure handling to a list of replayed demo trajectories.
+
+    See ``replay_demo_rollouts`` docstring for the semantics of the two
+    flags. ``fallback_to_raw_demo`` is checked first: when True, every
+    failed replay is replaced by its corresponding raw demo. Then
+    ``drop_failed_replays`` is applied to whatever is still failing
+    (which is nothing when fallback was used).
+    """
+    out: list[Trajectory] = []
+    for replayed, raw in zip(replayed_trajs, raw_demos, strict=False):
+        replayed.is_demo = True
+        if replayed.success:
+            out.append(replayed)
+            continue
+        if fallback_to_raw_demo:
+            raw.task_id = task_id
+            raw.is_demo = True
+            out.append(raw)
+            continue
+        if not drop_failed_replays:
+            out.append(replayed)
+    return out
 
 
 def replay_demo_rollouts(
@@ -133,10 +174,45 @@ def replay_demo_rollouts(
     seed: int,
     state_dim: int,
     cache_dir: Path | None = None,
-) -> dict[str, list[Trajectory]] | None:
-    """Replay demo actions in the simulator and return observation-aligned trajectories."""
+    drop_failed_replays: bool = False,
+    fallback_to_raw_demo: bool = True,
+) -> tuple[dict[str, list[Trajectory]] | None, dict[str, float]]:
+    """Replay demo actions in the simulator and return observation-aligned trajectories.
+
+    Returns a ``(replayed_trajectories, replay_success_rate)`` tuple. The
+    success-rate dict is keyed by ``task_id`` and reports the fraction of
+    *attempted* replays whose recorded actions still produce
+    ``env.is_success`` (i.e., the metric is computed BEFORE any fallback
+    or filtering, so it's the right diagnostic regardless of the on-failure
+    handling).
+
+    LIBERO ships pre-recorded init-states (``init_files/<task>/...``).
+    Each demo carries an ``init_state_id`` that the loader fills in with
+    its within-task recording rank so we *try* to replay against the
+    exact starting configuration. Empirically this works on some tasks
+    (LIBERO conversion preserves recording order) and not others
+    (LeRobot-side reordering, or MuJoCo numerical non-determinism over
+    long horizons). When the seed-only fallback is used instead, replay
+    is almost always wrong.
+
+    Failure handling (mutually exclusive in practice; ``fallback_to_raw_demo``
+    is checked first):
+
+    * ``fallback_to_raw_demo=True`` (default): failed replays are replaced
+      by the raw recorded demo, which is ``success=True`` by construction.
+      The ``init_state_id`` field is preserved so the success-BC sampler
+      and reward model still see a positive demo for every task. The raw
+      demo's images are LeRobot-recorded frames; SmolVLA was SFT'd on
+      these, so visual compatibility is fine.
+    * ``drop_failed_replays=True``: failed replays are removed from the
+      returned dict. Use only when you specifically want to study live env
+      observations and accept zero demos for tasks where replay fails.
+    * Both False: failed replays are kept (legacy behaviour); the trainer
+      filters by ``t.success`` at update time.
+    """
+    replay_success_rate: dict[str, float] = {}
     if not demo_trajectories:
-        return demo_trajectories
+        return demo_trajectories, replay_success_rate
 
     resolved_cache_dir = cache_dir or (OUTPUTS_DIR / "demo_replay_cache")
     resolved_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -146,6 +222,7 @@ def replay_demo_rollouts(
         demos = demo_trajectories.get(spec.task_id, [])
         if not demos:
             replayed[spec.task_id] = []
+            replay_success_rate[spec.task_id] = 0.0
             continue
 
         cache_path = _replay_cache_path(
@@ -162,12 +239,29 @@ def replay_demo_rollouts(
             cached_trajs = cached["trajectories"] if isinstance(cached, dict) else cached
             for traj in cached_trajs:
                 traj.task_id = spec.task_id
-            replayed[spec.task_id] = cached_trajs
+                traj.is_demo = True
+            replay_success_rate[spec.task_id] = sum(1 for t in cached_trajs if t.success) / max(
+                len(cached_trajs), 1
+            )
+            kept_trajs = _resolve_kept_trajs(
+                cached_trajs,
+                raw_demos=demos,
+                fallback_to_raw_demo=fallback_to_raw_demo,
+                drop_failed_replays=drop_failed_replays,
+                task_id=spec.task_id,
+            )
+            replayed[spec.task_id] = kept_trajs
             logger.info(
-                "Loaded %d cached replayed demo trajectory/trajectories for %s from %s.",
+                "Loaded %d cached replayed demo trajectory/trajectories for %s from %s "
+                "(replay_success_rate=%.2f, kept=%d/%d after fallback=%s drop_failed=%s).",
                 len(cached_trajs),
                 spec.task_id,
                 cache_path,
+                replay_success_rate[spec.task_id],
+                len(kept_trajs),
+                len(cached_trajs),
+                fallback_to_raw_demo,
+                drop_failed_replays,
             )
             continue
 
@@ -192,12 +286,26 @@ def replay_demo_rollouts(
                 traj.task_id = spec.task_id
                 replayed_trajs.append(traj)
                 success_count += int(traj.success)
-            replayed[spec.task_id] = replayed_trajs
+            replay_success_rate[spec.task_id] = success_count / max(len(replayed_trajs), 1)
+            kept_trajs = _resolve_kept_trajs(
+                replayed_trajs,
+                raw_demos=demos,
+                fallback_to_raw_demo=fallback_to_raw_demo,
+                drop_failed_replays=drop_failed_replays,
+                task_id=spec.task_id,
+            )
+            replayed[spec.task_id] = kept_trajs
             logger.info(
-                "Replayed %d demo trajectory/trajectories for %s (%d successes) using simulator observations.",
+                "Replayed %d demo trajectory/trajectories for %s (%d successes, "
+                "replay_success_rate=%.2f, kept=%d/%d after fallback=%s drop_failed=%s) using simulator observations.",
                 len(replayed_trajs),
                 spec.task_id,
                 success_count,
+                replay_success_rate[spec.task_id],
+                len(kept_trajs),
+                len(replayed_trajs),
+                fallback_to_raw_demo,
+                drop_failed_replays,
             )
             torch.save(
                 {
@@ -212,4 +320,4 @@ def replay_demo_rollouts(
         finally:
             env.close()
 
-    return replayed
+    return replayed, replay_success_rate

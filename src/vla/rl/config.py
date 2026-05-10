@@ -61,6 +61,14 @@ class SuccessBCConfig:
     epochs: int = 1
     minibatch_trajs: int = 4
     loss_reduction: str = "mean"
+    # When True, each minibatch is drawn so that the demo-vs-online ratio
+    # matches `demo_sampling_ratio` (best-effort: fall back to the other
+    # pool when one is empty for the current minibatch). Mirrors RLPD's
+    # symmetric prior+online sampling (Ball et al., 2023). When False the
+    # current behaviour (uniform shuffle over all successful trajectories)
+    # is preserved.
+    balanced_demo_sampling: bool = False
+    demo_sampling_ratio: float = 0.5
 
 
 @dataclass
@@ -204,6 +212,14 @@ class SRPOConfig(BaseTrainingConfig):
     @property
     def success_bc_loss_reduction(self) -> str:
         return self.success_bc.loss_reduction
+
+    @property
+    def success_bc_balanced_demo_sampling(self) -> bool:
+        return self.success_bc.balanced_demo_sampling
+
+    @property
+    def success_bc_demo_sampling_ratio(self) -> float:
+        return self.success_bc.demo_sampling_ratio
 
     @property
     def kl_coeff(self) -> float:
