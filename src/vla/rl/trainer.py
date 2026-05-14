@@ -23,6 +23,7 @@ implements :class:`~vla.rl.rollout.RolloutEngine` (ManiSkill or LIBERO).
 from __future__ import annotations
 
 import copy
+import gc
 import logging
 import math
 import subprocess
@@ -1345,6 +1346,12 @@ def train_srpo(
             )
 
         metrics_logger.log(log_data)
+
+        del rollout_trajectories, per_task_successes
+        del all_trajectories, active_trajs, extra_trajectories, update_trajs
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
 
     policy.save_checkpoint(save_path / "last")
     for engine in rollout_engines.values():
