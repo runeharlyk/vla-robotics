@@ -875,16 +875,22 @@ def train_srpo(
             total_kept += kept
             log_data[f"{config.mode}/{_spec.task_id}/demos_kept_after_replay"] = kept
         log_data[f"{config.mode}/demos_kept_after_replay_total"] = total_kept
-    best_success = evaluate_and_checkpoint(  # Evaluate for iteration 0 to get a baseline for improvements
-        policy,
-        config,
-        task_specs,
-        0,
-        save_path,
-        best_success,
-        log_data,
-        rollout_engines=rollout_engines,
-    )
+    if config.pre_rl_eval:
+        best_success = evaluate_and_checkpoint(  # iter-0 baseline eval
+            policy,
+            config,
+            task_specs,
+            0,
+            save_path,
+            best_success,
+            log_data,
+            rollout_engines=rollout_engines,
+        )
+    else:
+        logger.info(
+            "Skipping iter-0 pre-RL eval (config.pre_rl_eval=False); "
+            "use a shared SFT baseline eval instead."
+        )
     metrics_logger.log(log_data)
 
     for iteration in trange(1, config.num_iterations + 1, desc="Training iterations"):

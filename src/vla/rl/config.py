@@ -118,6 +118,7 @@ class SRPOConfig(BaseTrainingConfig):
     update_method: UpdateMethod = UpdateMethod.AWR
     save_dir: str = "checkpoints/srpo"
     mode: Mode = Mode.SRPO
+    pre_rl_eval: bool = True
     world_model_type: WorldModelType = WorldModelType.VJEPA2
     distance_metric: DistanceMetric = DistanceMetric.NORMALIZED_L2
     subsample_every: int = 5
