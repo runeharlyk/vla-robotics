@@ -57,3 +57,14 @@ l40s-16-6h:
   walltime: "06:00"
   cores: 16
   mem: 4GB
+l40s-16-mem8:
+  queue: gpul40s
+  walltime: "24:00"
+  cores: 16
+  mem: 8GB
+
+a100-16-mem8:
+  queue: gpua100
+  walltime: "24:00"
+  cores: 16
+  mem: 8GB
