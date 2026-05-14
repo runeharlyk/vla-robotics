@@ -1,0 +1,46 @@
+# @package _global_
+#
+# WiSE-FT alpha sweep against the v12 multi-task RL checkpoint.
+#
+# Runs one eval per alpha in {0.00, 0.25, 0.50, 0.75, 1.00}, all under
+# the same fixed-seed protocol that the spatial_sft_n1_seeded /
+# spatial_rl_*_seeded configs use. alpha=0 reproduces pure SFT,
+# alpha=1 reproduces pure v12 RL; intermediates probe whether a
+# weight-space ensemble recovers tasks the RL run regressed on
+# (e.g. spatial_task_5 went 0.757 -> 0.725 between iter 0 and iter 12)
+# without giving up the tasks where RL improved.
+#
+# To run against a different RL checkpoint, override `checkpoint_dir`:
+#   uv run python scripts/evaluate_hydra.py \
+#     +experiment=wise_ft_v12_alpha_sweep \
+#     checkpoint_dir=/path/to/other/rl/best
+#
+# Note on n_action_steps: kept at 1 to make alpha=0 directly comparable
+# with the existing spatial_sft_n1_seeded baseline.
+
+metadata:
+  label: wise-ft-v12-alpha-sweep
+  notes: >
+    WiSE-FT linear interpolation between SmolVLA SFT base and the v12
+    multi-task RL best checkpoint (LSF 28403771). Sweep alpha to find
+    the best per-task and suite-average tradeoff at zero training cost.
+
+checkpoint: HuggingFaceVLA/smolvla_libero
+checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sparse_rl/10tasks_spatial_seed42_28403771/best
+n_action_steps: 1
+num_episodes: 100
+seed: 42
+fixed_noise_seed: 42
+wandb_project: vla-libero-eval
+
+evaluations:
+  - wandb_name: eval_wise_ft_v12_28403771_alpha000_seed42_n1
+    wise_ft_alpha: 0.00
+  - wandb_name: eval_wise_ft_v12_28403771_alpha025_seed42_n1
+    wise_ft_alpha: 0.25
+  - wandb_name: eval_wise_ft_v12_28403771_alpha050_seed42_n1
+    wise_ft_alpha: 0.50
+  - wandb_name: eval_wise_ft_v12_28403771_alpha075_seed42_n1
+    wise_ft_alpha: 0.75
+  - wandb_name: eval_wise_ft_v12_28403771_alpha100_seed42_n1
+    wise_ft_alpha: 1.00

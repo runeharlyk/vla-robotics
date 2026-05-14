@@ -36,6 +36,7 @@ from vla.results_registry import (
 )
 from vla.training.metrics_logger import MetricsLogger
 from vla.utils import get_device, seed_everything
+from vla.utils.wise_ft import wise_ft_merge_into_policy
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -88,7 +89,15 @@ def main(
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
     simulator: str = typer.Option("maniskill", "--simulator", "-s", help="Simulator backend: maniskill or libero"),
     env_id: str = typer.Option(None, "--env", help="Override env id (default: from checkpoint metadata)"),
-    suite: str = typer.Option("all", "--suite", help="Libero suite (spatial/object/goal/long/all)"),
+    suite: str = typer.Option(
+        "spatial",
+        "--suite",
+        help=(
+            "Libero suite to evaluate: spatial / object / goal / long. "
+            "For cross-suite eval, use configs/evaluate/experiment/p5a_cross_suite_*.yaml "
+            "instead -- a single ``--suite`` invocation cannot span multiple suites."
+        ),
+    ),
     num_episodes: int = typer.Option(100, "--num-episodes", "-n"),
     max_steps: int = typer.Option(None, "--max-steps", help="Override max steps (default: from metadata)"),
     seed: int = typer.Option(0, "--seed"),
@@ -112,6 +121,16 @@ def main(
     control_mode: str = typer.Option(None, "--control-mode", help="Override control mode (default: from checkpoint)"),
     action_dim: int = typer.Option(7, "--action-dim", help="Action dimension (used when no checkpoint-dir)"),
     state_dim: int = typer.Option(8, "--state-dim", help="State dimension (used when no checkpoint-dir)"),
+    wise_ft_alpha: float | None = typer.Option(
+        None,
+        "--wise-ft-alpha",
+        help=(
+            "Apply a WiSE-FT linear interpolation between the SFT base (--checkpoint) and the RL "
+            "checkpoint (--checkpoint-dir) before evaluation. theta = (1-alpha)*SFT + alpha*RL. "
+            "alpha=0.0 is pure SFT, alpha=1.0 is pure RL (equivalent to omitting this flag). "
+            "Requires both --checkpoint and --checkpoint-dir to be set."
+        ),
+    ),
 ) -> None:
     """Evaluate a saved policy and print metrics.
 
@@ -134,9 +153,40 @@ def main(
         action_dim = ckpt_data.get("action_dim", action_dim)
         state_dim = ckpt_data.get("state_dim", state_dim)
 
-    policy = SmolVLAPolicy(checkpoint=checkpoint, action_dim=action_dim, state_dim=state_dim, device=str(device))
+    if wise_ft_alpha is not None and checkpoint_dir is None:
+        raise typer.BadParameter(
+            "--wise-ft-alpha requires both --checkpoint (SFT) and --checkpoint-dir (RL).",
+            param_hint="--wise-ft-alpha",
+        )
 
-    if checkpoint_dir is not None:
+    if simulator.lower() == "libero" and suite.lower() == "all":
+        raise typer.BadParameter(
+            "--suite all is not supported on the single-invocation evaluate.py CLI. "
+            "The underlying LIBERO env factory only resolves one suite at a time. "
+            "For cross-suite reporting, run one eval per suite -- e.g. via the Hydra config "
+            "configs/evaluate/experiment/p5a_cross_suite_anchor_ckpts.yaml which fans out "
+            "into spatial/object/goal/long evaluations within one job.",
+            param_hint="--suite",
+        )
+
+    policy = SmolVLAPolicy(checkpoint=checkpoint, action_dim=action_dim, state_dim=state_dim, device=str(device))
+    wise_ft_diag: dict[str, float] | None = None
+
+    if checkpoint_dir is not None and wise_ft_alpha is not None:
+        wise_ft_diag = wise_ft_merge_into_policy(policy, checkpoint_dir, float(wise_ft_alpha))
+        env_meta = EnvMetadata.from_dict(ckpt_data.get("env_metadata", {})) if ckpt_data else EnvMetadata()
+        logging.info(
+            "WiSE-FT eval: theta = (1 - %.3f) * SFT(%s) + %.3f * RL(%s) "
+            "(action_dim=%d, state_dim=%d, env_metadata=%s)",
+            wise_ft_alpha,
+            checkpoint,
+            wise_ft_alpha,
+            checkpoint_dir,
+            policy.action_dim,
+            policy.state_dim,
+            env_meta,
+        )
+    elif checkpoint_dir is not None:
         env_meta = policy.load_checkpoint(checkpoint_dir)
         logging.info(
             "Loaded checkpoint from %s (action_dim=%d, state_dim=%d, env_metadata=%s)",
@@ -211,6 +261,8 @@ def main(
                 "seed": seed,
                 "fixed_noise_seed": fixed_noise_seed,
                 "task_id": task_id,
+                "wise_ft_alpha": wise_ft_alpha,
+                "wise_ft_diagnostics": wise_ft_diag,
             },
         )
         metrics_logger = MetricsLogger(wandb_run=wandb_run)
@@ -280,6 +332,7 @@ def main(
             "seed": seed,
             "fixed_noise_seed": fixed_noise_seed,
             "task_id": task_id,
+            "wise_ft_alpha": wise_ft_alpha if wise_ft_alpha is not None else "",
             "wandb_run_name": resolved_run_name if use_wandb else "",
             "success_rate": metrics.success_rate,
             "successes": metrics.successes,

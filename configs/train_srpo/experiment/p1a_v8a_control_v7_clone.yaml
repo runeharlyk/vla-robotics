@@ -1,0 +1,72 @@
+# @package _global_
+
+metadata:
+  label: p1a-v8a-control-v7-clone
+  source_doc: docs/thesis_research_plan.md
+  source_config: configs/train_srpo/experiment/spatial_all_v7.yaml
+  notes: |
+    Thesis Phase 1, run A (control). Faithful clone of the v7 SOTA
+    recipe (28249578) with eval_episodes raised from 20 -> 100 so the
+    headline numbers are reported under the same protocol as Phase 0's
+    matched-baseline eval (28314443 = 0.728 suite-avg at 100ep/n=1).
+
+    Why this run exists:
+    - Phase 0 confirmed v7 at n=1 / 100ep is 0.728 suite-avg, NOT the
+      0.795 from 20-episode training-time eval. That changes the bar:
+      we now need to *match or beat SFT 0.743* (eval 28242119), not
+      reproduce 0.795.
+    - v7 used eval_episodes=20 with fixed_noise_seed=42. That gives a
+      noisy, possibly optimistic estimate per checkpoint. Running the
+      full v7 recipe with eval_episodes=100 gives the thesis-grade
+      reference and tells us how much of the 0.795 -> 0.728 gap was
+      eval-protocol noise vs. real generalisation drop.
+    - Chunk-1 is mandatory: chunk-5 -> n=1 transfer fails (28335554
+      = 0.476 suite-avg at n=1, vs ~0.85 at n=5 training-eval), so
+      Phase 1 reverts to chunk-1 across the board.
+
+    Decision rule (vs SFT 0.743 at n=1/100ep):
+    - SUCCESS (suite-avg >= SFT + 2pp): promote /best as thesis main
+      RL ckpt; feeds Phase 2 (WiSE-FT).
+    - PARTIAL (within +/- 2pp of SFT): still useful baseline; Phase 2
+      determines if WiSE-FT alpha-blending recovers SFT-level safety.
+    - FAIL (< 0.72): re-run with longer schedule (50 iters) before
+      conceding the recipe is exhausted.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 32
+iterations: 30
+eval_every: 15
+eval_episodes: 100
+wandb_name: p1a-v8a-control-v7-clone-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  negative_adv_scale: 1.0
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1

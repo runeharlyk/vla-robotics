@@ -1,0 +1,84 @@
+# @package _global_
+
+metadata:
+  label: p1d-v8a-noise-sample-1
+  source_doc: docs/thesis_research_plan.md
+  source_config: configs/train_srpo/experiment/p1a_v8a_control_v7_clone.yaml
+  notes: |
+    Thesis Phase 1, run D (FPO N=1 noise-sample ablation). Identical
+    to P1a except num_fm_noise_samples is dropped from 4 to 1. Pure
+    ablation row for the thesis table: it isolates whether the
+    flow-matching variance-reduction from averaging over 4 noise
+    samples actually contributes to suite-avg, or whether N=1 is
+    enough at this scale.
+
+    Why this matters:
+    - FPO's main computational cost beyond a single SFT update is
+      the K-noise-sample averaging used to estimate the surrogate
+      ratio (analogue to the PPO clipped ratio). v7 used N=4. The
+      original FPO paper recommends N >= 8 but acknowledges N=1 is
+      a valid debiased estimator with higher variance.
+    - At our trajectory budgets (32 trajs/task * 10 tasks = 320 trajs
+      per iter), the per-trajectory gradient variance from N=1 may
+      already be averaged out by the batch size. If P1d ties P1a,
+      then 4x of the FPO compute cost is wasted on a redundant
+      variance reduction.
+    - This is a defensible thesis ablation regardless of outcome:
+      "N=4 buys X pp at Y% compute overhead" is a clean
+      comparability row vs. RIPT-style methods.
+
+    Note on multi-task fair budget:
+    - Wall-clock per iter at N=1 is ~70-75% of N=4 (only the FPO
+      noise-loop changes, not the rollouts/env step which dominate).
+      So 30 iters of P1d takes ~22h instead of P1a's ~24h. We
+      explicitly DO NOT extend P1d to match wall-clock; the point
+      of the ablation is "same iterations, less per-iter compute"
+      so that comparing P1a/P1d directly is fair.
+
+    Decision rule (only used for ablation table, NOT for thesis main):
+    - P1d within 1pp of P1a -> "N=1 is sufficient" row.
+    - P1d worse by >= 2pp     -> "N=4 needed for variance reduction"
+                                  row; recommend at least N=2 for
+                                  future runs.
+    - P1d better than P1a     -> "noise oversampling is overfitting
+                                  the FM ratio estimator" row;
+                                  promote N=1 as new default.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 32
+iterations: 30
+eval_every: 15
+eval_episodes: 100
+wandb_name: p1d-v8a-noise-sample-1
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  num_fm_noise_samples: 1
+  full_chunk_target: true
+  negative_adv_scale: 1.0
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1

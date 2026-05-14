@@ -1,0 +1,83 @@
+# @package _global_
+
+metadata:
+  label: p1c-v12-rev-success-bc-sftkl002
+  source_doc: docs/thesis_research_plan.md
+  source_config: configs/train_srpo/experiment/v12_multi_success_bc_rlpd5050_utd.yaml
+  notes: |
+    Thesis Phase 1, run C (conditional): success_bc + RLPD 50/50 demo
+    sampling + UTD=6, but with sft_kl_coeff=0.02 re-enabled (v12
+    explicitly dropped it to 0.0 to test the "data sampler is the
+    anchor" hypothesis).
+
+    Run this ONLY if P1a underperforms (suite-avg < 0.76 at n=1/100ep).
+    Reason: success_bc + 50/50 is structurally a different family
+    (BC-on-successes + demo-anchored) from FPO. v12's own decision
+    rule was "FAIL (<0.74) -> Q-head pilot, not more BC". But v12
+    explicitly disabled the KL anchor; this run isolates whether the
+    bottleneck is the missing KL or the gradient family itself.
+
+    Why sft_kl_coeff=0.02 even though v12 said it was a "no-op":
+    - v12's "no-op" diagnosis (~9e-7 contribution vs ~0.29 BC loss)
+      was at sft_kl_coeff=0.005 in v11b. v12 then dropped it to 0.0
+      to test the "RLPD-style implicit anchor" theory.
+    - But the analysis confused absolute KL magnitude with directional
+      effect: even a tiny anchor pulls the policy toward SFT in
+      *every* gradient step, while RLPD's 50/50 only anchors via the
+      sampled demos. At 0.02 the anchor is 4x stronger than v11b's
+      0.005; if v12 was on the edge of safety this might recover it.
+    - Crucially: this also defends against "P1a wins, but only by
+      luck" -- if both FPO and success_bc reach the same SFT-level
+      plateau with comparable KL settings, the thesis story "matching
+      SFT is the realistic upper bound under this signal regime"
+      is much stronger.
+
+    All other settings match v12 (incl. demo_replay=false per the
+    Phase 0 audit: 9/10 spatial tasks have demo_replay_success_rate
+    of 0 due to init-state mismatch, so we keep raw recorded demos
+    as the BC source).
+
+    Decision rule (only triggered if P1a < 0.76):
+    - WINS over P1a by >= 2pp -> success_bc family is thesis main.
+    - TIES P1a within 1pp -> document as "both gradient families
+      plateau at SFT-level; lever is data, not gradient" (strong
+      negative-result story).
+    - LOSES by >= 2pp -> P1a stays main, mark success_bc as
+      "thoroughly tested, does not beat FPO at this scale".
+
+task_ids: all
+mode: sparse_rl
+update_method: success_bc
+lr: 1e-6
+trajs_per_task: 16
+iterations: 30
+eval_every: 6
+eval_episodes: 100
+wandb_name: p1c-v12-rev-success-bc-sftkl002
+
+demo_replay: false
+
+kl:
+  coeff: 0.0
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 1.0
+
+success_bc:
+  epochs: 6
+  minibatch_trajs: 8
+  loss_reduction: mean
+  balanced_demo_sampling: true
+  demo_sampling_ratio: 0.5
+
+sampling:
+  dynamic: false
+
+rollout:
+  n_action_steps: 1
+  eval_zero_sample: false
