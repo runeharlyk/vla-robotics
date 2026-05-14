@@ -27,6 +27,7 @@ iterations: 100
 update_method: fpo
 eval_every: 20
 eval_episodes: 100
+pre_rl_eval: true
 max_steps: 220
 seed: 42
 env: null

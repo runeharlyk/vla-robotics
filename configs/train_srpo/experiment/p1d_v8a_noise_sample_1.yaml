@@ -4,6 +4,7 @@ metadata:
   label: p1d-v8a-noise-sample-1
   source_doc: docs/thesis_research_plan.md
   source_config: configs/train_srpo/experiment/p1a_v8a_control_v7_clone.yaml
+  profile: l40s-16-mem8
   notes: |
     Thesis Phase 1, run D (FPO N=1 noise-sample ablation). Identical
     to P1a except num_fm_noise_samples is dropped from 4 to 1. Pure
@@ -15,10 +16,10 @@ metadata:
     Why this matters:
     - FPO's main computational cost beyond a single SFT update is
       the K-noise-sample averaging used to estimate the surrogate
-      ratio (analogue to the PPO clipped ratio). v7 used N=4. The
+      ratio (analogue to the PPO clipped ratio). P1a/b use N=4. The
       original FPO paper recommends N >= 8 but acknowledges N=1 is
       a valid debiased estimator with higher variance.
-    - At our trajectory budgets (32 trajs/task * 10 tasks = 320 trajs
+    - At our trajectory budgets (8 trajs/task * 10 tasks = 80 trajs
       per iter), the per-trajectory gradient variance from N=1 may
       already be averaged out by the batch size. If P1d ties P1a,
       then 4x of the FPO compute cost is wasted on a redundant
@@ -30,10 +31,8 @@ metadata:
     Note on multi-task fair budget:
     - Wall-clock per iter at N=1 is ~70-75% of N=4 (only the FPO
       noise-loop changes, not the rollouts/env step which dominate).
-      So 30 iters of P1d takes ~22h instead of P1a's ~24h. We
-      explicitly DO NOT extend P1d to match wall-clock; the point
-      of the ablation is "same iterations, less per-iter compute"
-      so that comparing P1a/P1d directly is fair.
+      We explicitly keep the same iterations as P1a/b so comparing
+      P1a/P1d directly is fair.
 
     Decision rule (only used for ablation table, NOT for thesis main):
     - P1d within 1pp of P1a -> "N=1 is sufficient" row.
@@ -48,10 +47,11 @@ task_ids: all
 mode: sparse_rl
 update_method: fpo
 lr: 2e-6
-trajs_per_task: 32
+trajs_per_task: 8
 iterations: 30
-eval_every: 15
-eval_episodes: 100
+eval_every: 10
+eval_episodes: 30
+pre_rl_eval: false
 wandb_name: p1d-v8a-noise-sample-1
 
 kl:
