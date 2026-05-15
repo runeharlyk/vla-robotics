@@ -370,10 +370,18 @@ def sync(
         "--with-history/--no-history",
         help="For training runs, also fetch scalar training history for local plotting.",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force/--no-force",
+        help="Refetch every run, even if a local JSON already exists for a non-running run.",
+    ),
 ):
     """
     Fetch all runs from a WandB project and recreate them as local JSON files
     in results/evals/ or results/training/ for offline plotting.
+
+    By default, runs whose state is not "running" are skipped when a local JSON
+    file already exists for them. Use --force to refetch everything.
     """
     api = wandb.Api()
     path = f"{entity}/{project}" if entity else project
@@ -395,6 +403,7 @@ def sync(
     if record_type == "training" and with_history:
         history_folder.mkdir(parents=True, exist_ok=True)
     count = 0
+    skipped = 0
 
     for run in tqdm(runs, desc=f"Writing JSONs to {out_folder.name}/"):
         name = sanitize_name(run.name)
@@ -402,6 +411,11 @@ def sync(
             continue
 
         json_path = out_folder / f"{name}.json"
+        run_state = str(_safe_attr(run, "state", "") or "").lower()
+        if not force and run_state and run_state != "running" and json_path.exists():
+            skipped += 1
+            continue
+
         history_path = None
         history_summary = None
         if record_type == "training" and with_history:
@@ -427,6 +441,8 @@ def sync(
     typer.echo(f"  {out_folder}/")
     if record_type == "training" and with_history:
         typer.echo(f"  {history_folder}/")
+    if skipped:
+        typer.echo(f"Skipped {skipped} non-running run(s) with existing JSON (use --force to refetch).")
 
 
 if __name__ == "__main__":
