@@ -433,6 +433,21 @@ def main(
         "--replay.include-demos/--no-replay.include-demos",
         help="Include demonstration trajectories in every policy update iteration (online SFT).",
     ),
+    demo_replay_seed_mode: str = typer.Option(
+        "episode_index",
+        "--demo-replay-seed-mode",
+        help="Seed mode for simulator replay of demos: episode_index, fixed, fixed_offset, collection_offset.",
+    ),
+    demo_replay_fixed_seed: int = typer.Option(
+        0,
+        "--demo-replay-fixed-seed",
+        help="Base seed used when --demo-replay-seed-mode is fixed or fixed_offset.",
+    ),
+    demo_replay_require_success: bool = typer.Option(
+        True,
+        "--require-demo-replay-success/--allow-failed-demo-replay",
+        help="Require simulator-replayed demos to succeed before using them for SRPO reward seeding or demo updates.",
+    ),
     success_replay_buffer_size: int = typer.Option(
         0, "--replay.success-buffer-size", help="Replay successful trajectories from previous iterations."
     ),

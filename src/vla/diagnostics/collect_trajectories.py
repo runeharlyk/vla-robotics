@@ -23,6 +23,7 @@ import torch
 
 from vla.data.libero import LiberoSFTDataset
 from vla.rl.rollout import Trajectory
+from vla.utils.tensor import action_to_numpy
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,8 @@ class CollectionConfig:
     max_steps: int = 300
     seed: int = 42
     cache_dir: Path = field(default_factory=lambda: Path("notebooks/cache"))
+    demo_replay_seed_mode: str = "episode_index"
+    demo_replay_fixed_seed: int = 0
 
     @property
     def task_key(self) -> str:
@@ -104,6 +107,143 @@ def collect_demo_trajectories(cfg: CollectionConfig) -> list[Trajectory]:
 
     save_trajectories(trajs, cfg, "demos")
     return trajs
+
+
+def _replay_seed_for_demo(cfg: CollectionConfig, demo: Trajectory, demo_idx: int) -> int:
+    """Resolve the env reset seed used for demo action replay."""
+    mode = cfg.demo_replay_seed_mode.lower()
+    if mode == "fixed":
+        return cfg.demo_replay_fixed_seed
+    if mode == "fixed_offset":
+        return cfg.demo_replay_fixed_seed + demo_idx
+    if mode == "episode_index":
+        for entry in demo.privileged_states:
+            if "source_episode_index" in entry:
+                return int(entry["source_episode_index"])
+        logger.warning(
+            "Demo %d has no source_episode_index metadata; falling back to seed=%d.",
+            demo_idx,
+            cfg.seed + demo_idx,
+        )
+        return cfg.seed + demo_idx
+    if mode == "collection_offset":
+        return cfg.seed + 50_000 + demo_idx
+    raise ValueError(
+        f"Unknown demo_replay_seed_mode={cfg.demo_replay_seed_mode!r}. "
+        "Choose from: episode_index, fixed, fixed_offset, collection_offset."
+    )
+
+
+def _replay_recorded_actions(adapter, demo: Trajectory, max_steps: int, seed: int) -> Trajectory:
+    """Replay a recorded action sequence and collect live simulator observations."""
+    raw_obs = adapter.reset(seed)
+    images: list[torch.Tensor] = []
+    states: list[torch.Tensor] = []
+    actions: list[torch.Tensor] = []
+    rewards: list[torch.Tensor] = []
+    dones: list[torch.Tensor] = []
+    success = False
+
+    recorded_len = int(demo.length or demo.actions.shape[0])
+    horizon = min(recorded_len, max_steps)
+    for t in range(horizon):
+        img_t, state_t = adapter.obs_to_tensors(raw_obs)
+        action_t = demo.actions[t].detach().cpu().float()
+
+        images.append(img_t)
+        states.append(state_t)
+        actions.append(action_t)
+
+        result = adapter.step(action_to_numpy(action_t))
+        raw_obs = result.raw_obs
+        rewards.append(torch.tensor(float(result.reward), dtype=torch.float32))
+        done = bool(result.terminated or result.truncated)
+        dones.append(torch.tensor(float(done), dtype=torch.float32))
+
+        if result.success:
+            success = True
+        if done:
+            break
+
+    used = len(actions)
+    return Trajectory(
+        images=torch.stack(images) if images else torch.empty(0),
+        states=torch.stack(states).float() if states else torch.empty(0),
+        actions=torch.stack(actions).float() if actions else torch.empty(0),
+        rewards=torch.stack(rewards) if rewards else torch.empty(0),
+        dones=torch.stack(dones) if dones else torch.empty(0),
+        success=success,
+        length=used,
+        task_id=demo.task_id,
+        privileged_states=list(demo.privileged_states),
+    )
+
+
+def collect_replayed_demo_trajectories(
+    cfg: CollectionConfig,
+    demo_trajs: list[Trajectory] | None = None,
+) -> list[Trajectory]:
+    """Replay demo actions in LIBERO and cache simulator-view trajectories.
+
+    Raw HuggingFace demos are useful for actions, but their stored camera stream
+    can differ from the live rollout camera stream. Replaying the demo actions
+    gives the same observation format as SFT/random rollouts, which makes the
+    reward-cluster comparison much less confounded by view/source differences.
+    """
+    cached = load_trajectories(cfg, "replayed_demos")
+    if cached is not None:
+        return cached
+
+    demos = demo_trajs if demo_trajs is not None else collect_demo_trajectories(cfg)
+    if not demos:
+        save_trajectories([], cfg, "replayed_demos")
+        return []
+
+    from vla.rl.libero_rollout import LiberoRollout
+
+    rollout = LiberoRollout(
+        suite_name=cfg.libero_suite,
+        task_id=cfg.task_id,
+        num_envs=1,
+        max_steps=cfg.max_steps,
+        image_size=256,
+        state_dim=cfg.state_dim,
+    )
+    adapter = rollout._make_single_adapter()
+
+    replayed: list[Trajectory] = []
+    success_count = 0
+    try:
+        for demo_idx, demo in enumerate(demos[: cfg.num_demos]):
+            replay_seed = _replay_seed_for_demo(cfg, demo, demo_idx)
+            traj = _replay_recorded_actions(
+                adapter=adapter,
+                demo=demo,
+                max_steps=cfg.max_steps,
+                seed=replay_seed,
+            )
+            traj.task_id = cfg.task_key
+            replayed.append(traj)
+            success_count += int(traj.success)
+            logger.info(
+                "Replayed demo %d with seed=%d using seed_mode=%s (success=%s, length=%d).",
+                demo_idx,
+                replay_seed,
+                cfg.demo_replay_seed_mode,
+                traj.success,
+                traj.length,
+            )
+    finally:
+        rollout.close()
+
+    logger.info(
+        "Replayed %d demo trajectory/trajectories for %s (%d successes).",
+        len(replayed),
+        cfg.task_key,
+        success_count,
+    )
+    save_trajectories(replayed, cfg, "replayed_demos")
+    return replayed
 
 
 def _build_rollout_engine(cfg: CollectionConfig):
@@ -171,8 +311,11 @@ def collect_rollouts(
     logger.info("Task instruction: %s", instruction)
 
     if need_sft and policy is not None:
-        policy_fn = lambda img, instr, state: policy.predict_action(img, instr, state)
-        policy_batch_fn = lambda imgs, instr, states: policy.predict_action_batch(imgs, instr, states)
+        def policy_fn(img, instr, state):
+            return policy.predict_action(img, instr, state)
+
+        def policy_batch_fn(imgs, instr, states):
+            return policy.predict_action_batch(imgs, instr, states)
 
         sft_success = sft_success or []
         sft_failed = sft_failed or []

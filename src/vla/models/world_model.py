@@ -266,21 +266,26 @@ class VJEPA2Encoder(WorldModelEncoder):
         return torch.cat(all_embs, dim=0)
 
     def _prepare_clip(self, images: torch.Tensor, target_frames: int = 64) -> torch.Tensor:
-        """Subsample/pad images to ``target_frames`` on CPU in fp16, normalized."""
-        frames = images
-        if frames.ndim == 5:
-            t, v, c, h, w = frames.shape
-            frames = frames.reshape(t * v, c, h, w)
+        """Uniformly sample a trajectory to ``target_frames`` frames.
+
+        This follows the siiRL/SRPO diagnostic recipe: trajectories with at
+        least 64 frames use evenly spaced indices, shorter trajectories repeat
+        their frame indices cyclically until 64 frames are available.
+        """
+        frames = self._select_primary_view(images)
         frames = to_float01(frames, auto_scale=True)
         frames = self._normalize(frames.to(dtype=self.dtype))
 
         T = frames.shape[0]
-        if target_frames < T:
+        if T == 0:
+            raise ValueError("Cannot encode an empty trajectory.")
+        if target_frames <= T:
             idx = torch.linspace(0, T - 1, target_frames).long()
             frames = frames[idx]
-        elif target_frames > T:
-            pad = frames[-1:].expand(target_frames - T, -1, -1, -1)
-            frames = torch.cat([frames, pad], dim=0)
+        else:
+            repeats = (target_frames + T - 1) // T
+            idx = torch.arange(T).repeat(repeats)[:target_frames]
+            frames = frames[idx]
         return frames
 
     @torch.no_grad()
@@ -304,11 +309,6 @@ class VJEPA2Encoder(WorldModelEncoder):
             ``(D,)`` trajectory embedding.
         """
         images = self._select_primary_view(images)
-        indices = list(range(0, images.shape[0], subsample_every))
-        frames = images[indices]
-
-        frames = to_float01(frames, auto_scale=True)
-        frames = self._normalize(frames.to(dtype=self.dtype))
 
         if self._backend == "transformers":
             frames = self._prepare_clip(images)
@@ -320,7 +320,9 @@ class VJEPA2Encoder(WorldModelEncoder):
             torch.cuda.empty_cache()
             return emb
 
-        frames = to_float01(images, auto_scale=True)
+        indices = list(range(0, images.shape[0], subsample_every))
+        frames = images[indices]
+        frames = to_float01(frames, auto_scale=True)
         frames = self._normalize(frames.to(dtype=self.dtype))
         frame_embs = self.encode_frames(frames)
         return frame_embs.mean(dim=0)
@@ -334,34 +336,10 @@ class VJEPA2Encoder(WorldModelEncoder):
         if self._backend != "transformers":
             return super().encode_trajectories(trajectories_images, subsample_every)
 
-        # Preprocess clips on CPU to avoid GPU OOM from materializing
-        # all trajectories at once; only move sub-batches to GPU for inference.
-        target = 64
-        padded: list[torch.Tensor] = []
-        for imgs in trajectories_images:
-            imgs = self._select_primary_view(imgs)
-            indices = list(range(0, imgs.shape[0], subsample_every))
-            frames = imgs[indices]
-            if frames.ndim == 5:
-                t, v, c, h, w = frames.shape
-                frames = frames.reshape(t * v, c, h, w)
-            frames = to_float01(frames, auto_scale=True)
-            frames = self._normalize(frames.to(dtype=self.dtype))
-
-            T = frames.shape[0]
-            if target < T:
-                idx = torch.linspace(0, T - 1, target).long()
-                frames = frames[idx]
-            elif target > T:
-                pad = frames[-1:].expand(target - T, -1, -1, -1)
-                frames = torch.cat([frames, pad], dim=0)
-            padded.append(frames)
-
+        # Preprocess clips one at a time to avoid GPU OOM from materializing
+        # all trajectories at once; only move one clip to GPU for inference.
         all_embs: list[torch.Tensor] = []
         for imgs in trajectories_images:
-            if subsample_every > 1:
-                indices = list(range(0, imgs.shape[0], subsample_every))
-                imgs = imgs[indices]
             clip_cpu = self._prepare_clip(imgs)
             clip = clip_cpu.unsqueeze(0).to(self.device)
             outputs = self.model(pixel_values_videos=clip)
@@ -383,7 +361,8 @@ class VJEPA2Encoder(WorldModelEncoder):
 
             files = list_repo_files(model_id)
             weight_files = [f for f in files if any(f.endswith(ext) for ext in self._WEIGHT_EXTENSIONS)]
-            if not weight_files: return False
+            if not weight_files:
+                return False
             path = hf_hub_download(model_id, weight_files[0])
 
             if weight_files[0].endswith(".safetensors"):
@@ -393,7 +372,9 @@ class VJEPA2Encoder(WorldModelEncoder):
                 raw = torch.load(path, map_location="cpu", weights_only=False)
                 if isinstance(raw, dict):
                     for key in ("model", "state_dict", "encoder"):
-                        if key in raw: raw = raw[key]; break
+                        if key in raw:
+                            raw = raw[key]
+                            break
                 state_dict = raw if isinstance(raw, dict) else raw.state_dict()
 
             embed_dim = self._infer_embed_dim(state_dict)
@@ -401,7 +382,8 @@ class VJEPA2Encoder(WorldModelEncoder):
             model = timm.create_model(timm_name, pretrained=False, num_classes=0)
             model.load_state_dict(state_dict, strict=False)
             self.model = model.to(self.device, dtype=self.dtype).eval()
-            for p in self.model.parameters(): p.requires_grad_(False)
+            for p in self.model.parameters():
+                p.requires_grad_(False)
             self._embed_dim = embed_dim
             self._backend = "timm"
             logger.info("V-JEPA 2 loaded via timm - embed_dim=%d", self._embed_dim)
@@ -413,15 +395,19 @@ class VJEPA2Encoder(WorldModelEncoder):
     @staticmethod
     def _infer_embed_dim(state_dict: dict) -> int:
         for key in ("cls_token", "pos_embed", "patch_embed.proj.bias"):
-            if key in state_dict: return state_dict[key].shape[-1]
+            if key in state_dict:
+                return state_dict[key].shape[-1]
         for key, val in state_dict.items():
-            if "norm" in key and "weight" in key and val.ndim == 1: return val.shape[0]
+            if "norm" in key and "weight" in key and val.ndim == 1:
+                return val.shape[0]
         raise ValueError("Cannot infer embed_dim")
 
     @staticmethod
     def _pick_timm_model(embed_dim: int) -> str:
-        if embed_dim == 1536: return "vit_giant_patch14_dinov2.lvd142m"
-        if embed_dim == 1408: return "vit_giant_patch14_clip_224.laion2b"
+        if embed_dim == 1536:
+            return "vit_giant_patch14_dinov2.lvd142m"
+        if embed_dim == 1408:
+            return "vit_giant_patch14_clip_224.laion2b"
         return "vit_giant_patch14_dinov2.lvd142m"
 
     def embed_dim(self) -> int:

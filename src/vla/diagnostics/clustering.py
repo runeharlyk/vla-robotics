@@ -68,12 +68,14 @@ class ClusteringConfig:
 # ──────────────────────────────────────────────────────────────────────
 
 SOURCE_DEMO = "success demo"
+SOURCE_REPLAYED_DEMO = "replayed success demo"
 SOURCE_RANDOM = "random-action rollout"
 SOURCE_FAILED = "failed rollout (SFT)"
 SOURCE_SFT_SUCCESS = "success rollout (SFT)"
 
 SOURCE_COLORS = {
     SOURCE_DEMO: "#2ecc71",
+    SOURCE_REPLAYED_DEMO: "#1b9e77",
     SOURCE_RANDOM: "#e74c3c",
     SOURCE_FAILED: "#f39c12",
     SOURCE_SFT_SUCCESS: "#3498db",
@@ -81,6 +83,7 @@ SOURCE_COLORS = {
 
 SOURCE_MARKERS = {
     SOURCE_DEMO: "o",
+    SOURCE_REPLAYED_DEMO: "P",
     SOURCE_RANDOM: "^",
     SOURCE_FAILED: "s",
     SOURCE_SFT_SUCCESS: "D",
@@ -119,6 +122,8 @@ def compute_embeddings(
     subsample_every: int = 5,
 ) -> torch.Tensor:
     """Encode trajectories into a ``(N, D)`` embedding matrix."""
+    if not trajs:
+        return torch.empty((0, encoder.embed_dim()), dtype=torch.float32)
     all_imgs = [to_float01(t.images[: t.length]) for t in trajs]
     return encoder.encode_trajectories(all_imgs, subsample_every)
 
@@ -230,8 +235,14 @@ def print_composition_table(
 ) -> None:
     """Print a numeric composition table (cluster × source) to the logger."""
     unique_clusters = sorted(set(labels))
-    src_types = [SOURCE_DEMO, SOURCE_SFT_SUCCESS, SOURCE_FAILED, SOURCE_RANDOM]
-    src_short = {SOURCE_DEMO: "Demo", SOURCE_SFT_SUCCESS: "SFT✓", SOURCE_FAILED: "SFT✗", SOURCE_RANDOM: "Random"}
+    src_types = [SOURCE_DEMO, SOURCE_REPLAYED_DEMO, SOURCE_SFT_SUCCESS, SOURCE_FAILED, SOURCE_RANDOM]
+    src_short = {
+        SOURCE_DEMO: "Demo",
+        SOURCE_REPLAYED_DEMO: "Replay",
+        SOURCE_SFT_SUCCESS: "SFT✓",
+        SOURCE_FAILED: "SFT✗",
+        SOURCE_RANDOM: "Random",
+    }
 
     header = f"{'Cluster':>10s}" + "".join(f"{src_short[s]:>10s}" for s in src_types) + f"{'Total':>10s}"
     logger.info("\n" + header)
@@ -282,17 +293,14 @@ def _get_frame(traj: Trajectory, frame_idx: int | None = None) -> np.ndarray:
     if img.ndim == 4:
         img = img[0]
     img = img.permute(1, 2, 0).cpu().numpy()
-    if img.max() <= 1.0:
-        img = (img * 255).astype(np.uint8)
-    else:
-        img = img.astype(np.uint8)
+    img = (img * 255).astype(np.uint8) if img.max() <= 1.0 else img.astype(np.uint8)
     return img
 
 
 def plot_panel_a(ax, xy: np.ndarray, labels: np.ndarray) -> None:
     """Panel A: UMAP coloured by DBSCAN cluster ID, noise in light gray."""
     unique = sorted(set(labels))
-    n_clusters = len([l for l in unique if l >= 0])
+    n_clusters = len([label for label in unique if label >= 0])
     base_cmap = plt.cm.get_cmap("tab20", max(n_clusters, 1))
 
     for label in unique:
@@ -316,7 +324,7 @@ def plot_panel_a(ax, xy: np.ndarray, labels: np.ndarray) -> None:
 
 def plot_panel_b(ax, xy: np.ndarray, sources: list[str]) -> None:
     """Panel B: same UMAP coords coloured by trajectory source."""
-    for src in [SOURCE_RANDOM, SOURCE_FAILED, SOURCE_SFT_SUCCESS, SOURCE_DEMO]:
+    for src in [SOURCE_RANDOM, SOURCE_FAILED, SOURCE_SFT_SUCCESS, SOURCE_DEMO, SOURCE_REPLAYED_DEMO]:
         mask = np.array([s == src for s in sources])
         if not mask.any():
             continue
@@ -335,7 +343,11 @@ def plot_panel_b(ax, xy: np.ndarray, sources: list[str]) -> None:
 def plot_panel_c(ax, labels: np.ndarray, sources: list[str]) -> None:
     """Panel C: per-cluster composition stacked bar chart."""
     unique_clusters = sorted(set(labels))
-    src_types = [s for s in [SOURCE_DEMO, SOURCE_SFT_SUCCESS, SOURCE_RANDOM, SOURCE_FAILED] if s in sources]
+    src_types = [
+        s
+        for s in [SOURCE_DEMO, SOURCE_REPLAYED_DEMO, SOURCE_SFT_SUCCESS, SOURCE_RANDOM, SOURCE_FAILED]
+        if s in sources
+    ]
 
     cluster_names = []
     counts: dict[str, list[int]] = {s: [] for s in src_types}
@@ -437,13 +449,15 @@ def plot_clustering_figure(
         The matplotlib Figure.
     """
     n_demo = sum(1 for s in sources if s == SOURCE_DEMO)
+    n_replayed_demo = sum(1 for s in sources if s == SOURCE_REPLAYED_DEMO)
     n_sft_ok = sum(1 for s in sources if s == SOURCE_SFT_SUCCESS)
     n_sft_fail = sum(1 for s in sources if s == SOURCE_FAILED)
     n_random = sum(1 for s in sources if s == SOURCE_RANDOM)
 
     fig = plt.figure(figsize=(20, 16), facecolor="white")
     fig.suptitle(
-        f"{title}\n({n_demo} demos, {n_sft_ok} SFT✓, {n_sft_fail} SFT✗, {n_random} random)",
+        f"{title}\n({n_demo} raw demos, {n_replayed_demo} replayed demos, "
+        f"{n_sft_ok} SFT✓, {n_sft_fail} SFT✗, {n_random} random)",
         fontsize=15, fontweight="bold", y=0.98,
     )
 
@@ -487,7 +501,7 @@ def plot_distance_figure(
     from sklearn.cluster import DBSCAN
 
     # 1. Identify Demo-only centers
-    demo_mask = np.array([s == SOURCE_DEMO for s in sources])
+    demo_mask = np.array([s in (SOURCE_DEMO, SOURCE_REPLAYED_DEMO) for s in sources])
     X_demo = X[demo_mask]
     db_demo = DBSCAN(eps=cfg.dbscan_eps, min_samples=cfg.dbscan_min_samples).fit(X_demo)
     demo_centers = []
@@ -497,7 +511,7 @@ def plot_distance_figure(
     demo_centers = np.array(demo_centers)
 
     # 2. Identify Demo + SFT✓ centers
-    ok_mask = np.array([s in (SOURCE_DEMO, SOURCE_SFT_SUCCESS) for s in sources])
+    ok_mask = np.array([s in (SOURCE_DEMO, SOURCE_REPLAYED_DEMO, SOURCE_SFT_SUCCESS) for s in sources])
     X_ok = X[ok_mask]
     db_ok = DBSCAN(eps=cfg.dbscan_eps, min_samples=cfg.dbscan_min_samples).fit(X_ok)
     ok_centers = []
@@ -516,7 +530,7 @@ def plot_distance_figure(
         min_dists = dists.min(axis=1)  # (N,)
         
         dist_dict: dict[str, list[float]] = {s: [] for s in set(sources)}
-        for d, s in zip(min_dists, sources):
+        for d, s in zip(min_dists, sources, strict=True):
             dist_dict[s].append(d)
         return dist_dict
 
@@ -531,7 +545,7 @@ def plot_distance_figure(
     
     def plot_kde(ax, dist_dict, subtitle):
         ax.set_title(subtitle, fontsize=13, fontweight="bold")
-        for src in [SOURCE_DEMO, SOURCE_SFT_SUCCESS, SOURCE_FAILED, SOURCE_RANDOM]:
+        for src in [SOURCE_DEMO, SOURCE_REPLAYED_DEMO, SOURCE_SFT_SUCCESS, SOURCE_FAILED, SOURCE_RANDOM]:
             if src in dist_dict and dist_dict[src]:
                 sns.kdeplot(
                     dist_dict[src], 

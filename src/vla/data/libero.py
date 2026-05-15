@@ -545,6 +545,12 @@ class LiberoSFTDataset(Dataset):
                     ti = ti.item()
                 if int(ti) != task_id:
                     continue
+            else:
+                first_sample = self._ds[start]
+
+            source_episode_index = first_sample.get("episode_index", ep)
+            if isinstance(source_episode_index, torch.Tensor):
+                source_episode_index = source_episode_index.item()
 
             init_state_id = kept_ranks[ep] if ep < len(kept_ranks) else None
 

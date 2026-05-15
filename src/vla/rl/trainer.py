@@ -200,6 +200,7 @@ def log_training_config(
     lines.append(f"    fm_batch_size:       {config.fm_batch_size}")
     lines.append(f"    seed:                {config.seed}")
     lines.append(f"    include_demos_in_update:    {config.include_demos_in_update}")
+    lines.append(f"    demo_replay_require_success:{config.demo_replay_require_success}")
     lines.append(f"    success_replay_buffer_size: {config.success_replay_buffer_size}")
     lines.append(f"    success_replay_total_size:  {config.success_replay_total_size}")
     lines.append(f"    success_replay_alpha:       {config.success_replay_alpha}")
@@ -862,9 +863,13 @@ def train_srpo(
             for _tid, demos in demo_trajectories.items():
                 demo_images = []
                 for dt in demos:
+                    if not dt.success:
+                        continue
                     imgs = dt.images[: dt.length]
                     imgs = to_float01(imgs)
                     demo_images.append(imgs)
+                if not demo_images:
+                    logger.warning("No successful demo trajectories available to seed SRPO reward for %s.", _tid)
                 reward_model.add_demo_trajectories(_tid, demo_images)
 
     save_path = Path(config.save_dir)
@@ -974,7 +979,7 @@ def train_srpo(
         extra_trajectories: list[Trajectory] = []
         if config.include_demos_in_update and demo_trajectories:
             for _tid, demos in demo_trajectories.items():
-                extra_trajectories.extend(demos)
+                extra_trajectories.extend(t for t in demos if t.success)
 
         demo_aux_trajs: list[Trajectory] = []
         if config.demo_aux_enabled and demo_trajectories:

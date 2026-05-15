@@ -7,12 +7,12 @@ the overhead of the full visualization pipeline when scaling to many samples.
 import logging
 from pathlib import Path
 
-import torch
 import typer
 
 from vla.diagnostics.collect_trajectories import (
     CollectionConfig,
     collect_demo_trajectories,
+    collect_replayed_demo_trajectories,
     collect_rollouts,
 )
 from vla.utils import get_device, seed_everything
@@ -24,13 +24,20 @@ logger = logging.getLogger(__name__)
 def main(
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
     suite: str = typer.Option("spatial", "--suite"),
-    task_id: int = typer.Option(5, "--task-id"),
+    task_id: int = typer.Option(0, "--task-id"),
     num_demos: int = typer.Option(100, "--num-demos"),
     num_rollouts: int = typer.Option(100, "--num-rollouts"),
     num_envs: int = typer.Option(4, "--num-envs"),
     max_steps: int = typer.Option(300, "--max-steps"),
     seed: int = typer.Option(42, "--seed"),
     cache_dir: Path = typer.Option(Path("notebooks/cache"), "--cache-dir"),
+    replay_demos: bool = typer.Option(True, "--replay-demos/--no-replay-demos"),
+    demo_replay_seed_mode: str = typer.Option(
+        "episode_index",
+        "--demo-replay-seed-mode",
+        help="Seed mode for replayed demos: episode_index, fixed, fixed_offset, collection_offset",
+    ),
+    demo_replay_fixed_seed: int = typer.Option(0, "--demo-replay-fixed-seed"),
 ) -> None:
     """Collect trajectory buffers and save to cache."""
     seed_everything(seed)
@@ -46,6 +53,8 @@ def main(
         max_steps=max_steps,
         seed=seed,
         cache_dir=cache_dir,
+        demo_replay_seed_mode=demo_replay_seed_mode,
+        demo_replay_fixed_seed=demo_replay_fixed_seed,
     )
 
     logger.info("Starting collection for task: %s (ID: %d)", suite, task_id)
@@ -53,6 +62,9 @@ def main(
     # 1. Demos
     demo_trajs = collect_demo_trajectories(cfg)
     logger.info("Demos: %d collected", len(demo_trajs))
+    if replay_demos:
+        replayed_demo_trajs = collect_replayed_demo_trajectories(cfg, demo_trajs)
+        logger.info("Replayed demos: %d collected", len(replayed_demo_trajs))
 
     # 2. Rollouts (SFT Success, SFT Failed, Random)
     sft_success, sft_failed, random_trajs = collect_rollouts(cfg, device)

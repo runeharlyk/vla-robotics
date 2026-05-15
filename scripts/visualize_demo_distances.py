@@ -13,7 +13,6 @@ Usage:
 from __future__ import annotations
 
 import logging
-import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -31,12 +30,14 @@ logger = logging.getLogger(__name__)
 
 # ── Source labels & colours ──
 SOURCE_DEMO = "Success Demo"
+SOURCE_REPLAYED_DEMO = "Replayed Success Demo"
 SOURCE_SFT_SUCCESS = "Success Rollout (SFT)"
 SOURCE_SFT_FAILED = "Failed Rollout (SFT)"
 SOURCE_RANDOM = "Random-action Rollout"
 
 COLORS = {
     SOURCE_DEMO: "#2ecc71",        # Green
+    SOURCE_REPLAYED_DEMO: "#1b9e77",
     SOURCE_SFT_SUCCESS: "#3498db",   # Blue
     SOURCE_SFT_FAILED: "#f39c12",    # Orange
     SOURCE_RANDOM: "#e74c3c",       # Red
@@ -88,10 +89,7 @@ def _compute_siirl_rewards(distances: np.ndarray) -> np.ndarray:
         return np.array([])
     
     min_d, max_d = distances.min(), distances.max()
-    if max_d - min_d < 1e-6:
-        normalized = np.full_like(distances, 0.5)
-    else:
-        normalized = (distances - min_d) / (max_d - min_d)
+    normalized = np.full_like(distances, 0.5) if max_d - min_d < 1e-6 else (distances - min_d) / (max_d - min_d)
 
     sigmoid_inputs = 10.0 * (0.5 - normalized)
     return 0.6 * special.expit(sigmoid_inputs)
@@ -121,7 +119,7 @@ def _plot_faithful_summary(
     save_path: Path | None,
 ):
     import seaborn as sns
-    order = [SOURCE_DEMO, SOURCE_SFT_SUCCESS, SOURCE_SFT_FAILED, SOURCE_RANDOM]
+    order = [SOURCE_REPLAYED_DEMO, SOURCE_SFT_SUCCESS, SOURCE_SFT_FAILED, SOURCE_RANDOM]
     fig = plt.figure(figsize=(22, 18), facecolor="white")
     fig.suptitle(title, fontsize=18, fontweight="bold", y=0.98)
     
@@ -132,9 +130,11 @@ def _plot_faithful_summary(
     ax_pipe.axis("off")
     pipeline_text = (
         "Public siiRL embodied SRPO Pipeline:\n"
-        "Full Rollout -> Resample/Pad to 64 frames (Uniform np.linspace) -> Preprocess (Resize short-side 438, Center-Crop 384, Normalise) ->\n"
+        "Full Rollout -> Resample/Pad to 64 frames (Uniform np.linspace) -> "
+        "Preprocess (Resize short-side 438, Center-Crop 384, Normalise) ->\n"
         "V-JEPA 2 Encoder (ViT-Giant) -> Temporal Mean Pool (1 per rollout) -> \n"
-        "Per-Task Success Clustering (StandardScaler + DBSCAN eps=0.5) -> Nearest Success Cluster Distance for Failures -> \n"
+        "Per-Task Success Clustering (StandardScaler + DBSCAN eps=0.5) -> "
+        "Nearest Success Cluster Distance for Failures -> \n"
         "Min-Max Normalization (per batch) -> Sigmoid Mapping (Max 0.6 reward)"
     )
     ax_pipe.text(0.5, 0.5, pipeline_text, ha="center", va="center", fontsize=14, 
@@ -143,7 +143,8 @@ def _plot_faithful_summary(
     # B: Distance Distributions (KDE)
     ax_dkde = fig.add_subplot(gs[1, 0])
     for src in order:
-        if src not in dist_groups: continue
+        if src not in dist_groups or len(dist_groups[src]) < 2:
+            continue
         sns.kdeplot(dist_groups[src], ax=ax_dkde, label=src, color=COLORS[src], fill=True, alpha=0.1)
     ax_dkde.set_title("B — Distance to Nearest Success Center (Euclidean)", fontweight="bold")
     ax_dkde.legend()
@@ -151,17 +152,20 @@ def _plot_faithful_summary(
     # C: Reward distributions
     ax_rkde = fig.add_subplot(gs[1, 1])
     for src in order:
-        if src not in reward_groups: continue
+        if src not in reward_groups or len(reward_groups[src]) < 2:
+            continue
         sns.kdeplot(reward_groups[src], ax=ax_rkde, label=src, color=COLORS[src], fill=True, alpha=0.1)
     ax_rkde.set_title("C — Resulting shaped Rewards (Capped at 0.6 for failures)", fontweight="bold")
 
     # D: Distance Violin
     ax_dviol = fig.add_subplot(gs[2, 0])
-    d_data = [dist_groups[s] for s in order if s in dist_groups]
+    d_data = [dist_groups[s] for s in order if s in dist_groups and len(dist_groups[s]) > 0]
     v1 = ax_dviol.violinplot(d_data, showmeans=True)
-    for i, pc in enumerate(v1["bodies"]): pc.set_facecolor(COLORS[order[i]])
+    plotted_order = [s for s in order if s in dist_groups and len(dist_groups[s]) > 0]
+    for i, pc in enumerate(v1["bodies"]):
+        pc.set_facecolor(COLORS[plotted_order[i]])
     ax_dviol.set_xticks(range(1, len(d_data) + 1))
-    ax_dviol.set_xticklabels([s for s in order if s in dist_groups], rotation=15)
+    ax_dviol.set_xticklabels(plotted_order, rotation=15)
     ax_dviol.set_title("D — Distance Distributions", fontweight="bold")
 
     # E: Reward Transfer Curve
@@ -180,7 +184,8 @@ def _plot_faithful_summary(
     ax_stat.axis("off")
     rows = []
     for s in order:
-        if s not in dist_groups: continue
+        if s not in dist_groups or len(dist_groups[s]) == 0:
+            continue
         d, r = dist_groups[s], reward_groups[s]
         rows.append([s, len(d), f"{d.mean():.3f}", f"{r.mean():.3f}", f"{r.max():.3f}"])
     tbl = ax_stat.table(cellText=rows, colLabels=["Source", "N", "Mean Dist", "Mean Reward", "Max Reward"], 
@@ -198,7 +203,7 @@ def _plot_faithful_summary(
 
 def main(
     suite: str = typer.Option("spatial", "--suite"),
-    task_id: int = typer.Option(5, "--task-id"),
+    task_id: int = typer.Option(0, "--task-id"),
     cache_dir: Path = typer.Option(Path("notebooks/cache"), "--cache-dir"),
     no_show: bool = typer.Option(False, "--no-show"),
 ) -> None:
@@ -207,7 +212,7 @@ def main(
 
     # 1. Load data
     raw_sources = {
-        SOURCE_DEMO: "demos",
+        SOURCE_REPLAYED_DEMO: "replayed_demos",
         SOURCE_SFT_SUCCESS: "sft_success",
         SOURCE_SFT_FAILED: "sft_failed",
         SOURCE_RANDOM: "random_failed",
@@ -215,7 +220,7 @@ def main(
     raw_embs = {k: _load_embs(cache_dir, prefix, v).cpu().numpy() for k, v in raw_sources.items()}
 
     # 2. Clustering on Demos (The "Expert" set)
-    success_centers = _compute_cluster_centers_siirl(raw_embs[SOURCE_DEMO])
+    success_centers = _compute_cluster_centers_siirl(raw_embs[SOURCE_REPLAYED_DEMO])
     logger.info("Identified %d expert centers (including fallback if applicable)", len(success_centers))
 
     # 3. Compute Distances to nearest Success Center
@@ -223,21 +228,24 @@ def main(
 
     # 4. Reward Shaping (Min-Max Normalized per batch of failures)
     # Combining failures for the normalization batch (SFT Failed + Random)
-    failures_combined = np.concatenate([dist_groups[SOURCE_SFT_FAILED], dist_groups[SOURCE_RANDOM]])
+    failure_parts = [
+        dist_groups[SOURCE_SFT_FAILED],
+        dist_groups[SOURCE_RANDOM],
+    ]
+    failures_combined = np.concatenate([part for part in failure_parts if len(part) > 0])
+    if len(failures_combined) == 0:
+        raise ValueError("No failed SFT or random trajectories found; collect rollouts before plotting rewards.")
     
     # We apply the same min-max baseline to all failures for fair comparison
     min_d, max_d = failures_combined.min(), failures_combined.max()
     logger.info("Batch Norm: min_dist=%.3f, max_dist=%.3f", min_d, max_d)
 
     def _apply_batch_norm(dists: np.ndarray, min_d: float, max_d: float) -> np.ndarray:
-        if max_d - min_d < 1e-6:
-            norm = np.full_like(dists, 0.5)
-        else:
-            norm = (dists - min_d) / (max_d - min_d)
+        norm = np.full_like(dists, 0.5) if max_d - min_d < 1e-6 else (dists - min_d) / (max_d - min_d)
         return 0.6 * special.expit(10.0 * (0.5 - norm))
 
     reward_groups = {}
-    reward_groups[SOURCE_DEMO] = np.ones(len(dist_groups[SOURCE_DEMO])) # Demos = 1.0 (they are successes)
+    reward_groups[SOURCE_REPLAYED_DEMO] = np.ones(len(dist_groups[SOURCE_REPLAYED_DEMO])) # Demos = 1.0
     reward_groups[SOURCE_SFT_SUCCESS] = np.ones(len(dist_groups[SOURCE_SFT_SUCCESS])) # Successes = 1.0
     reward_groups[SOURCE_SFT_FAILED] = _apply_batch_norm(dist_groups[SOURCE_SFT_FAILED], min_d, max_d)
     reward_groups[SOURCE_RANDOM] = _apply_batch_norm(dist_groups[SOURCE_RANDOM], min_d, max_d)
@@ -248,13 +256,21 @@ def main(
     print("=" * 80)
     print(f"{'Source':<25} {'N':>5} {'Mean Dist':>12} {'Mean Reward':>12}")
     print("-" * 80)
-    for s in [SOURCE_DEMO, SOURCE_SFT_SUCCESS, SOURCE_SFT_FAILED, SOURCE_RANDOM]:
+    for s in [SOURCE_REPLAYED_DEMO, SOURCE_SFT_SUCCESS, SOURCE_SFT_FAILED, SOURCE_RANDOM]:
+        if len(dist_groups[s]) == 0:
+            print(f"{s:<25} {0:>5} {'n/a':>12} {'n/a':>12}")
+            continue
         print(f"{s:<25} {len(dist_groups[s]):>5} {dist_groups[s].mean():>12.3f} {reward_groups[s].mean():>12.3f}")
     print("=" * 80 + "\n")
 
     # 6. Plotting
     save_path = cache_dir / f"{prefix}_siirl_faithful_analysis.png"
-    _plot_faithful_summary(dist_groups, reward_groups, title=f"Faithful siiRL Analysis — {suite} task {task_id}", save_path=save_path)
+    _plot_faithful_summary(
+        dist_groups,
+        reward_groups,
+        title=f"Faithful siiRL Analysis — {suite} task {task_id}",
+        save_path=save_path,
+    )
 
     if not no_show:
         plt.show()

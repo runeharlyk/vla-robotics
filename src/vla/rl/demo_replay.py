@@ -115,6 +115,9 @@ def _replay_cache_path(
     suite: LiberoSuite,
     max_steps: int,
     state_dim: int,
+    seed_mode: str,
+    fixed_seed: int,
+    require_success: bool,
 ) -> Path:
     key = hashlib.sha1()
     key.update(str(simulator).encode("utf-8"))
@@ -125,6 +128,9 @@ def _replay_cache_path(
     key.update(str(spec.libero_task_idx).encode("utf-8"))
     key.update(str(max_steps).encode("utf-8"))
     key.update(str(state_dim).encode("utf-8"))
+    key.update(str(seed_mode).encode("utf-8"))
+    key.update(str(fixed_seed).encode("utf-8"))
+    key.update(str(require_success).encode("utf-8"))
     for demo in demos:
         key.update(str(int(demo.length or demo.actions.shape[0])).encode("utf-8"))
         key.update(str(demo.init_state_id).encode("utf-8"))
@@ -233,6 +239,9 @@ def replay_demo_rollouts(
             suite=suite,
             max_steps=max_steps,
             state_dim=state_dim,
+            seed_mode=replay_seed_mode,
+            fixed_seed=replay_fixed_seed,
+            require_success=require_success,
         )
         if cache_path.exists():
             cached = torch.load(cache_path, map_location="cpu", weights_only=False)
@@ -279,10 +288,18 @@ def replay_demo_rollouts(
         try:
             replayed_trajs: list[Trajectory] = []
             success_count = 0
+            failed_count = 0
             for demo_idx, demo in enumerate(demos):
-                traj = _replay_single_demo(env, demo, seed=seed + spec_idx * 1000 + demo_idx)
+                replay_seed = _replay_seed_for_demo(
+                    demo=demo,
+                    demo_idx=demo_idx,
+                    spec_idx=spec_idx,
+                    seed=seed,
+                    seed_mode=replay_seed_mode,
+                    fixed_seed=replay_fixed_seed,
+                )
+                traj = _replay_single_demo(env, demo, seed=replay_seed)
                 traj.task_id = spec.task_id
-                replayed_trajs.append(traj)
                 success_count += int(traj.success)
             replay_success_rate[spec.task_id] = success_count / max(len(replayed_trajs), 1)
             kept_trajs = _resolve_kept_trajs(
@@ -297,6 +314,7 @@ def replay_demo_rollouts(
                 "Replayed %d demo trajectory/trajectories for %s (%d successes, "
                 "replay_success_rate=%.2f, kept=%d/%d after fallback=%s drop_failed=%s) using simulator observations.",
                 len(replayed_trajs),
+                len(demos),
                 spec.task_id,
                 success_count,
                 replay_success_rate[spec.task_id],
