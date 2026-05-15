@@ -133,7 +133,8 @@ echo "Experiment: {experiment}"
 echo "Profile: {profile_name}"
 echo "Git commit: $(git rev-parse HEAD)"
 git status --short || true
-git diff HEAD -- {config_dir} {entrypoint} scripts/train_srpo.py scripts/evaluate.py src/vla/rl || true
+git diff HEAD -- {config_dir} {entrypoint} scripts/train_srpo.py scripts/evaluate.py \\
+  src/vla/diagnostics src/vla/rl || true
 
 {command}
 """

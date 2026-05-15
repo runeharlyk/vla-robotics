@@ -67,3 +67,40 @@ def test_eval_hydra_action_chunk_experiment_sets_steps() -> None:
     assert cfg.n_action_steps == 10
     assert cfg.checkpoint_dir is None
     assert cfg.wandb_name == "eval_sft_spatial_current_seed42_n10"
+
+
+def test_eval_hydra_flow_sde_sweep_expands_sampler_configs() -> None:
+    with initialize_config_dir(config_dir=str(CONFIG_DIR), version_base=None):
+        cfg = compose(config_name="base", overrides=["experiment=spatial_sft_flow_sde_sweep"])
+
+    expanded = expand_eval_configs(cfg)
+
+    assert len(expanded) == 5
+    assert expanded[0]["rollout_sampler"] == "normal"
+    assert expanded[0]["n_action_steps"] == 5
+    assert expanded[1]["rollout_sampler"] == "flow_sde"
+    assert expanded[1]["flow_grpo_sigma"] == 0.01
+    assert expanded[1]["flow_grpo_sde_steps"] == 10
+    assert expanded[-1]["flow_grpo_sigma"] == 0.10
+
+
+def test_eval_hydra_args_include_flow_sde_sampler_flags() -> None:
+    cfg = OmegaConf.create(
+        {
+            "simulator": "libero",
+            "suite": "spatial",
+            "rollout_sampler": "flow_sde",
+            "flow_grpo_sigma": 0.03,
+            "flow_grpo_sde_steps": 10,
+            "wandb": False,
+        }
+    )
+
+    args = config_to_evaluate_args(cfg)
+
+    assert "--rollout-sampler" in args
+    assert "flow_sde" in args
+    assert "--flow-grpo-sigma" in args
+    assert "0.03" in args
+    assert "--flow-grpo-sde-steps" in args
+    assert "10" in args

@@ -24,6 +24,9 @@ max_steps: 220
 seed: 42
 num_envs: 8
 n_action_steps: 1
+rollout_sampler: normal
+flow_grpo_sigma: 0.10
+flow_grpo_sde_steps: 0
 task_id: null
 fixed_noise_seed: 42
 wandb: true
