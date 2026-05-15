@@ -84,7 +84,12 @@ def metrics_from_trajectories(
     """
     total_successes = sum(1 for t in trajectories if t.success)
     total_rewards = [float(t.rewards.sum()) for t in trajectories]
-    total_lengths = [t.length for t in trajectories]
+    total_lengths = [
+        int(t.chunk_mask[: t.length].sum().item())
+        if getattr(t, "chunk_mask", None) is not None
+        else t.length
+        for t in trajectories
+    ]
     num_ep = expected_episodes if expected_episodes is not None else len(trajectories)
     return _compute_eval_metrics(total_successes, total_rewards, total_lengths, num_ep)
 

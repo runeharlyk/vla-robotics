@@ -30,6 +30,7 @@ PAIRED_BOOL_FLAGS = {
     "fpo.use-ref-policy-kl",
     "flow-grpo.positive-adv-only",
     "rollout.eval-zero-sample",
+    "pre-rl-eval",
     "kl.adaptive",
     "replay.include-demos",
     "sampling.dynamic",

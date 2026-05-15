@@ -837,8 +837,9 @@ def validate_train_eval_submit(
             else:
                 warnings.append(message)
         if target.match_reason == "fuzzy":
+            lsf_job_id = target.training_record.get("lsf_job_id") or "?"
             warnings.append(
-                f"matched training record by fuzzy label only (lsf_job_id={target.training_record.get('lsf_job_id') or '?'!r}); "
+                f"matched training record by fuzzy label only (lsf_job_id={lsf_job_id!r}); "
                 "pin with --training-job-id or --checkpoint-dir to be safe"
             )
     except Exception as exc:

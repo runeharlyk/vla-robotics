@@ -42,8 +42,8 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import torch
 import typer
@@ -128,7 +128,6 @@ def main(
 ) -> None:
     """Self-distill SmolVLA from collected RL rollouts."""
     import wandb
-
     from vla.constants import CHECKPOINTS_DIR
     from vla.data.rollout_distill import build_rollout_distill_dataset
     from vla.models.smolvla import SmolVLAPolicy

@@ -102,7 +102,7 @@ class RolloutConfig:
     eval_num_envs: int = 1
     fm_batch_size: int = 32
     gradient_checkpointing: bool = False
-    eval_zero_sample: bool = True
+    eval_zero_sample: bool = False
     n_action_steps: int = 1
 
 

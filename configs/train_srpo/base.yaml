@@ -106,5 +106,5 @@ rollout:
   eval_num_envs: 0
   fm_batch_size: 64
   gradient_checkpointing: true
-  eval_zero_sample: true
+  eval_zero_sample: false
   n_action_steps: 1

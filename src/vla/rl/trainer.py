@@ -646,6 +646,9 @@ def _evaluate_task(
             num_trajectories=config.eval_episodes,
             seed=config.seed + 20000,
             policy_batch_fn=policy.predict_action_batch if use_vec else None,
+            n_action_steps=config.n_action_steps,
+            policy_chunk_fn=policy.predict_action_chunk if config.n_action_steps > 1 else None,
+            policy_chunk_batch_fn=policy.predict_action_chunk_batch if config.n_action_steps > 1 and use_vec else None,
         )
         return metrics_from_trajectories(trajs, expected_episodes=config.eval_episodes)
 
@@ -657,7 +660,12 @@ def _evaluate_task(
         seed=config.seed + 20000,
     )
     if config.simulator is Simulator.LIBERO:
-        kwargs.update(suite=config.suite, task_id=spec.libero_task_idx, num_envs=config.num_envs)
+        kwargs.update(
+            suite=config.suite,
+            task_id=spec.libero_task_idx,
+            num_envs=config.num_envs,
+            n_action_steps=config.n_action_steps,
+        )
     else:
         kwargs.update(env_id=spec.env_id or config.env_id)
     return evaluate_smolvla(policy, **kwargs)
@@ -683,7 +691,7 @@ def evaluate_and_checkpoint(
         Updated best success rate.
     """
     prev_eval_zero_sample = policy.eval_zero_sample
-    policy.eval_zero_sample = False
+    policy.eval_zero_sample = config.eval_zero_sample
     try:
         task_sr_sum = 0.0
         for spec in task_specs:
@@ -787,6 +795,8 @@ def train_srpo(
     """
     if config.gradient_checkpointing:
         policy.enable_gradient_checkpointing()
+
+    policy.eval_zero_sample = config.eval_zero_sample
 
     optimizer, trainable = config.build_optimizer(policy)
 

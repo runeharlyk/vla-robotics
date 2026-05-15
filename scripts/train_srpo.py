@@ -334,6 +334,11 @@ def main(
     adv_skip_threshold: float = typer.Option(1e-6, "--adv.skip-threshold"),
     eval_every: int = typer.Option(10, "--eval-every"),
     eval_episodes: int = typer.Option(50, "--eval-episodes"),
+    pre_rl_eval: bool = typer.Option(
+        True,
+        "--pre-rl-eval/--no-pre-rl-eval",
+        help="Run an iteration-0 baseline evaluation before collecting RL rollouts.",
+    ),
     max_steps: int = typer.Option(280, "--max-steps", help="Override max steps (default: from checkpoint metadata)"),
     seed: int = typer.Option(42, "--seed"),
     env_id: str = typer.Option(None, "--env", help="Override env id (default: from checkpoint metadata)"),
@@ -401,7 +406,7 @@ def main(
         "--flow-grpo.positive-adv-only/--no-flow-grpo.positive-adv-only",
     ),
     flow_grpo_negative_adv_scale: float = typer.Option(1.0, "--flow-grpo.negative-adv-scale"),
-    eval_zero_sample: bool = typer.Option(True, "--rollout.eval-zero-sample/--no-rollout.eval-zero-sample"),
+    eval_zero_sample: bool = typer.Option(False, "--rollout.eval-zero-sample/--no-rollout.eval-zero-sample"),
     adaptive_kl: bool = typer.Option(
         False,
         "--kl.adaptive/--no-kl.adaptive",
@@ -558,6 +563,7 @@ def main(
         max_grad_norm=max_grad_norm,
         num_iterations=num_iterations,
         update_method=update_method,
+        pre_rl_eval=pre_rl_eval,
         advantage=AdvantageConfig(
             mode=advantage_mode,
             eps=adv_eps,

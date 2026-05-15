@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
+from vla.diagnostics.eval import metrics_from_trajectories
 from vla.rl.vec_env import StepResult, collect_wave_chunked
 
 
@@ -80,3 +81,26 @@ def test_chunked_vector_rollout_preserves_flow_grpo_path_metadata() -> None:
     assert trajs[0].executed_chunks.shape == (1, 2, 2)
     assert trajs[0].chunk_mask is not None
     assert trajs[0].chunk_mask.tolist() == [[True, True]]
+
+
+def test_chunked_eval_metrics_count_environment_steps_not_decisions() -> None:
+    trajs = collect_wave_chunked(
+        _Adapter(),
+        lambda images, instruction, states: _Sample(
+            actions=torch.ones(images.shape[0], 3, 2),
+            flow_states=torch.zeros(images.shape[0], 2, 3, 4),
+            flow_next_states=torch.ones(images.shape[0], 2, 3, 4),
+            flow_times=torch.full((images.shape[0], 2), 0.5),
+            flow_dts=torch.full((images.shape[0], 2), -0.5),
+            flow_sigmas=torch.full((images.shape[0], 2), 0.1),
+        ),
+        instruction="test",
+        active_n=1,
+        seed=123,
+        max_steps=2,
+        n_action_steps=2,
+    )
+
+    metrics = metrics_from_trajectories(trajs)
+
+    assert metrics.mean_episode_length == 2.0
