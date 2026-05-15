@@ -1,0 +1,119 @@
+# @package _global_
+
+metadata:
+  label: v13-multi-flow-grpo-sigma003
+  source_doc: docs/thesis_research_plan.md
+  source_config: configs/train_srpo/experiment/p1a_v8a_control_v7_clone.yaml
+  profile: l40s-16-mem8
+  notes: |
+    Thesis Phase 1, algorithm pivot: Flow-GRPO multi-task chunk-1.
+
+    Goal: Test whether proper PPO log-prob ratios (Flow-GRPO) outperform
+    FPO's likelihood-free FM-loss surrogate on multi-task LIBERO Spatial.
+    This is the post-pin (Mujoco 3.3.2) counterpart to P1a.
+
+    Why this config exists and why now:
+    - All pre-pin FPO runs (v4..v12) plateau within +/- 3pp of SFT after
+      30 iters. v7 / p1b (pre-pin) crashed with TERM_MEMLIMIT before
+      revealing a verdict; the v10/v11 family that did finish never beat
+      SFT by more than 1.4pp on suite-avg with n=1/100ep.
+    - Scout evidence for Flow-GRPO sampler at chunk-5 (pre-pin):
+        sigma=0    -> 0.705 (deterministic SFT)
+        sigma=0.01 -> 0.640 (too narrow)
+        sigma=0.03 -> 0.725 (+2pp over deterministic)
+        sigma=0.05 -> 0.695
+        sigma=0.10 -> 0.665
+      Note: sigma=0.03 was only a sampler scout (no RL update); v13 tests
+      whether running real Flow-GRPO RL on top of that distribution adds
+      further gain.
+    - Smoke test flow_grpo_t5_sigma003_smoke1 must complete cleanly
+      before this run is submitted. Required checks:
+        * No NaN/Inf in mean_ratio, max_log_ratio, raw_kl
+        * mean_ratio in [0.95, 1.05] after 1 update
+        * max_log_ratio < 2.0 (well under the log_ratio_clip=5.0)
+        * clip_frac < 30%
+
+    What is identical to P1a (every line matters for fair comparison):
+    - task_ids: all  (10 spatial tasks)
+    - lr: 2e-6
+    - trajs_per_task: 8
+    - iterations: 30, eval_every: 10, eval_episodes: 30
+    - pre_rl_eval: false  (shared SFT init, no point re-evaluating)
+    - kl.coeff: 0.01, kl.sft_coeff: 0.02
+    - ppo.clip_epsilon: 0.05, ppo.clip_epsilon_high: 0.08
+    - replay: include_demos, success_total_size 320, success_max_ratio 0.5
+    - sampling.dynamic: true
+    - rollout.n_action_steps: 1  (chunk-1, NOT chunk-5 like the smoke)
+    - profile: l40s-16-mem8 (128 GB host RAM, 16 CPU)
+
+    What differs from P1a (exactly two things):
+    - update_method: flow_grpo  (was fpo)
+    - flow_grpo.sigma: 0.03, sde_steps: 10  (was the fpo block)
+
+    Chunk-1 note: smoke uses chunk-5 because that is where the sampler
+    scout exists. Chunk-1 has ~5x more SDE-transitions per traj to
+    record (one denoise-call per env-step instead of one per 5 env-steps)
+    so SDE buffer memory is ~5x larger. Estimated peak ~50 MB extra,
+    well within the l40s-16-mem8 envelope.
+
+    Bar to clear (n=1, 100 ep, post-pin Mujoco 3.3.2):
+    - Post-pin SFT baseline: 0.799 suite-avg (eval ewa64w2q, 1000 episodes)
+    - P1a final ckpt (running): pending. If P1a <= 0.799, v13 must beat
+      0.799 by >= 2pp to win the thesis story; if P1a > 0.799 by
+      >= 2pp, v13 must match P1a within 1pp to keep Flow-GRPO viable.
+
+    Decision rule (vs post-pin SFT 0.799 at n=1/100ep):
+    - STRONG WIN (>= 0.82): Flow-GRPO becomes thesis main RL ckpt;
+      feeds Phase 2 (WiSE-FT alpha sweep) and Phase 4 (distillation).
+    - WIN (0.80 - 0.82): Marginal improvement; document and proceed
+      with P1a vs v13 comparison as algorithmic ablation.
+    - TIE (0.78 - 0.80): Neither family beats SFT; thesis pivots to
+      "we tested 3 RL families (FPO, success_bc, Flow-GRPO); none
+      meaningfully exceed SFT on Mujoco-3.3.2 LIBERO Spatial" as a
+      defensible negative result, then leans on WiSE-FT / distillation
+      / robustness for the contribution story.
+    - LOSE (< 0.78): Flow-GRPO not viable at this sigma; submit
+      v14 with sigma sweep (0.01, 0.05) if compute permits.
+
+task_ids: all
+mode: sparse_rl
+update_method: flow_grpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 10
+eval_episodes: 30
+pre_rl_eval: false
+wandb_name: v13-multi-flow-grpo-sigma003
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+flow_grpo:
+  sigma: 0.03
+  sde_steps: 10
+  logprob_reduction: mean
+  log_ratio_clip: 5.0
+  positive_adv_only: false
+  negative_adv_scale: 1.0
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1
