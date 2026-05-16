@@ -4,11 +4,13 @@ Implements the reward shaping mechanism from the SRPO paper (Section 3.2):
 1. Encode trajectory observations with a frozen world-model encoder.
 2. DBSCAN-cluster successful trajectory embeddings to obtain centres.
 3. Compute distance-based progress rewards for failed trajectories.
-4. Normalise rewards with batch statistics.
+4. Map failure distances with the public siiRL min-max sigmoid by default.
 
 Supports a **demo-seeded** reference set: 5 (or more) demonstration
 trajectories are always included as "successful" references, eliminating
-the cold-start bootstrapping problem.
+the cold-start bootstrapping problem. Current successful rollouts are also
+included in the scoring reference set immediately, which preserves SRPO's
+self-referential in-batch reward mechanism.
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
-from vla.constants import DistanceMetric
+from vla.constants import DistanceMetric, RewardMapping
 from vla.models.world_model import WorldModelEncoder
 from vla.rl.rollout import Trajectory
 from vla.utils import to_float01
@@ -42,12 +44,15 @@ class SRPORewardConfig:
     dbscan_percentile: int = 25
     activation: str = "sigmoid"
     alpha: float = 0.8
+    reward_mapping: RewardMapping = RewardMapping.SIIRL
+    failure_reward_cap: float = 0.6
     eps: float = 1e-8
     max_references: int = 200
     ref_demo_ratio: float = 0.5
-    distance_metric: DistanceMetric = DistanceMetric.NORMALIZED_L2
+    distance_metric: DistanceMetric = DistanceMetric.L2
     use_failure_rewards: bool = True
-    use_standard_scaler: bool = False
+    use_standard_scaler: bool = True
+    include_current_successes: bool = True
 
 
 @dataclass
@@ -59,15 +64,24 @@ class ClusterDiagnostics:
     num_online_refs: int = 0
     num_clusters: int = 0
     num_noise_points: int = 0
+    num_successes: int = 0
+    num_failures: int = 0
+    num_partial_rewards: int = 0
     mean_intra_cluster_dist: float = 0.0
     mean_inter_cluster_dist: float = 0.0
     silhouette_ratio: float = 0.0
     mean_failed_distance: float = 0.0
     std_failed_distance: float = 0.0
+    min_failed_distance: float = 0.0
+    max_failed_distance: float = 0.0
     reward_mean: float = 0.0
     reward_std: float = 0.0
     reward_min: float = 0.0
     reward_max: float = 0.0
+    failure_reward_mean: float = 0.0
+    failure_reward_std: float = 0.0
+    failure_reward_min: float = 0.0
+    failure_reward_max: float = 0.0
 
     def as_dict(self, prefix: str = "cluster") -> dict[str, float]:
         return {f"{prefix}/{k}": v for k, v in self.__dict__.items()}
@@ -175,31 +189,37 @@ class WorldProgressReward:
         )
         self._refit_clusters()
 
-    def _refit_clusters(self) -> None:
-        """Run DBSCAN on the current reference embeddings to update cluster centres.
+    def _fit_cluster_centers(
+        self,
+        embeddings: list[torch.Tensor],
+    ) -> tuple[torch.Tensor | None, list[int], StandardScaler | None]:
+        """Fit DBSCAN centres for a set of success/reference embeddings.
 
         When ``use_standard_scaler`` is enabled in the config, embeddings are
         standardised before DBSCAN (matching the siiRL production code) and
         cluster centres are inverse-transformed back to original space.
-        The fitted scaler is stored for consistent distance queries.
+
+        The returned centres are always in the original embedding space. This
+        matches the public ``siirl/utils/reward_score/embodied.py`` path, where
+        StandardScaler is used only for DBSCAN clustering and failed trajectory
+        distances are then computed by Euclidean distance to inverse-transformed
+        centres.
         """
-        self._scaler = None
+        if not embeddings:
+            return None, [], None
 
-        if len(self.reference_embeddings) < self.cfg.dbscan_min_samples:
-            self.cluster_centers = torch.stack(self.reference_embeddings, dim=0)
-            self._last_labels = [0] * len(self.reference_embeddings)
-            logger.info("Too few references for DBSCAN (%d); using all as centres.", len(self.reference_embeddings))
-            return
-
-        ref_matrix = torch.stack(self.reference_embeddings, dim=0)
+        ref_matrix = torch.stack([e.detach().float().cpu() for e in embeddings], dim=0)
         X = ref_matrix.cpu().numpy()
 
         if self.cfg.use_standard_scaler:
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(X)
-            self._scaler = scaler
         else:
+            scaler = None
             X_scaled = X
+
+        if len(embeddings) < self.cfg.dbscan_min_samples:
+            return ref_matrix.mean(dim=0, keepdim=True), [0] * len(embeddings), scaler
 
         k = self.cfg.dbscan_min_samples
         if self.cfg.dbscan_auto_eps and len(X_scaled) > k:
@@ -210,24 +230,18 @@ class WorldProgressReward:
 
         db = DBSCAN(eps=eps, min_samples=k, metric="euclidean").fit(X_scaled)
         labels = db.labels_
-        self._last_labels = labels.tolist()
         unique_labels = set(labels)
         unique_labels.discard(-1)
 
         if len(unique_labels) == 0:
-            self.cluster_centers = ref_matrix
-            logger.info(
-                "DBSCAN found no clusters (all noise); using all %d references as centres.",
-                len(self.reference_embeddings),
-            )
-            return
+            return ref_matrix.mean(dim=0, keepdim=True), labels.tolist(), scaler
 
-        if self.cfg.use_standard_scaler and self._scaler is not None:
+        if self.cfg.use_standard_scaler and scaler is not None:
             centres = []
             for label in sorted(unique_labels):
                 mask = labels == label
                 center_scaled = X_scaled[mask].mean(axis=0, keepdims=True)
-                center = self._scaler.inverse_transform(center_scaled).flatten()
+                center = scaler.inverse_transform(center_scaled).flatten()
                 centres.append(torch.from_numpy(center).float())
         else:
             centres = []
@@ -235,12 +249,21 @@ class WorldProgressReward:
                 mask = labels == label
                 centres.append(ref_matrix[mask].mean(dim=0))
 
-        self.cluster_centers = torch.stack(centres, dim=0)
+        return torch.stack(centres, dim=0), labels.tolist(), scaler
+
+    def _refit_clusters(self) -> None:
+        """Run DBSCAN on the retained reference embeddings to update cluster centres."""
+        self._scaler = None
+        self.cluster_centers, self._last_labels, self._scaler = self._fit_cluster_centers(self.reference_embeddings)
+        if self.cluster_centers is None:
+            logger.info("Reference set is empty; no SRPO success centres fitted.")
+            return
+
         logger.info(
             "DBSCAN fitted: %d clusters from %d references (eps=%.4f, scaler=%s)",
-            len(centres),
+            self.cluster_centers.shape[0],
             len(self.reference_embeddings),
-            eps,
+            self.cfg.dbscan_eps,
             "on" if self.cfg.use_standard_scaler else "off",
         )
 
@@ -270,11 +293,6 @@ class WorldProgressReward:
     def _distances_to_centres(self, emb: torch.Tensor, centres: torch.Tensor) -> torch.Tensor:
         """Compute distances from a single embedding to all cluster centres.
 
-        When ``use_standard_scaler`` is active, both the query embedding and
-        cluster centres are transformed into the scaler's standardised space
-        before computing distances.  This matches the siiRL production pipeline
-        where DBSCAN operates in scaled space.
-
         Args:
             emb: ``(D,)`` trajectory embedding.
             centres: ``(K, D)`` cluster centre embeddings.
@@ -282,16 +300,8 @@ class WorldProgressReward:
         Returns:
             ``(K,)`` distance tensor - lower means closer to a success cluster.
         """
-        if self._scaler is not None:
-            emb_np = emb.detach().cpu().numpy().reshape(1, -1)
-            centres_np = centres.detach().cpu().numpy()
-            emb_scaled = torch.from_numpy(self._scaler.transform(emb_np)).float().squeeze(0).to(emb.device)
-            centres_scaled = torch.from_numpy(self._scaler.transform(centres_np)).float().to(centres.device)
-            emb = emb_scaled
-            centres = centres_scaled
-
         metric = self.cfg.distance_metric
-        if metric is DistanceMetric.COSINE:
+        if metric == DistanceMetric.COSINE:
             sims = torch.nn.functional.cosine_similarity(centres, emb.unsqueeze(0).expand_as(centres), dim=-1)
             return 1.0 - sims
         if metric == DistanceMetric.NORMALIZED_L2:
@@ -311,7 +321,8 @@ class WorldProgressReward:
         Following Section 3.2 of the paper:
         - Each trajectory is encoded as a full video clip: h_i = W(o_{0:T})
         - Successful trajectories: g_i = 1.0
-        - Failed trajectories: g_i = α · φ((d_i - d̄) / σ_d)
+        - Failed trajectories: by default, public siiRL's
+          ``failure_reward_cap * sigmoid(10 * (0.5 - minmax(d_i)))``
           where d_i = min distance from h_i to nearest cluster center.
 
         Args:
@@ -327,11 +338,21 @@ class WorldProgressReward:
         traj_images = [to_float01(t.images[: t.length]) for t in trajectories]
         traj_embs = self._encode_trajectory_clips(traj_images)
 
-        if self.cluster_centers is None or len(self.cluster_centers) == 0:
+        current_success_embs = [
+            emb for traj, emb in zip(trajectories, traj_embs, strict=True) if traj.success
+        ]
+        scoring_refs = self.reference_embeddings.copy()
+        if self.cfg.include_current_successes:
+            scoring_refs.extend(current_success_embs)
+
+        scoring_centres, scoring_labels, _ = self._fit_cluster_centers(scoring_refs)
+
+        if scoring_centres is None or len(scoring_centres) == 0:
             rewards = [1.0 if t.success else 0.0 for t in trajectories]
+            self._last_diagnostics = self._build_diagnostics(rewards, [], trajectories=trajectories)
             return rewards, traj_embs
 
-        centres = self.cluster_centers.to(traj_embs[0].device)
+        centres = scoring_centres.to(traj_embs[0].device)
         rewards: list[float] = []
         failed_distances: list[torch.Tensor] = []
         failed_indices: list[int] = []
@@ -347,35 +368,73 @@ class WorldProgressReward:
 
         if failed_distances and self.cfg.use_failure_rewards:
             d_all = torch.stack(failed_distances)
-            d_mean = d_all.mean()
-            d_std = d_all.std(correction=0).clamp(min=self.cfg.eps)
-            normalised = (d_all - d_mean) / d_std
-            activated = self._activation(normalised) * self.cfg.alpha
+            activated = self._map_failure_distances(d_all)
             for idx, fi in enumerate(failed_indices):
                 rewards[fi] = activated[idx].item()
 
-        self._last_diagnostics = self._build_diagnostics(rewards, failed_distances)
+        self._last_diagnostics = self._build_diagnostics(
+            rewards,
+            failed_distances,
+            trajectories=trajectories,
+            cluster_embeddings=scoring_refs,
+            cluster_centers=scoring_centres,
+            cluster_labels=scoring_labels,
+        )
         return rewards, traj_embs
+
+    def _map_failure_distances(self, distances: torch.Tensor) -> torch.Tensor:
+        """Map failed-trajectory distances to shaped SRPO rewards."""
+        if self.cfg.reward_mapping == RewardMapping.SIIRL:
+            min_d = distances.min()
+            max_d = distances.max()
+            dist_range = max_d - min_d
+            if dist_range.item() < 1e-6:
+                normalised = torch.full_like(distances, 0.5)
+            else:
+                normalised = (distances - min_d) / dist_range
+            return self.cfg.failure_reward_cap * torch.sigmoid(10.0 * (0.5 - normalised))
+
+        if self.cfg.reward_mapping == RewardMapping.ZSCORE:
+            d_mean = distances.mean()
+            d_std = distances.std(correction=0).clamp(min=self.cfg.eps)
+            normalised = (distances - d_mean) / d_std
+            return self._activation(normalised) * self.cfg.alpha
+
+        raise ValueError(
+            f"Unknown reward_mapping {self.cfg.reward_mapping!r}. Choose from: siirl, zscore."
+        )
 
     def _build_diagnostics(
         self,
         rewards: list[float],
         failed_distances: list[torch.Tensor],
+        trajectories: list[Trajectory] | None = None,
+        cluster_embeddings: list[torch.Tensor] | None = None,
+        cluster_centers: torch.Tensor | None = None,
+        cluster_labels: list[int] | None = None,
     ) -> ClusterDiagnostics:
+        diag_centers = cluster_centers if cluster_centers is not None else self.cluster_centers
+        diag_labels = cluster_labels if cluster_labels is not None else self._last_labels
+        diag_embeddings = cluster_embeddings if cluster_embeddings is not None else self.reference_embeddings
+
         diag = ClusterDiagnostics(
             num_references=len(self.reference_embeddings),
             num_demo_refs=len(self._demo_embeddings),
             num_online_refs=len(self._online_embeddings),
-            num_clusters=self.cluster_centers.shape[0] if self.cluster_centers is not None else 0,
+            num_clusters=diag_centers.shape[0] if diag_centers is not None else 0,
         )
+        if trajectories is not None:
+            diag.num_successes = sum(1 for t in trajectories if t.success)
+            diag.num_failures = len(trajectories) - diag.num_successes
+        diag.num_partial_rewards = sum(1 for r in rewards if 0.0 < r < 1.0)
 
-        if self._last_labels is not None:
-            diag.num_noise_points = sum(1 for lb in self._last_labels if lb == -1)
+        if diag_labels is not None:
+            diag.num_noise_points = sum(1 for lb in diag_labels if lb == -1)
 
-        if len(self.reference_embeddings) >= 2 and self._last_labels is not None:
-            ref_matrix = torch.stack(self.reference_embeddings, dim=0)
-            labels_t = torch.tensor(self._last_labels)
-            unique = set(self._last_labels)
+        if len(diag_embeddings) >= 2 and diag_labels is not None and len(diag_labels) == len(diag_embeddings):
+            ref_matrix = torch.stack([e.detach().float().cpu() for e in diag_embeddings], dim=0)
+            labels_t = torch.tensor(diag_labels)
+            unique = set(diag_labels)
             unique.discard(-1)
 
             intra_dists: list[float] = []
@@ -390,8 +449,8 @@ class WorldProgressReward:
             if intra_dists:
                 diag.mean_intra_cluster_dist = sum(intra_dists) / len(intra_dists)
 
-            if self.cluster_centers is not None and self.cluster_centers.shape[0] >= 2:
-                cc = self.cluster_centers
+            if diag_centers is not None and diag_centers.shape[0] >= 2:
+                cc = diag_centers.detach().float().cpu()
                 pw_cc = torch.cdist(cc.unsqueeze(0), cc.unsqueeze(0)).squeeze(0)
                 n_c = cc.shape[0]
                 diag.mean_inter_cluster_dist = pw_cc.sum().item() / max(n_c * (n_c - 1), 1)
@@ -403,12 +462,20 @@ class WorldProgressReward:
             d_all = torch.stack(failed_distances)
             diag.mean_failed_distance = d_all.mean().item()
             diag.std_failed_distance = d_all.std().item() if len(failed_distances) > 1 else 0.0
+            diag.min_failed_distance = d_all.min().item()
+            diag.max_failed_distance = d_all.max().item()
 
         r_t = torch.tensor(rewards)
         diag.reward_mean = r_t.mean().item()
         diag.reward_std = r_t.std().item() if len(rewards) > 1 else 0.0
         diag.reward_min = r_t.min().item()
         diag.reward_max = r_t.max().item()
+        failure_rewards = torch.tensor([r for r in rewards if r < 1.0], dtype=torch.float32)
+        if failure_rewards.numel() > 0:
+            diag.failure_reward_mean = failure_rewards.mean().item()
+            diag.failure_reward_std = failure_rewards.std().item() if failure_rewards.numel() > 1 else 0.0
+            diag.failure_reward_min = failure_rewards.min().item()
+            diag.failure_reward_max = failure_rewards.max().item()
 
         return diag
 

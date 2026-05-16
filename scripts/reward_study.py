@@ -146,7 +146,11 @@ def _chunk_corr_ci(values: list[float], seed: int, n_bootstrap: int = 1000) -> t
     return float(arr.mean()), float(np.percentile(boot_means, 2.5)), float(np.percentile(boot_means, 97.5))
 
 
-def _phase2_required_files() -> list[str]:
+def _chunked_cache_name(window_size: int, stride: int) -> str:
+    return f"chunked_analysis_w{window_size}_s{stride}.pt"
+
+
+def _phase2_required_files(window_size: int, stride: int) -> list[str]:
     files = [
         "emb_demos.pt",
         "emb_sft_success.pt",
@@ -155,7 +159,7 @@ def _phase2_required_files() -> list[str]:
         "emb_per_frame_all.pt",
         "emb_clip_all.pt",
         "emb_siirl_faithful_all.pt",
-        "chunked_analysis.pt",
+        _chunked_cache_name(window_size, stride),
         "per_frame_dists.pt",
     ]
     files.extend(f"emb_progress_{int(level * 100)}.pt" for level in PROGRESS_LEVELS)
@@ -203,8 +207,10 @@ def _ensure_phase2_caches(
     device: torch.device,
     world_model: WorldModelType,
     encoder_batch_size: int,
+    window_size: int,
+    stride: int,
 ) -> None:
-    missing = [name for name in _phase2_required_files() if not (cache_dir / name).exists()]
+    missing = [name for name in _phase2_required_files(window_size, stride) if not (cache_dir / name).exists()]
     if not missing:
         logger.info("All phase-2 caches already exist for %s", cache_dir)
         return
@@ -252,32 +258,40 @@ def _ensure_phase2_caches(
             cache_path=cache_dir / "emb_per_frame_all.pt",
             label="per-frame",
             group_names=["demos", "sft_success", "sft_failed", "random_failed"],
-            encode_fn=lambda images: encode_trajectories_per_frame(images, encoder, cluster_cfg.subsample_every),
+            encode_fn=lambda images, encoder=encoder: encode_trajectories_per_frame(
+                images,
+                encoder,
+                cluster_cfg.subsample_every,
+            ),
         )
         _encode_grouped_cache(
             cfg=collection_cfg,
             cache_path=cache_dir / "emb_clip_all.pt",
             label="clip",
             group_names=["demos", "sft_success", "sft_failed", "random_failed"],
-            encode_fn=lambda images: encode_trajectories_clip(images, encoder, cluster_cfg.subsample_every),
+            encode_fn=lambda images, encoder=encoder: encode_trajectories_clip(
+                images,
+                encoder,
+                cluster_cfg.subsample_every,
+            ),
         )
         _encode_grouped_cache(
             cfg=collection_cfg,
             cache_path=cache_dir / "emb_siirl_faithful_all.pt",
             label="siirl-faithful",
             group_names=["demos", "sft_success", "sft_failed", "random_failed"],
-            encode_fn=lambda images: encode_trajectories_siirl_faithful(images, encoder),
+            encode_fn=lambda images, encoder=encoder: encode_trajectories_siirl_faithful(images, encoder),
         )
 
-        chunked_path = cache_dir / "chunked_analysis.pt"
+        chunked_path = cache_dir / _chunked_cache_name(window_size, stride)
         if not chunked_path.exists():
             demos = _load_cached_trajectories(collection_cfg, "demos")
             demo_imgs = [to_float01(t.images[: t.length]) for t in demos]
             centers, scaler = cluster_reference_chunks(
                 demo_imgs,
                 encoder,
-                window_size=WINDOW_SIZE,
-                stride=STRIDE,
+                window_size=window_size,
+                stride=stride,
                 use_standard_scaler=True,
             )
             curves_by_group: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {}
@@ -295,8 +309,8 @@ def _ensure_phase2_caches(
                         encoder,
                         centers,
                         scaler,
-                        window_size=WINDOW_SIZE,
-                        stride=STRIDE,
+                        window_size=window_size,
+                        stride=stride,
                     )
                     curves.append((ts, dists))
                 curves_by_group[label] = curves
@@ -310,11 +324,13 @@ def _ensure_phase2_caches(
                 encoder,
                 centers,
                 scaler,
-                window_size=WINDOW_SIZE,
-                stride=STRIDE,
+                window_size=window_size,
+                stride=stride,
             )
             torch.save(
                 {
+                    "window_size": window_size,
+                    "stride": stride,
                     "centers": centers,
                     "scaler": scaler,
                     "curves": curves_by_group,
@@ -367,7 +383,7 @@ def _ensure_phase2_caches(
         _safe_empty_cuda_cache()
 
 
-def _load_cached_analysis(cache_dir: Path) -> dict[str, object]:
+def _load_cached_analysis(cache_dir: Path, *, window_size: int, stride: int) -> dict[str, object]:
     x_demo = _load_numpy(cache_dir / "emb_demos.pt")
     x_sft_ok = _load_numpy(cache_dir / "emb_sft_success.pt")
     x_sft_fail = _load_numpy(cache_dir / "emb_sft_failed.pt")
@@ -388,7 +404,7 @@ def _load_cached_analysis(cache_dir: Path) -> dict[str, object]:
 
     progress_embs = {level: _load_numpy(cache_dir / f"emb_progress_{int(level * 100)}.pt") for level in PROGRESS_LEVELS}
 
-    chunk_data = torch.load(cache_dir / "chunked_analysis.pt", weights_only=False)
+    chunk_data = torch.load(cache_dir / _chunked_cache_name(window_size, stride), weights_only=False)
     per_frame_dists = torch.load(cache_dir / "per_frame_dists.pt", weights_only=False)
 
     return {
@@ -444,6 +460,8 @@ def run_task(
     dbscan_min_samples: int,
     dbscan_percentile: int,
     encoder_batch_size: int,
+    window_size: int,
+    stride: int,
     cache_root: Path,
     output_root: Path,
     world_model: WorldModelType,
@@ -494,6 +512,8 @@ def run_task(
             "dbscan_min_samples": dbscan_min_samples,
             "dbscan_percentile": dbscan_percentile,
             "encoder_batch_size": encoder_batch_size,
+            "window_size": window_size,
+            "stride": stride,
             "cache_dir": str(cache_dir),
             "output_dir": str(task_output_dir),
         },
@@ -535,6 +555,8 @@ def run_task(
         device=device,
         world_model=world_model,
         encoder_batch_size=encoder_batch_size,
+        window_size=window_size,
+        stride=stride,
     )
 
     logger.info(
@@ -546,7 +568,7 @@ def run_task(
     )
 
     logger.info("Phase 3: analysis and report generation")
-    cached = _load_cached_analysis(cache_dir)
+    cached = _load_cached_analysis(cache_dir, window_size=window_size, stride=stride)
 
     x_demo = cached["x_demo"]
     x_sft_ok = cached["x_sft_ok"]
@@ -730,7 +752,12 @@ def run_task(
         {
             "SRPO full-traj (level-mean)": (corr_full_traj, pval_full_traj),
             "SRPO full-traj (per-traj)": (ptr_corr, ptr_pval, ptr_ci_lo, ptr_ci_hi),
-            "SRPO chunked (window=32)": (chunk_corr, chunk_pval, chunk_ci_lo, chunk_ci_hi),
+            f"SRPO chunked (window={window_size}, stride={stride})": (
+                chunk_corr,
+                chunk_pval,
+                chunk_ci_lo,
+                chunk_ci_hi,
+            ),
         },
         top_rewarder_ref=0.95,
     )
@@ -791,7 +818,7 @@ def run_task(
     axes[1].scatter(all_dists_siirl, compute_zscore_rewards(all_dists_siirl, alpha=0.8), alpha=0.3, s=10)
     axes[1].set_xlabel("Distance")
     axes[1].set_ylabel("Reward")
-    axes[1].set_title("Ours: 0.8 * sigmoid(-z_score)")
+    axes[1].set_title("z-score ablation: 0.8 * sigmoid(-z_score)")
     axes[1].grid(True, alpha=0.3)
     fig.suptitle("Exp 3 - Reward Formula Comparison", fontsize=14, fontweight="bold", y=1.02)
     fig.tight_layout()
@@ -854,7 +881,7 @@ def run_task(
     fig, ax = plt.subplots(figsize=(14, 6))
     plot_chunked_progress_curves(
         chunked_curves,
-        title=f"Exp 5b - Per-Chunk Distance (window={WINDOW_SIZE}, stride={STRIDE})",
+        title=f"Exp 5b - Per-Chunk Distance (window={window_size}, stride={stride})",
         ax=ax,
     )
     fig.tight_layout()
@@ -991,11 +1018,18 @@ def main(
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
     dbscan_percentile: int = typer.Option(25, "--dbscan-percentile"),
     encoder_batch_size: int = typer.Option(4, "--encoder-batch-size"),
+    window_size: int = typer.Option(WINDOW_SIZE, "--window-size", help="Frames per chunk for chunked diagnostics."),
+    stride: int = typer.Option(STRIDE, "--stride", help="Frame stride for chunked diagnostics."),
     seed: int = typer.Option(42, "--seed"),
     cache_root: Path = typer.Option(DEFAULT_CACHE_ROOT, "--cache-root", help="Root directory for per-task caches"),
     output_root: Path = typer.Option(DEFAULT_OUTPUT_ROOT, "--output-root", help="Root directory for saved reports"),
 ) -> None:
     """Run the full reward-study pipeline for a single LIBERO task."""
+    if window_size <= 0:
+        raise typer.BadParameter("window_size must be positive")
+    if stride <= 0:
+        raise typer.BadParameter("stride must be positive")
+
     metrics = run_task(
         checkpoint=checkpoint,
         suite=str(suite),
@@ -1009,6 +1043,8 @@ def main(
         dbscan_min_samples=dbscan_min_samples,
         dbscan_percentile=dbscan_percentile,
         encoder_batch_size=encoder_batch_size,
+        window_size=window_size,
+        stride=stride,
         cache_root=cache_root,
         output_root=output_root,
         world_model=world_model,

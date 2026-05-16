@@ -37,7 +37,13 @@ if "wandb" not in sys.modules:
     sys.modules["wandb"] = MagicMock()
 
 from tests.helpers import make_fake_pt
+from vla.constants import DistanceMetric, RewardMapping
 from vla.data.dataset import FewDemoDataset
+from vla.diagnostics.reward_analysis import (
+    compute_cluster_centers_siirl,
+    compute_siirl_rewards,
+    distances_to_nearest_center,
+)
 from vla.rl.advantage import normalize_advantages_per_task
 from vla.rl.rollout import Trajectory
 from vla.rl.srpo_reward import (
@@ -301,6 +307,74 @@ class TestMultiTaskWorldProgressReward:
 
         assert len(rewards_multi) == 4
         assert all(isinstance(r, float) for r in rewards_multi)
+
+    def test_siirl_reward_mapping_orders_near_failures_above_far_failures(self):
+        encoder = _make_fake_encoder(embed_dim=2)
+        encoder.encode_trajectory.side_effect = [
+            torch.tensor([0.0, 0.0]),  # demo reference
+            torch.tensor([0.0, 0.0]),  # current success
+            torch.tensor([1.0, 0.0]),  # near failure
+            torch.tensor([3.0, 0.0]),  # far failure
+        ]
+        cfg = SRPORewardConfig(
+            dbscan_min_samples=2,
+            dbscan_eps=0.5,
+            distance_metric=DistanceMetric.L2,
+            reward_mapping=RewardMapping.SIIRL,
+            failure_reward_cap=0.6,
+            use_standard_scaler=True,
+        )
+        wpr = WorldProgressReward(encoder, cfg)
+        wpr.add_demo_trajectories([torch.randn(5, 3, 64, 64)])
+
+        trajs = [
+            _make_trajectory(success=True),
+            _make_trajectory(success=False),
+            _make_trajectory(success=False),
+        ]
+        rewards, _ = wpr.compute_trajectory_rewards(trajs)
+
+        assert rewards[0] == 1.0
+        assert 0.0 < rewards[2] < rewards[1] < cfg.failure_reward_cap
+
+    def test_current_batch_success_bootstraps_failure_rewards_without_demo_refs(self):
+        encoder = _make_fake_encoder(embed_dim=2)
+        encoder.encode_trajectory.side_effect = [
+            torch.tensor([0.0, 0.0]),  # current success
+            torch.tensor([1.0, 0.0]),  # near failure
+            torch.tensor([3.0, 0.0]),  # far failure
+        ]
+        cfg = SRPORewardConfig(
+            dbscan_min_samples=2,
+            distance_metric=DistanceMetric.L2,
+            reward_mapping=RewardMapping.SIIRL,
+            failure_reward_cap=0.6,
+            include_current_successes=True,
+        )
+        wpr = WorldProgressReward(encoder, cfg)
+
+        rewards, _ = wpr.compute_trajectory_rewards(
+            [
+                _make_trajectory(success=True),
+                _make_trajectory(success=False),
+                _make_trajectory(success=False),
+            ]
+        )
+
+        assert rewards[0] == 1.0
+        assert rewards[1] > rewards[2] > 0.0
+
+    def test_diagnostic_siirl_distances_match_training_reward_space(self):
+        """Diagnostics should cluster in scaled space but measure reward distance in original space."""
+        success = torch.tensor([[0.0, 0.0], [0.0, 0.0]], dtype=torch.float32).numpy()
+        failures = torch.tensor([[1.0, 0.0], [3.0, 0.0]], dtype=torch.float32).numpy()
+
+        centers, scaler = compute_cluster_centers_siirl(success, min_samples=2)
+        distances = distances_to_nearest_center(failures, centers, scaler)
+        rewards = compute_siirl_rewards(distances)
+
+        assert distances.tolist() == [1.0, 3.0]
+        assert 0.0 < rewards[1] < rewards[0] < 0.6
 
 
 # ---------------------------------------------------------------------------

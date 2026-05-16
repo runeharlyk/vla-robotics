@@ -106,14 +106,18 @@ def distances_to_nearest_center(
     embeddings: np.ndarray,
     centers: np.ndarray,
     scaler: StandardScaler | None = None,
+    transform_distances: bool = False,
 ) -> np.ndarray:
     """Euclidean distance from each embedding to the nearest cluster center.
 
-    When *scaler* is provided (siiRL method), both embeddings and centers
-    are transformed into the scaled space before computing distances.
-    This ensures consistent behavior with how DBSCAN saw the data.
+    For the public siiRL/SRPO method, ``StandardScaler`` is used to fit DBSCAN
+    and cluster centers are inverse-transformed back to original embedding
+    space. The reward distance is then Euclidean distance in original space.
+
+    Set ``transform_distances=True`` only for ablations that deliberately want
+    to measure distance in the scaled DBSCAN space.
     """
-    if scaler is not None:
+    if scaler is not None and transform_distances:
         embeddings = scaler.transform(embeddings)
         centers = scaler.transform(centers)
 

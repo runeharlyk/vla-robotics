@@ -37,6 +37,7 @@ from vla.constants import (
     DistanceMetric,
     LiberoSuite,
     Mode,
+    RewardMapping,
     Simulator,
     UpdateMethod,
     WorldModelType,
@@ -367,7 +368,7 @@ def main(
     dbscan_eps: float = typer.Option(0.5, "--dbscan-eps"),
     dbscan_min_samples: int = typer.Option(2, "--dbscan-min-samples"),
     distance_metric: DistanceMetric = typer.Option(
-        "normalized_l2", "--distance-metric", help="normalized_l2 or cosine or l2"
+        "l2", "--distance-metric", help="l2, normalized_l2, or cosine"
     ),
     dbscan_auto_eps: bool = typer.Option(False, "--dbscan-auto-eps", help="Auto-tune DBSCAN eps"),
     use_failure_rewards: bool = typer.Option(
@@ -376,9 +377,19 @@ def main(
         help="Use distance-based failure rewards (SRPO). Disable for sparse-only rewards.",
     ),
     use_standard_scaler: bool = typer.Option(
-        False,
+        True,
         "--standard-scaler/--no-standard-scaler",
         help="Apply StandardScaler before DBSCAN (matches siiRL production code).",
+    ),
+    reward_mapping: RewardMapping = typer.Option(
+        "siirl",
+        "--reward-mapping",
+        help="Failure reward mapping: siirl (min-max capped sigmoid) or zscore.",
+    ),
+    failure_reward_cap: float = typer.Option(
+        0.6,
+        "--failure-reward-cap",
+        help="Maximum shaped reward for failed trajectories when --reward-mapping=siirl.",
     ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
     wandb_name: str = typer.Option(None, "--wandb-name", help="Optional prefix for the wandb run name"),
@@ -663,6 +674,8 @@ def main(
         dbscan_auto_eps=dbscan_auto_eps,
         use_failure_rewards=use_failure_rewards,
         use_standard_scaler=use_standard_scaler,
+        reward_mapping=reward_mapping,
+        failure_reward_cap=failure_reward_cap,
         simulator=simulator,
         suite=suite,
         task_id=task_specs[0].libero_task_idx,

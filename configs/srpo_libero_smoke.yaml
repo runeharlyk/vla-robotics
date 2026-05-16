@@ -20,5 +20,8 @@ eval_episodes: 10
 max_steps: 280
 world_model: vjepa2
 gradient_checkpointing: true
-distance_metric: normalized_l2
-use_failure_rewards: false
+distance_metric: l2
+use_standard_scaler: true
+reward_mapping: siirl
+failure_reward_cap: 0.6
+use_failure_rewards: true

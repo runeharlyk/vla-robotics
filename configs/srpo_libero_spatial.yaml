@@ -18,3 +18,7 @@ eval_every: 10
 eval_episodes: 50
 max_steps: 280
 world_model: vjepa2
+distance_metric: l2
+use_standard_scaler: true
+reward_mapping: siirl
+failure_reward_cap: 0.6

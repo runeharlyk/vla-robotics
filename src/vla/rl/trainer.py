@@ -220,6 +220,8 @@ def log_training_config(
     lines.append(f"    dbscan_auto_eps:     {config.dbscan_auto_eps}")
     lines.append(f"    use_failure_rewards:  {config.use_failure_rewards}")
     lines.append(f"    use_standard_scaler: {config.use_standard_scaler}")
+    lines.append(f"    reward_mapping:      {config.reward_mapping}")
+    lines.append(f"    failure_reward_cap:  {config.failure_reward_cap}")
 
     lines.append("")
     lines.append("  Infrastructure:")
@@ -856,6 +858,8 @@ def train_srpo(
             dbscan_auto_eps=config.dbscan_auto_eps,
             use_failure_rewards=config.use_failure_rewards,
             use_standard_scaler=config.use_standard_scaler,
+            reward_mapping=config.reward_mapping,
+            failure_reward_cap=config.failure_reward_cap,
         )
         reward_model = MultiTaskWorldProgressReward(world_encoder, reward_cfg)
 
@@ -1351,6 +1355,23 @@ def train_srpo(
         for _tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{_tid}/successes"] = n_succ
             log_data[f"{config.mode}/{_tid}/g_mean"] = per_task_g_mean.get(_tid, 0.0)
+            task_rewards = [g for g, t in zip(g_values, all_trajectories, strict=True) if t.task_id == _tid]
+            task_fail_rewards = [
+                g for g, t in zip(g_values, all_trajectories, strict=True) if t.task_id == _tid and not t.success
+            ]
+            if task_rewards:
+                task_reward_tensor = torch.tensor(task_rewards, dtype=torch.float32)
+                log_data[f"{config.mode}/{_tid}/g_std"] = (
+                    task_reward_tensor.std().item() if len(task_rewards) > 1 else 0.0
+                )
+                log_data[f"{config.mode}/{_tid}/g_min"] = task_reward_tensor.min().item()
+                log_data[f"{config.mode}/{_tid}/g_max"] = task_reward_tensor.max().item()
+            if task_fail_rewards:
+                task_fail_tensor = torch.tensor(task_fail_rewards, dtype=torch.float32)
+                log_data[f"{config.mode}/{_tid}/failure_reward_mean"] = task_fail_tensor.mean().item()
+                log_data[f"{config.mode}/{_tid}/failure_reward_std"] = (
+                    task_fail_tensor.std().item() if len(task_fail_rewards) > 1 else 0.0
+                )
             log_data[f"{config.mode}/{_tid}/success_rate_ema"] = success_rate_ema.get(_tid, 0.0)
             log_data[f"{config.mode}/{_tid}/success_buffer_size"] = len(success_buffer.get(_tid, []))
             log_data[f"{config.mode}/{_tid}/success_buffer_quota"] = buffer_quotas.get(_tid, 0)

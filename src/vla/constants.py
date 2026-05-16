@@ -44,6 +44,11 @@ class DistanceMetric(StrEnum):
     COSINE = "cosine"
 
 
+class RewardMapping(StrEnum):
+    SIIRL = "siirl"
+    ZSCORE = "zscore"
+
+
 class Mode(StrEnum):
     SRPO = "srpo"
     SPARSE_RL = "sparse_rl"

@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from vla.base_config import BaseTrainingConfig
-from vla.constants import AdvantageMode, DistanceMetric, LiberoSuite, Mode, UpdateMethod, WorldModelType
+from vla.constants import AdvantageMode, DistanceMetric, LiberoSuite, Mode, RewardMapping, UpdateMethod, WorldModelType
 
 
 @dataclass
@@ -129,7 +129,7 @@ class SRPOConfig(BaseTrainingConfig):
     mode: Mode = Mode.SRPO
     pre_rl_eval: bool = True
     world_model_type: WorldModelType = WorldModelType.VJEPA2
-    distance_metric: DistanceMetric = DistanceMetric.NORMALIZED_L2
+    distance_metric: DistanceMetric = DistanceMetric.L2
     subsample_every: int = 5
     dbscan_eps: float = 0.5
     dbscan_min_samples: int = 2
