@@ -1,0 +1,65 @@
+# @package _global_
+
+metadata:
+  label: p1a-n10-scout
+  source_config: configs/train_srpo/experiment/p1a_v8a_control_v7_clone.yaml
+  notes: |
+    Post-pin chunk-10 scout for the P1a FPO recipe.
+
+    Motivation:
+    - The pinned SFT n=10 eval is 67.7% over 1000 episodes, with every
+      LIBERO Spatial task in the useful non-saturated band (57-83%).
+    - With 8 rollouts per task, this makes mixed success/failure groups
+      likely for nearly all tasks, so leave-one-out advantages should
+      require fewer dynamic resamples than n=1, where several tasks are
+      close to saturated.
+    - This is not a replacement for the n=1 thesis run. It tests whether
+      optimizing the policy in the published chunk-10 execution regime
+      can improve open-loop chunk robustness.
+
+    Decision rule:
+    - Compare internal evals against pinned SFT n=10 = 67.7%.
+    - If iter 6 or 12 is >= 72% with no severe per-task collapse, submit a
+      100 episode/task external eval for /best at n=10.
+    - If it only matches SFT, chunk-10 training is not worth a full run.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 12
+eval_every: 6
+eval_episodes: 30
+pre_rl_eval: false
+wandb_name: p1a-n10-scout
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  negative_adv_scale: 1.0
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 10
+
