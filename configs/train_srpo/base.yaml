@@ -82,6 +82,13 @@ success_bc:
   minibatch_trajs: 4
   loss_reduction: mean
 
+demo_aux:
+  enabled: false
+  coeff: 0.0
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
 kl:
   coeff: 0.01
   sft_coeff: 0.005

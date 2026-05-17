@@ -35,6 +35,7 @@ PAIRED_BOOL_FLAGS = {
     "replay.include-demos",
     "sampling.dynamic",
     "success-bc.balanced-demo-sampling",
+    "demo-aux.enabled",
     "demo-replay",
 }
 

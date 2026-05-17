@@ -52,6 +52,7 @@ from vla.results_registry import (
 from vla.rl.config import (
     AdvantageConfig,
     AWRConfig,
+    DemoAuxConfig,
     DynamicSamplingConfig,
     FlowGRPOConfig,
     FPOConfig,
@@ -324,6 +325,19 @@ def main(
         "--success-bc.demo-sampling-ratio",
         help="Fraction of each minibatch drawn from demos when balanced sampling is enabled.",
     ),
+    demo_aux_enabled: bool = typer.Option(
+        False,
+        "--demo-aux.enabled/--no-demo-aux.enabled",
+        help="Run a separate demo-only FM/BC auxiliary step after each online policy update.",
+    ),
+    demo_aux_coeff: float = typer.Option(
+        0.0,
+        "--demo-aux.coeff",
+        help="Coefficient for the supervised demonstration auxiliary loss.",
+    ),
+    demo_aux_epochs: int = typer.Option(1, "--demo-aux.epochs"),
+    demo_aux_minibatch_trajs: int = typer.Option(4, "--demo-aux.minibatch-trajs"),
+    demo_aux_loss_reduction: str = typer.Option("mean", "--demo-aux.loss-reduction"),
     kl_coeff: float = typer.Option(0.01, "--kl.coeff"),
     sft_kl_coeff: float = typer.Option(
         0.0,
@@ -477,7 +491,7 @@ def main(
     resolved_eval_envs = num_envs if num_envs > 0 else num_rollout_envs
     resolved_task_ids = _parse_task_ids(task_ids)
 
-    include_demos_internal = (mode == Mode.SRPO) or include_demos_in_update
+    include_demos_internal = (mode == Mode.SRPO) or include_demos_in_update or demo_aux_enabled
     demo_seeding = include_demos_internal
 
     task_specs, demo_trajectories, resolved_state_dim, resolved_action_dim = _build_tasks(
@@ -605,6 +619,13 @@ def main(
             balanced_demo_sampling=success_bc_balanced_demo_sampling,
             demo_sampling_ratio=success_bc_demo_sampling_ratio,
         ),
+        demo_aux=DemoAuxConfig(
+            enabled=demo_aux_enabled,
+            coeff=demo_aux_coeff,
+            epochs=demo_aux_epochs,
+            minibatch_trajs=demo_aux_minibatch_trajs,
+            loss_reduction=demo_aux_loss_reduction,
+        ),
         kl=KLConfig(
             coeff=kl_coeff,
             sft_coeff=sft_kl_coeff,
@@ -716,6 +737,8 @@ def main(
         "demo_seeding": demo_seeding,
         "demo_trajectory_source": "replayed_env_rollouts" if demo_trajectories else "none",
         "include_demos_in_update": include_demos_in_update,
+        "demo_aux_enabled": demo_aux_enabled,
+        "demo_aux_coeff": demo_aux_coeff,
         "success_replay_total_size": success_replay_total_size,
         "trajs_per_task_per_iter": trajs_per_task,
         "config": config.to_dict(),

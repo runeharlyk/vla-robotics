@@ -72,6 +72,15 @@ class SuccessBCConfig:
 
 
 @dataclass
+class DemoAuxConfig:
+    enabled: bool = False
+    coeff: float = 0.0
+    epochs: int = 1
+    minibatch_trajs: int = 4
+    loss_reduction: str = "mean"
+
+
+@dataclass
 class KLConfig:
     coeff: float = 0.01
     sft_coeff: float = 0.0
@@ -137,6 +146,7 @@ class SRPOConfig(BaseTrainingConfig):
     fpo: FPOConfig = field(default_factory=FPOConfig)
     flow_grpo: FlowGRPOConfig = field(default_factory=FlowGRPOConfig)
     success_bc: SuccessBCConfig = field(default_factory=SuccessBCConfig)
+    demo_aux: DemoAuxConfig = field(default_factory=DemoAuxConfig)
     kl: KLConfig = field(default_factory=KLConfig)
     replay: ReplayConfig = field(default_factory=ReplayConfig)
     sampling: DynamicSamplingConfig = field(default_factory=DynamicSamplingConfig)
@@ -221,6 +231,26 @@ class SRPOConfig(BaseTrainingConfig):
     @property
     def success_bc_demo_sampling_ratio(self) -> float:
         return self.success_bc.demo_sampling_ratio
+
+    @property
+    def demo_aux_enabled(self) -> bool:
+        return self.demo_aux.enabled
+
+    @property
+    def demo_aux_coeff(self) -> float:
+        return self.demo_aux.coeff
+
+    @property
+    def demo_aux_epochs(self) -> int:
+        return self.demo_aux.epochs
+
+    @property
+    def demo_aux_minibatch_trajs(self) -> int:
+        return self.demo_aux.minibatch_trajs
+
+    @property
+    def demo_aux_loss_reduction(self) -> str:
+        return self.demo_aux.loss_reduction
 
     @property
     def kl_coeff(self) -> float:

@@ -44,6 +44,7 @@ from vla.rl.policy_update import (
     UpdateMetrics,
     _sample_fixed_noise_time,
     awr_update,
+    demo_aux_update,
     flow_grpo_update,
     fpo_update,
     ppo_update,
@@ -68,6 +69,7 @@ __all__ = [
     "awr_update",
     "build_rollout_engine",
     "collect_all_trajectories",
+    "demo_aux_update",
     "evaluate_and_checkpoint",
     "flow_grpo_update",
     "log_training_config",
@@ -158,6 +160,11 @@ def log_training_config(
     lines.append(f"    success_bc_epochs:   {config.success_bc_epochs}")
     lines.append(f"    success_bc_minibatch_trajs: {config.success_bc_minibatch_trajs}")
     lines.append(f"    success_bc_loss_reduction: {config.success_bc_loss_reduction}")
+    lines.append(f"    demo_aux_enabled:    {config.demo_aux_enabled}")
+    lines.append(f"    demo_aux_coeff:      {config.demo_aux_coeff}")
+    lines.append(f"    demo_aux_epochs:     {config.demo_aux_epochs}")
+    lines.append(f"    demo_aux_minibatch_trajs: {config.demo_aux_minibatch_trajs}")
+    lines.append(f"    demo_aux_loss_reduction: {config.demo_aux_loss_reduction}")
     lines.append(f"    adv_eps:             {config.adv_eps}")
     lines.append(f"    adv_skip_threshold:  {config.adv_skip_threshold}")
 
@@ -972,6 +979,11 @@ def train_srpo(
             for _tid, demos in demo_trajectories.items():
                 extra_trajectories.extend(demos)
 
+        demo_aux_trajs: list[Trajectory] = []
+        if config.demo_aux_enabled and demo_trajectories:
+            for _tid, demos in demo_trajectories.items():
+                demo_aux_trajs.extend(demos)
+
         if replay_capacity > 0:
             max_replay = int(config.success_replay_max_ratio * len(rollout_trajectories))
             replay_trajs, replay_counts = _sample_success_replay(
@@ -1208,6 +1220,32 @@ def train_srpo(
         update_noise.clear()
         update_time.clear()
 
+        demo_aux_metrics = UpdateMetrics()
+        if config.demo_aux_enabled:
+            if demo_aux_trajs:
+                demo_aux_instrs = [spec_lookup[t.task_id].instruction for t in demo_aux_trajs]
+                demo_aux_noise: list[torch.Tensor] = []
+                demo_aux_time: list[torch.Tensor] = []
+                policy.eval()
+                for traj in demo_aux_trajs:
+                    noise_list, time_list = _sample_fixed_noise_time(traj, policy, n_samples=1)
+                    demo_aux_noise.append(noise_list[0])
+                    demo_aux_time.append(time_list[0])
+                demo_aux_metrics = demo_aux_update(
+                    policy,
+                    optimizer,
+                    trainable,
+                    demo_aux_trajs,
+                    demo_aux_instrs,
+                    demo_aux_noise,
+                    demo_aux_time,
+                    config,
+                )
+                demo_aux_noise.clear()
+                demo_aux_time.clear()
+            elif iteration == 1:
+                logger.warning("Demo auxiliary loss is enabled, but no demo trajectories were loaded.")
+
         # -- 6. Adaptive KL adjustment ------------------------------------
         if (
             config.adaptive_kl
@@ -1306,6 +1344,12 @@ def train_srpo(
             log_data[f"{config.mode}/kl_coeff"] = config.kl_coeff
             log_data[f"{config.mode}/sft_kl_coeff"] = config.sft_kl_coeff
 
+        if config.demo_aux_enabled:
+            log_data[f"{config.mode}/demo_aux/loss"] = demo_aux_metrics.avg_loss
+            log_data[f"{config.mode}/demo_aux/raw_fm_loss"] = demo_aux_metrics.raw_sft_kl
+            log_data[f"{config.mode}/demo_aux/coeff"] = config.demo_aux_coeff
+            log_data[f"{config.mode}/demo_aux/update_trajs"] = len(demo_aux_trajs)
+
         for _tid, n_succ in per_task_successes.items():
             log_data[f"{config.mode}/{_tid}/successes"] = n_succ
             log_data[f"{config.mode}/{_tid}/g_mean"] = per_task_g_mean.get(_tid, 0.0)
@@ -1329,11 +1373,18 @@ def train_srpo(
                 f"  kl_c={config.kl_coeff:.6f}"
                 f"  sft_kl_c={config.sft_kl_coeff:.6f}"
             )
+        aux_info = ""
+        if config.demo_aux_enabled:
+            aux_info = (
+                f"  demo_aux={demo_aux_metrics.avg_loss:.6f}"
+                f"  demo_aux_raw={demo_aux_metrics.raw_sft_kl:.6f}"
+                f"  demo_aux_trajs={len(demo_aux_trajs)}"
+            )
         logger.info(
             f"Iter {iteration}  {loss_key}={update_metrics.avg_loss:.6f}"
             f"  step_kl={update_metrics.avg_kl:.6f}"
             f"  sft_kl={update_metrics.avg_sft_kl:.6f}"
-            f"  successes={total_successes}/{M}{ratio_info}"
+            f"  successes={total_successes}/{M}{ratio_info}{aux_info}"
         )
         for _tid in per_task_successes:
             logger.info(f"  [{_tid}] successes={per_task_successes[_tid]}  g_mean={per_task_g_mean.get(_tid, 0.0):.4f}")
@@ -1358,7 +1409,7 @@ def train_srpo(
         metrics_logger.log(log_data)
 
         del rollout_trajectories, per_task_successes
-        del all_trajectories, active_trajs, extra_trajectories, update_trajs
+        del all_trajectories, active_trajs, extra_trajectories, update_trajs, demo_aux_trajs
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         gc.collect()
