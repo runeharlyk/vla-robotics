@@ -41,10 +41,9 @@ class Trajectory:
     env steps (fewer only if the episode terminated mid-chunk).
 
     When chunk execution is active, ``executed_chunks`` and
-    ``chunk_mask`` are populated and the FPO/AWR loss path uses them
-    so that only the actions actually executed by the policy
-    contribute to the loss; the unexecuted tail of each sampled chunk
-    is masked out.
+    ``chunk_mask`` are populated.  The policy-update path can either use
+    them directly, or reconstruct v28-style sliding-window targets from
+    the flattened stream of actions actually executed in the environment.
     """
 
     images: torch.Tensor
@@ -59,6 +58,47 @@ class Trajectory:
     n_action_steps: int = 1
     executed_chunks: torch.Tensor | None = None
     chunk_mask: torch.Tensor | None = None
+    flow_states: torch.Tensor | None = None
+    flow_next_states: torch.Tensor | None = None
+    flow_times: torch.Tensor | None = None
+    flow_dts: torch.Tensor | None = None
+    flow_sigmas: torch.Tensor | None = None
+    is_demo: bool = False
+    init_state_id: int | None = None
+
+
+_FLOW_FIELDS = (
+    "flow_states",
+    "flow_next_states",
+    "flow_times",
+    "flow_dts",
+    "flow_sigmas",
+)
+
+
+def _split_action_result(result: Any) -> tuple[torch.Tensor, Any | None]:
+    if hasattr(result, "actions"):
+        return result.actions, result
+    return result, None
+
+
+def _append_flow_sample(buffers: dict[str, list[torch.Tensor]], sample: Any | None, index: int | None = None) -> None:
+    if sample is None:
+        return
+    for field_name in _FLOW_FIELDS:
+        value = getattr(sample, field_name, None)
+        if value is None:
+            raise ValueError(f"Flow-GRPO sample is missing {field_name}")
+        if index is not None:
+            value = value[index]
+        buffers[field_name].append(value.detach().to("cpu", dtype=torch.float32))
+
+
+def _stack_flow_buffers(buffers: dict[str, list[torch.Tensor]]) -> dict[str, torch.Tensor | None]:
+    return {
+        field_name: torch.stack(values) if values else None
+        for field_name, values in buffers.items()
+    }
 
 
 @runtime_checkable
@@ -72,6 +112,9 @@ class RolloutEngine(Protocol):
         num_trajectories: int = 16,
         seed: int | None = None,
         policy_batch_fn: Any = None,
+        n_action_steps: int = 1,
+        policy_chunk_fn: Any | None = None,
+        policy_chunk_batch_fn: Any | None = None,
     ) -> list[Trajectory]: ...
 
     def close(self) -> None: ...
@@ -145,16 +188,19 @@ def collect_single_episode(
     """
     raw_obs = adapter.reset(seed)
     images, states, actions_list, rewards_list, dones_list = [], [], [], [], []
+    flow_buffers: dict[str, list[torch.Tensor]] = {name: [] for name in _FLOW_FIELDS}
     success = False
 
     for _step in range(max_steps):
         img_t, state_t = adapter.obs_to_tensors(raw_obs)
-        action = policy_fn(img_t, instruction, state_t)
+        action_result = policy_fn(img_t, instruction, state_t)
+        action, flow_sample = _split_action_result(action_result)
         action_np = action_to_numpy(action)
 
         images.append(img_t)
         states.append(state_t)
         actions_list.append(torch.from_numpy(action_np.copy()))
+        _append_flow_sample(flow_buffers, flow_sample)
 
         result = adapter.step(action_np)
         raw_obs = result.raw_obs
@@ -177,6 +223,7 @@ def collect_single_episode(
         dones=torch.stack(dones_list) if dones_list else torch.empty(0),
         success=success,
         length=T,
+        **_stack_flow_buffers(flow_buffers),
     )
 
 
@@ -194,10 +241,9 @@ def collect_single_episode_chunked(
     chunk of shape ``(chunk_size, action_dim)``.  The first
     ``n_action_steps`` actions of that chunk are executed against the
     environment before the policy is queried again.  Only one transition
-    is recorded per decision point (not per env step), which is what the
-    FPO/AWR loss consumes; storing decision-point-aligned data also
-    ensures the loss only penalises positions the policy actually
-    committed to.
+    is recorded per decision point (not per env step).  The executed
+    chunk data lets the update reconstruct dense sliding-window targets
+    from real env actions, or use the direct executed chunk with a mask.
 
     Args:
         adapter: Environment adapter.
@@ -225,13 +271,15 @@ def collect_single_episode_chunked(
     decision_first_actions: list[torch.Tensor] = []
     decision_rewards: list[torch.Tensor] = []
     decision_dones: list[torch.Tensor] = []
+    flow_buffers: dict[str, list[torch.Tensor]] = {name: [] for name in _FLOW_FIELDS}
 
     success = False
     steps_taken = 0
 
     while steps_taken < max_steps:
         img_t, state_t = adapter.obs_to_tensors(raw_obs)
-        chunk = policy_chunk_fn(img_t, instruction, state_t)
+        chunk_result = policy_chunk_fn(img_t, instruction, state_t)
+        chunk, flow_sample = _split_action_result(chunk_result)
         if chunk.ndim != 2:
             raise ValueError(f"policy_chunk_fn must return (chunk_size, action_dim), got shape {tuple(chunk.shape)}")
         chunk_cpu = chunk.detach().to("cpu").float()
@@ -243,6 +291,7 @@ def collect_single_episode_chunked(
 
         decision_imgs.append(img_t)
         decision_states.append(state_t)
+        _append_flow_sample(flow_buffers, flow_sample)
 
         for k in range(max_exec):
             action = chunk_cpu[k]
@@ -289,6 +338,7 @@ def collect_single_episode_chunked(
         n_action_steps=n_action_steps,
         executed_chunks=torch.stack(decision_chunks) if decision_chunks else None,
         chunk_mask=torch.stack(decision_chunk_masks) if decision_chunk_masks else None,
+        **_stack_flow_buffers(flow_buffers),
     )
 
 

@@ -1,0 +1,42 @@
+# @package _global_
+
+metadata:
+  label: success-bc-t5-chunk5-replay320
+  source_doc: docs/ript_vla_paper_overview.md
+  notes: |
+    Tests the RIPT-VLA approach: standard BC/SFT on successful rollout
+    trajectories only, utilizing a large replay buffer.
+    This avoids the instability of PPO/FPO log-ratio clipping entirely.
+    Includes the mini-batching fix for success_bc_update.
+
+task_ids: "5"
+mode: sparse_rl
+update_method: success_bc
+lr: 1e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: success-bc-t5-chunk5-replay320-sftkl002-eval100
+
+# Maintain a light anchor to the original SFT policy
+kl:
+  coeff: 0.0
+  sft_coeff: 0.02
+
+# RIPT-VLA heavily relies on storing and reusing successful trajectories
+replay:
+  include_demos: true
+  success_buffer_size: 320
+  success_max_ratio: 1.0
+
+# 1 epoch is standard for online RL to prevent overfitting to the current batch
+success_bc:
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
+sampling:
+  dynamic: false
+
+rollout:
+  n_action_steps: 5

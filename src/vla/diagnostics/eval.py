@@ -84,7 +84,12 @@ def metrics_from_trajectories(
     """
     total_successes = sum(1 for t in trajectories if t.success)
     total_rewards = [float(t.rewards.sum()) for t in trajectories]
-    total_lengths = [t.length for t in trajectories]
+    total_lengths = [
+        int(t.chunk_mask[: t.length].sum().item())
+        if getattr(t, "chunk_mask", None) is not None
+        else t.length
+        for t in trajectories
+    ]
     num_ep = expected_episodes if expected_episodes is not None else len(trajectories)
     return _compute_eval_metrics(total_successes, total_rewards, total_lengths, num_ep)
 
@@ -201,9 +206,21 @@ def _evaluate_libero_vectorized(
     image_size: int = 256,
     max_steps: int = 280,
     fixed_noise_seed: int | None = None,
+    n_action_steps: int = 1,
+    rollout_sampler: str = "normal",
+    flow_grpo_sigma: float = 0.10,
+    flow_grpo_sde_steps: int = 0,
     task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
 ) -> EvalMetrics:
     from vla.rl.libero_rollout import LiberoRollout
+
+    sampler = rollout_sampler.lower()
+    if sampler not in {"normal", "flow_sde"}:
+        raise ValueError(f"Unknown rollout_sampler={rollout_sampler!r}; expected 'normal' or 'flow_sde'")
+    if sampler == "flow_sde":
+        if not hasattr(policy, "configure_flow_grpo_sampler"):
+            raise ValueError("rollout_sampler='flow_sde' requires a policy with configure_flow_grpo_sampler")
+        policy.configure_flow_grpo_sampler(sigma=flow_grpo_sigma, sde_steps=flow_grpo_sde_steps)
 
     env_factory = make_env_factory("libero", suite=suite, state_dim=state_dim, task_id=task_id)
     task_ids = [task_id] if task_id is not None else list(range(env_factory.num_tasks))
@@ -218,10 +235,24 @@ def _evaluate_libero_vectorized(
     )
 
     def _batch_fn(images: torch.Tensor, instr: str, states: torch.Tensor) -> torch.Tensor:
+        if sampler == "flow_sde":
+            return policy.predict_action_flow_grpo_batch(images, instr, states)
         return policy.predict_action_batch(images, instr, states)
 
     def _single_fn(image: torch.Tensor, instr: str, state: torch.Tensor) -> torch.Tensor:
+        if sampler == "flow_sde":
+            return policy.predict_action_flow_grpo(image, instr, state)
         return policy.predict_action(image, instr, state)
+
+    def _chunk_batch_fn(images: torch.Tensor, instr: str, states: torch.Tensor) -> torch.Tensor:
+        if sampler == "flow_sde":
+            return policy.predict_action_chunk_flow_grpo_batch(images, instr, states)
+        return policy.predict_action_chunk_batch(images, instr, states)
+
+    def _chunk_single_fn(image: torch.Tensor, instr: str, state: torch.Tensor) -> torch.Tensor:
+        if sampler == "flow_sde":
+            return policy.predict_action_chunk_flow_grpo(image, instr, state)
+        return policy.predict_action_chunk(image, instr, state)
 
     try:
         total_successes = 0
@@ -248,6 +279,9 @@ def _evaluate_libero_vectorized(
                     num_trajectories=num_episodes,
                     seed=task_seed,
                     policy_batch_fn=_batch_fn,
+                    n_action_steps=n_action_steps,
+                    policy_chunk_fn=_chunk_single_fn if n_action_steps > 1 else None,
+                    policy_chunk_batch_fn=_chunk_batch_fn if n_action_steps > 1 else None,
                 )
             except Exception:
                 logger.exception("LIBERO eval failed on task_id=%d", current_task_id)
@@ -304,6 +338,10 @@ def evaluate_smolvla(
     task_id: int | None = None,
     num_envs: int = 1,
     fixed_noise_seed: int | None = None,
+    n_action_steps: int = 1,
+    rollout_sampler: str = "normal",
+    flow_grpo_sigma: float = 0.10,
+    flow_grpo_sde_steps: int = 0,
     task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
 ) -> EvalMetrics:
     """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
@@ -317,12 +355,23 @@ def evaluate_smolvla(
     if hasattr(policy, "set_eval_fixed_noise"):
         policy.set_eval_fixed_noise(fixed_noise_seed)
 
-    if sim == "libero" and num_envs > 1:
+    sampler = rollout_sampler.lower()
+    if sampler not in {"normal", "flow_sde"}:
+        raise ValueError(f"Unknown rollout_sampler={rollout_sampler!r}; expected 'normal' or 'flow_sde'")
+    if sampler == "flow_sde" and sim != "libero":
+        raise ValueError("rollout_sampler='flow_sde' is currently supported only for LIBERO rollout eval")
+
+    if n_action_steps < 1:
+        raise ValueError(f"n_action_steps must be >= 1, got {n_action_steps}")
+
+    if sim == "libero" and (num_envs > 1 or n_action_steps > 1):
         logger.info(
-            "Vectorized LIBERO eval: %d envs, %d episodes, task_id=%s",
+            "LIBERO rollout eval: %d envs, %d episodes, task_id=%s, n_action_steps=%d, sampler=%s",
             num_envs,
             num_episodes,
             task_id,
+            n_action_steps,
+            sampler,
         )
         return _evaluate_libero_vectorized(
             policy,
@@ -335,7 +384,17 @@ def evaluate_smolvla(
             image_size=image_size,
             max_steps=max_steps,
             fixed_noise_seed=fixed_noise_seed,
+            n_action_steps=n_action_steps,
+            rollout_sampler=sampler,
+            flow_grpo_sigma=flow_grpo_sigma,
+            flow_grpo_sde_steps=flow_grpo_sde_steps,
             task_metrics_callback=task_metrics_callback,
+        )
+
+    if sampler == "flow_sde":
+        raise ValueError(
+            "rollout_sampler='flow_sde' requires LIBERO vectorized eval "
+            "(num_envs > 1 or n_action_steps > 1)"
         )
 
     factory_kwargs: dict = {}

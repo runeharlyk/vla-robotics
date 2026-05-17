@@ -1,0 +1,55 @@
+# @package _global_
+
+metadata:
+  label: v9-multi-chunk1-trajs8-neg0-scout
+  source_doc: docs/sparse_rl_path_to_90_spatial.md
+  notes: |
+    Short all-spatial n=1 scout aimed at beating the current seeded SFT
+    baseline (~0.743) without spending another multi-day run.
+
+    This is deliberately not another chunk-5 proxy.  It trains in the exact
+    target control regime (n_action_steps=1), keeps the cheap trajs_per_task=8
+    setup from v8, and lets the run use the full 30-iteration job window.
+    Prior v8 chunk-1 used
+    lr=2e-6 and fpo_negative_adv_scale=1.0; by iter 15 it had dropped from
+    0.752 to 0.716 even though raw_sft_kl was still modest (~0.19).  That
+    suggests the destructive signal is more likely the negative-advantage
+    updates than late SFT drift.
+
+    Main change: set fpo_negative_adv_scale=0.0 instead of positive_adv_only.
+    This removes "push away failed trajectories" gradients while preserving
+    zero-advantage KL anchoring on uniform/solved tasks.  The run should be
+    judged by the best_rollout checkpoint first, then one external
+    n_action_steps=1 eval100 only if rollout/internal eval gives a reason.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 1e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 6
+eval_episodes: 20
+wandb_name: v9-multi-n1-trajs8-neg0-lr1e6-scout
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1
+
+fpo:
+  full_chunk_target: true
+  negative_adv_scale: 0.0

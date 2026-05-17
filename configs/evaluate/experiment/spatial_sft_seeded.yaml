@@ -1,0 +1,7 @@
+# @package _global_
+
+metadata:
+  label: spatial-sft-seeded
+  notes: "Base SmolVLA LIBERO spatial eval with fixed initial-state/noise seed."
+
+wandb_name: eval_sft_spatial_current_seed42

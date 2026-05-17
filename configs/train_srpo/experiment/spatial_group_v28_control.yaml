@@ -1,0 +1,23 @@
+# @package _global_
+
+metadata:
+  label: spatial-group-v28-control
+  source_job: jobs/sparse_fpo_spatial_group_v28_control_l40s.sh
+  notes: "Five-task group v28-style control: no dynamic sampling, n_action_steps=1."
+
+task_ids: "0,2,5,7,9"
+trajs_per_task: 8
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: v28-control-current-seeded-group-0_2_5_7_9-trajs8-n1-nodynamic-nomask-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+rollout:
+  n_action_steps: 1

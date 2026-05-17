@@ -12,6 +12,7 @@ Mirrors the LeRobot training recipe for SmolVLA fine-tuning:
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -188,7 +189,7 @@ def train_sft(
     optimizer, trainable = config.build_optimizer(policy)
 
     micro_bs = min(config.micro_batch_size, config.batch_size)
-    grad_accum_steps = max(config.batch_size // micro_bs, 1)
+    grad_accum_steps = max(math.ceil(config.batch_size / micro_bs), 1)
     dataloader = DataLoader(
         dataset,
         batch_size=micro_bs,
@@ -199,7 +200,7 @@ def train_sft(
         prefetch_factor=2,
     )
     micro_batches_per_epoch = max(len(dataloader), 1)
-    optimizer_steps_per_epoch = max(micro_batches_per_epoch // grad_accum_steps, 1)
+    optimizer_steps_per_epoch = max(math.ceil(micro_batches_per_epoch / grad_accum_steps), 1)
     total_optimizer_steps = config.num_epochs * optimizer_steps_per_epoch
     logger.info(
         "Training for %d epochs × %d optimizer steps = %d total  "
@@ -250,31 +251,44 @@ def train_sft(
         num_optimizer_steps = 0
         optimizer.zero_grad()
 
+        accum_count = 0
+
+        def _flush_accumulated() -> None:
+            nonlocal accum_count, epoch_grad_norm, num_optimizer_steps, global_step
+            if accum_count == 0:
+                return
+            if accum_count < grad_accum_steps:
+                scale = grad_accum_steps / accum_count
+                for param in trainable:
+                    if param.grad is not None:
+                        param.grad.mul_(scale)
+            epoch_grad_norm += _optimizer_step(optimizer, scheduler, trainable, config.max_grad_norm)
+            num_optimizer_steps += 1
+            global_step += 1
+            accum_count = 0
+
         for batch in dataloader:
             images = batch["image"].to(policy.device)
-            target_actions = batch["action"].to(policy.device)
+            target_action_chunks = batch["action_chunk"].to(policy.device)
+            target_action_mask = batch["action_mask"].to(policy.device)
             states = batch["state"].to(policy.device)
             batch_instructions = batch["instruction"]
             unique_instrs = set(batch_instructions)
             instr_input: str | list[str] = batch_instructions if len(unique_instrs) > 1 else list(unique_instrs)[0]
 
             with torch.autocast(device_type=policy.device.type, dtype=policy.dtype):
-                out = policy(images, instr_input, target_actions, states=states)
+                out = policy(images, instr_input, target_action_chunks, target_action_mask, states=states)
             loss = out["loss"] / grad_accum_steps
             loss.backward()
+            accum_count += 1
 
             epoch_loss += out["loss"].item()
             num_micro_batches += 1
 
             if num_micro_batches % grad_accum_steps == 0:
-                epoch_grad_norm += _optimizer_step(optimizer, scheduler, trainable, config.max_grad_norm)
-                num_optimizer_steps += 1
-                global_step += 1
+                _flush_accumulated()
 
-        if num_micro_batches % grad_accum_steps != 0:
-            epoch_grad_norm += _optimizer_step(optimizer, scheduler, trainable, config.max_grad_norm)
-            num_optimizer_steps += 1
-            global_step += 1
+        _flush_accumulated()
 
         avg_loss = epoch_loss / max(num_micro_batches, 1)
         avg_grad_norm = epoch_grad_norm / max(num_optimizer_steps, 1)

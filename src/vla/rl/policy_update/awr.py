@@ -10,7 +10,7 @@ from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.config import SRPOConfig
 from vla.rl.rollout import Trajectory
 
-from .base import UpdateMetrics, _compute_fm_loss_batched
+from .base import UpdateMetrics, _compute_fm_loss_batched, _resolve_minibatch_trajs
 
 
 def awr_update(
@@ -73,62 +73,76 @@ def awr_update(
     total_sft_kl = 0.0
     total_weight = 0.0
     used_count_total = 0
+    num_updates = 0
+
+    minibatch_trajs = _resolve_minibatch_trajs(config.awr_minibatch_trajs, M)
 
     for _ in range(config.awr_epochs):
-        optimizer.zero_grad()
-        epoch_loss = 0.0
-        epoch_kl = 0.0
-        epoch_sft_kl = 0.0
-        epoch_weight = 0.0
-        used_count = 0
+        order = torch.randperm(M).tolist()
 
-        for i in range(M):
-            traj = trajectories[i]
-            adv_i = advantages[i]
-            weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
+        for start in range(0, M, minibatch_trajs):
+            idxs = order[start : start + minibatch_trajs]
+            n_idxs = len(idxs)
 
-            fm_loss_t = _compute_fm_loss_batched(
-                policy,
-                traj,
-                instrs_per_traj[i],
-                fixed_noise[i],
-                fixed_time[i],
-                batch_size=B,
-                reduction="mean",
-            )
+            optimizer.zero_grad(set_to_none=True)
 
-            fm_loss = fm_loss_t.mean()
-            traj_loss = weight * fm_loss / M
+            mb_loss = 0.0
+            mb_kl = 0.0
+            mb_sft_kl = 0.0
+            mb_weight = 0.0
+            used_count = 0
 
-            if config.kl_coeff > 0 and ref_losses_per_traj:
-                ref_fm_t = ref_losses_per_traj[i]
-                kl_per_step = 0.5 * (ref_fm_t - fm_loss_t) ** 2
-                kl_approx = kl_per_step.mean()
-                traj_loss = traj_loss + config.kl_coeff * kl_approx / M
-                epoch_kl += (config.kl_coeff * kl_approx).item()
+            for i in idxs:
+                traj = trajectories[i]
+                adv_i = advantages[i]
+                weight = min(math.exp(adv_i / config.awr_temperature), config.awr_weight_clip)
 
-            if sft_losses_per_traj:
-                sft_fm_t = sft_losses_per_traj[i]
-                sft_kl_per_step = 0.5 * (sft_fm_t - fm_loss_t) ** 2
-                sft_kl_approx = sft_kl_per_step.mean()
-                traj_loss = traj_loss + sft_kl_coeff * sft_kl_approx / M
-                epoch_sft_kl += (sft_kl_coeff * sft_kl_approx).item()
+                fm_loss_t = _compute_fm_loss_batched(
+                    policy,
+                    traj,
+                    instrs_per_traj[i],
+                    fixed_noise[i],
+                    fixed_time[i],
+                    batch_size=B,
+                    reduction="mean",
+                )
 
-            traj_loss.backward()
-            epoch_loss += (weight * fm_loss).item()
-            epoch_weight += weight
-            used_count += 1
+                fm_loss = fm_loss_t.mean()
+                traj_loss = weight * fm_loss / n_idxs
 
-        torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
-        optimizer.step()
+                if config.kl_coeff > 0 and ref_losses_per_traj:
+                    ref_fm_t = ref_losses_per_traj[i]
+                    kl_per_step = 0.5 * (ref_fm_t - fm_loss_t) ** 2
+                    kl_approx = kl_per_step.mean()
+                    traj_loss = traj_loss + config.kl_coeff * kl_approx / n_idxs
+                    mb_kl += (config.kl_coeff * kl_approx).item() / n_idxs
 
-        total_weighted_loss += epoch_loss
-        total_kl += epoch_kl
-        total_sft_kl += epoch_sft_kl
-        total_weight += epoch_weight
-        used_count_total += used_count
+                if sft_losses_per_traj:
+                    sft_fm_t = sft_losses_per_traj[i]
+                    sft_kl_per_step = 0.5 * (sft_fm_t - fm_loss_t) ** 2
+                    sft_kl_approx = sft_kl_per_step.mean()
+                    traj_loss = traj_loss + sft_kl_coeff * sft_kl_approx / n_idxs
+                    mb_sft_kl += (sft_kl_coeff * sft_kl_approx).item() / n_idxs
 
-    denom = max(used_count_total, 1)
+                traj_loss.backward()
+                mb_loss += (weight * fm_loss).item() / n_idxs
+                mb_weight += weight / n_idxs
+                used_count += 1
+
+            if used_count == 0:
+                continue
+
+            torch.nn.utils.clip_grad_norm_(trainable, max_norm=config.max_grad_norm)
+            optimizer.step()
+
+            total_weighted_loss += mb_loss
+            total_kl += mb_kl
+            total_sft_kl += mb_sft_kl
+            total_weight += mb_weight
+            used_count_total += used_count
+            num_updates += 1
+
+    denom = max(num_updates, 1)
     return UpdateMetrics(
         avg_loss=total_weighted_loss / denom,
         avg_kl=total_kl / denom,

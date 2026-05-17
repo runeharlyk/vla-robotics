@@ -1,0 +1,22 @@
+# @package _global_
+
+metadata:
+  label: spatial-current-protocol
+  notes: "Compare SFT and selected RL checkpoints under identical seeded LIBERO spatial eval settings."
+
+evaluations:
+  - metadata:
+      label: spatial-sft-current-seeded
+    wandb_name: eval_sft_spatial_current_seed42
+
+  - metadata:
+      label: spatial-rl-28188629-current-seeded
+      training_job_id: 28188629
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629/best
+    wandb_name: eval_rl_spatial_28188629_best_current_seed42
+
+  - metadata:
+      label: spatial-rl-28263586-current-seeded
+      training_job_id: 28263586
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28263586/best
+    wandb_name: eval_rl_spatial_28263586_best_current_seed42

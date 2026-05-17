@@ -1,0 +1,81 @@
+# @package _global_
+
+metadata:
+  label: p1b-v8b-clip-higher
+  source_doc: docs/thesis_research_plan.md
+  source_config: configs/train_srpo/experiment/p1a_v8a_control_v7_clone.yaml
+  profile: l40s-16-mem8
+  notes: |
+    Thesis Phase 1, run B (clip-higher). Identical to P1a except the
+    PPO/FPO upper clip is widened from 0.08 to 0.16. Inspired by
+    "clip-higher" from DAPO/VAPO/RL-with-LLMs literature: a wider
+    upper clip preserves the exploration signal from positive-advantage
+    samples without letting negative-advantage samples blow up the
+    update (lower bound is kept at 0.05).
+
+    Why this matters in our setup:
+    - fpo_hyperparameter_experiments.md flagged that the optimal
+      single-task clip pair was (0.05/0.08). In the multi-task setting,
+      easy tasks saturate at 90%+ within ~10 iters; their gradient
+      signal becomes mostly zero or slightly negative (LOO advantage
+      means even successful rollouts can score 0 if the whole batch
+      succeeds). A wider upper clip lets the rare-but-informative
+      positive surprises on the hard tasks (5, 6) still drive policy
+      change.
+    - This is the cheapest "exploration helper" we have. If it works,
+      it goes into Phase 2/3 ablations as a thesis-table row. If it
+      degrades on saturated tasks (>4pp regression), we conclude the
+      tight clip was right for the multi-task regime.
+
+    Sizing: same trim as p1a (trajs=8 chunk-1, eval_episodes=30,
+    pre_rl_eval=false) so the run fits in 24h l40s-16-mem8 wall-clock.
+    The original trajs=32 variant of this config (job 28428140) hit
+    TERM_MEMLIMIT at iter 2.
+
+    Decision rule (vs P1a):
+    - WINS by >= 1.5pp suite-avg AND no per-task regression > 3pp
+      -> P1b becomes thesis main, P1a is the ablation baseline.
+    - TIES with P1a -> P1a stays main (Occam's razor), P1b is an
+      ablation row.
+    - LOSES (>= 1.5pp regression OR per-task regression > 3pp)
+      -> document negative result, drop from headline figure.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 10
+eval_episodes: 30
+pre_rl_eval: false
+wandb_name: p1b-v8b-clip-higher-016
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.16
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  negative_adv_scale: 1.0
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1

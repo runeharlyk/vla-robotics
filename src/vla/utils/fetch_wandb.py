@@ -1,15 +1,19 @@
 import json
 import math
+import re
 from pathlib import Path
+from typing import Any
 
 import typer
-import wandb
 from tqdm import tqdm
 
+import wandb
 from vla.constants import RESULTS_DIR
 from vla.results_registry import sanitize_name
 
 app = typer.Typer(help="Fetch runs from WandB and reconstruct local JSON results.")
+
+_LSF_JOB_ID_RE = re.compile(r"(?<!\d)(\d{7,9})(?!\d)")
 
 
 def _as_float(value):
@@ -33,6 +37,104 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
     with open(path, "w", encoding="utf-8") as f:
         for row in rows:
             f.write(json.dumps(row) + "\n")
+
+
+def _jsonable(value: Any) -> Any:
+    """Return a JSON-safe representation without failing on W&B internals."""
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_jsonable(v) for v in value]
+    return str(value)
+
+
+def _safe_attr(obj: Any, name: str, default: Any = None) -> Any:
+    try:
+        return getattr(obj, name)
+    except Exception:
+        return default
+
+
+def _safe_run_metadata(run) -> dict:
+    metadata = _safe_attr(run, "metadata", {}) or {}
+    return metadata if isinstance(metadata, dict) else {}
+
+
+def _safe_run_summary(run) -> dict:
+    summary = _safe_attr(run, "summary", None)
+    data = _safe_attr(summary, "_json_dict", {}) if summary is not None else {}
+    return data if isinstance(data, dict) else {}
+
+
+def _first_value(*sources: dict, keys: tuple[str, ...]) -> Any:
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        for key in keys:
+            value = source.get(key)
+            if value not in (None, ""):
+                return value
+    return None
+
+
+def _infer_lsf_job_id(run_name: str, *sources: dict) -> str:
+    value = _first_value(
+        *sources,
+        keys=("lsf_job_id", "LSF_JOBID", "job_id", "scheduler_job_id", "slurm_job_id", "SLURM_JOB_ID"),
+    )
+    if value not in (None, ""):
+        return str(value)
+
+    # Run names commonly end with the LSF id, e.g. "..._seed42_28263586".
+    matches = _LSF_JOB_ID_RE.findall(run_name or "")
+    return matches[-1] if matches else ""
+
+
+def _extract_git_metadata(config: dict, summary: dict, metadata: dict) -> dict:
+    git_meta = metadata.get("git") if isinstance(metadata.get("git"), dict) else {}
+    commit = (
+        _first_value(config, summary, metadata, git_meta, keys=("git_commit", "commit", "git.commit", "sha"))
+        or _safe_attr(metadata, "commit", None)
+    )
+    branch = _first_value(config, summary, metadata, git_meta, keys=("git_branch", "branch", "git.branch"))
+    remote = _first_value(
+        config,
+        summary,
+        metadata,
+        git_meta,
+        keys=("git_remote", "remote", "git.remote", "remote_url"),
+    )
+    return {
+        "git_commit": str(commit or ""),
+        "git_branch": str(branch or ""),
+        "git_remote": str(remote or ""),
+    }
+
+
+def reconstruct_run_provenance(run, *, config: dict | None = None, summary: dict | None = None) -> dict:
+    """Collect reproducibility metadata that W&B exposes for both train and eval runs."""
+    cfg = config if config is not None else dict(run.config)
+    summ = summary if summary is not None else _safe_run_summary(run)
+    metadata = _safe_run_metadata(run)
+    git = _extract_git_metadata(cfg, summ, metadata)
+
+    record = {
+        "wandb_id": str(_safe_attr(run, "id", "") or ""),
+        "wandb_project": str(_safe_attr(run, "project", "") or ""),
+        "wandb_entity": str(_safe_attr(run, "entity", "") or ""),
+        "wandb_url": str(_safe_attr(run, "url", "") or ""),
+        "wandb_state": str(_safe_attr(run, "state", "") or ""),
+        "wandb_created_at": str(_safe_attr(run, "created_at", "") or ""),
+        "wandb_updated_at": str(_safe_attr(run, "updated_at", "") or ""),
+        "wandb_tags": _jsonable(_safe_attr(run, "tags", []) or []),
+        "lsf_job_id": _infer_lsf_job_id(str(run.name), cfg, summ, metadata),
+        "lsf_job_name": str(_first_value(cfg, summ, metadata, keys=("lsf_job_name", "LSB_JOBNAME", "job_name")) or ""),
+        "hostname": str(_first_value(cfg, summ, metadata, keys=("hostname", "host", "HOSTNAME")) or ""),
+    }
+    record.update(git)
+    return record
 
 
 def _training_history_keys(mode: str) -> tuple[list[str], list[str]]:
@@ -155,8 +257,8 @@ def summarize_training_history(history_rows: list[dict], mode: str) -> dict:
 
 def reconstruct_eval_record(run) -> dict:
     """Map a WandB eval run back to the local eval_record JSON format."""
-    cfg = run.config
-    summary = run.summary._json_dict
+    cfg = dict(run.config)
+    summary = _safe_run_summary(run)
     suite = cfg.get("suite", "spatial")
 
     # Reconstruct the task_metrics list from the flat summary keys
@@ -175,12 +277,24 @@ def reconstruct_eval_record(run) -> dict:
     # Sort for consistency
     task_metrics = sorted(task_metrics, key=lambda x: x["task_id"])
 
-    return {
+    record = {
         "record_type": "evaluation",
         "wandb_run_name": run.name,
         "checkpoint": cfg.get("checkpoint", ""),
+        "checkpoint_dir": cfg.get("checkpoint_dir") or "",
         "simulator": cfg.get("simulator", "libero"),
         "suite": suite,
+        "env_id": cfg.get("env_id", ""),
+        "num_episodes": cfg.get("num_episodes"),
+        "num_envs": cfg.get("num_envs"),
+        "n_action_steps": cfg.get("n_action_steps"),
+        "rollout_sampler": cfg.get("rollout_sampler", "normal"),
+        "flow_grpo_sigma": cfg.get("flow_grpo_sigma"),
+        "flow_grpo_sde_steps": cfg.get("flow_grpo_sde_steps"),
+        "max_steps": cfg.get("max_steps"),
+        "seed": cfg.get("seed"),
+        "fixed_noise_seed": cfg.get("fixed_noise_seed"),
+        "task_id": cfg.get("task_id"),
         "success_rate": summary.get(f"eval/{suite}/overall/success_rate", 0.0),
         "mean_reward": summary.get(f"eval/{suite}/overall/mean_reward", 0.0),
         "task_metrics": task_metrics,
@@ -188,6 +302,19 @@ def reconstruct_eval_record(run) -> dict:
         "training_save_dir": cfg.get("checkpoint_dir") or "",
         "training_method": _determine_eval_method(run.name, cfg),
     }
+    record.update(reconstruct_run_provenance(run, config=cfg, summary=summary))
+
+    training_git_commit = (
+        cfg.get("training_git_commit")
+        or cfg.get("git_commit")
+        or summary.get("training_git_commit")
+        or summary.get("git_commit")
+        or record.get("git_commit", "")
+    )
+    if training_git_commit:
+        record["training_git_commit"] = training_git_commit
+
+    return record
 
 
 def _determine_eval_method(run_name: str, cfg: dict) -> str:
@@ -208,15 +335,27 @@ def _determine_eval_method(run_name: str, cfg: dict) -> str:
 
 def reconstruct_training_record(run, history_path: Path | None = None, history_summary: dict | None = None) -> dict:
     """Map a WandB training run back to the local training_record JSON format."""
+    cfg = dict(run.config)
+    summary = _safe_run_summary(run)
     record = {
         "record_type": "training",
         "wandb_run_name": run.name,
-        "method": run.config.get("mode", run.config.get("method", "sparse_rl")),
-        "save_dir": run.config.get("save_dir", ""),
-        "checkpoint": run.config.get("checkpoint", ""),
-        "suite": run.config.get("suite", ""),
-        "config": run.config,
+        "method": cfg.get("mode", cfg.get("method", "sparse_rl")),
+        "update_method": cfg.get("update_method", ""),
+        "save_dir": cfg.get("save_dir", ""),
+        "checkpoint": cfg.get("checkpoint", ""),
+        "sft_checkpoint": cfg.get("sft_checkpoint", ""),
+        "suite": cfg.get("suite", ""),
+        "seed": cfg.get("seed"),
+        "num_tasks": cfg.get("num_tasks"),
+        "task_ids": cfg.get("tasks", cfg.get("task_ids", [])),
+        "libero_task_indices": cfg.get("libero_task_indices", []),
+        "include_demos_in_update": cfg.get("include_demos_in_update", False),
+        "success_replay_total_size": cfg.get("success_replay_total_size", 0),
+        "trajs_per_task_per_iter": cfg.get("trajs_per_task_per_iter", cfg.get("trajs_per_task")),
+        "config": cfg,
     }
+    record.update(reconstruct_run_provenance(run, config=cfg, summary=summary))
     if history_path is not None:
         record["metrics_jsonl"] = str(history_path)
     if history_summary:
@@ -234,10 +373,18 @@ def sync(
         "--with-history/--no-history",
         help="For training runs, also fetch scalar training history for local plotting.",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force/--no-force",
+        help="Refetch every run, even if a local JSON already exists for a non-running run.",
+    ),
 ):
     """
     Fetch all runs from a WandB project and recreate them as local JSON files
     in results/evals/ or results/training/ for offline plotting.
+
+    By default, runs whose state is not "running" are skipped when a local JSON
+    file already exists for them. Use --force to refetch everything.
     """
     api = wandb.Api()
     path = f"{entity}/{project}" if entity else project
@@ -259,6 +406,7 @@ def sync(
     if record_type == "training" and with_history:
         history_folder.mkdir(parents=True, exist_ok=True)
     count = 0
+    skipped = 0
 
     for run in tqdm(runs, desc=f"Writing JSONs to {out_folder.name}/"):
         name = sanitize_name(run.name)
@@ -266,6 +414,11 @@ def sync(
             continue
 
         json_path = out_folder / f"{name}.json"
+        run_state = str(_safe_attr(run, "state", "") or "").lower()
+        if not force and run_state and run_state != "running" and json_path.exists():
+            skipped += 1
+            continue
+
         history_path = None
         history_summary = None
         if record_type == "training" and with_history:
@@ -291,6 +444,8 @@ def sync(
     typer.echo(f"  {out_folder}/")
     if record_type == "training" and with_history:
         typer.echo(f"  {history_folder}/")
+    if skipped:
+        typer.echo(f"Skipped {skipped} non-running run(s) with existing JSON (use --force to refetch).")
 
 
 if __name__ == "__main__":

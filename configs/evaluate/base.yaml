@@ -1,0 +1,45 @@
+defaults:
+  - _self_
+  - optional experiment: null
+
+# Keep Hydra from changing relative paths or creating per-run cwd surprises on HPC.
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: .
+  output_subdir: null
+
+metadata:
+  label: base-eval
+  notes: "Shared defaults for seeded LIBERO evals."
+
+checkpoint_dir: null
+checkpoint: HuggingFaceVLA/smolvla_libero
+simulator: libero
+env: null
+suite: spatial
+num_episodes: 100
+max_steps: 220
+seed: 42
+num_envs: 8
+n_action_steps: 1
+rollout_sampler: normal
+flow_grpo_sigma: 0.10
+flow_grpo_sde_steps: 0
+task_id: null
+fixed_noise_seed: 42
+wandb: true
+wandb_project: vla-libero-eval
+wandb_name: null
+wandb_entity: null
+instruction: null
+control_mode: null
+action_dim: 7
+state_dim: 8
+# WiSE-FT (Wortsman et al. 2022, https://arxiv.org/abs/2109.01903):
+# When set in [0.0, 1.0], evaluates the linear interpolation
+#   theta = (1 - wise_ft_alpha) * SFT(checkpoint) + wise_ft_alpha * RL(checkpoint_dir)
+# alpha=0.0 => pure SFT, alpha=1.0 => pure RL (same as omitting this field).
+# Requires both `checkpoint` (SFT base) and `checkpoint_dir` (RL ckpt dir) to be set.
+wise_ft_alpha: null

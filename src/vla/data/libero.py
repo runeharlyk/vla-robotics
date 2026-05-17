@@ -10,7 +10,7 @@ from torch.utils.data import ConcatDataset, Dataset
 from tqdm import trange
 
 from vla.constants import ACTION_DIM, LIBERO_SUITES
-from vla.data.dataset import NormStats
+from vla.data.dataset import NormStats, build_action_chunk_targets, find_episode_index
 from vla.utils.tensor import to_float01
 
 logger = logging.getLogger(__name__)
@@ -21,13 +21,22 @@ def _load_libero_v2_from_hf(
     num_demos: int | None,
     seed: int,
     task_id: int | None = None,
-) -> tuple[object, dict[int, str], dict, int]:
+) -> tuple[object, dict[int, str], dict, int, list[int]]:
     """Load a LIBERO v2.0 dataset from HuggingFace, bypassing LeRobotDataset.
 
     The official ``lerobot/libero_*_image`` repos are v2.0 format which is
     incompatible with LeRobot >= 0.4 (expects v3.0).  This loader downloads
     the metadata files directly and uses ``datasets.load_dataset`` to read the
     per-episode parquet files.
+
+    Returns ``(wrapped_ds, task_map, stats, num_episodes, task_episode_ranks)``
+    where ``task_episode_ranks[i]`` is the within-task rank (0-indexed) of the
+    i-th kept episode in the original recording order. For LIBERO this rank
+    corresponds 1:1 with the LIBERO ``init_state_id`` because the upstream
+    ``collect_demonstrations.py`` records demo k against init-state k and the
+    LeRobot conversion preserves order. When ``task_id`` is ``None`` the
+    list is empty since per-task ranking is ambiguous across tasks (in that
+    mode the SFT loop is the only consumer and it doesn't replay).
     """
     from datasets import load_dataset
     from huggingface_hub import hf_hub_download, list_repo_files
@@ -180,7 +189,11 @@ def _load_libero_v2_from_hf(
     if num_demos is not None and num_demos < total_eps:
         gen = torch.Generator().manual_seed(seed)
         indices = torch.randperm(total_eps, generator=gen)[:num_demos].tolist()
-        episodes_meta = [episodes_meta[i] for i in sorted(indices)]
+        sorted_indices = sorted(indices)
+        episodes_meta = [episodes_meta[i] for i in sorted_indices]
+        task_episode_ranks: list[int] = list(sorted_indices) if task_id is not None else []
+    else:
+        task_episode_ranks = list(range(total_eps)) if task_id is not None else []
 
     ep_indices = [int(e["episode_index"]) for e in episodes_meta]
     per_episode_files = sorted(
@@ -270,7 +283,7 @@ def _load_libero_v2_from_hf(
             return out
 
     wrapped = _Wrapped(ds, episode_data_index, task_map)
-    return wrapped, task_map, stats, len(episodes_meta)
+    return wrapped, task_map, stats, len(episodes_meta), task_episode_ranks
 
 
 class LiberoDataset(Dataset):
@@ -362,14 +375,23 @@ class LiberoSFTDataset(Dataset):
         seed: Random seed for episode subsampling.
     """
 
-    def __init__(self, suite: str, num_demos: int | None = None, seed: int = 42, task_id: int | None = None) -> None:
+    def __init__(
+        self,
+        suite: str,
+        num_demos: int | None = None,
+        seed: int = 42,
+        task_id: int | None = None,
+        action_chunk_size: int = 50,
+    ) -> None:
         repo_id = LIBERO_SUITES.get(suite.lower())
         if not repo_id:
             raise ValueError(f"Unknown Libero suite {suite!r}. Available: {list(LIBERO_SUITES)}")
 
-        self._ds, self._task_map, stats_dict, num_eps = _load_libero_v2_from_hf(
+        self._ds, self._task_map, stats_dict, num_eps, task_episode_ranks = _load_libero_v2_from_hf(
             repo_id, num_demos, seed, task_id=task_id
         )
+        self._task_episode_ranks: list[int] = task_episode_ranks
+        self._task_id_filter: int | None = task_id
         act_mean = stats_dict["action"]["mean"]
         act_std = stats_dict["action"]["std"]
         st_mean = stats_dict["observation.state"]["mean"]
@@ -393,6 +415,11 @@ class LiberoSFTDataset(Dataset):
         self.num_episodes: int = num_eps
         self.instruction: str = next(iter(self._task_map.values()), "complete the manipulation task")
         self.control_mode: str = "libero_default"
+        self.action_chunk_size = int(action_chunk_size)
+        self._episode_boundaries: list[tuple[int, int]] = []
+        ep_index = self._ds.episode_data_index
+        for start, end in zip(ep_index["from"], ep_index["to"], strict=True):
+            self._episode_boundaries.append((int(start.item()), int(end.item())))
 
         self.metadata: dict = {
             "env_id": f"libero_{suite}",
@@ -400,6 +427,7 @@ class LiberoSFTDataset(Dataset):
             "action_dim": self.action_dim,
             "state_dim": self.state_dim,
             "image_size": 256,
+            "action_chunk_size": self.action_chunk_size,
             "control_mode": self.control_mode,
             "simulator": "libero",
             "suite": suite,
@@ -425,6 +453,16 @@ class LiberoSFTDataset(Dataset):
         if image.ndim == 4:
             image = image.squeeze(0)
 
+        image2 = sample.get("observation.images.wrist_image")
+        if image2 is None:
+            image2 = sample.get("observation.images.image2")
+        if image2 is not None:
+            if isinstance(image2, np.ndarray):
+                image2 = torch.from_numpy(image2)
+            if image2.ndim == 4:
+                image2 = image2.squeeze(0)
+            image = torch.stack([image, image2], dim=0)
+
         state = sample.get("observation.state", torch.zeros(max(self.state_dim, 1)))
         if isinstance(state, np.ndarray):
             state = torch.from_numpy(state)
@@ -436,6 +474,26 @@ class LiberoSFTDataset(Dataset):
             action = torch.from_numpy(action)
         if action.ndim > 1:
             action = action.squeeze(0)
+        action = action.float()
+
+        ep_idx = find_episode_index(self._episode_boundaries, idx)
+        _, ep_end = self._episode_boundaries[ep_idx]
+
+        future_actions: list[torch.Tensor] = []
+        for action_idx in range(idx, min(ep_end, idx + self.action_chunk_size)):
+            action_sample = self._ds[action_idx]["action"]
+            if isinstance(action_sample, np.ndarray):
+                action_sample = torch.from_numpy(action_sample)
+            if action_sample.ndim > 1:
+                action_sample = action_sample.squeeze(0)
+            future_actions.append(action_sample.float())
+        if future_actions:
+            action_chunk, action_mask = build_action_chunk_targets(torch.stack(future_actions), self.action_chunk_size)
+            action_chunk = action_chunk[0]
+            action_mask = action_mask[0]
+        else:
+            action_chunk = torch.zeros(self.action_chunk_size, self.action_dim, dtype=torch.float32)
+            action_mask = torch.zeros(self.action_chunk_size, dtype=torch.bool)
 
         task_idx = sample.get("task_index", 0)
         if isinstance(task_idx, torch.Tensor):
@@ -445,7 +503,9 @@ class LiberoSFTDataset(Dataset):
         return {
             "image": image.float(),
             "state": state.float(),
-            "action": action.float(),
+            "action": action,
+            "action_chunk": action_chunk,
+            "action_mask": action_mask,
             "instruction": instr,
         }
 
@@ -459,12 +519,20 @@ class LiberoSFTDataset(Dataset):
         Args:
             task_id: If given, only return episodes whose ``task_index`` matches.
                      Each LIBERO suite has 10 tasks (indices 0-9).
+
+        Each returned trajectory carries an ``init_state_id`` that maps to
+        the LIBERO ``init_files/<task>/<task>.pruned_init`` initial state
+        used during recording. This holds because the upstream LIBERO
+        ``collect_demonstrations.py`` records demo k against init-state k
+        and the LeRobot conversion preserves order.
         """
         from vla.rl.rollout import Trajectory
 
         ep_index = self._ds.episode_data_index
         num_episodes = len(ep_index["from"])
         trajs: list[Trajectory] = []
+
+        kept_ranks = list(self._task_episode_ranks)
 
         for ep in trange(num_episodes, desc="Converting episodes to trajectories"):
             start = ep_index["from"][ep].item()
@@ -477,6 +545,8 @@ class LiberoSFTDataset(Dataset):
                     ti = ti.item()
                 if int(ti) != task_id:
                     continue
+
+            init_state_id = kept_ranks[ep] if ep < len(kept_ranks) else None
 
             images_list: list[torch.Tensor] = []
             states_list: list[torch.Tensor] = []
@@ -491,7 +561,9 @@ class LiberoSFTDataset(Dataset):
                 if img.ndim == 4:
                     img = img.squeeze(0)
 
-                img2 = sample.get("observation.images.image2")
+                img2 = sample.get("observation.images.wrist_image")
+                if img2 is None:
+                    img2 = sample.get("observation.images.image2")
                 if img2 is not None:
                     if isinstance(img2, np.ndarray):
                         img2 = torch.from_numpy(img2)
@@ -525,10 +597,19 @@ class LiberoSFTDataset(Dataset):
                     dones=torch.zeros(T),
                     success=True,
                     length=T,
+                    init_state_id=init_state_id,
                 )
             )
 
-        logger.info("Built %d demo trajectories from LeRobot (task_id=%s)", len(trajs), task_id)
+        ranks_str = ",".join(str(t.init_state_id) for t in trajs[:8])
+        if len(trajs) > 8:
+            ranks_str += ",..."
+        logger.info(
+            "Built %d demo trajectories from LeRobot (task_id=%s, init_state_ids=[%s])",
+            len(trajs),
+            task_id,
+            ranks_str,
+        )
         return trajs
 
 

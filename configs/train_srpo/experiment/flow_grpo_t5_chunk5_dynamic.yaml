@@ -1,0 +1,34 @@
+# @package _global_
+
+metadata:
+  label: flow-grpo-t5-chunk5-dynamic
+  source_doc: docs/libero_spatial_rl_experiment_plan.md
+  notes: "Task-5 chunk-5 Flow-GRPO run using stored SDE denoising paths, sparse rewards, and dynamic replacement sampling for uniform reward groups."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: flow_grpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: flow-grpo-t5-chunk5-dynamic-lr3e6-sigma010-sftkl005-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+flow_grpo:
+  sigma: 0.10
+  sde_steps: 10
+  logprob_reduction: mean
+  log_ratio_clip: 5.0
+  positive_adv_only: false
+  negative_adv_scale: 1.0

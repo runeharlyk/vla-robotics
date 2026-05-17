@@ -1,0 +1,9 @@
+# @package _global_
+
+metadata:
+  label: spatial-rl-28188629-seeded
+  training_job_id: 28188629
+  notes: "Seeded eval for the v28 task-5 RL checkpoint."
+
+checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28188629/best
+wandb_name: eval_rl_spatial_28188629_best_current_seed42

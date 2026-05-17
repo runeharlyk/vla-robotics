@@ -1,0 +1,46 @@
+# @package _global_
+
+metadata:
+  label: v9-multi-chunk1-trajs8-neg0-lr2-scout
+  source_config: configs/train_srpo/experiment/v9_multi_chunk1_trajs8_neg0_scout.yaml
+  notes: |
+    Parallel v9 ablation that keeps the exact target control regime
+    (n_action_steps=1) and only restores the v8 learning rate.
+
+    The anchor run uses lr=1e-6 to avoid repeating v8's degradation.  This
+    run tests the sharper hypothesis: if negative-advantage push-away was the
+    destructive component, then lr=2e-6 should learn faster without the v8
+    collapse.  Compare eval@6/12/18/24/30 and best_rollout against the lr=1e-6
+    anchor before spending external eval100.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 6
+eval_episodes: 20
+wandb_name: v9-multi-n1-trajs8-neg0-lr2e6-scout
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1
+
+fpo:
+  full_chunk_target: true
+  negative_adv_scale: 0.0

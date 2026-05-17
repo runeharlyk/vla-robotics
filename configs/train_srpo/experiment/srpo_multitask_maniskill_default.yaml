@@ -1,0 +1,25 @@
+# @package _global_
+
+metadata:
+  label: srpo-multitask-maniskill-default
+  source_job: jobs/srpo_multitask_maniskill_a100.sh
+  notes: "Parameterized ManiSkill multitask SRPO job materialized with default positional arguments."
+
+sft_checkpoint: /work3/s234814/checkpoints/sft/best
+checkpoint: lerobot/smolvla_base
+simulator: maniskill
+task_ids: all
+data_dir: /work3/s234814/data/preprocessed
+mode: srpo
+world_model: dinov2
+iterations: 100
+trajs_per_task: 4
+seed: 42
+wandb_name: srpo-multitask-maniskill-default
+
+rollout:
+  num_envs: 8
+  fm_batch_size: 128
+
+ppo:
+  epochs: 1

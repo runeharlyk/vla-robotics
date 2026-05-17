@@ -470,6 +470,157 @@ class VLAFlowMatching(nn.Module):
             x_t = x_t + dt * v_t
         return x_t
 
+    def sample_actions_sde(
+        self,
+        images: list[torch.Tensor],
+        img_masks: list[torch.Tensor],
+        lang_tokens: torch.Tensor,
+        lang_masks: torch.Tensor,
+        state: torch.Tensor,
+        noise: torch.Tensor | None = None,
+        sigma: float = 0.10,
+        num_steps: int | None = None,
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        """Sample actions with the Flow-GRPO reverse SDE.
+
+        The deterministic ODE sampler above has no policy density, so
+        Flow-GRPO converts the reverse flow into an SDE.  Each transition is
+        Gaussian with the drift correction from the paper/official sampler;
+        the returned path tensors are replayed later to form GRPO/PPO ratios.
+        """
+        if sigma <= 0:
+            raise ValueError(f"Flow-GRPO sigma must be > 0, got {sigma}")
+
+        steps = self.num_steps if num_steps is None or num_steps <= 0 else int(num_steps)
+        if steps < 1:
+            raise ValueError(f"Flow-GRPO num_steps must be >= 1, got {steps}")
+
+        bsize = state.shape[0]
+        device = state.device
+        mdtype = state.dtype
+        if noise is None:
+            noise = self._sample_noise((bsize, self.chunk_size, self.max_action_dim), device).to(mdtype)
+        else:
+            noise = noise.to(device=device, dtype=mdtype)
+
+        pre_embs, pre_pad, pre_att = self.embed_prefix(images, img_masks, lang_tokens, lang_masks, state)
+        past_kv: dict | None = None
+        if self.use_cache:
+            pre_att_2d = _make_att_2d_masks(pre_pad, pre_att)
+            pre_pos = torch.cumsum(pre_pad, dim=1) - 1
+
+            _, past_kv = self.vlm_with_expert.forward(
+                attention_mask=pre_att_2d,
+                position_ids=pre_pos,
+                past_key_values=None,
+                inputs_embeds=[pre_embs, None],
+                use_cache=True,
+                fill_kv_cache=True,
+            )
+
+        dt = -1.0 / steps
+        x_t = noise
+
+        states: list[torch.Tensor] = []
+        next_states: list[torch.Tensor] = []
+        times: list[torch.Tensor] = []
+        dts: list[torch.Tensor] = []
+        sigmas: list[torch.Tensor] = []
+
+        for step in range(steps):
+            t_val = 1.0 + step * dt
+            t_tensor = torch.tensor(t_val, dtype=mdtype, device=device).expand(bsize)
+            if past_kv is None:
+                v_t = self._denoise_step_without_cache(x_t, pre_embs, pre_pad, pre_att, t_tensor)
+            else:
+                v_t = self._denoise_step(x_t, pre_pad, past_kv, t_tensor)
+
+            trans_std = self.flow_grpo_transition_std(t_tensor, dt, noise_level=float(sigma)).to(
+                device=device,
+                dtype=mdtype,
+            )
+            mean = self.flow_grpo_transition_mean(x_t, v_t, t_tensor, dt, trans_std).to(mdtype)
+            eps = torch.randn_like(mean)
+            x_next = mean + trans_std.view(bsize, 1, 1) * eps
+
+            states.append(x_t)
+            next_states.append(x_next)
+            times.append(t_tensor)
+            dts.append(torch.full((bsize,), dt, dtype=mdtype, device=device))
+            sigmas.append(trans_std)
+
+            x_t = x_next
+
+        path = {
+            "flow_states": torch.stack(states, dim=1),
+            "flow_next_states": torch.stack(next_states, dim=1),
+            "flow_times": torch.stack(times, dim=1),
+            "flow_dts": torch.stack(dts, dim=1),
+            "flow_sigmas": torch.stack(sigmas, dim=1),
+        }
+        return x_t, path
+
+    @staticmethod
+    def flow_grpo_transition_std(
+        timestep: torch.Tensor,
+        dt: float | torch.Tensor,
+        *,
+        noise_level: float,
+    ) -> torch.Tensor:
+        """Transition std for Flow-GRPO's rectified-flow SDE discretization."""
+        if isinstance(dt, torch.Tensor):
+            dt_t = dt.to(device=timestep.device, dtype=torch.float32)
+        else:
+            dt_t = torch.full_like(timestep, float(dt), dtype=torch.float32)
+        t = timestep.float()
+
+        # At t=1 the paper's sigma/(1-sigma) term is singular.  The official
+        # scheduler substitutes the next lower sigma; for uniform steps this is
+        # exactly t + dt.
+        denom_t = torch.where(
+            t >= 1.0 - 1e-6,
+            (t + dt_t).clamp(max=1.0 - 1e-6),
+            t,
+        )
+        denom = (1.0 - denom_t).clamp(min=1e-6)
+        std_dev = torch.sqrt(t.clamp(min=0.0) / denom) * float(noise_level)
+        return std_dev * torch.sqrt((-dt_t).clamp(min=1e-8))
+
+    @staticmethod
+    def flow_grpo_transition_mean(
+        x_t: torch.Tensor,
+        v_t: torch.Tensor,
+        timestep: torch.Tensor,
+        dt: float | torch.Tensor,
+        transition_std: torch.Tensor,
+    ) -> torch.Tensor:
+        """Mean of the Flow-GRPO SDE Gaussian transition."""
+        if isinstance(dt, torch.Tensor):
+            dt_t = dt.to(device=x_t.device, dtype=torch.float32).view(-1, 1, 1)
+        else:
+            dt_t = torch.full((x_t.shape[0], 1, 1), float(dt), device=x_t.device, dtype=torch.float32)
+        t = timestep.to(device=x_t.device, dtype=torch.float32).view(-1, 1, 1)
+        std = transition_std.to(device=x_t.device, dtype=torch.float32).view(-1, 1, 1)
+        std_dev_sq = std.square() / (-dt_t).clamp(min=1e-8)
+        t_safe = t.clamp(min=1e-6)
+        return x_t.float() * (1.0 + std_dev_sq / (2.0 * t_safe) * dt_t) + v_t.float() * (
+            1.0 + std_dev_sq * (1.0 - t) / (2.0 * t_safe)
+        ) * dt_t
+
+    def predict_velocity(
+        self,
+        images: list[torch.Tensor],
+        img_masks: list[torch.Tensor],
+        lang_tokens: torch.Tensor,
+        lang_masks: torch.Tensor,
+        state: torch.Tensor,
+        noisy_actions: torch.Tensor,
+        timestep: torch.Tensor,
+    ) -> torch.Tensor:
+        """Predict reverse-flow velocity for externally supplied path states."""
+        pre_embs, pre_pad, pre_att = self.embed_prefix(images, img_masks, lang_tokens, lang_masks, state)
+        return self._denoise_step_without_cache(noisy_actions, pre_embs, pre_pad, pre_att, timestep)
+
     def _denoise_step_without_cache(
         self,
         x_t: torch.Tensor,

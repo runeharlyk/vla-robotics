@@ -16,7 +16,7 @@ from typing import Any, Protocol, runtime_checkable
 import numpy as np
 import torch
 
-from vla.rl.rollout import Trajectory
+from vla.rl.rollout import Trajectory, _append_flow_sample, _split_action_result, _stack_flow_buffers
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +98,10 @@ def collect_wave(
     action_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
     reward_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
     done_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    flow_bufs: list[dict[str, list[torch.Tensor]]] = [
+        {name: [] for name in ("flow_states", "flow_next_states", "flow_times", "flow_dts", "flow_sigmas")}
+        for _ in range(N)
+    ]
     success_flags = [False] * N
     env_done = [i >= active_n for i in range(N)]
 
@@ -115,7 +119,8 @@ def collect_wave(
         active_states = states_batch[active_indices]
 
         with torch.no_grad():
-            active_actions = policy_batch_fn(active_imgs, instruction, active_states)
+            active_result = policy_batch_fn(active_imgs, instruction, active_states)
+        active_actions, flow_sample = _split_action_result(active_result)
 
         if isinstance(active_actions, torch.Tensor):
             active_actions_np = active_actions.detach().cpu().numpy()
@@ -133,6 +138,7 @@ def collect_wave(
             img_bufs[env_i].append(images_batch[env_i])
             state_bufs[env_i].append(states_batch[env_i])
             action_bufs[env_i].append(torch.from_numpy(active_actions_np[idx].copy()))
+            _append_flow_sample(flow_bufs[env_i], flow_sample, idx)
 
         result = adapter.step(actions_np)
         raw_obs = result.raw_obs
@@ -162,6 +168,7 @@ def collect_wave(
                 dones=torch.stack(done_bufs[i]),
                 success=success_flags[i],
                 length=T,
+                **_stack_flow_buffers(flow_bufs[i]),
             )
         )
 
@@ -202,6 +209,10 @@ def collect_wave_chunked(
     first_action_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
     reward_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
     done_bufs: list[list[torch.Tensor]] = [[] for _ in range(N)]
+    flow_bufs: list[dict[str, list[torch.Tensor]]] = [
+        {name: [] for name in ("flow_states", "flow_next_states", "flow_times", "flow_dts", "flow_sigmas")}
+        for _ in range(N)
+    ]
     success_flags = [False] * N
     env_done = [i >= active_n for i in range(N)]
     steps_taken = [0] * N
@@ -217,7 +228,8 @@ def collect_wave_chunked(
         active_states = states_batch[active_indices]
 
         with torch.no_grad():
-            chunks = policy_chunk_batch_fn(active_imgs, instruction, active_states)
+            chunks_result = policy_chunk_batch_fn(active_imgs, instruction, active_states)
+        chunks, flow_sample = _split_action_result(chunks_result)
 
         if isinstance(chunks, torch.Tensor):
             chunks_np = chunks.detach().cpu().numpy()
@@ -238,6 +250,7 @@ def collect_wave_chunked(
             img_bufs[env_i].append(images_batch[env_i])
             state_bufs[env_i].append(states_batch[env_i])
             first_action_bufs[env_i].append(torch.from_numpy(chunks_np[idx, 0].copy()))
+            _append_flow_sample(flow_bufs[env_i], flow_sample, idx)
 
         for k in range(n_action_steps):
             active_now = [i for i in active_indices if not dec_last_done[i] and steps_taken[i] < max_steps]
@@ -268,6 +281,9 @@ def collect_wave_chunked(
                 img_bufs[env_i].pop()
                 state_bufs[env_i].pop()
                 first_action_bufs[env_i].pop()
+                for values in flow_bufs[env_i].values():
+                    if values:
+                        values.pop()
                 env_done[env_i] = True
                 continue
             mask = torch.zeros(n_action_steps, dtype=torch.bool)
@@ -298,6 +314,7 @@ def collect_wave_chunked(
                 n_action_steps=n_action_steps,
                 executed_chunks=torch.stack(chunk_bufs[i]),
                 chunk_mask=torch.stack(chunk_mask_bufs[i]),
+                **_stack_flow_buffers(flow_bufs[i]),
             )
         )
 

@@ -1,0 +1,106 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from hydra import compose, initialize_config_dir
+from omegaconf import OmegaConf
+
+from scripts.evaluate_hydra import config_to_evaluate_args, expand_eval_configs
+
+CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs" / "evaluate"
+
+
+def test_eval_hydra_config_to_evaluate_args_uses_cli_flags() -> None:
+    cfg = OmegaConf.create(
+        {
+            "checkpoint_dir": "/tmp/checkpoint/best",
+            "checkpoint": "HuggingFaceVLA/smolvla_libero",
+            "simulator": "libero",
+            "suite": "spatial",
+            "num_episodes": 100,
+            "n_action_steps": 5,
+            "fixed_noise_seed": 42,
+            "wandb": False,
+            "metadata": {"label": "ignored"},
+        }
+    )
+
+    args = config_to_evaluate_args(cfg)
+
+    assert "--checkpoint-dir" in args
+    assert "/tmp/checkpoint/best" in args
+    assert "--num-episodes" in args
+    assert "--n-action-steps" in args
+    assert "5" in args
+    assert "--fixed-noise-seed" in args
+    assert "--no-wandb" in args
+    assert "--metadata.label" not in args
+
+
+def test_eval_hydra_experiment_overrides_apply_at_top_level() -> None:
+    with initialize_config_dir(config_dir=str(CONFIG_DIR), version_base=None):
+        cfg = compose(config_name="base", overrides=["experiment=spatial_rl_28188629_seeded"])
+
+    assert "experiment" not in cfg
+    assert cfg.checkpoint_dir.endswith("spatial_task_5_seed42_28188629/best")
+    assert cfg.wandb_name == "eval_rl_spatial_28188629_best_current_seed42"
+    assert cfg.fixed_noise_seed == 42
+
+
+def test_eval_hydra_protocol_expands_multiple_eval_runs() -> None:
+    with initialize_config_dir(config_dir=str(CONFIG_DIR), version_base=None):
+        cfg = compose(config_name="base", overrides=["experiment=spatial_current_protocol"])
+
+    expanded = expand_eval_configs(cfg)
+
+    assert len(expanded) == 3
+    assert expanded[0]["checkpoint_dir"] is None
+    assert expanded[1]["checkpoint_dir"].endswith("spatial_task_5_seed42_28188629/best")
+    assert expanded[2]["checkpoint_dir"].endswith("spatial_task_5_seed42_28263586/best")
+    assert {item["fixed_noise_seed"] for item in expanded} == {42}
+
+
+def test_eval_hydra_action_chunk_experiment_sets_steps() -> None:
+    with initialize_config_dir(config_dir=str(CONFIG_DIR), version_base=None):
+        cfg = compose(config_name="base", overrides=["experiment=spatial_sft_n10_seeded"])
+
+    assert cfg.n_action_steps == 10
+    assert cfg.checkpoint_dir is None
+    assert cfg.wandb_name == "eval_sft_spatial_current_seed42_n10"
+
+
+def test_eval_hydra_flow_sde_sweep_expands_sampler_configs() -> None:
+    with initialize_config_dir(config_dir=str(CONFIG_DIR), version_base=None):
+        cfg = compose(config_name="base", overrides=["experiment=spatial_sft_flow_sde_sweep"])
+
+    expanded = expand_eval_configs(cfg)
+
+    assert len(expanded) == 5
+    assert expanded[0]["rollout_sampler"] == "normal"
+    assert expanded[0]["n_action_steps"] == 5
+    assert expanded[1]["rollout_sampler"] == "flow_sde"
+    assert expanded[1]["flow_grpo_sigma"] == 0.01
+    assert expanded[1]["flow_grpo_sde_steps"] == 10
+    assert expanded[-1]["flow_grpo_sigma"] == 0.10
+
+
+def test_eval_hydra_args_include_flow_sde_sampler_flags() -> None:
+    cfg = OmegaConf.create(
+        {
+            "simulator": "libero",
+            "suite": "spatial",
+            "rollout_sampler": "flow_sde",
+            "flow_grpo_sigma": 0.03,
+            "flow_grpo_sde_steps": 10,
+            "wandb": False,
+        }
+    )
+
+    args = config_to_evaluate_args(cfg)
+
+    assert "--rollout-sampler" in args
+    assert "flow_sde" in args
+    assert "--flow-grpo-sigma" in args
+    assert "0.03" in args
+    assert "--flow-grpo-sde-steps" in args
+    assert "10" in args

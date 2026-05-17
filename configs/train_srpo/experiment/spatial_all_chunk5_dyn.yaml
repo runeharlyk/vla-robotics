@@ -1,0 +1,33 @@
+# @package _global_
+
+metadata:
+  label: spatial-all-chunk5-dyn
+  source_job: jobs/sparse_fpo_spatial_all_chunk5_dyn_l40s.sh
+  notes: "All spatial tasks, chunk-5, dynamic sampling, replay with demos, sft_kl=0.01."
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+iterations: 45
+eval_every: 15
+eval_episodes: 20
+wandb_name: spatial-all-chunk5-dyn-lr2e6-sftkl001-replay320-demos
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.01
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5

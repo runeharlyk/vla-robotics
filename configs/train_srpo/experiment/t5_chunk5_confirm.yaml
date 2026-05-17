@@ -1,0 +1,26 @@
+# @package _global_
+
+metadata:
+  label: t5-chunk5-confirm
+  source_job: jobs/sparse_fpo_t5_chunk5_confirm_l40s.sh
+  notes: "Chunk-5 FPO confirmation run. Exact old target semantics depend on the code commit used at submission."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: t5-chunk5-lr3e6-sftkl005-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5

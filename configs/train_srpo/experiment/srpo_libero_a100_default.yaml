@@ -1,0 +1,25 @@
+# @package _global_
+
+metadata:
+  label: srpo-libero-a100-default
+  source_job: jobs/srpo_libero_a100.sh
+  notes: "Parameterized older SRPO job materialized with its default positional arguments."
+
+sft_checkpoint: /work3/s234814/checkpoints/sft/best
+simulator: libero
+suite: spatial
+task_ids: "0"
+world_model: dinov2
+iterations: 100
+trajs_per_task: 16
+seed: 42
+max_steps: 280
+dbscan_eps: 60
+wandb_name: srpo-libero-a100-default
+
+rollout:
+  num_envs: 8
+  fm_batch_size: 128
+
+ppo:
+  epochs: 1

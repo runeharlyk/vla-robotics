@@ -1,0 +1,57 @@
+# @package _global_
+
+metadata:
+  label: v8-multi-chunk5-trajs8-sftkl002
+  source_doc: docs/sparse_rl_path_to_90_spatial.md
+  notes: |
+    Multi-task all-spatial sparse-RL on the wall-clock-optimised path.
+
+    Combines three findings from fpo_hyperparameter_experiments §10-§14:
+    - chunk-5 training cuts per-iter rollout cost ~5x vs chunk-1 (§10).
+    - trajs_per_task=8 cuts per-iter rollout cost ~4x vs trajs=32 with
+      no measurable suite-avg loss when dynamic_sampling + demos +
+      success_replay are on (§14, multitask-small-group 28254656).
+    - sft_coeff=0.02 is needed for runs >= 50 iter; lower values let
+      raw_sft_kl drift to 1-4 by iter ~30 (§11).
+
+    Combined per-iter wall-clock is ~20x cheaper than v7 (28249578),
+    so 60 iters here is comparable wall-clock to v7's 30 iters at
+    chunk-1 trajs=32 but covers far more of the learning curve.
+
+    Decision rule: pin best ckpt with submit-eval at n_action_steps=1
+    and num_episodes=100 once training finishes.
+    If suite-avg @ n=1 > 0.795, this is the new SOTA and the chunk-5
+    multi-task path is the thesis main path.
+    If suite-avg @ n=1 < 0.74, chunk-5 multi-task does not transfer
+    and the next round drops to v8_multi_chunk1_trajs32_sftkl002_long.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 60
+eval_every: 20
+eval_episodes: 100
+wandb_name: v8-multi-chunk5-trajs8-sftkl002-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+fpo:
+  full_chunk_target: true

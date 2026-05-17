@@ -83,15 +83,45 @@ class LiberoEnv(SimEnv):
         rng = np.random.RandomState(int(seed))
         return int(rng.randint(num_init_states))
 
-    def reset(self, seed: int = 0) -> tuple[dict, dict]:
-        init_state_id = self._resolve_init_state_id(seed)
-        if init_state_id is not None and hasattr(self._env, "_init_state_id"):
-            self._env._init_state_id = init_state_id
+    def _set_underlying_init_state_id(self, init_state_id: int) -> None:
+        """Force the underlying LeRobot LiberoEnv to use the given init-state.
+
+        Different LeRobot versions name the attribute either ``_init_state_id``
+        (v0.4.x) or ``init_state_id`` (current main with PR #2832). Set both
+        when present so we stay forward-compatible.
+        """
+        for attr in ("_init_state_id", "init_state_id"):
+            if hasattr(self._env, attr):
+                setattr(self._env, attr, init_state_id)
+
+    def reset(
+        self,
+        seed: int = 0,
+        init_state_id: int | None = None,
+    ) -> tuple[dict, dict]:
+        """Reset the env, optionally pinning the LIBERO init-state.
+
+        When ``init_state_id`` is provided it takes precedence over the
+        seed-derived choice, so the demo-replay path can land in the exact
+        starting configuration the demo was recorded against. Falls back to
+        seed-based selection (same RNG as before) when not provided.
+        """
+        if init_state_id is None:
+            resolved = self._resolve_init_state_id(seed)
+        else:
+            init_states = getattr(self._env, "_init_states", None)
+            if init_states is None or len(init_states) == 0:
+                resolved = None
+            else:
+                resolved = int(init_state_id) % len(init_states)
+
+        if resolved is not None:
+            self._set_underlying_init_state_id(resolved)
 
         obs, info = self._env.reset(seed=seed)
-        if init_state_id is not None:
+        if resolved is not None:
             info = dict(info)
-            info["libero_init_state_id"] = init_state_id
+            info["libero_init_state_id"] = resolved
             info["libero_num_init_states"] = len(self._env._init_states)
         return obs, info
 

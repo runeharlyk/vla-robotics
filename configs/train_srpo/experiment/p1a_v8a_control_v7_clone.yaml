@@ -1,0 +1,84 @@
+# @package _global_
+
+metadata:
+  label: p1a-v8a-control-trajs8
+  source_doc: docs/thesis_research_plan.md
+  source_config: configs/train_srpo/experiment/v8_multi_chunk1_trajs8_sftkl002.yaml
+  profile: l40s-16-mem8
+  notes: |
+    Thesis Phase 1, run A (control). Sized to actually complete inside
+    the 24h L40s wall-clock and the 128 GB cgroup memory headroom
+    (profile l40s-16-mem8).
+
+    Why this run exists (and why it is NOT a v7 clone):
+    - v7 (28249578) crashed with TERM_MEMLIMIT at iter 2 of 30 (only
+      3 logged history points: iter-0 eval, iter 1, iter 2). The famous
+      "0.795 suite-avg" is the iter-0 pre-RL eval at 20 episodes, i.e.
+      the SFT init, not a post-RL result. p1b on the same recipe also
+      crashed at iter 2 (job 28428140, TERM_MEMLIMIT at 64 GB, MAX MEM
+      64 GB). The original v7 recipe is structurally infeasible on the
+      old profile.
+    - The new control is therefore trajs_per_task=8 (matching
+      v8_multi_chunk1_trajs8_sftkl002) at chunk-1, sized so 30 iters +
+      3 evals fit in ~18h with comfortable buffer.
+    - Chunk-1 is mandatory because chunk-5 -> n=1 transfer fails
+      (28335554 = 0.476 at n=1 vs ~0.85 at n=5 training-eval).
+    - pre_rl_eval=false because every Phase-1 run starts from the same
+      HuggingFaceVLA/smolvla_libero checkpoint; the iter-0 number is
+      identical for all of them and the SFT baseline eval
+      (eval_sft_spatial_l40s_28242119, 0.743 suite-avg) already gives
+      the shared reference. Skipping it saves ~30-60 min per run.
+
+    Bar to clear (n=1, 100 ep, run with submit-eval after training):
+    - SFT baseline: 0.743 suite-avg (eval 28242119)
+    - Best previous RL ckpt that *actually finished*:
+      v10_multi_chunk2_trajs32_cliphi016 = 0.733 suite-avg
+    Either of those is a valid headline reference.
+
+    Decision rule (vs SFT 0.743 at n=1/100ep):
+    - SUCCESS (>= SFT + 2pp): promote /best as thesis main RL ckpt;
+      feeds Phase 2 (WiSE-FT alpha sweep).
+    - PARTIAL (+/- 2pp of SFT): still useful baseline; Phase 2
+      determines if WiSE-FT alpha-blending recovers SFT-level safety.
+    - FAIL (< 0.72): re-run with longer schedule (50 iters) before
+      conceding the recipe is exhausted.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 10
+eval_episodes: 30
+pre_rl_eval: false
+wandb_name: p1a-v8a-control-trajs8
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  negative_adv_scale: 1.0
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1
