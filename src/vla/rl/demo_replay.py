@@ -240,9 +240,7 @@ def replay_demo_rollouts(
             for traj in cached_trajs:
                 traj.task_id = spec.task_id
                 traj.is_demo = True
-            replay_success_rate[spec.task_id] = sum(1 for t in cached_trajs if t.success) / max(
-                len(cached_trajs), 1
-            )
+            replay_success_rate[spec.task_id] = sum(1 for t in cached_trajs if t.success) / max(len(cached_trajs), 1)
             kept_trajs = _resolve_kept_trajs(
                 cached_trajs,
                 raw_demos=demos,

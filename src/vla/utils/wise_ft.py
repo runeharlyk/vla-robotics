@@ -62,9 +62,7 @@ def wise_ft_merge_into_policy(
     if not rl_path.exists():
         raise FileNotFoundError(f"RL checkpoint not found at {rl_path}")
 
-    sft_sd: dict[str, torch.Tensor] = {
-        k: v.detach().to("cpu", copy=True) for k, v in policy.model.state_dict().items()
-    }
+    sft_sd: dict[str, torch.Tensor] = {k: v.detach().to("cpu", copy=True) for k, v in policy.model.state_dict().items()}
 
     rl_data = torch.load(rl_path, map_location="cpu", weights_only=False)
     rl_sd: dict[str, torch.Tensor] = rl_data["model_state_dict"]

@@ -307,6 +307,7 @@ class ConcatFewDemoDataset(Dataset):
         """Convert stored episodes to :class:`Trajectory` objects for SRPO seeding."""
         return _episodes_to_trajectories(self._episodes)
 
+
 def find_episode_index(boundaries: list[tuple[int, int]], idx: int) -> int:
     """Return the episode index containing a flattened sample index."""
     starts = [start for start, _ in boundaries]

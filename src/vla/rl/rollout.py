@@ -95,10 +95,7 @@ def _append_flow_sample(buffers: dict[str, list[torch.Tensor]], sample: Any | No
 
 
 def _stack_flow_buffers(buffers: dict[str, list[torch.Tensor]]) -> dict[str, torch.Tensor | None]:
-    return {
-        field_name: torch.stack(values) if values else None
-        for field_name, values in buffers.items()
-    }
+    return {field_name: torch.stack(values) if values else None for field_name, values in buffers.items()}
 
 
 @runtime_checkable

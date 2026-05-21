@@ -200,7 +200,7 @@ def fpo_update(
 
                 mb_loss += loss_i.item()
                 mb_shift += (new_fm_f.detach().mean() - old_fm.mean()).abs().item() / n_idxs
-                
+
                 # Sample-level FPO++ metrics
                 mb_sample_clip_frac += (
                     (det_ratio < 1.0 - config.clip_epsilon) | (det_ratio > 1.0 + config.clip_epsilon_high)
@@ -210,7 +210,7 @@ def fpo_update(
                     (avg_ratio < 1.0 - config.clip_epsilon) | (avg_ratio > 1.0 + config.clip_epsilon_high)
                 ).float().mean().item() / n_idxs
                 mb_max_log_ratio = max(mb_max_log_ratio, avg_log_ratio.abs().max().item())
-                
+
                 mb_sum_ratio += det_ratio.mean().item() / n_idxs
                 if use_kl:
                     kl_anchor = ref_fm_per_traj[i].to(device=device, dtype=torch.float32) if ref_fm_per_traj else old_fm
@@ -230,13 +230,13 @@ def fpo_update(
             total_local_kl += mb_local_kl
             total_sft_kl += mb_sft_kl
             total_shift += mb_shift
-            
+
             total_clip_frac += mb_clip_frac
             total_max_log_ratio = max(total_max_log_ratio, mb_max_log_ratio)
-            
+
             total_sample_clip_frac += mb_sample_clip_frac
             total_sample_max_log_ratio = max(total_sample_max_log_ratio, mb_sample_max_log_ratio)
-            
+
             total_raw_kl += mb_raw_kl
             total_raw_sft_kl += mb_raw_sft_kl
             total_mean_ratio += mb_sum_ratio
@@ -248,11 +248,11 @@ def fpo_update(
         avg_kl=total_local_kl / denom,
         avg_sft_kl=total_sft_kl / denom,
         avg_shift=total_shift / denom,
-        avg_weight=total_sample_clip_frac / denom, # Export sample clip fraction as primary weight
+        avg_weight=total_sample_clip_frac / denom,  # Export sample clip fraction as primary weight
         raw_kl=total_raw_kl / denom,
         raw_sft_kl=total_raw_sft_kl / denom,
         mean_ratio=total_mean_ratio / denom,
-        max_log_ratio=total_sample_max_log_ratio, # Export sample max log ratio as primary max
+        max_log_ratio=total_sample_max_log_ratio,  # Export sample max log ratio as primary max
     )
 
 

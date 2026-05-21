@@ -650,8 +650,10 @@ def build_robustness_table(records: list[dict[str, Any]]) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if df.empty:
         return df
-    return df.groupby(["Anchor", "Perturbation"], as_index=False)["Success Rate"].mean().pivot(
-        index="Perturbation", columns="Anchor", values="Success Rate"
+    return (
+        df.groupby(["Anchor", "Perturbation"], as_index=False)["Success Rate"]
+        .mean()
+        .pivot(index="Perturbation", columns="Anchor", values="Success Rate")
     )
 
 

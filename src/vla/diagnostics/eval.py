@@ -85,9 +85,7 @@ def metrics_from_trajectories(
     total_successes = sum(1 for t in trajectories if t.success)
     total_rewards = [float(t.rewards.sum()) for t in trajectories]
     total_lengths = [
-        int(t.chunk_mask[: t.length].sum().item())
-        if getattr(t, "chunk_mask", None) is not None
-        else t.length
+        int(t.chunk_mask[: t.length].sum().item()) if getattr(t, "chunk_mask", None) is not None else t.length
         for t in trajectories
     ]
     num_ep = expected_episodes if expected_episodes is not None else len(trajectories)
@@ -393,8 +391,7 @@ def evaluate_smolvla(
 
     if sampler == "flow_sde":
         raise ValueError(
-            "rollout_sampler='flow_sde' requires LIBERO vectorized eval "
-            "(num_envs > 1 or n_action_steps > 1)"
+            "rollout_sampler='flow_sde' requires LIBERO vectorized eval (num_envs > 1 or n_action_steps > 1)"
         )
 
     factory_kwargs: dict = {}

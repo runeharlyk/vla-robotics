@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import typer
+import wandb
 from tqdm import tqdm
 
-import wandb
 from vla.constants import RESULTS_DIR
 from vla.results_registry import sanitize_name
 
@@ -94,10 +94,9 @@ def _infer_lsf_job_id(run_name: str, *sources: dict) -> str:
 
 def _extract_git_metadata(config: dict, summary: dict, metadata: dict) -> dict:
     git_meta = metadata.get("git") if isinstance(metadata.get("git"), dict) else {}
-    commit = (
-        _first_value(config, summary, metadata, git_meta, keys=("git_commit", "commit", "git.commit", "sha"))
-        or _safe_attr(metadata, "commit", None)
-    )
+    commit = _first_value(
+        config, summary, metadata, git_meta, keys=("git_commit", "commit", "git.commit", "sha")
+    ) or _safe_attr(metadata, "commit", None)
     branch = _first_value(config, summary, metadata, git_meta, keys=("git_branch", "branch", "git.branch"))
     remote = _first_value(
         config,

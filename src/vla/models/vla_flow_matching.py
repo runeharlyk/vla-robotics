@@ -603,9 +603,10 @@ class VLAFlowMatching(nn.Module):
         std = transition_std.to(device=x_t.device, dtype=torch.float32).view(-1, 1, 1)
         std_dev_sq = std.square() / (-dt_t).clamp(min=1e-8)
         t_safe = t.clamp(min=1e-6)
-        return x_t.float() * (1.0 + std_dev_sq / (2.0 * t_safe) * dt_t) + v_t.float() * (
-            1.0 + std_dev_sq * (1.0 - t) / (2.0 * t_safe)
-        ) * dt_t
+        return (
+            x_t.float() * (1.0 + std_dev_sq / (2.0 * t_safe) * dt_t)
+            + v_t.float() * (1.0 + std_dev_sq * (1.0 - t) / (2.0 * t_safe)) * dt_t
+        )
 
     def predict_velocity(
         self,

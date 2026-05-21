@@ -136,7 +136,7 @@ def ppo_update(
                     sft_kl_penalty = sft_kl_coeff * sft_kl_approx
                     traj_loss = traj_loss + sft_kl_penalty / n_idxs
                     mb_sft_kl += sft_kl_penalty.item() / n_idxs
-                
+
                 traj_loss.backward()
 
                 mb_clip_loss += clip_loss.item() / n_idxs

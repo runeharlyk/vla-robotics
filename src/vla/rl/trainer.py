@@ -905,10 +905,7 @@ def train_srpo(
             rollout_engines=rollout_engines,
         )
     else:
-        logger.info(
-            "Skipping iter-0 pre-RL eval (config.pre_rl_eval=False); "
-            "use a shared SFT baseline eval instead."
-        )
+        logger.info("Skipping iter-0 pre-RL eval (config.pre_rl_eval=False); use a shared SFT baseline eval instead.")
     metrics_logger.log(log_data)
 
     for iteration in trange(1, config.num_iterations + 1, desc="Training iterations"):
@@ -1289,9 +1286,7 @@ def train_srpo(
             mean_advantage = float(adv_t.mean().item()) if adv_t.numel() else 0.0
             mean_abs_advantage = float(adv_t.abs().mean().item()) if adv_t.numel() else 0.0
             non_zero_adv_ratio = (
-                float((adv_t.abs() > config.adv_skip_threshold).float().mean().item())
-                if adv_t.numel()
-                else 0.0
+                float((adv_t.abs() > config.adv_skip_threshold).float().mean().item()) if adv_t.numel() else 0.0
             )
             mean_score = float(score_t.mean().item()) if score_t.numel() else 0.0
             score_std = float(score_t.std(unbiased=False).item()) if score_t.numel() > 1 else 0.0
@@ -1320,9 +1315,7 @@ def train_srpo(
             f"{config.mode}/iteration": iteration,
         }
         if update_metrics.avg_loss != 0.0:
-            log_data[f"{config.mode}/sft_kl_dominance"] = (
-                update_metrics.avg_sft_kl / abs(update_metrics.avg_loss)
-            )
+            log_data[f"{config.mode}/sft_kl_dominance"] = update_metrics.avg_sft_kl / abs(update_metrics.avg_loss)
         for _tid, n_retries in dynsample_retries.items():
             log_data[f"{config.mode}/{_tid}/dynamic_sampling/retries"] = n_retries
             log_data[f"{config.mode}/{_tid}/dynamic_sampling/gave_up"] = int(_tid in dynsample_gave_up)

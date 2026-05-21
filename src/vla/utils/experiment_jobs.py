@@ -240,8 +240,7 @@ def validate_cli_args(script: str, args: list[str]) -> list[str]:
             choices = {str(member.value) for member in enum_cls}
             if value not in choices:
                 errors.append(
-                    f"{script} option {flag!r} has invalid value {value!r}; "
-                    f"expected one of {sorted(choices)}"
+                    f"{script} option {flag!r} has invalid value {value!r}; expected one of {sorted(choices)}"
                 )
 
         i += 1
@@ -688,9 +687,7 @@ def train_eval_target(
     resolved_n_action_steps = (
         int(n_action_steps) if n_action_steps is not None else int(rollout_config.get("n_action_steps") or 1)
     )
-    resolved_num_episodes = (
-        int(num_episodes) if num_episodes is not None else int(composed.get("eval_episodes") or 100)
-    )
+    resolved_num_episodes = int(num_episodes) if num_episodes is not None else int(composed.get("eval_episodes") or 100)
     normalized_checkpoint = checkpoint_kind.replace("_", "-").lower() if checkpoint_kind else "explicit"
 
     if checkpoint_dir:

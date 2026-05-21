@@ -101,6 +101,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["vla"]
+known-third-party = ["wandb"]
 
 [tool.ruff.lint.per-file-ignores]
 # typer.Option() in function defaults is the canonical Typer pattern

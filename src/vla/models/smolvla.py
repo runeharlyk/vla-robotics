@@ -1082,7 +1082,7 @@ class SmolVLAPolicy(nn.Module):
                     raise ValueError(f"Unknown reduction: {reduction}")
 
                 sample_losses.append(per_step)
-            
+
             stacked = torch.stack(sample_losses)
             all_losses.append(stacked if return_per_sample else stacked.mean(dim=0))
 

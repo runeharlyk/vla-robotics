@@ -110,10 +110,7 @@ class LiberoEnv(SimEnv):
             resolved = self._resolve_init_state_id(seed)
         else:
             init_states = getattr(self._env, "_init_states", None)
-            if init_states is None or len(init_states) == 0:
-                resolved = None
-            else:
-                resolved = int(init_state_id) % len(init_states)
+            resolved = None if init_states is None or len(init_states) == 0 else int(init_state_id) % len(init_states)
 
         if resolved is not None:
             self._set_underlying_init_state_id(resolved)

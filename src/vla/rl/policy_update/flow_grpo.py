@@ -26,8 +26,7 @@ def _flow_path_log_probs(
     ]
     if missing:
         raise ValueError(
-            "Flow-GRPO trajectories must be collected with the SDE sampler; "
-            f"missing fields: {', '.join(missing)}"
+            f"Flow-GRPO trajectories must be collected with the SDE sampler; missing fields: {', '.join(missing)}"
         )
 
     T = traj.length
