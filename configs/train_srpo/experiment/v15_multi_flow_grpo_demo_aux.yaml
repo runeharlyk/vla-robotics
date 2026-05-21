@@ -1,0 +1,74 @@
+# @package _global_
+
+metadata:
+  label: v15-multi-flow-grpo-demo-aux
+  source_config: configs/train_srpo/experiment/v13_multi_flow_grpo_sigma003.yaml
+  profile: l40s-16-mem8
+  notes: |
+    Flow-GRPO post-pin follow-up with a demo-only supervised auxiliary loss.
+
+    Rationale:
+    - v13 used valid Flow-GRPO log-prob ratios but necessarily ignored
+      demo/replay trajectories in the GRPO update, because those trajectories
+      do not carry paths sampled by the current old policy.
+    - This config keeps that separation: online rollouts are the only GRPO
+      samples, and demonstrations are used only in a separate FM/BC auxiliary
+      optimizer step after the online update.
+    - Demo replay is disabled: for a supervised anchor we want the recorded
+      LeRobot demonstrations on the SFT distribution, not a mixed pool of
+      low-success replay attempts plus raw fallbacks.
+    - Success replay is disabled here to avoid conflating the clean demo
+      anchor with old-policy replay trajectories.
+
+    Compare against v13 and the post-pin SFT n=1 external eval.
+
+task_ids: all
+mode: sparse_rl
+update_method: flow_grpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 10
+eval_episodes: 30
+pre_rl_eval: false
+wandb_name: v15-multi-flow-grpo-demo-aux
+demo_replay: false
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+flow_grpo:
+  sigma: 0.03
+  sde_steps: 10
+  logprob_reduction: mean
+  log_ratio_clip: 5.0
+  positive_adv_only: false
+  negative_adv_scale: 1.0
+
+demo_aux:
+  enabled: true
+  coeff: 0.05
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
+replay:
+  include_demos: false
+  success_total_size: 0
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.0
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1

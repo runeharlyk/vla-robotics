@@ -1,0 +1,17 @@
+# @package _global_
+
+metadata:
+  label: v28-control-current-seeded-t5
+  source_job: jobs/sparse_fpo_t5_v28_control_l40s.sh
+  training_job_ids: [28188629]
+  notes: "Task-5 FPO control: n_action_steps=1, no dynamic sampling, seeded eval-era control."
+
+update_method: fpo
+lr: 3e-6
+wandb_name: v28-control-current-seeded-t5-n1-nodynamic-nomask-eval100
+
+sampling:
+  dynamic: false
+
+rollout:
+  n_action_steps: 1

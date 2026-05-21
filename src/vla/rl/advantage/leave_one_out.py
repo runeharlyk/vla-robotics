@@ -45,7 +45,7 @@ def leave_one_out_advantages_per_task(
         baselines = (task_g.sum() - task_g) / (m - 1)
         raw_adv = task_g - baselines
 
-        if update_method in (UpdateMethod.AWR, UpdateMethod.FPO):
+        if update_method in (UpdateMethod.AWR, UpdateMethod.FPO, UpdateMethod.FLOW_GRPO):
             # Z-score normalisation: Â_k = (A_k - μ_A) / σ_A
             # Per GRPO (SimpleVLA-RL Eq. 5) and RIPT-VLA, advantages must be
             # normalised to zero mean and unit variance for methods like AWR and FPO.

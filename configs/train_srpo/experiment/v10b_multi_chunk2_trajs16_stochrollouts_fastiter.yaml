@@ -1,0 +1,176 @@
+# @package _global_
+
+metadata:
+  label: v10b-multi-chunk2-trajs16-stochrollouts-negadv0-fastiter
+  source_doc: docs/sparse_rl_path_to_90_spatial.md
+  prior_run: 28391632 (v10, 10/30 iter, hit 24h cap before any post-iter-0 eval)
+  notes: |
+    Wall-clock-fitted continuation of v10 with one additional
+    fix motivated by per-task analysis of the v10 training curves.
+
+    Two changes vs the v7 reference recipe:
+      1. rollout.eval_zero_sample: true -> false  (kept from v10)
+      2. fpo.negative_adv_scale: 1.0 -> 0.0       (new)
+
+    Why negative_adv_scale=0.0
+    --------------------------
+    v10 per-task EMA at iter 1 vs iter 9:
+       t0 0.53 -> 0.66 (+13)   medium, improving
+       t1 0.91 -> 0.82 ( -9)   saturated, FORGETTING
+       t2 0.75 -> 0.82 ( +7)   medium, improving
+       t3 0.59 -> 0.58 ( -1)   flat
+       t4 0.66 -> 0.66 (  0)   flat
+       t5 0.47 -> 0.37 (-10)   hard, REGRESSING
+       t6 0.84 -> 0.79 ( -5)   high, mild forgetting
+       t7 0.72 -> 0.74 ( +2)   medium, flat-improve
+       t8 0.94 -> 0.81 (-13)   saturated, CATASTROPHIC FORGETTING
+       t9 0.78 -> 0.68 (-10)   high, forgetting
+
+    Pattern: saturated tasks (t1, t8 at 91-94%) catastrophically
+    forget. Medium tasks (t0, t2, t7) improve. The hard task (t5)
+    regresses despite being the prime exploration target. Net
+    rollout EMA suite-avg goes 0.72 -> 0.69.
+
+    Mechanism: with 32 rollouts at 94% success rate, only 2 trajs
+    fail per iter. After per-task LOO + z-score normalisation,
+    those 2 failures get z-scores ~ -4 (very tight std). The new
+    stochastic rollout noise made some of those 2 failures the
+    result of *unlucky noise* rather than bad policy. FPO with
+    negative_adv_scale=1.0 then pushes the policy hard AWAY from
+    actions that are most likely correct, just unlucky.
+
+    Setting negative_adv_scale=0.0 zeroes out gradient on failed
+    trajectories. Tasks at 94% keep their successes' BC-style
+    positive gradient and stop bleeding on noise-induced failures.
+    Tasks at 47% lose half their data but the kept half is clean
+    positive signal that compounds via the stochastic-rollout
+    diversity. This matches the RIPT-VLA design: success-weighted
+    REINFORCE-LOO, which gets 97.5% on LIBERO without any
+    "push away from failure" gradient.
+
+    This was tested in v9 at trajs=8 chunk-1 lr=1e-6 with
+    DETERMINISTIC rollouts and was flat (eval 0.80 -> 0.785). But
+    in that regime there was no exploration signal to compound, so
+    "successes-only" gradient had nothing new to push toward. With
+    stochastic rollouts producing real action variance, the
+    successes-only signal should now lift medium tasks while
+    leaving saturated tasks alone.
+
+    Wall-clock fit
+    --------------
+    v10 had trajs_per_task=32, eval_episodes=100, eval_every=10
+    and managed only 10 iters in 24 h. v10b cuts trajs to 16
+    (rollout work halves), drops eval_episodes to 20 (internal
+    evals are scout-quality only; production eval is a separate
+    100-ep job after training), and limits to 20 iters. Estimated
+    budget: 20 iters at trajs=16 ~= 1 hr/iter = 20 hr training,
+    3 internal evals at 200 ep ~= 15 min total, leaves comfortable
+    slack inside the 24 h L40s queue.
+
+    Why v10 ran out of time
+    -----------------------
+    v10 had trajs_per_task=32, eval_episodes=100, eval_every=10.
+    That made iter-0 eval cost ~1000 episodes (about 2-3 hours of
+    the 24h budget) and per-iter training cost ~2.1 hours. Total
+    budget for 30 iters + 4 evals would have been ~70 hours.
+    Actual: 10 iters and only the iter-0 eval finished.
+
+    What changes in v10b
+    --------------------
+    Trajectory budget: trajs_per_task 32 -> 16. Per-iter rollout
+    work halves. RLOO baseline std/sqrt(N) goes up by sqrt(2) which
+    is acceptable -- multi-task ensembling across 10 tasks
+    compensates and SimpleVLA-RL/RIPT-VLA both work fine at G=8.
+
+    Internal eval cost: eval_episodes 100 -> 20. Internal eval is
+    now scout-quality (~5 minutes vs ~3 hours), used only to pick
+    best_eval checkpoints during training. Authoritative beat
+    statement comes from a separate 100-ep external eval job
+    (eval_v10b_<jobid>_best_rollout / _last) submitted right after
+    training completes.
+
+    Iteration budget: 30 -> 20 iters with eval_every=10. v10
+    showed clear signal of life by iter 10 (clip_frac 0.099 -> 0.034,
+    raw_sft_kl 0.001 -> 0.09); 20 iters of post-fix training is
+    plenty to get a verdict, and any plateau by iter 20 says we
+    need an additional lever (cliphi=0.16 in v11) rather than
+    more iters of the same.
+
+    Held constant vs v10
+    --------------------
+    rollout.eval_zero_sample: false  -- THE noise fix, kept
+    n_action_steps: 2                -- same chunk size
+    lr: 2e-6                         -- v7 reference value
+    ppo.clip_epsilon: 0.05           -- v7 reference value
+    ppo.clip_epsilon_high: 0.08      -- v7 reference value
+    kl.sft_coeff: 0.02               -- v7 reference value
+    kl.coeff: 0.01                   -- v7 reference value
+    fpo.negative_adv_scale: 1.0      -- v7 reference value
+    fpo.full_chunk_target: true      -- v7 reference value
+    fpo.num_fm_noise_samples: 4      -- standard FPO setting
+    replay (demos+success+dynsample) -- v7 reference recipe
+
+    Wall-clock estimate (revised from v10 timings)
+    ----------------------------------------------
+    iter-0 eval at 200ep: ~5 min
+    20 training iters at trajs=16: ~1.0 hr each = 20 hrs
+    iter-10 internal eval at 200ep: ~5 min
+    iter-20 final internal eval at 200ep: ~5 min
+    Subtotal: ~21 hrs. Comfortable inside 24h L40s.
+
+    Decision rules (production eval at 100ep on best_rollout/last)
+    -------------------------------------------------------------
+    - suite-avg >= 0.78: confirmed beat. Promote to v11 with
+      clip_epsilon_high=0.16 (DAPO ingredient a) layered on top.
+    - suite-avg in [0.74, 0.78]: marginal beat or noise. Keep
+      stochastic rollouts, layer cliphi=0.16 in v11 to lift further.
+    - suite-avg < 0.74 AND best_rollout < last: stochastic rollouts
+      converged but to a worse policy than SFT. Pivot to RIPT-VLA-
+      style REINFORCE-LOO, or revisit SFT-KL anchor mechanics.
+    - rollout_successes monotonically dropping again at trajs=16:
+      stochasticity is producing high-variance advantages that
+      negative_adv_scale=1.0 then over-penalises. Set
+      fpo.negative_adv_scale=0.0 in v11 (proven safer in v9
+      chunk-1 scout).
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 16
+iterations: 20
+eval_every: 10
+eval_episodes: 20
+max_steps: 220
+seed: 42
+wandb_name: v10b-multi-chunk2-trajs16-stochrollouts-negadv0-fastiter
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 2
+  eval_zero_sample: false
+
+fpo:
+  full_chunk_target: true
+  num_fm_noise_samples: 4
+  negative_adv_scale: 0.0

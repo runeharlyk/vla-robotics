@@ -1,0 +1,136 @@
+{
+  "record_type": "training",
+  "wandb_run_name": "success-bc-t5-chunk5-fast-buffer320-lr3e6-epochs4-eval100_sparse_rl_spatial_task_5_seed42_28326132",
+  "method": "SPARSE_RL",
+  "update_method": "SUCCESS_BC",
+  "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28326132",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "sft_checkpoint": "None",
+  "suite": "SPATIAL",
+  "seed": 42,
+  "num_tasks": 1,
+  "task_ids": [
+    "spatial_task_5"
+  ],
+  "libero_task_indices": [],
+  "include_demos_in_update": false,
+  "success_replay_total_size": 0,
+  "trajs_per_task_per_iter": 32,
+  "config": {
+    "kl": {
+      "coeff": 0,
+      "target": 0.01,
+      "adaptive": false,
+      "sft_coeff": 0.005,
+      "adapt_factor": 1.5
+    },
+    "lr": 3e-06,
+    "awr": {
+      "epochs": 2,
+      "temperature": 5,
+      "weight_clip": 20
+    },
+    "fpo": {
+      "log_ratio_clip": 5,
+      "loss_reduction": "sum",
+      "full_chunk_target": true,
+      "positive_adv_only": false,
+      "use_ref_policy_kl": false,
+      "negative_adv_scale": 1,
+      "num_fm_noise_samples": 4
+    },
+    "ppo": {
+      "epochs": 1,
+      "clip_epsilon": 0.05,
+      "minibatch_trajs": 4,
+      "clip_epsilon_high": 0.08
+    },
+    "mode": "SPARSE_RL",
+    "seed": 42,
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "suite": "SPATIAL",
+    "tasks": [
+      "spatial_task_5"
+    ],
+    "env_id": "libero_spatial",
+    "method": "SPARSE_RL",
+    "replay": {
+      "success_alpha": 1,
+      "success_ema_decay": 0.8,
+      "success_max_ratio": 1,
+      "success_total_size": 320,
+      "success_buffer_size": 0,
+      "include_demos_in_update": false
+    },
+    "rollout": {
+      "num_envs": 8,
+      "eval_num_envs": 8,
+      "fm_batch_size": 64,
+      "n_action_steps": 5,
+      "eval_zero_sample": true,
+      "gradient_checkpointing": true
+    },
+    "task_id": 5,
+    "sampling": {
+      "enabled": false,
+      "max_retries": 2
+    },
+    "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28326132",
+    "advantage": {
+      "eps": 1e-08,
+      "mode": "LEAVE_ONE_OUT",
+      "skip_threshold": 1e-06
+    },
+    "max_steps": 220,
+    "num_demos": 5,
+    "num_tasks": 1,
+    "simulator": "LIBERO",
+    "state_dim": 8,
+    "checkpoint": "HuggingFaceVLA/smolvla_libero",
+    "dbscan_eps": 0.5,
+    "eval_every": 10,
+    "success_bc": {
+      "epochs": 4,
+      "loss_reduction": "mean"
+    },
+    "weight_decay": 1e-10,
+    "eval_episodes": 100,
+    "max_grad_norm": 10,
+    "update_method": "SUCCESS_BC",
+    "num_iterations": 80,
+    "sft_checkpoint": "None",
+    "dbscan_auto_eps": false,
+    "distance_metric": "NORMALIZED_L2",
+    "subsample_every": 1,
+    "world_model_type": "VJEPA2",
+    "dbscan_min_samples": 2,
+    "use_failure_rewards": true,
+    "use_standard_scaler": false,
+    "trajs_per_task_per_iter": 32
+  },
+  "wandb_id": "g4a0om7o",
+  "wandb_project": "srpo-smolvla",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/srpo-smolvla/runs/g4a0om7o",
+  "wandb_state": "crashed",
+  "wandb_created_at": "2026-04-29T20:09:36Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "28326132",
+  "lsf_job_name": "",
+  "hostname": "n-62-13-18",
+  "git_commit": "c7a8c565f492096c257758da5b791bcde0b5fb38",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
+  "metrics_jsonl": "C:\\data\\Repos\\vla-robotics\\results\\training_curves\\success-bc-t5-chunk5-fast-buffer320-lr3e6-epochs4-eval100_sparse_rl_spatial_task_5_seed42_28326132.jsonl",
+  "history_points": 52,
+  "best_eval_metric_key": "sparse_rl/eval/success_rate",
+  "best_eval_metric_value": 0.45,
+  "best_eval_iteration": 30,
+  "final_eval_metric_key": "sparse_rl/eval/success_rate",
+  "final_eval_metric_value": 0.3,
+  "final_eval_iteration": 50
+}

@@ -1,0 +1,79 @@
+# @package _global_
+
+metadata:
+  label: v11b-multi-success-bc-replay320
+  source_doc: docs/wise_ft_alpha_sweep_decision_tree.md
+  source_config: configs/train_srpo/experiment/success_bc_t5_chunk5_replay320.yaml
+  notes: |
+    Track A2 ablation: multi-task RIPT-VLA-style success-only BC.
+    The single-task variant (success_bc_t5_chunk5_replay320, 28350306)
+    lifted spatial_task_5 from 0.36 to 0.48 (+12pp) with raw_sft_kl ~3e-4,
+    proving that BC on successful rollouts only is the most stable update
+    direction we have available.
+
+    Why try it multi-task here:
+    - Multi-task FPO regresses saturated tasks (t1, t8 in v10) because the
+      negative-advantage branch pushes hard away from the few failures
+      that show up in those near-saturated batches.  success_bc has *no*
+      negative-gradient surface; it is pure positive imitation on
+      replayed successes plus the demo set.  By construction it cannot
+      destroy a saturated task in the same way FPO can.
+    - The single-task experiment used success_buffer_size (per-task);
+      multi-task uses success_total_size (global capacity, balanced across
+      tasks) so that the small bag of successful rollouts on hard tasks
+      gets reused at a useful rate against the much larger pool of t1/t8
+      successes.
+
+    Recipe (cloned from success_bc_t5_chunk5_replay320 with multi-task
+    deltas):
+    - task_ids: all (vs "5"), update_method: success_bc.
+    - replay: include_demos true, success_total_size 320 (global, not
+      per-task), success_max_ratio 1.0, success_alpha 1.0.
+    - kl.sft_coeff 0.02 (matches v10b); kl.coeff 0.0 because there is no
+      old-policy clip in success_bc to anchor against.
+    - rollout.n_action_steps 2 to match v10b/v11a wall-clock and chunk
+      structure.
+    - eval_zero_sample false to keep eval distribution consistent with
+      the v10b / v11a comparison; rollouts are stochastic regardless.
+    - iterations 30 / eval_every 6 / eval_episodes 100 to match v11a.
+
+    Decision rule (compared against SFT 74.3% reference):
+    - SUCCESS: suite-avg >= 78% AND no per-task regression > 4pp vs SFT
+      -> promote /best for WiSE-FT alpha sweep.
+    - PARTIAL (74-78%): WiSE-FT-merge with SFT and pick best alpha.
+    - FAIL (<74%): conclude that even the no-negative-gradient pure-BC
+      variant cannot move suite-avg multi-task; pivot fully to Track B
+      (validated trajectory refinement -> SFT re-training).
+
+task_ids: all
+mode: sparse_rl
+update_method: success_bc
+lr: 1e-6
+trajs_per_task: 16
+iterations: 30
+eval_every: 6
+eval_episodes: 100
+wandb_name: v11b-multi-success-bc-replay320-sftkl002-eval100
+
+kl:
+  coeff: 0.0
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 1.0
+
+success_bc:
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
+sampling:
+  dynamic: false
+
+rollout:
+  n_action_steps: 2
+  eval_zero_sample: false

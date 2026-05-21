@@ -1,0 +1,116 @@
+# @package _global_
+
+metadata:
+  label: v12-multi-success-bc-rlpd5050-utd
+  source_doc: docs/rlpd_porting_notes.md
+  source_config: configs/train_srpo/experiment/v11b_multi_success_bc_replay320.yaml
+  notes: |
+    Track A2 follow-up: port two RLPD/HIL-SERL ideas (Ball et al. 2023;
+    Luo et al. 2024) on top of the v11b success_bc + replay_320 recipe.
+
+    Why this run exists:
+    - v11b confirmed success_bc with sft_coeff=0.02 is structurally
+      stable: raw_sft_kl ~5e-5 after 8 iters (vs v10b's 0.25), but it
+      barely moves suite-avg (-0.7pp at iter 6 vs SFT init).  The
+      diagnosis: the current success_bc batch is dominated by saturated-
+      task successes (t1/t2/t8 each contribute ~92 successful rollouts
+      per iter, t5 contributes ~30) so the gradient is biased away from
+      the demos that ground the policy on solved tasks, and toward
+      whichever task happens to have a lot of recent successes.
+    - sft_coeff=0.02 KL is six orders of magnitude smaller than the
+      success_bc loss term itself (~9e-7 vs ~0.29 at iter 1), so the KL
+      anchor was a no-op even when present.
+
+    What we port from RLPD (Ball et al. 2023):
+    1. Symmetric demo + online sampling: every minibatch is composed of
+       50% demos + 50% online (rollout/replay). This is the "implicit
+       anchor via the data sampler" mechanism RLPD uses instead of an
+       explicit KL term.  When one pool is short the sampler falls back
+       to the other so optimisation never stalls.  Implemented via
+       success_bc.balanced_demo_sampling=true.
+    2. Higher update-to-data (UTD) ratio: bump success_bc_epochs from 1
+       to 6 and minibatch_trajs from 4 to 8.  RLPD typically uses UTD=20
+       on tiny critics; we cannot afford that on a 500M-param flow-
+       matching policy, but 6 epochs at mb=8 still raises grad steps per
+       iter from ~40 to ~150-200 (depending on success count) -- a 4-5x
+       UTD lift -- without blowing wall-clock past 24h on an L40s.
+
+    What we explicitly do NOT port (with reason):
+    - Q-function head + DQN/SAC critic update.  RLPD's sample efficiency
+      comes from off-policy Q-learning that re-uses transitions for many
+      gradient updates.  SmolVLA is a flow-matching action sampler with
+      no tractable log-pi(a|s); adding a Q-head is real engineering and
+      a separate experiment.
+    - Frozen pretrained vision backbone.  HIL-SERL freezes ResNet-10 and
+      only trains a small MLP head.  SmolVLA's vision tower is entwined
+      with action prediction; freezing it without re-architecting the
+      action decoder would break the policy.
+    - Layer-norm critic + ensembled min-target.  Only relevant once a
+      Q-function exists.
+    - Human interventions.  Not applicable in sim-only LIBERO.
+
+    Why we drop the SFT-KL anchor entirely (kl.sft_coeff=0.0):
+    - Empirically a no-op on v11b (~9e-7 contribution to total loss).
+    - Conceptually, the 50/50 demo batch IS the anchor in RLPD: every
+      gradient step explicitly sees demo data, which prevents the policy
+      from drifting away from the demo distribution far more strongly
+      than a KL term whose magnitude is dwarfed by the BC objective.
+    - Verifies that the suite-avg motion (whichever direction) is
+      attributable to the data composition, not to KL hyperparameters.
+
+    Diagnostics this run will produce that v11b did not:
+    - sparse_rl/{tid}/demo_replay_success_rate: per-task fraction of
+      demos that still reach the goal when their recorded actions are
+      replayed in the freshly-seeded env.  If this is < 0.8 on any task
+      we have a real demo-grounding problem caused by env init-state
+      mismatch (LIBERO picks init via np.random.RandomState(seed)
+      .randint(num_init_states), and the seed in our cache may not
+      align with the demo's recorded init state).
+    - sparse_rl/success_bc/demo_fraction and online_fraction: actual
+      ratio of demos vs online trajs consumed by the optimiser per
+      iter.  Confirms that the balanced sampler is doing what we asked.
+
+    Decision rule (compared against SFT n=1 = 74.3% chunk-1 reference):
+    - SUCCESS: suite-avg >= 78% AND no per-task regression > 4pp.
+      -> promote /best for WiSE-FT alpha sweep.
+    - PARTIAL (74-78%): WiSE-FT-merge with SFT.
+    - FAIL (<74%): conclude that the data-sampling fix alone cannot
+      move suite-avg in the success_bc family; the next experiment is
+      a Q-head pilot on t5 (the only task with a real RL signal).
+
+task_ids: all
+mode: sparse_rl
+update_method: success_bc
+lr: 1e-6
+trajs_per_task: 16
+iterations: 30
+eval_every: 6
+eval_episodes: 100
+wandb_name: v12-multi-success-bc-rlpd5050-utd
+
+demo_replay: false
+
+kl:
+  coeff: 0.0
+  sft_coeff: 0.0
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 1.0
+
+success_bc:
+  epochs: 6
+  minibatch_trajs: 8
+  loss_reduction: mean
+  balanced_demo_sampling: true
+  demo_sampling_ratio: 0.5
+
+sampling:
+  dynamic: false
+
+rollout:
+  n_action_steps: 2
+  eval_zero_sample: false

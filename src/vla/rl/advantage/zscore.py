@@ -44,11 +44,17 @@ def normalize_advantages_per_task(
     for tid, indices in by_task.items():
         task_g = torch.tensor([g_values[i] for i in indices], dtype=torch.float32)
         g_mean = task_g.mean()
-        g_std = task_g.std().clamp(min=eps)
         per_task_g_mean[tid] = g_mean.item()
-        if g_std < skip_threshold:
+
+        if task_g.numel() <= 1:
             skipped_tasks.append(tid)
             continue
+
+        raw_std = task_g.std(unbiased=False)
+        if raw_std.item() < skip_threshold:
+            skipped_tasks.append(tid)
+            continue
+        g_std = raw_std.clamp(min=eps)
         task_adv = ((task_g - g_mean) / g_std).tolist()
         for j, idx in enumerate(indices):
             advantages[idx] = task_adv[j]

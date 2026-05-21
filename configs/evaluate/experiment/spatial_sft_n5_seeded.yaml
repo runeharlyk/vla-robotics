@@ -1,0 +1,8 @@
+# @package _global_
+
+metadata:
+  label: spatial-sft-n5-seeded
+  notes: "Seeded LIBERO spatial SFT eval executing 5 actions per sampled chunk."
+
+wandb_name: eval_sft_spatial_current_seed42_n5
+n_action_steps: 5

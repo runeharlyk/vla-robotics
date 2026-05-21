@@ -1,0 +1,80 @@
+{
+  "record_type": "evaluation",
+  "wandb_run_name": "eval_fpo_t5_chunk5_lowsft_kl_best_28314273",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "checkpoint_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28314273/best",
+  "simulator": "libero",
+  "suite": "spatial",
+  "env_id": "PickCube-v1",
+  "num_episodes": 100,
+  "num_envs": 8,
+  "n_action_steps": 5,
+  "rollout_sampler": "normal",
+  "flow_grpo_sigma": null,
+  "flow_grpo_sde_steps": null,
+  "max_steps": 220,
+  "seed": 42,
+  "fixed_noise_seed": 42,
+  "task_id": null,
+  "success_rate": 0.564,
+  "mean_reward": 0.564,
+  "task_metrics": [
+    {
+      "task_id": 0,
+      "success_rate": 0.55
+    },
+    {
+      "task_id": 1,
+      "success_rate": 0.75
+    },
+    {
+      "task_id": 2,
+      "success_rate": 0.64
+    },
+    {
+      "task_id": 3,
+      "success_rate": 0.4
+    },
+    {
+      "task_id": 4,
+      "success_rate": 0.65
+    },
+    {
+      "task_id": 5,
+      "success_rate": 0.28
+    },
+    {
+      "task_id": 6,
+      "success_rate": 0.64
+    },
+    {
+      "task_id": 7,
+      "success_rate": 0.5
+    },
+    {
+      "task_id": 8,
+      "success_rate": 0.7
+    },
+    {
+      "task_id": 9,
+      "success_rate": 0.53
+    }
+  ],
+  "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28314273/best",
+  "training_method": "sft",
+  "wandb_id": "h3437ovb",
+  "wandb_project": "vla-libero-eval",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/vla-libero-eval/runs/h3437ovb",
+  "wandb_state": "finished",
+  "wandb_created_at": "2026-05-02T20:35:15Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "28314273",
+  "lsf_job_name": "",
+  "hostname": "n-62-18-5",
+  "git_commit": "a60f7f4dd2ff1bbb132eb0554685164c43a19226",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
+  "training_git_commit": "a60f7f4dd2ff1bbb132eb0554685164c43a19226"
+}

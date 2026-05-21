@@ -1,0 +1,72 @@
+# @package _global_
+
+metadata:
+  label: p5a-cross-suite-anchor-ckpts
+  source_doc: docs/thesis_research_plan.md
+  notes: |
+    Thesis Phase 5, run A: evaluate the four thesis anchor checkpoints
+    on all four LIBERO suites (spatial, object, goal, long) at
+    100 ep/task / n=1 / fixed_noise_seed=42 -- the canonical
+    thesis-grade protocol.
+
+    Anchor checkpoints to compare:
+      1. SFT base                  (HuggingFaceVLA/smolvla_libero)
+      2. RL main                   (Phase-2 winner from P1a/P1b/P1c)
+      3. WiSE-FT(alpha*)           (Phase-3 winner of the spatial sweep)
+      4. Distilled student         (Phase-4b output trained from teacher
+                                   rollouts of the WiSE-FT ckpt)
+
+    The four checkpoint paths below are placeholders. Set them to the
+    actual paths from results/training/* once Phases 1-4 have produced
+    them. Each evaluation produces its own JSON record in
+    results/evals/ that downstream analysis (scripts/plot_results.py,
+    vla.analysis.load_training_runs) can aggregate by suite + ckpt.
+
+    Why one job per (suite, ckpt) rather than four separate jobs:
+    - 4 anchors x 4 suites x 10 tasks x 100 ep = 16000 episodes.
+      At roughly 8 sec/episode on L40s with num_envs=8, that's about
+      36 GPU-hours. We split this into one job per anchor (4 jobs),
+      each evaluating all four suites in a 12-16h walltime.
+    - This keeps each LSF job within the cluster's queue limits and
+      gives one job per W&B run per anchor, which lines up cleanly
+      with the headline-figure aggregation in scripts/plot_results.py.
+
+    The four anchor configs below share most fields (num_episodes,
+    n_action_steps, seed, fixed_noise_seed). Each ``evaluations``
+    entry overrides only what's specific to that (suite, ckpt) cell.
+    Run this config once per anchor checkpoint -- update
+    ``checkpoint_dir`` and ``wise_ft_alpha`` for each anchor before
+    submitting.
+
+# Common defaults applied to every evaluation below; per-eval overrides
+# stack on top.
+checkpoint_dir: REPLACE_WITH_ANCHOR_RL_CKPT_DIR
+checkpoint: HuggingFaceVLA/smolvla_libero
+num_episodes: 100
+n_action_steps: 1
+seed: 42
+fixed_noise_seed: 42
+# Set wise_ft_alpha to null when evaluating a plain ckpt; set to the
+# Phase-3 selected alpha when evaluating the WiSE-FT anchor.
+wise_ft_alpha: null
+
+evaluations:
+  - metadata:
+      label: p5a-cross-suite-spatial
+    suite: spatial
+    wandb_name: eval_p5a_cross_suite_spatial
+
+  - metadata:
+      label: p5a-cross-suite-object
+    suite: object
+    wandb_name: eval_p5a_cross_suite_object
+
+  - metadata:
+      label: p5a-cross-suite-goal
+    suite: goal
+    wandb_name: eval_p5a_cross_suite_goal
+
+  - metadata:
+      label: p5a-cross-suite-long
+    suite: long
+    wandb_name: eval_p5a_cross_suite_long

@@ -1,0 +1,34 @@
+# @package _global_
+
+metadata:
+  label: flow-grpo-t5-sigma001
+  source_doc: docs/flow_grpo_paper_overview.md
+  notes: "Sigma sweep: sigma=0.01 - near-deterministic SDE. Tests whether minimal noise preserves action quality while still providing valid log-probs for GRPO ratios."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: flow_grpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: flow-grpo-t5-chunk5-sigma001-sftkl005-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+flow_grpo:
+  sigma: 0.01
+  sde_steps: 10
+  logprob_reduction: mean
+  log_ratio_clip: 5.0
+  positive_adv_only: false
+  negative_adv_scale: 1.0

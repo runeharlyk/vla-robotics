@@ -527,6 +527,12 @@ class TestPerTaskAdvantageNorm:
         assert "B" not in result.skipped_tasks
         assert all(result.advantages[i] == 0.0 for i in range(3))
 
+    def test_single_trajectory_task_skipped_without_nan(self):
+        result = normalize_advantages_per_task([1.0], ["A"])
+
+        assert result.skipped_tasks == ["A"]
+        assert result.advantages == [0.0]
+
     def test_per_task_g_mean_reported(self):
         g_values = [1.0, 0.0, 0.8, 0.2]
         task_ids = ["X", "X", "Y", "Y"]

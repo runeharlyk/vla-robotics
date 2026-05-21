@@ -1,0 +1,20 @@
+# @package _global_
+
+metadata:
+  label: v17-from-base-task1-replay-demos
+  source_job: jobs/sparse_from_base_l40s.sh
+  notes: "Historical job used wandb_name v17-t-5 but task_ids=1 and lerobot/smolvla_base checkpoint."
+
+checkpoint: lerobot/smolvla_base
+task_ids: "1"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 25
+eval_episodes: 50
+wandb_name: v17-t-5
+
+replay:
+  include_demos: true
+  success_buffer_size: 16

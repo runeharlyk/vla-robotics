@@ -1,0 +1,15 @@
+# @package _global_
+
+metadata:
+  label: v21-t5-srpo-clean
+  source_job: jobs/srpo_fpo_l40s.sh
+  notes: "SRPO FPO task-5 clean baseline; same recipe existed for L40S and A100."
+
+task_ids: "5"
+mode: srpo
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 25
+eval_episodes: 100
+wandb_name: v21-t5-srpo-clean

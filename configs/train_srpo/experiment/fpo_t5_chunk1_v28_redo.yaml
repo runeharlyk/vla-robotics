@@ -1,0 +1,48 @@
+# @package _global_
+
+metadata:
+  label: fpo-t5-chunk1-v28-redo
+  source_doc: docs/libero_spatial_rl_experiment_plan.md
+  notes: |
+    Re-do of the chunk-1 v28 control under the new env-reset seeding,
+    with the proper eval budget. The previous attempt (job 28314273,
+    config "fpo_t5_v28_control") was launched with quick-test overrides
+    (iterations=30, eval_every=15, eval_episodes=50) and only finished
+    27 of 30 iters - its 0.44 best train-eval has CI +/-13pp and is not
+    enough to compare against the chunk-5 runs (28327579: 0.64 +/-9pp,
+    28335554: 0.65 +/-9pp).
+
+    This config explicitly forces iterations=100, eval_every=20,
+    eval_episodes=100 so the result has +/-9pp CI and a like-for-like
+    iteration budget vs the recent chunk-5 confirms. Hyper-params other
+    than n_action_steps mirror "t5_chunk5_nodynamic_confirm" (lr=3e-6,
+    sft_coeff=0.005, no dynamic sampling) so the only variable is the
+    chunk size.
+
+    Decision rule: this is the missing chunk-1 baseline. If train-eval
+    task-5 best is significantly above 0.65, chunk-1 is still the
+    stronger lever and the chunk-5 recipe is not actually progress;
+    if at or below 0.65, the chunk-5 line of work is justified.
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: fpo-t5-chunk1-nodynamic-sftkl005-eval100-v28-redo
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1
+
+fpo:
+  full_chunk_target: true

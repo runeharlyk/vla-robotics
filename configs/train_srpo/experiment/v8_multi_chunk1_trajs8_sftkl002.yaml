@@ -1,0 +1,59 @@
+# @package _global_
+
+metadata:
+  label: v8-multi-chunk1-trajs8-sftkl002
+  source_doc: docs/sparse_rl_path_to_90_spatial.md
+  notes: |
+    Multi-task all-spatial chunk-1 control for v8_multi_chunk5_trajs8_sftkl002.
+
+    Same hyperparameters as the chunk-5 sibling except n_action_steps=1
+    and iterations=30 (chunk-1 is ~5x slower per iter than chunk-5, so
+    30 iters here is roughly the same wall-clock as the 60-iter chunk-5
+    sibling).
+
+    Why this run exists:
+    - The 0.795 SOTA (v7 28249578) was at chunk-1 trajs=32 over 30 iter.
+    - This run swaps trajs=32 -> trajs=8 to test whether the §14
+      multitask-small-group regression (0.755 vs v7 0.795 at 30 iter,
+      eval_eps=20, CI ±9pp - statistically a tie) generalises with
+      sft_coeff bumped from 0.01 to 0.02.
+    - Chunk-1 has no chunk-degradation risk so it is the safety net if
+      the chunk-5 sibling fails to transfer to n=1 eval.
+
+    Decision rule: pin best ckpt with submit-eval at n_action_steps=1
+    and num_episodes=100.
+    If suite-avg @ n=1 > 0.795, trajs=8 chunk-1 is the new thesis
+    main path (cheap and reliable).
+    If both this and the chunk-5 sibling underperform v7, the next
+    round goes to chunk-1 trajs=32 long (no shortcuts).
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 30
+eval_every: 15
+eval_episodes: 100
+wandb_name: v8-multi-chunk1-trajs8-sftkl002-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1
+
+fpo:
+  full_chunk_target: true

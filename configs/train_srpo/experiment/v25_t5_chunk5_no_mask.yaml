@@ -1,0 +1,26 @@
+# @package _global_
+
+metadata:
+  label: v25-t5-chunking-no-mask
+  source_job: jobs/sparse_fpo_t5_chunk_nomask_l40s.sh
+  notes: "User-submitted chunk-5 no-mask run; dynamic sampling max retries set to 4 from submitted script."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: v25-t5-chunking-no-mask
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 4
+
+rollout:
+  n_action_steps: 5

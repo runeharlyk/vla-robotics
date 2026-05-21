@@ -1,0 +1,57 @@
+# @package _global_
+
+metadata:
+  label: spatial-sft-flow-sde-scout
+  notes: >-
+    Cheap first-pass Flow-SDE viability test. Same SFT checkpoint and sampler
+    sweep as the full protocol, but 20 episodes per task so it can be run before
+    spending a full 100-episode eval on every sigma.
+
+checkpoint_dir: null
+checkpoint: HuggingFaceVLA/smolvla_libero
+simulator: libero
+suite: spatial
+num_episodes: 20
+num_envs: 8
+n_action_steps: 5
+max_steps: 220
+seed: 42
+fixed_noise_seed: null
+wandb: true
+wandb_project: vla-libero-eval
+
+evaluations:
+  - metadata:
+      label: scout-sft-normal-chunk5
+    rollout_sampler: normal
+    flow_grpo_sigma: 0.0
+    flow_grpo_sde_steps: 0
+    wandb_name: scout_sft_spatial_normal_chunk5_seed42
+
+  - metadata:
+      label: scout-sft-flow-sde-sigma001
+    rollout_sampler: flow_sde
+    flow_grpo_sigma: 0.01
+    flow_grpo_sde_steps: 10
+    wandb_name: scout_sft_spatial_flow_sde_sigma001_steps10_chunk5_seed42
+
+  - metadata:
+      label: scout-sft-flow-sde-sigma003
+    rollout_sampler: flow_sde
+    flow_grpo_sigma: 0.03
+    flow_grpo_sde_steps: 10
+    wandb_name: scout_sft_spatial_flow_sde_sigma003_steps10_chunk5_seed42
+
+  - metadata:
+      label: scout-sft-flow-sde-sigma005
+    rollout_sampler: flow_sde
+    flow_grpo_sigma: 0.05
+    flow_grpo_sde_steps: 10
+    wandb_name: scout_sft_spatial_flow_sde_sigma005_steps10_chunk5_seed42
+
+  - metadata:
+      label: scout-sft-flow-sde-sigma010
+    rollout_sampler: flow_sde
+    flow_grpo_sigma: 0.10
+    flow_grpo_sde_steps: 10
+    wandb_name: scout_sft_spatial_flow_sde_sigma010_steps10_chunk5_seed42

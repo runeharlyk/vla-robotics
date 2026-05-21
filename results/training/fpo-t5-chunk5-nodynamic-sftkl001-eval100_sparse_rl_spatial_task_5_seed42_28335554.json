@@ -1,0 +1,144 @@
+{
+  "record_type": "training",
+  "wandb_run_name": "fpo-t5-chunk5-nodynamic-sftkl001-eval100_sparse_rl_spatial_task_5_seed42_28335554",
+  "method": "SPARSE_RL",
+  "update_method": "FPO",
+  "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28335554",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "sft_checkpoint": "None",
+  "suite": "SPATIAL",
+  "seed": 42,
+  "num_tasks": 1,
+  "task_ids": [
+    "spatial_task_5"
+  ],
+  "libero_task_indices": [],
+  "include_demos_in_update": false,
+  "success_replay_total_size": 0,
+  "trajs_per_task_per_iter": 32,
+  "config": {
+    "kl": {
+      "coeff": 0.01,
+      "target": 0.01,
+      "adaptive": false,
+      "sft_coeff": 0.001,
+      "adapt_factor": 1.5
+    },
+    "lr": 3e-06,
+    "awr": {
+      "epochs": 2,
+      "temperature": 5,
+      "weight_clip": 20
+    },
+    "fpo": {
+      "log_ratio_clip": 5,
+      "loss_reduction": "sum",
+      "full_chunk_target": true,
+      "positive_adv_only": false,
+      "use_ref_policy_kl": false,
+      "negative_adv_scale": 1,
+      "num_fm_noise_samples": 4
+    },
+    "ppo": {
+      "epochs": 1,
+      "clip_epsilon": 0.05,
+      "minibatch_trajs": 4,
+      "clip_epsilon_high": 0.08
+    },
+    "mode": "SPARSE_RL",
+    "seed": 42,
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "suite": "SPATIAL",
+    "tasks": [
+      "spatial_task_5"
+    ],
+    "env_id": "libero_spatial",
+    "method": "SPARSE_RL",
+    "replay": {
+      "success_alpha": 1,
+      "success_ema_decay": 0.8,
+      "success_max_ratio": 1,
+      "success_total_size": 0,
+      "success_buffer_size": 0,
+      "include_demos_in_update": false
+    },
+    "rollout": {
+      "num_envs": 8,
+      "eval_num_envs": 8,
+      "fm_batch_size": 64,
+      "n_action_steps": 5,
+      "eval_zero_sample": true,
+      "gradient_checkpointing": true
+    },
+    "task_id": 5,
+    "sampling": {
+      "enabled": false,
+      "max_retries": 2
+    },
+    "save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/spatial_task_5_seed42_28335554",
+    "advantage": {
+      "eps": 1e-08,
+      "mode": "LEAVE_ONE_OUT",
+      "skip_threshold": 1e-06
+    },
+    "flow_grpo": {
+      "sigma": 0.1,
+      "sde_steps": 0,
+      "log_ratio_clip": 5,
+      "logprob_reduction": "mean",
+      "positive_adv_only": false,
+      "negative_adv_scale": 1
+    },
+    "max_steps": 220,
+    "num_demos": 5,
+    "num_tasks": 1,
+    "simulator": "LIBERO",
+    "state_dim": 8,
+    "checkpoint": "HuggingFaceVLA/smolvla_libero",
+    "dbscan_eps": 0.5,
+    "eval_every": 20,
+    "success_bc": {
+      "epochs": 1,
+      "loss_reduction": "mean"
+    },
+    "weight_decay": 1e-10,
+    "eval_episodes": 100,
+    "max_grad_norm": 10,
+    "update_method": "FPO",
+    "num_iterations": 100,
+    "sft_checkpoint": "None",
+    "dbscan_auto_eps": false,
+    "distance_metric": "NORMALIZED_L2",
+    "subsample_every": 1,
+    "world_model_type": "VJEPA2",
+    "dbscan_min_samples": 2,
+    "use_failure_rewards": true,
+    "use_standard_scaler": false,
+    "trajs_per_task_per_iter": 32
+  },
+  "wandb_id": "8dz6wsmt",
+  "wandb_project": "srpo-smolvla",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/srpo-smolvla/runs/8dz6wsmt",
+  "wandb_state": "finished",
+  "wandb_created_at": "2026-05-01T20:58:04Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "28335554",
+  "lsf_job_name": "",
+  "hostname": "n-62-13-16",
+  "git_commit": "e8617a07bf2a128a940ed24888adbe2c13748f09",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
+  "metrics_jsonl": "C:\\data\\Repos\\vla-robotics\\results\\training_curves\\fpo-t5-chunk5-nodynamic-sftkl001-eval100_sparse_rl_spatial_task_5_seed42_28335554.jsonl",
+  "history_points": 101,
+  "best_eval_metric_key": "sparse_rl/eval/success_rate",
+  "best_eval_metric_value": 0.65,
+  "best_eval_iteration": 100,
+  "final_eval_metric_key": "sparse_rl/eval/success_rate",
+  "final_eval_metric_value": 0.65,
+  "final_eval_iteration": 100
+}

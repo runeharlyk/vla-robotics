@@ -1,0 +1,23 @@
+# @package _global_
+
+metadata:
+  label: srpo-t-all-smoke-v1
+  source_job: jobs/srpo_libero_smoke_l40s.sh
+  notes: "LIBERO spatial all-task SRPO FPO smoke run."
+
+task_ids: all
+mode: srpo
+update_method: fpo
+num_demos: 5
+lr: 3e-6
+iterations: 35
+eval_every: 10
+eval_episodes: 50
+wandb_name: srpo_t_all_smoke_v1
+subsample_every: 5
+distance_metric: normalized_l2
+dbscan_eps: 0.5
+dbscan_min_samples: 2
+
+fpo:
+  negative_adv_scale: 0.75

@@ -1,0 +1,80 @@
+{
+  "record_type": "evaluation",
+  "wandb_run_name": "eval_v10_multi_chunk2_trajs32_cliphi016_last_explicit",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "checkpoint_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/10tasks_spatial_seed42_28391632/last",
+  "simulator": "libero",
+  "suite": "spatial",
+  "env_id": "PickCube-v1",
+  "num_episodes": 100,
+  "num_envs": 8,
+  "n_action_steps": 1,
+  "rollout_sampler": "normal",
+  "flow_grpo_sigma": null,
+  "flow_grpo_sde_steps": null,
+  "max_steps": 220,
+  "seed": 42,
+  "fixed_noise_seed": 42,
+  "task_id": null,
+  "success_rate": 0.733,
+  "mean_reward": 0.733,
+  "task_metrics": [
+    {
+      "task_id": 0,
+      "success_rate": 0.7
+    },
+    {
+      "task_id": 1,
+      "success_rate": 0.92
+    },
+    {
+      "task_id": 2,
+      "success_rate": 0.87
+    },
+    {
+      "task_id": 3,
+      "success_rate": 0.61
+    },
+    {
+      "task_id": 4,
+      "success_rate": 0.74
+    },
+    {
+      "task_id": 5,
+      "success_rate": 0.37
+    },
+    {
+      "task_id": 6,
+      "success_rate": 0.8
+    },
+    {
+      "task_id": 7,
+      "success_rate": 0.77
+    },
+    {
+      "task_id": 8,
+      "success_rate": 0.8
+    },
+    {
+      "task_id": 9,
+      "success_rate": 0.75
+    }
+  ],
+  "training_save_dir": "/work3/s234814/vla-robotics/checkpoints/sparse_rl/10tasks_spatial_seed42_28391632/last",
+  "training_method": "sparse_rl",
+  "wandb_id": "ry9qubdd",
+  "wandb_project": "vla-libero-eval",
+  "wandb_entity": "bachelor-vla",
+  "wandb_url": "https://wandb.ai/bachelor-vla/vla-libero-eval/runs/ry9qubdd",
+  "wandb_state": "finished",
+  "wandb_created_at": "2026-05-09T15:24:40Z",
+  "wandb_updated_at": "",
+  "wandb_tags": [],
+  "lsf_job_id": "",
+  "lsf_job_name": "",
+  "hostname": "n-62-18-5",
+  "git_commit": "a8846ced8fbc44a9e6bd0369d223631e8a6164a6",
+  "git_branch": "",
+  "git_remote": "https://runeharlyk:@github.com/runeharlyk/vla-robotics",
+  "training_git_commit": "a8846ced8fbc44a9e6bd0369d223631e8a6164a6"
+}

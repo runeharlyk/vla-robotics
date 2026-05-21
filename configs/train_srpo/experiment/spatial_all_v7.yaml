@@ -1,0 +1,30 @@
+# @package _global_
+
+metadata:
+  label: spatial-all-v7
+  source_job: jobs/sparse_fpo_spatial_all_v7_l40s.sh
+  notes: "All spatial tasks, dynamic sampling, replay with demos, sft_kl=0.02."
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+iterations: 30
+eval_every: 15
+eval_episodes: 20
+wandb_name: spatial-all-v7-lr2e6-sftkl002-replay320-demos-dynsample
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2

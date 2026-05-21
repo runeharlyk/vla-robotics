@@ -1,0 +1,75 @@
+# @package _global_
+
+metadata:
+  label: v11a-multi-chunk2-trajs16-sftkl005
+  source_doc: docs/wise_ft_alpha_sweep_decision_tree.md
+  source_config: configs/train_srpo/experiment/v9_multi_chunk2_trajs8_neg0_lr1_scout.yaml
+  notes: |
+    Track A2 ablation: clone the v10b chunk-2 trajs-16 stochrollouts recipe
+    but raise kl.sft_coeff from 0.02 to 0.05 to bind the SFT anchor harder
+    against the catastrophic-forgetting pattern documented in the v10
+    multi-task run (28391701):
+
+    - raw_sft_kl drifted to 0.04+ by iter 6 with sft_coeff=0.02, despite a
+      kl.target of 0.01.  The anchor was not binding when t1/t8 saturation
+      caused a few-failure regime that pushed FPO into large negative-adv
+      gradients on saturated tasks.
+    - v10b already addresses the negative-adv side by setting
+      fpo.negative_adv_scale=0.0; this run additionally tightens the SFT
+      anchor so that the pure positive-advantage gradient still cannot
+      drag the policy off the SFT manifold on tasks where it is already
+      near-saturated.
+
+    Recipe changes vs v10b (chunk2 trajs16 stochrollouts fastiter):
+    - kl.sft_coeff: 0.02 -> 0.05  (sole intentional change for this run)
+    - All other knobs: chunk-2 (n_action_steps=2), trajs_per_task=16,
+      eval_zero_sample=false (stochastic rollouts), negative_adv_scale=0.0,
+      include_demos=true, success_total_size=320, success_max_ratio=0.5,
+      dynamic sampling on, full_chunk_target=true.
+
+    Decision rule (compared against the SFT 74.3% reference):
+    - SUCCESS: suite-avg >= 78% by iter 30 with raw_sft_kl below 0.03 at
+      every eval -> promote /best for the WiSE-FT alpha sweep in Track A1.
+    - PARTIAL (74-78%): WiSE-FT-merge with SFT and pick the alpha that
+      maximises suite-avg.
+    - FAIL (<74%): pivot to v11b (success_bc) or Track B.
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 16
+iterations: 30
+eval_every: 6
+eval_episodes: 100
+wandb_name: v11a-multi-chunk2-trajs16-sftkl005-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.05
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 2
+  eval_zero_sample: false
+
+fpo:
+  full_chunk_target: true
+  negative_adv_scale: 0.0
+  num_fm_noise_samples: 4
