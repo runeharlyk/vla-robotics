@@ -139,6 +139,9 @@ class SRPOConfig(BaseTrainingConfig):
     state_dim: int = 0
     use_failure_rewards: bool = True
     use_standard_scaler: bool = False
+    demo_replay_seed_mode: str = "episode_index"
+    demo_replay_fixed_seed: int = 0
+    demo_replay_require_success: bool = True
 
     advantage: AdvantageConfig = field(default_factory=AdvantageConfig)
     ppo: PPOConfig = field(default_factory=PPOConfig)

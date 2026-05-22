@@ -1,0 +1,72 @@
+action: train-sft-libero
+label: "Job B — augmented: continued SFT on all 4 LIBERO suites with perturbations + online augmentation + paraphrases, upstream recipe"
+
+datasets:
+  - data/preprocessed/spatial.pt
+  - data/preprocessed/object.pt
+  - data/preprocessed/goal.pt
+  - data/preprocessed/long.pt
+  - data/preprocessed/spatial_perturbed.pt
+  - data/preprocessed/object_perturbed.pt
+  - data/preprocessed/goal_perturbed.pt
+  - data/preprocessed/long_perturbed.pt
+
+checkpoint: HuggingFaceVLA/smolvla_libero
+seed: 42
+
+# Match the recipe used to train HuggingFaceVLA/smolvla_libero exactly
+# (see sft_libero_all_control.yaml for the source-of-truth references).
+lr: 1.0e-4
+batch_size: 64
+micro_batch_size: 4
+warmup_steps: 1000
+decay_steps: 30000
+decay_lr: 2.5e-6
+grad_clip_norm: 10.0
+action_chunk_size: 50
+
+# Job A uses 25 epochs to land near the paper's 100k optimizer step budget.
+# Job B's effective dataset is bigger (clean + perturbed), so fewer epochs
+# yield the same step count. 18 epochs on the ~350k-sample augmented set
+# at batch 64 gives ~95k optimizer steps — same budget as Job A.
+num_epochs: 18
+
+eval_every: 5
+eval_episodes: 100
+max_steps: 220
+
+simulator: libero
+eval_suite: spatial
+
+augmentation:
+  brightness: 0.05
+  contrast: 0.05
+  noise_std: 0.005
+  crop_scale: 0.92
+  repeats: 1
+
+instruction_variants: data/instruction_variants/libero_all.json
+
+wandb_project: srpo-smolvla
+wandb_name: aug_sft_chunk1_jobB_augmented
+
+notes: >-
+  Same hyperparameters as Job A (sft_libero_all_control.yaml) plus:
+    * 4 additional perturbed datasets (5 variants each, generated via
+      scripts/replay_perturbed_dataset.py — see jobs/perturb_*_l40s.sh).
+    * Online photometric augmentation (brightness/contrast/noise/crop)
+      layered on top, so the policy never sees the same input twice.
+    * Online instruction paraphrasing via libero_all.json — doubles the
+      effective vocabulary coverage per epoch on top of the materialised
+      paraphrase variants in the perturbed datasets.
+
+  Online augmentation strengths are intentionally conservative (~half the
+  materialised perturbation magnitudes); the heavy lifting is done at
+  dataset creation time.
+
+  Recipe is paper-faithful: we restart the LeRobot SmolVLA cosine schedule
+  (warmup=1k -> decay=30k to 2.5e-6) on top of the converged checkpoint, and
+  match the paper's ~100k optimizer step budget by setting num_epochs=18 to
+  account for the larger augmented dataset.
+
+submit_with: jobs/sft_libero_all_augmented_l40s.sh

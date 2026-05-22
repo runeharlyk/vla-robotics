@@ -1,0 +1,70 @@
+# @package _global_
+
+metadata:
+  label: v9-multi-chunk5-trajs8-sftkl001-cliphi012
+  source_doc: docs/fpo_hyperparameter_experiments.md
+  notes: |
+    Loosened follow-up to v8_multi_chunk5_trajs8_sftkl002 (28343497).
+
+    Diagnosis from 28343497 (39/60 iter):
+    - mean_ratio glued to 1.000-1.007, clip_frac collapses to 0.000
+      after iter ~12. The PPO trust region is not binding; almost no
+      gradient signal survives the SFT pull.
+    - raw_sft_kl rises only ~0.003/iter (0.07 @ iter 20, 0.11 @ iter 39),
+      far below the 0.20-0.30 danger zone observed in chunk-1.
+    - Eval @ iter 20 = 73.5% vs SFT init 74.6% (-1.1pp). Run is stable
+      but flat; we are paying for compute that does not move the policy.
+
+    Two changes vs v8 to give FPO room to actually update without
+    risking the catastrophic drift seen in long single-task runs:
+    - kl.sft_coeff: 0.02 -> 0.01 (halve the SFT anchor pull).
+    - ppo.clip_epsilon_high: 0.08 -> 0.12 (let positive surrogates
+      contribute more before the clip kicks in; keep the negative
+      side at 0.05 to still suppress regressions).
+
+    Decision rule:
+    - If suite-avg @ n=1 (eval 100ep) >= 0.78 by iter 60 AND raw_sft_kl
+      stays under 0.30 throughout, this is the new multi-task path
+      and we proceed to v10 with sftkl=0.005 + 90 iter.
+    - If raw_sft_kl exceeds 0.50 before iter 30, abort: the SFT anchor
+      is too weak for the chunk-5 multi-task signal-to-noise ratio.
+    - If suite-avg @ n=1 stays at 73-75% (i.e. v8-flat repeated), the
+      bottleneck is not the trust region; pivot to the t5-specialist
+      curriculum (v8c_t5_specialist_from_multi).
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 60
+eval_every: 20
+eval_episodes: 100
+wandb_name: v9-multi-chunk5-trajs8-sftkl001-cliphi012-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.01
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.12
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+fpo:
+  full_chunk_target: true

@@ -50,7 +50,7 @@ def _batch_to_replay_obs(
     return torch.stack(cam_views, dim=0), state_t
 
 
-def _replay_single_demo(env: SimEnv, demo: Trajectory, seed: int) -> Trajectory:
+def _replay_single_demo(env: SimEnv, demo: Trajectory, seed: int, max_steps: int) -> Trajectory:
     if demo.init_state_id is not None:
         try:
             raw_obs, _info = env.reset(seed=seed, init_state_id=demo.init_state_id)
@@ -66,7 +66,7 @@ def _replay_single_demo(env: SimEnv, demo: Trajectory, seed: int) -> Trajectory:
     dones: list[torch.Tensor] = []
     success = False
 
-    T = int(demo.length or demo.actions.shape[0])
+    T = min(int(demo.length or demo.actions.shape[0]), max_steps)
     for t in range(T):
         fallback_state = demo.states[t] if demo.states.ndim >= 2 and t < demo.states.shape[0] else None
         batch = env.obs_to_batch(raw_obs)
@@ -115,6 +115,9 @@ def _replay_cache_path(
     suite: LiberoSuite,
     max_steps: int,
     state_dim: int,
+    seed_mode: str,
+    fixed_seed: int,
+    require_success: bool,
 ) -> Path:
     key = hashlib.sha1()
     key.update(str(simulator).encode("utf-8"))
@@ -125,11 +128,52 @@ def _replay_cache_path(
     key.update(str(spec.libero_task_idx).encode("utf-8"))
     key.update(str(max_steps).encode("utf-8"))
     key.update(str(state_dim).encode("utf-8"))
+    key.update(str(seed_mode).encode("utf-8"))
+    key.update(str(fixed_seed).encode("utf-8"))
+    key.update(str(require_success).encode("utf-8"))
     for demo in demos:
         key.update(str(int(demo.length or demo.actions.shape[0])).encode("utf-8"))
         key.update(str(demo.init_state_id).encode("utf-8"))
         key.update(demo.actions.detach().cpu().numpy().tobytes())
     return cache_dir / f"{spec.task_id}_{key.hexdigest()[:16]}.pt"
+
+
+def _replay_seed_for_demo(
+    *,
+    demo: Trajectory,
+    demo_idx: int,
+    spec_idx: int,
+    seed: int,
+    seed_mode: str,
+    fixed_seed: int,
+) -> int:
+    """Resolve the env reset seed used for simulator demo replay."""
+    mode = seed_mode.lower()
+    if mode == "fixed":
+        return fixed_seed
+    if mode == "fixed_offset":
+        return fixed_seed + demo_idx
+    if mode == "episode_index":
+        for entry in demo.privileged_states:
+            if "source_episode_index" in entry:
+                return int(entry["source_episode_index"])
+        if demo.init_state_id is not None:
+            return int(demo.init_state_id)
+        fallback_seed = seed + spec_idx * 10_000 + demo_idx
+        logger.warning(
+            "Demo %d for task index %d has no source episode or init_state_id; "
+            "falling back to seed=%d.",
+            demo_idx,
+            spec_idx,
+            fallback_seed,
+        )
+        return fallback_seed
+    if mode == "collection_offset":
+        return seed + 50_000 + spec_idx * 10_000 + demo_idx
+    raise ValueError(
+        f"Unknown replay seed mode {seed_mode!r}. "
+        "Choose from: episode_index, fixed, fixed_offset, collection_offset."
+    )
 
 
 def _resolve_kept_trajs(
@@ -176,6 +220,9 @@ def replay_demo_rollouts(
     cache_dir: Path | None = None,
     drop_failed_replays: bool = False,
     fallback_to_raw_demo: bool = True,
+    replay_seed_mode: str = "episode_index",
+    replay_fixed_seed: int = 0,
+    require_success: bool = True,
 ) -> tuple[dict[str, list[Trajectory]] | None, dict[str, float]]:
     """Replay demo actions in the simulator and return observation-aligned trajectories.
 
@@ -207,7 +254,10 @@ def replay_demo_rollouts(
     * ``drop_failed_replays=True``: failed replays are removed from the
       returned dict. Use only when you specifically want to study live env
       observations and accept zero demos for tasks where replay fails.
-    * Both False: failed replays are kept (legacy behaviour); the trainer
+    * ``require_success=True``: failed simulator replays are never kept as
+      simulator-observation demos. With fallback enabled they are replaced
+      by raw demos; without fallback they are dropped.
+    * All False: failed replays are kept (legacy behaviour); the trainer
       filters by ``t.success`` at update time.
     """
     replay_success_rate: dict[str, float] = {}
@@ -233,6 +283,9 @@ def replay_demo_rollouts(
             suite=suite,
             max_steps=max_steps,
             state_dim=state_dim,
+            seed_mode=replay_seed_mode,
+            fixed_seed=replay_fixed_seed,
+            require_success=require_success,
         )
         if cache_path.exists():
             cached = torch.load(cache_path, map_location="cpu", weights_only=False)
@@ -245,7 +298,7 @@ def replay_demo_rollouts(
                 cached_trajs,
                 raw_demos=demos,
                 fallback_to_raw_demo=fallback_to_raw_demo,
-                drop_failed_replays=drop_failed_replays,
+                drop_failed_replays=drop_failed_replays or (require_success and not fallback_to_raw_demo),
                 task_id=spec.task_id,
             )
             replayed[spec.task_id] = kept_trajs
@@ -280,16 +333,25 @@ def replay_demo_rollouts(
             replayed_trajs: list[Trajectory] = []
             success_count = 0
             for demo_idx, demo in enumerate(demos):
-                traj = _replay_single_demo(env, demo, seed=seed + spec_idx * 1000 + demo_idx)
+                replay_seed = _replay_seed_for_demo(
+                    demo=demo,
+                    demo_idx=demo_idx,
+                    spec_idx=spec_idx,
+                    seed=seed,
+                    seed_mode=replay_seed_mode,
+                    fixed_seed=replay_fixed_seed,
+                )
+                traj = _replay_single_demo(env, demo, seed=replay_seed, max_steps=max_steps)
                 traj.task_id = spec.task_id
-                replayed_trajs.append(traj)
+                traj.is_demo = True
                 success_count += int(traj.success)
-            replay_success_rate[spec.task_id] = success_count / max(len(replayed_trajs), 1)
+                replayed_trajs.append(traj)
+            replay_success_rate[spec.task_id] = success_count / max(len(demos), 1)
             kept_trajs = _resolve_kept_trajs(
                 replayed_trajs,
                 raw_demos=demos,
                 fallback_to_raw_demo=fallback_to_raw_demo,
-                drop_failed_replays=drop_failed_replays,
+                drop_failed_replays=drop_failed_replays or (require_success and not fallback_to_raw_demo),
                 task_id=spec.task_id,
             )
             replayed[spec.task_id] = kept_trajs

@@ -1,0 +1,29 @@
+# @package _global_
+
+metadata:
+  label: t5-chunk5-nodynamic-lr2e6
+  source_doc: docs/fpo_hyperparameter_experiments.md
+  notes: "Conservative task-5 chunk-5 no-dynamic variant. Tests whether smaller LR improves stability under the current seeded reset protocol."
+
+task_ids: "5"
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+iterations: 100
+eval_every: 20
+eval_episodes: 100
+wandb_name: t5-chunk5-nodynamic-lr2e6-sftkl005-eval100
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.005
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 5
+
+fpo:
+  full_chunk_target: true

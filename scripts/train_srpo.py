@@ -479,6 +479,7 @@ def main(
     ),
 ) -> None:
     import wandb
+
     from vla.models.smolvla import SmolVLAPolicy
     from vla.rl.trainer import train_srpo
     from vla.training.metrics_logger import MetricsLogger
@@ -549,6 +550,9 @@ def main(
             state_dim=resolved_state_dim,
             drop_failed_replays=False,
             fallback_to_raw_demo=True,
+            replay_seed_mode=demo_replay_seed_mode,
+            replay_fixed_seed=demo_replay_fixed_seed,
+            require_success=demo_replay_require_success,
         )
         if demo_replay_success_rate:
             avg = sum(demo_replay_success_rate.values()) / len(demo_replay_success_rate)
@@ -652,6 +656,9 @@ def main(
         suite=suite,
         task_id=task_specs[0].libero_task_idx,
         state_dim=resolved_state_dim,
+        demo_replay_seed_mode=demo_replay_seed_mode,
+        demo_replay_fixed_seed=demo_replay_fixed_seed,
+        demo_replay_require_success=demo_replay_require_success,
         replay=ReplayConfig(
             include_demos_in_update=include_demos_in_update,
             success_buffer_size=success_replay_buffer_size,
@@ -735,7 +742,16 @@ def main(
         "task_instructions": {spec.task_id: spec.instruction for spec in task_specs},
         "wandb_run_name": final_name or "",
         "demo_seeding": demo_seeding,
-        "demo_trajectory_source": "replayed_env_rollouts" if demo_trajectories else "none",
+        "demo_trajectory_source": (
+            "replayed_env_rollouts"
+            if demo_trajectories and demo_replay
+            else "raw_recorded_demos"
+            if demo_trajectories
+            else "none"
+        ),
+        "demo_replay_seed_mode": demo_replay_seed_mode,
+        "demo_replay_fixed_seed": demo_replay_fixed_seed,
+        "demo_replay_require_success": demo_replay_require_success,
         "include_demos_in_update": include_demos_in_update,
         "demo_aux_enabled": demo_aux_enabled,
         "demo_aux_coeff": demo_aux_coeff,

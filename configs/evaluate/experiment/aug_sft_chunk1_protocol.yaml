@@ -1,0 +1,112 @@
+# @package _global_
+#
+# Eval protocol for the augmented-SFT plan (control vs augmented).
+# Compares Job A (control), Job B (augmented), and the HuggingFaceVLA/smolvla_libero
+# baseline on identical seeded LIBERO eval settings.
+#
+# IMPORTANT: After Jobs A and B finish, replace the FILL_IN placeholders below
+# with the actual best/ checkpoint directories printed at end of training. They
+# will look like:
+#   /work3/s234814/vla-robotics/checkpoints/sft/libero_spatial_all_seed42_<run_id>/best
+#
+# Primary metric: spatial @ n_action_steps=1.
+# Secondary: spatial @ n_action_steps=2 (verify chunk-1 lift isn't a
+# pathological collapse), plus chunk-1 sweep across object/goal/long for
+# cross-suite generalisation.
+#
+# The "perturbed eval" robustness story (LIBERO-Pro / second-seed perturbation)
+# is intentionally NOT included here — eval-time perturbation harness is not
+# wired in yet (see src/vla/data/image_export.py LIBERO_PRO_SUITES TODO). Add
+# once the harness is delivered.
+
+metadata:
+  label: augmented-sft-chunk1-protocol
+  notes: "Compare baseline vs Job A (control) vs Job B (augmented) at chunk-1 (primary) and chunk-2 (sanity)."
+
+evaluations:
+  # ---------- Baseline: HuggingFaceVLA/smolvla_libero ----------
+  - metadata:
+      label: baseline-spatial-chunk1
+    checkpoint: HuggingFaceVLA/smolvla_libero
+    suite: spatial
+    n_action_steps: 1
+    wandb_name: eval_baseline_spatial_chunk1_seed42
+
+  - metadata:
+      label: baseline-spatial-chunk2
+    checkpoint: HuggingFaceVLA/smolvla_libero
+    suite: spatial
+    n_action_steps: 2
+    wandb_name: eval_baseline_spatial_chunk2_seed42
+
+  # ---------- Job A (control): plain continued SFT on all 4 suites ----------
+  - metadata:
+      label: jobA-control-spatial-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBA_RUN_ID/best
+    suite: spatial
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobA_control_spatial_chunk1_seed42
+
+  - metadata:
+      label: jobA-control-spatial-chunk2
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBA_RUN_ID/best
+    suite: spatial
+    n_action_steps: 2
+    wandb_name: eval_aug_sft_jobA_control_spatial_chunk2_seed42
+
+  - metadata:
+      label: jobA-control-object-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBA_RUN_ID/best
+    suite: object
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobA_control_object_chunk1_seed42
+
+  - metadata:
+      label: jobA-control-goal-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBA_RUN_ID/best
+    suite: goal
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobA_control_goal_chunk1_seed42
+
+  - metadata:
+      label: jobA-control-long-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBA_RUN_ID/best
+    suite: long
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobA_control_long_chunk1_seed42
+
+  # ---------- Job B (augmented): SFT + perturbations + paraphrases ----------
+  - metadata:
+      label: jobB-augmented-spatial-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBB_RUN_ID/best
+    suite: spatial
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobB_augmented_spatial_chunk1_seed42
+
+  - metadata:
+      label: jobB-augmented-spatial-chunk2
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBB_RUN_ID/best
+    suite: spatial
+    n_action_steps: 2
+    wandb_name: eval_aug_sft_jobB_augmented_spatial_chunk2_seed42
+
+  - metadata:
+      label: jobB-augmented-object-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBB_RUN_ID/best
+    suite: object
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobB_augmented_object_chunk1_seed42
+
+  - metadata:
+      label: jobB-augmented-goal-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBB_RUN_ID/best
+    suite: goal
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobB_augmented_goal_chunk1_seed42
+
+  - metadata:
+      label: jobB-augmented-long-chunk1
+    checkpoint_dir: /work3/s234814/vla-robotics/checkpoints/sft/FILL_IN_JOBB_RUN_ID/best
+    suite: long
+    n_action_steps: 1
+    wandb_name: eval_aug_sft_jobB_augmented_long_chunk1_seed42

@@ -1,0 +1,76 @@
+# @package _global_
+
+metadata:
+  label: v8c-t5-specialist-from-multi
+  source_doc: docs/fpo_hyperparameter_experiments.md
+  notes: |
+    Task-5 specialist follow-up: warm-start from the v8 multi-task best
+    checkpoint (28343497/best) and concentrate compute on the single
+    task that is dragging the multi-task average down.
+
+    Why this exists:
+    - In 28343497 @ iter 20 (74.6% suite-avg), 8 of 10 spatial tasks are
+      already in the 70-93% range. spatial_task_5 sits at 0.31 and
+      single-handedly costs ~4pp on the multi-task mean.
+    - success-bc on raw HF SFT (28350306) lifted t5 from 0.36 to 0.48
+      (+12pp) with raw_sft_kl ~0.0003. The lever exists; the starting
+      point was just too weak.
+    - Warm-starting from the multi-task best gives us a stronger prior
+      on t5 (and all tasks) than HF SFT. We then run success-bc here so
+      the SFT anchor is the *multi-task best itself*, not HF SFT - this
+      keeps the gains on t1/t2/t8 from being forgotten while we push t5.
+
+    Mechanics:
+    - sft_checkpoint pinned to 28343497/best (multi-task v8 chunk5).
+      IMPORTANT: this path resolves to whatever "best" is at submit time,
+      so submit only after 28343497 has finished and the eval-at-iter-60
+      checkpoint has been written.
+    - update_method=success_bc with the minibatching fix in place
+      (verified 2026-05-05 in src/vla/rl/policy_update/success_bc.py).
+    - sft_coeff=0.005: looser anchor than the t5 success-bc baseline
+      (0.02) because the anchor here is already a stronger prior; we
+      want t5 to actually move.
+    - eval_every=10 to track t5 specifically; 100 episodes per eval.
+
+    Decision rule:
+    - SUCCESS: t5 reaches >= 0.55 AND the rest of the spatial suite
+      stays within 2pp of the 28343497 multi-task best per-task numbers
+      (verified by a follow-up multi-task eval submitted on this ckpt).
+      This pushes the multi-task average from 73.5% to ~76-77%.
+    - PARTIAL: t5 lifts to 0.45-0.55 but other tasks drop 2-5pp. Try a
+      curriculum of 3-iter t5 / 1-iter multi-task interleaving (manual
+      submit script for now).
+    - FAIL: t5 lifts <2pp or other tasks collapse. Conclude that task 5
+      requires a different intervention (e.g. demo augmentation or
+      task-specific instruction tuning), not just more RL compute.
+
+sft_checkpoint: /work3/s234814/vla-robotics/checkpoints/sparse_rl/10tasks_spatial_seed42_28343497/best
+
+task_ids: "5"
+mode: sparse_rl
+update_method: success_bc
+lr: 1e-6
+iterations: 100
+eval_every: 10
+eval_episodes: 100
+wandb_name: v8c-t5-specialist-from-multi-success-bc-replay320-sftkl005
+
+kl:
+  coeff: 0.0
+  sft_coeff: 0.005
+
+replay:
+  include_demos: true
+  success_buffer_size: 320
+  success_max_ratio: 1.0
+
+success_bc:
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
+sampling:
+  dynamic: false
+
+rollout:
+  n_action_steps: 5

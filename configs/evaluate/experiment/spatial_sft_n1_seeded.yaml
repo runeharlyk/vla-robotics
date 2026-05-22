@@ -1,0 +1,8 @@
+# @package _global_
+
+metadata:
+  label: spatial-sft-n1-seeded
+  notes: "Seeded LIBERO spatial SFT eval with standard one-action replanning."
+
+wandb_name: eval_sft_spatial_current_seed42_n1
+n_action_steps: 1

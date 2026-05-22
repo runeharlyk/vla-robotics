@@ -1,0 +1,33 @@
+# @package _global_
+
+metadata:
+  label: spatial-all-n1-replay-v4-current
+  source_doc: docs/fpo_hyperparameter_experiments.md
+  notes: "Current-code recreation of the strongest historical all-suite recipe: n=1, no dynamic sampling, demos plus replay, lr=2e-6, sft_kl=0.02."
+
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+iterations: 45
+eval_every: 15
+eval_episodes: 20
+wandb_name: spatial-all-n1-v4-current-lr2e6-sftkl002-replay320-demos
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: false
+  dynamic_max_retries: 2
+
+rollout:
+  n_action_steps: 1

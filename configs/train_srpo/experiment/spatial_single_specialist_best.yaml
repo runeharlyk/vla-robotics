@@ -1,0 +1,89 @@
+# @package _global_
+
+metadata:
+  label: spatial-single-specialist-best
+  source_doc: chat-2026-05-22-demo-replay-fix-and-specialist-job
+  notes: |
+    Single-task LIBERO spatial specialist with the safest current sparse-RL
+    recipe. Defaults to spatial task 4 because the current seeded SFT eval
+    has it as the weakest task (~68%), so it has real improvement headroom.
+
+    Design choices:
+    - Train/eval in the target protocol: n_action_steps=1.
+    - FPO with lr=1e-6 and SFT anchor 0.01; higher LR and chunked training
+      have been destructive in current evals.
+    - Include demos plus success replay, but keep demo replay enabled with
+      success-required fallback. Good replays provide env-rendered frames;
+      failed replays fall back to raw recorded demos after the demo replay
+      fix.
+    - Ignore negative-advantage FPO pushes (negative_adv_scale=0.0). For
+      a specialist, the least risky signal is "imitate things that worked"
+      plus SFT/demo anchoring, not pushing away sparse failures.
+    - Add a small demo auxiliary step to keep the action manifold close to
+      the demonstrated target task while RL chases online successes.
+
+    Override the target task at launch with:
+      experiment=spatial_single_specialist_best task_ids=3
+
+task_ids: "4"
+num_demos: 20
+mode: sparse_rl
+update_method: fpo
+lr: 1e-6
+trajs_per_task: 32
+iterations: 80
+eval_every: 10
+eval_episodes: 100
+pre_rl_eval: true
+max_steps: 220
+wandb_name: spatial-t4-specialist-best-fpo-n1-lr1e6
+
+demo_replay: true
+demo_replay_seed_mode: episode_index
+demo_replay_fixed_seed: 0
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.01
+  adaptive: false
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  loss_reduction: sum
+  positive_adv_only: false
+  negative_adv_scale: 0.0
+  log_ratio_clip: 5.0
+  use_ref_policy_kl: false
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+demo_aux:
+  enabled: true
+  coeff: 0.01
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
+rollout:
+  num_envs: 8
+  eval_num_envs: 8
+  fm_batch_size: 64
+  gradient_checkpointing: true
+  eval_zero_sample: false
+  n_action_steps: 1

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 
 import torch
@@ -11,6 +12,8 @@ from vla.rl.config import SRPOConfig
 from vla.rl.rollout import Trajectory
 
 from .base import UpdateMetrics, _compute_fm_loss_batched, _resolve_minibatch_trajs
+
+logger = logging.getLogger(__name__)
 
 
 def _build_balanced_minibatches(
@@ -132,6 +135,13 @@ def success_bc_update(
         if balanced and n_demos > 0 and n_online > 0:
             minibatches = _build_balanced_minibatches(trajectories, minibatch_trajs, demo_ratio)
         else:
+            if balanced and (n_demos == 0 or n_online == 0):
+                logger.warning(
+                    "Balanced demo sampling requested but one pool is empty "
+                    "(demos=%d, online=%d); falling back to uniform sampling.",
+                    n_demos,
+                    n_online,
+                )
             order = torch.randperm(M).tolist()
             minibatches = [order[start : start + minibatch_trajs] for start in range(0, M, minibatch_trajs)]
 

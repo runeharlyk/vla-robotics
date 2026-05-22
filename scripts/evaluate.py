@@ -84,6 +84,26 @@ def _default_eval_name(
     return f"eval_{simulator}_{suite}_{checkpoint_tag}"
 
 
+def _parse_task_ids(raw: str | None) -> list[int] | None:
+    if raw is None:
+        return None
+
+    task_ids: list[int] = []
+    for chunk in raw.replace("\n", ",").split(","):
+        value = chunk.strip()
+        if not value:
+            continue
+        try:
+            task_ids.append(int(value))
+        except ValueError as exc:
+            raise typer.BadParameter(f"Invalid task id {value!r}; expected a comma-separated integer list") from exc
+
+    if not task_ids:
+        raise typer.BadParameter("--task-ids was provided but no task ids were parsed", param_hint="--task-ids")
+
+    return task_ids
+
+
 def main(
     checkpoint_dir: Path = typer.Option(None, "--checkpoint-dir", "-d", path_type=Path),
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
@@ -123,6 +143,11 @@ def main(
         help="Flow-SDE denoising steps used when --rollout-sampler flow_sde (0 = model default).",
     ),
     task_id: int | None = typer.Option(None, "--task-id", help="Optional LIBERO task id override"),
+    task_ids: str | None = typer.Option(
+        None,
+        "--task-ids",
+        help="Optional comma-separated LIBERO task ids. Mutually exclusive with --task-id.",
+    ),
     fixed_noise_seed: int | None = typer.Option(
         None,
         "--fixed-noise-seed",
@@ -162,6 +187,10 @@ def main(
     task_payloads: list[dict[str, Any]] = []
     seed_everything(seed)
     device = get_device()
+    resolved_task_ids = _parse_task_ids(task_ids)
+
+    if task_id is not None and resolved_task_ids is not None:
+        raise typer.BadParameter("--task-id and --task-ids are mutually exclusive", param_hint="--task-ids")
 
     if checkpoint_dir is not None:
         ckpt_data = torch.load(checkpoint_dir / "policy.pt", map_location="cpu", weights_only=False)
@@ -241,7 +270,9 @@ def main(
     log_bits = [f"simulator={simulator}"]
     if simulator == "libero":
         log_bits.append(f"suite={suite}")
-        if task_id is not None:
+        if resolved_task_ids is not None:
+            log_bits.append(f"task_ids={len(resolved_task_ids)}")
+        elif task_id is not None:
             log_bits.append(f"task_id={task_id}")
     else:
         log_bits.append(f"env_id={resolved_env_id}")
@@ -279,6 +310,7 @@ def main(
                 "seed": seed,
                 "fixed_noise_seed": fixed_noise_seed,
                 "task_id": task_id,
+                "task_ids": resolved_task_ids,
                 "wise_ft_alpha": wise_ft_alpha,
                 "wise_ft_diagnostics": wise_ft_diag,
             },
@@ -311,6 +343,7 @@ def main(
             flow_grpo_sigma=flow_grpo_sigma,
             flow_grpo_sde_steps=flow_grpo_sde_steps,
             task_id=task_id,
+            task_ids=resolved_task_ids,
             max_steps=resolved_max_steps,
             seed=seed,
             control_mode=resolved_control_mode,
@@ -356,6 +389,7 @@ def main(
             "seed": seed,
             "fixed_noise_seed": fixed_noise_seed,
             "task_id": task_id,
+            "task_ids": resolved_task_ids or "",
             "wise_ft_alpha": wise_ft_alpha if wise_ft_alpha is not None else "",
             "wandb_run_name": resolved_run_name if use_wandb else "",
             "success_rate": metrics.success_rate,

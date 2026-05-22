@@ -68,6 +68,32 @@ def _compute_eval_metrics(
     )
 
 
+def _resolve_task_ids(
+    num_tasks: int,
+    task_id: int | None = None,
+    task_ids: Sequence[int] | None = None,
+) -> list[int]:
+    if task_id is not None and task_ids is not None:
+        raise ValueError("Provide either task_id or task_ids, not both")
+
+    if task_ids is not None:
+        resolved = [int(item) for item in task_ids]
+    elif task_id is not None:
+        resolved = [int(task_id)]
+    else:
+        resolved = list(range(num_tasks))
+
+    if not resolved:
+        raise ValueError("At least one task id is required")
+
+    invalid = [item for item in resolved if item < 0 or item >= num_tasks]
+    if invalid:
+        preview = ", ".join(str(item) for item in invalid[:10])
+        raise ValueError(f"Task id(s) out of range for suite with {num_tasks} tasks: {preview}")
+
+    return resolved
+
+
 def metrics_from_trajectories(
     trajectories: Sequence[Trajectory],
     expected_episodes: int | None = None,
@@ -105,6 +131,7 @@ def evaluate(
     device: torch.device | str = "cpu",
     noise_reset_fn: Callable[[int], None] | None = None,
     task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
+    task_ids: Sequence[int] | None = None,
 ) -> EvalMetrics:
     """Evaluate a policy across all tasks exposed by *env_factory*.
 
@@ -126,8 +153,9 @@ def evaluate(
     total_successes = 0
     total_rewards: list[float] = []
     total_lengths: list[int] = []
+    resolved_task_ids = _resolve_task_ids(env_factory.num_tasks, task_ids=task_ids)
 
-    for task_id in range(env_factory.num_tasks):
+    for task_id in resolved_task_ids:
         env = env_factory(task_id)
         task_desc = env.task_description
         max_steps = env.max_episode_steps
@@ -184,7 +212,7 @@ def evaluate(
 
         env.close()
 
-    total_ep = env_factory.num_tasks * num_episodes
+    total_ep = len(resolved_task_ids) * num_episodes
     return _compute_eval_metrics(total_successes, total_rewards, total_lengths, total_ep)
 
 
@@ -197,6 +225,7 @@ def _evaluate_libero_vectorized(
     policy,
     suite: str,
     task_id: int | None,
+    task_ids: Sequence[int] | None,
     num_episodes: int,
     num_envs: int,
     seed: int,
@@ -220,9 +249,9 @@ def _evaluate_libero_vectorized(
             raise ValueError("rollout_sampler='flow_sde' requires a policy with configure_flow_grpo_sampler")
         policy.configure_flow_grpo_sampler(sigma=flow_grpo_sigma, sde_steps=flow_grpo_sde_steps)
 
-    env_factory = make_env_factory("libero", suite=suite, state_dim=state_dim, task_id=task_id)
-    task_ids = [task_id] if task_id is not None else list(range(env_factory.num_tasks))
-    resolved_task_id = task_ids[0]
+    env_factory = make_env_factory("libero", suite=suite, state_dim=state_dim, task_id=None)
+    resolved_task_ids = _resolve_task_ids(env_factory.num_tasks, task_id=task_id, task_ids=task_ids)
+    resolved_task_id = resolved_task_ids[0]
     rollout = LiberoRollout(
         suite_name=suite,
         task_id=resolved_task_id,
@@ -256,7 +285,7 @@ def _evaluate_libero_vectorized(
         total_successes = 0
         total_rewards: list[float] = []
         total_lengths: list[int] = []
-        for idx, current_task_id in enumerate(task_ids):
+        for idx, current_task_id in enumerate(resolved_task_ids):
             if idx > 0:
                 rollout.reconfigure(suite, current_task_id)
             if fixed_noise_seed is not None and hasattr(policy, "reset_eval_noise"):
@@ -266,7 +295,7 @@ def _evaluate_libero_vectorized(
             logger.info(
                 "Starting LIBERO eval task %d/%d (task_id=%d, seed=%d)",
                 idx + 1,
-                len(task_ids),
+                len(resolved_task_ids),
                 current_task_id,
                 task_seed,
             )
@@ -294,7 +323,7 @@ def _evaluate_libero_vectorized(
             logger.info(
                 "Finished LIBERO eval task %d/%d (task_id=%d): %.2f%% success (%d/%d)",
                 idx + 1,
-                len(task_ids),
+                len(resolved_task_ids),
                 current_task_id,
                 100.0 * task_successes / max(num_episodes, 1),
                 task_successes,
@@ -307,7 +336,7 @@ def _evaluate_libero_vectorized(
                         "task_id": current_task_id,
                         "task_description": instruction,
                         "task_index": idx,
-                        "tasks_total": len(task_ids),
+                        "tasks_total": len(resolved_task_ids),
                         "num_episodes": num_episodes,
                         "successes": task_successes,
                         "success_rate": task_successes / max(num_episodes, 1),
@@ -318,7 +347,7 @@ def _evaluate_libero_vectorized(
     finally:
         rollout.close()
 
-    expected_episodes = num_episodes * len(task_ids)
+    expected_episodes = num_episodes * len(resolved_task_ids)
     return _compute_eval_metrics(total_successes, total_rewards, total_lengths, expected_episodes)
 
 
@@ -334,6 +363,7 @@ def evaluate_smolvla(
     suite: str = "all",
     image_size: int = 256,
     task_id: int | None = None,
+    task_ids: Sequence[int] | None = None,
     num_envs: int = 1,
     fixed_noise_seed: int | None = None,
     n_action_steps: int = 1,
@@ -362,12 +392,16 @@ def evaluate_smolvla(
     if n_action_steps < 1:
         raise ValueError(f"n_action_steps must be >= 1, got {n_action_steps}")
 
-    if sim == "libero" and (num_envs > 1 or n_action_steps > 1):
+    if task_ids is not None and sim != "libero":
+        raise ValueError("task_ids is currently supported only for LIBERO evaluation")
+
+    if sim == "libero" and (num_envs > 1 or n_action_steps > 1 or task_ids is not None):
         logger.info(
-            "LIBERO rollout eval: %d envs, %d episodes, task_id=%s, n_action_steps=%d, sampler=%s",
+            "LIBERO rollout eval: %d envs, %d episodes, task_id=%s, task_ids=%s, n_action_steps=%d, sampler=%s",
             num_envs,
             num_episodes,
             task_id,
+            "all" if task_ids is None else len(task_ids),
             n_action_steps,
             sampler,
         )
@@ -375,6 +409,7 @@ def evaluate_smolvla(
             policy,
             suite=suite,
             task_id=task_id,
+            task_ids=task_ids,
             num_episodes=num_episodes,
             num_envs=num_envs,
             seed=seed,
@@ -406,7 +441,7 @@ def evaluate_smolvla(
     elif sim == "libero":
         factory_kwargs.update(suite=suite, state_dim=policy.state_dim)
         if task_id is not None:
-            factory_kwargs["task_id"] = task_id
+            task_ids = [task_id]
     else:
         raise ValueError(f"Unknown simulator {simulator!r}")
 
@@ -451,6 +486,7 @@ def evaluate_smolvla(
         device=device,
         noise_reset_fn=_noise_reset if fixed_noise_seed is not None else None,
         task_metrics_callback=task_metrics_callback,
+        task_ids=task_ids,
     )
 
 

@@ -1,0 +1,28 @@
+# @package _global_
+
+metadata:
+  label: t2-fpo-trajs64
+  source_doc: docs/fpo_hyperparameter_experiments.md
+  notes: "Task-2 larger trajectory batch reference. Expected to be stable but not more wall-clock efficient than 32 trajectories."
+
+task_ids: "2"
+mode: sparse_rl
+update_method: fpo
+lr: 3e-6
+iterations: 35
+trajs_per_task: 64
+eval_every: 5
+eval_episodes: 50
+wandb_name: t2-fpo-trajs64-lr3e6-clip005
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.0
+
+ppo:
+  epochs: 1
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  negative_adv_scale: 1.0
