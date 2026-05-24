@@ -80,6 +80,7 @@ def visualize(
     tasks: str | None = typer.Option(None, "--tasks", "-t"),
     fps: int = typer.Option(30, "--fps"),
     seed: int = typer.Option(0, "--seed"),
+    max_steps: int | None = typer.Option(None, "--max-steps", min=1),
 ) -> None:
     """Record policy rollout videos on a simulator."""
     mod = importlib.import_module("vla.evaluation.visualize")
@@ -95,6 +96,7 @@ def visualize(
         tasks=tasks,
         fps=fps,
         seed=seed,
+        max_steps=max_steps,
     )
 
 

@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from vla.constants import SUITE_MAP
+from vla.constants import resolve_libero_suite_name
 from vla.envs.libero_runtime import _patch_robosuite, _safe_close_env
 from vla.rl.rollout import (
     SingleStepResult,
@@ -331,7 +331,7 @@ class LiberoRollout:
         num_cameras: int = 2,
         camera_name: str | None = None,
     ) -> None:
-        resolved = SUITE_MAP.get(suite_name.lower(), suite_name)
+        resolved = resolve_libero_suite_name(suite_name)
         self.suite_name = resolved
         self.task_id = task_id
         self.num_envs = num_envs
@@ -358,7 +358,7 @@ class LiberoRollout:
 
     def reconfigure(self, suite_name: str, task_id: int) -> None:
         """Hot-swap all workers to a new task without restarting processes."""
-        resolved = SUITE_MAP.get(suite_name.lower(), suite_name)
+        resolved = resolve_libero_suite_name(suite_name)
         self.vec_env.reconfigure(resolved, task_id)
         self.suite_name = resolved
         self.task_id = task_id

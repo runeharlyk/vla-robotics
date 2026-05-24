@@ -7,6 +7,7 @@ the same suite names used by the base benchmark. The classification JSON uses
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import random
 import sys
@@ -69,13 +70,30 @@ class LiberoPlusTask:
 
 
 def load_classification(path: Path) -> dict[str, list[dict[str, Any]]]:
-    if not path.exists():
+    resolved = resolve_classification_path(path)
+    if not resolved.exists():
         raise FileNotFoundError(f"LIBERO-Plus task classification not found: {path}")
-    with path.open("r", encoding="utf-8") as handle:
+    with resolved.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
     if not isinstance(data, dict):
-        raise ValueError(f"Expected object at top level of {path}")
+        raise ValueError(f"Expected object at top level of {resolved}")
     return data
+
+
+def resolve_classification_path(path: Path) -> Path:
+    if path.exists():
+        return path
+
+    spec = importlib.util.find_spec("libero")
+    if spec is None:
+        return path
+
+    locations = list(spec.submodule_search_locations or [])
+    if not locations:
+        return path
+
+    installed = Path(locations[0]) / "libero" / "benchmark" / "task_classification.json"
+    return installed if installed.exists() else path
 
 
 def resolve_suite_key(suite: str, data: dict[str, list[dict[str, Any]]]) -> str:

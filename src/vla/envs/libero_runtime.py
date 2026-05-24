@@ -7,6 +7,8 @@ import logging
 import os
 import platform
 import shutil
+import sys
+import types
 from pathlib import Path
 from typing import Any
 
@@ -248,6 +250,52 @@ def _patch_robosuite() -> None:
     _ROBOSUITE_PATCHED = True
 
 
+class _NoOpMagickMotionBlur:
+    argtypes: Any = None
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> None:
+        return None
+
+
+class _NoOpWandImage:
+    def __init__(self, blob: bytes | None = None, **_kwargs: Any) -> None:
+        self._blob = blob or b""
+        self.wand = None
+
+    def make_blob(self, *_args: Any, **_kwargs: Any) -> bytes:
+        return self._blob
+
+
+def _install_wand_stub_if_missing() -> None:
+    """Let LIBERO-Plus import on systems without native ImageMagick.
+
+    LIBERO-Plus imports ``wand`` eagerly for its motion-blur perturbation.
+    Camera/viewpoint/layout tasks do not need that native dependency, so on
+    Windows we provide a tiny no-op stub instead of failing every benchmark
+    import before task construction.
+    """
+    try:
+        importlib.import_module("wand.api")
+        importlib.import_module("wand.image")
+        return
+    except Exception as exc:
+        message = str(exc)
+        if "MagickWand" not in message and "ImageMagick" not in message and "cannot find library" not in message:
+            return
+
+    wand_mod = sys.modules.get("wand") or types.ModuleType("wand")
+    api_mod = types.ModuleType("wand.api")
+    image_mod = types.ModuleType("wand.image")
+    library = types.SimpleNamespace(MagickMotionBlurImage=_NoOpMagickMotionBlur())
+    api_mod.library = library
+    image_mod.Image = _NoOpWandImage
+    wand_mod.api = api_mod
+    wand_mod.image = image_mod
+    sys.modules["wand"] = wand_mod
+    sys.modules["wand.api"] = api_mod
+    sys.modules["wand.image"] = image_mod
+
+
 def probe_libero_runtime(platform_name: str | None = None) -> dict[str, Any]:
     system = _normalize_platform_name(platform_name)
     benchmark_root = _discover_libero_benchmark_root()
@@ -280,6 +328,7 @@ def configure_libero_runtime(
         _ensure_windows_mujoco_dll()
         _patch_windows_robosuite_macros_module()
         _ensure_windows_robosuite_macros_private()
+        _install_wand_stub_if_missing()
 
     config_file = ensure_libero_config(config_dir=config_dir, datasets_dir=datasets_dir)
     _patch_robosuite()

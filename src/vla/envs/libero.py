@@ -8,7 +8,7 @@ import einops
 import numpy as np
 import torch
 
-from vla.constants import SUITE_MAP
+from vla.constants import resolve_libero_suite_name
 from vla.envs.base import SimEnv
 from vla.envs.libero_runtime import configure_libero_runtime
 from vla.utils.tensor import to_float01
@@ -20,6 +20,7 @@ _processor_mod = importlib.import_module("lerobot.processor.env_processor")
 
 _LeRobotLiberoEnv = _lerobot_libero.LiberoEnv
 _get_suite = _lerobot_libero._get_suite
+_lerobot_get_task_init_states = _lerobot_libero.get_task_init_states
 LiberoProcessorStep = _processor_mod.LiberoProcessorStep
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,26 @@ logger = logging.getLogger(__name__)
 _PROC = LiberoProcessorStep()
 
 LIBERO_CAMERAS = "agentview_image,robot0_eye_in_hand_image"
+
+
+def _get_task_init_states_compat(task_suite: Any, task_id: int) -> np.ndarray:
+    suite_loader = getattr(task_suite, "get_task_init_states", None)
+    if callable(suite_loader):
+        torch_load = torch.load
+
+        def _torch_load_compat(*args: Any, **kwargs: Any) -> Any:
+            kwargs.setdefault("weights_only", False)
+            return torch_load(*args, **kwargs)
+
+        try:
+            torch.load = _torch_load_compat
+            return suite_loader(task_id)
+        finally:
+            torch.load = torch_load
+    return _lerobot_get_task_init_states(task_suite, task_id)
+
+
+_lerobot_libero.get_task_init_states = _get_task_init_states_compat
 
 
 class LiberoEnv(SimEnv):
@@ -181,7 +202,7 @@ class LiberoEnvFactory:
 
     def __init__(self, suite: str, state_dim: int = 8, task_id: int | None = None):
         self._suite_key = suite.lower()
-        self._libero_name = SUITE_MAP.get(self._suite_key, f"libero_{self._suite_key}")
+        self._libero_name = resolve_libero_suite_name(self._suite_key)
         self._benchmark = _get_suite(self._libero_name)
         self._state_dim = state_dim
         self._single_task_id = task_id

@@ -7,6 +7,10 @@ from vla.envs.base import SimEnv, SimEnvFactory
 # so missing optional dependencies (e.g. `libero`) won't break unrelated sims.
 _REGISTRY: dict[str, tuple[str, str]] = {
     "libero": ("vla.envs.libero", "LiberoEnvFactory"),
+    "libero_plus": ("vla.envs.libero", "LiberoEnvFactory"),
+    "liberoplus": ("vla.envs.libero", "LiberoEnvFactory"),
+    "libero_pro": ("vla.envs.libero", "LiberoEnvFactory"),
+    "liberopro": ("vla.envs.libero", "LiberoEnvFactory"),
     "maniskill": ("vla.envs.maniskill", "ManiSkillEnvFactory"),
 }
 
@@ -34,7 +38,7 @@ def make_env_factory(simulator: str, **kwargs) -> SimEnvFactory:
     Only the requested simulator's dependencies are imported, so the other
     simulator's packages don't need to be installed.
     """
-    key = simulator.lower()
+    key = simulator.lower().replace("-", "_")
     if key not in _REGISTRY:
         raise ValueError(f"Unknown simulator {simulator!r}. Available: {sorted(_REGISTRY)}")
     cls = _get_factory_cls(key)

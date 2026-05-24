@@ -110,5 +110,6 @@ wandb/
 outputs/
 .hf-cache
 .libero
+.libero-plus-src/
 .libero-src-cache
 .tmpdeps

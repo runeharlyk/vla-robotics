@@ -16,6 +16,10 @@ data: null
 data_dir: null
 libero_suite: spatial
 num_demos: 5
+demo_replay: true
+demo_replay_seed_mode: episode_index
+demo_replay_fixed_seed: 0
+demo_replay_require_success: true
 mode: sparse_rl
 simulator: libero
 suite: spatial

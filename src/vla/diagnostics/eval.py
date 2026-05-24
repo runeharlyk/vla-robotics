@@ -19,6 +19,7 @@ from typing import Any
 import numpy as np
 import torch
 
+from vla.constants import is_libero_simulator, normalize_simulator_name
 from vla.envs import SimEnvFactory, make_env_factory
 from vla.rl.rollout import Trajectory
 from vla.utils.tensor import action_to_numpy
@@ -132,6 +133,7 @@ def evaluate(
     noise_reset_fn: Callable[[int], None] | None = None,
     task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
     task_ids: Sequence[int] | None = None,
+    max_steps: int | None = None,
 ) -> EvalMetrics:
     """Evaluate a policy across all tasks exposed by *env_factory*.
 
@@ -143,6 +145,8 @@ def evaluate(
         num_episodes: Episodes per task.
         seed: Base random seed.
         device: Device used by ``obs_to_batch``.
+        max_steps: Optional episode length override. Defaults to each env's
+            declared horizon.
 
     Returns:
         Aggregated :class:`EvalMetrics`.
@@ -158,7 +162,7 @@ def evaluate(
     for task_id in resolved_task_ids:
         env = env_factory(task_id)
         task_desc = env.task_description
-        max_steps = env.max_episode_steps
+        episode_limit = env.max_episode_steps if max_steps is None else max_steps
         task_successes = 0
         task_rewards: list[float] = []
         task_lengths: list[int] = []
@@ -172,7 +176,7 @@ def evaluate(
             ep_len = 0
             success = False
 
-            for _step in range(max_steps):
+            for _step in range(episode_limit):
                 batch = env.obs_to_batch(raw_obs, device=device)
                 action = policy_fn(batch)
 
@@ -378,7 +382,8 @@ def evaluate_smolvla(
     ``policy.predict_action`` into the batch-dict interface expected by
     :func:`evaluate`.
     """
-    sim = simulator.lower()
+    sim = normalize_simulator_name(simulator)
+    is_libero = is_libero_simulator(simulator)
 
     if hasattr(policy, "set_eval_fixed_noise"):
         policy.set_eval_fixed_noise(fixed_noise_seed)
@@ -386,16 +391,16 @@ def evaluate_smolvla(
     sampler = rollout_sampler.lower()
     if sampler not in {"normal", "flow_sde"}:
         raise ValueError(f"Unknown rollout_sampler={rollout_sampler!r}; expected 'normal' or 'flow_sde'")
-    if sampler == "flow_sde" and sim != "libero":
+    if sampler == "flow_sde" and not is_libero:
         raise ValueError("rollout_sampler='flow_sde' is currently supported only for LIBERO rollout eval")
 
     if n_action_steps < 1:
         raise ValueError(f"n_action_steps must be >= 1, got {n_action_steps}")
 
-    if task_ids is not None and sim != "libero":
+    if task_ids is not None and not is_libero:
         raise ValueError("task_ids is currently supported only for LIBERO evaluation")
 
-    if sim == "libero" and (num_envs > 1 or n_action_steps > 1 or task_ids is not None):
+    if is_libero and (num_envs > 1 or n_action_steps > 1 or task_ids is not None):
         logger.info(
             "LIBERO rollout eval: %d envs, %d episodes, task_id=%s, task_ids=%s, n_action_steps=%d, sampler=%s",
             num_envs,
@@ -438,7 +443,7 @@ def evaluate_smolvla(
             image_size=image_size,
             control_mode=control_mode,
         )
-    elif sim == "libero":
+    elif is_libero:
         factory_kwargs.update(suite=suite, state_dim=policy.state_dim)
         if task_id is not None:
             task_ids = [task_id]
@@ -487,6 +492,7 @@ def evaluate_smolvla(
         noise_reset_fn=_noise_reset if fixed_noise_seed is not None else None,
         task_metrics_callback=task_metrics_callback,
         task_ids=task_ids,
+        max_steps=max_steps,
     )
 
 

@@ -37,6 +37,7 @@ PAIRED_BOOL_FLAGS = {
     "success-bc.balanced-demo-sampling",
     "demo-aux.enabled",
     "demo-replay",
+    "demo-replay-require-success",
 }
 
 KEY_ALIASES = {

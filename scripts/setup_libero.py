@@ -5,6 +5,7 @@ import os
 import shutil
 import sysconfig
 import tarfile
+import zipfile
 from pathlib import Path
 from urllib.request import urlopen, urlretrieve
 
@@ -96,8 +97,116 @@ def _install_libero_from_archive(archive_path: Path) -> Path:
     return _install_libero_package_tree(archive_path, site_packages)
 
 
+def _resolve_source_tree_root(source_dir: str | Path) -> Path:
+    """Resolve a LIBERO/LIBERO-Plus checkout root.
+
+    The forks used for robustness evals keep the importable package in a
+    nested ``libero/`` directory. Accept both the repository root and that
+    inner package path so setup commands are forgiving.
+    """
+    path = Path(source_dir).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"LIBERO source tree not found: {path}")
+
+    if (path / "libero" / "__init__.py").exists():
+        return path
+
+    if (path / "libero" / "libero" / "__init__.py").exists():
+        return (path / "libero").resolve()
+
+    if path.name == "libero" and (path / "__init__.py").exists():
+        parent = path.parent
+        if (parent / "setup.py").exists() or (parent / "configs").is_dir():
+            return parent.resolve()
+
+    raise RuntimeError(
+        f"Could not identify a LIBERO source tree at {path}. "
+        "Pass the checkout root or its inner 'libero' package directory."
+    )
+
+
+def _install_libero_from_source_tree(source_dir: str | Path) -> Path:
+    source_root = _resolve_source_tree_root(source_dir)
+    site_packages = _site_packages_dir()
+    installed_root = site_packages / "libero"
+    _remove_existing_libero_install(site_packages)
+
+    ignore = shutil.ignore_patterns(
+        ".git",
+        ".github",
+        "__pycache__",
+        "*.pyc",
+        "*.egg-info",
+        "build",
+        "dist",
+    )
+    shutil.copytree(source_root, installed_root, ignore=ignore, dirs_exist_ok=True)
+    return installed_root.resolve()
+
+
 def _assets_present(assets_dir: Path) -> bool:
     return all((assets_dir / subdir).exists() for subdir in LIBERO_ASSET_SUBDIRS)
+
+
+def _plus_assets_present(assets_dir: Path) -> bool:
+    return _assets_present(assets_dir) and (assets_dir / "new_objects").exists()
+
+
+def _looks_like_libero_plus_source(source_root: Path) -> bool:
+    markers = (
+        source_root / "libero" / "benchmark" / "task_classification.json",
+        source_root / "libero" / "libero" / "benchmark" / "task_classification.json",
+    )
+    if any(marker.exists() for marker in markers):
+        return True
+
+    readme_candidates = (source_root / "README.md", source_root.parent / "README.md")
+    readme = next((candidate for candidate in readme_candidates if candidate.exists()), None)
+    if readme is None:
+        return False
+
+    try:
+        return "libero-plus" in readme.read_text(encoding="utf-8").lower()
+    except UnicodeDecodeError:
+        return False
+
+
+def _source_assets_dir(source_root: Path) -> Path:
+    if (source_root / "libero" / "benchmark").exists():
+        return source_root / "libero" / "assets"
+    return source_root / "libero" / "libero" / "assets"
+
+
+def _extract_libero_plus_assets_zip(source_root: Path) -> Path | None:
+    assets_dir = _source_assets_dir(source_root)
+    if _plus_assets_present(assets_dir):
+        return assets_dir
+
+    archive_path = assets_dir.parent / "assets.zip"
+    if not archive_path.exists():
+        return None
+
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive_path) as archive:
+        for member in archive.infolist():
+            raw_parts = Path(member.filename).parts
+            if "assets" not in raw_parts:
+                continue
+            asset_index = raw_parts.index("assets")
+            relative_parts = raw_parts[asset_index + 1 :]
+            if not relative_parts or any(part in {"", ".", ".."} for part in relative_parts):
+                continue
+            destination = assets_dir.joinpath(*relative_parts)
+            if not destination.resolve().is_relative_to(assets_dir.resolve()):
+                raise RuntimeError(f"Refusing to extract unsafe asset path: {member.filename}")
+            if member.is_dir():
+                destination.mkdir(parents=True, exist_ok=True)
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(member) as source, destination.open("wb") as target:
+                shutil.copyfileobj(source, target)
+
+    return assets_dir
 
 
 def _install_libero_assets(package_root: Path) -> Path:
@@ -155,21 +264,30 @@ def main(
     source_dir: str | None = typer.Option(None, "--source-dir", help="Use an existing local LIBERO source tree."),
 ) -> None:
     probe = probe_libero_runtime()
-    if install and not probe["ready"]:
+    if install and (source_dir is not None or not probe["ready"]):
+        source_root: Path | None = None
         if source_dir is not None:
-            source_root = Path(source_dir).expanduser().resolve()
-            if not (source_root / "libero").exists():
-                raise RuntimeError(f"Expected a 'libero' package under {source_root}")
+            source_root = _resolve_source_tree_root(source_dir)
+            if _looks_like_libero_plus_source(source_root):
+                source_assets_dir = _extract_libero_plus_assets_zip(source_root) or _source_assets_dir(source_root)
+                if not _plus_assets_present(source_assets_dir):
+                    raise RuntimeError(
+                        "LIBERO-Plus assets are missing from the source checkout. "
+                        "Download assets.zip from the LIBERO-Plus Hugging Face dataset into "
+                        f"{_source_assets_dir(source_root).parent} before running setup."
+                    )
             print(f"Installing LIBERO package tree from {source_root}")
-            _remove_existing_libero_install(_site_packages_dir())
-            installed_root = _site_packages_dir() / "libero"
-            shutil.copytree(source_root / "libero", installed_root, dirs_exist_ok=True)
+            installed_root = _install_libero_from_source_tree(source_root)
         else:
             archive_path = _download_libero_archive(libero_version, Path(".libero-src-cache"))
             installed_root = _install_libero_from_archive(archive_path)
             print(f"Installed LIBERO package tree to {installed_root}")
 
-        assets_dir = _install_libero_assets(installed_root)
+        installed_assets_dir = installed_root / "libero" / "assets"
+        if source_root is not None and _looks_like_libero_plus_source(source_root):
+            assets_dir = installed_assets_dir
+        else:
+            assets_dir = _install_libero_assets(installed_root)
         print(f"Installed LIBERO assets to {assets_dir}")
 
     info = configure_libero_runtime(config_dir=config_dir, datasets_dir=datasets_dir)

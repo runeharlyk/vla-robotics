@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 
+from scripts import train_srpo
 from scripts.train_srpo_hydra import config_to_train_srpo_args
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs" / "train_srpo"
@@ -16,6 +18,10 @@ def test_hydra_config_to_train_srpo_args_uses_dotted_cli_flags() -> None:
             "update_method": "success_bc",
             "lr": 1e-6,
             "wandb": False,
+            "demo_replay": True,
+            "demo_replay_seed_mode": "episode_index",
+            "demo_replay_fixed_seed": 0,
+            "demo_replay_require_success": False,
             "rollout": {
                 "num_envs": 8,
                 "n_action_steps": 5,
@@ -56,7 +62,20 @@ def test_hydra_config_to_train_srpo_args_uses_dotted_cli_flags() -> None:
     assert "--kl.sft-coeff" in args
     assert "--replay.success-total-size" in args
     assert "--no-wandb" in args
+    assert "--demo-replay" in args
+    assert "--demo-replay-seed-mode" in args
+    assert "episode_index" in args
+    assert "--demo-replay-fixed-seed" in args
+    assert "--no-demo-replay-require-success" in args
     assert "--metadata.label" not in args
+
+
+def test_train_srpo_cli_accepts_demo_replay_hydra_flags() -> None:
+    parameters = inspect.signature(train_srpo.main).parameters
+
+    assert "demo_replay_seed_mode" in parameters
+    assert "demo_replay_fixed_seed" in parameters
+    assert "demo_replay_require_success" in parameters
 
 
 def test_hydra_experiment_overrides_apply_at_top_level() -> None:

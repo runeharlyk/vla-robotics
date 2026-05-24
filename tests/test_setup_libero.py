@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import shutil
+import zipfile
 from pathlib import Path
 
 
@@ -50,6 +51,22 @@ def test_resolve_source_tree_root_accepts_inner_package_dir() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def test_resolve_source_tree_root_accepts_libero_plus_repo_root() -> None:
+    module = _load_setup_libero_module()
+    tmp_path = _fresh_case_dir("setup_libero_case_plus_root")
+    try:
+        source_root = tmp_path / "LIBERO-plus"
+        package_tree = source_root / "libero"
+        inner_package = package_tree / "libero"
+        inner_package.mkdir(parents=True, exist_ok=True)
+        (source_root / "setup.py").write_text("", encoding="utf-8")
+        (inner_package / "__init__.py").write_text("", encoding="utf-8")
+
+        assert module._resolve_source_tree_root(source_root) == package_tree.resolve()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def test_install_libero_from_source_tree_preserves_nested_layout(monkeypatch) -> None:
     module = _load_setup_libero_module()
     tmp_path = _fresh_case_dir("setup_libero_case3")
@@ -71,5 +88,40 @@ def test_install_libero_from_source_tree_preserves_nested_layout(monkeypatch) ->
         assert not (installed_root / "__init__.py").exists()
         assert (installed_root / "libero" / "__init__.py").exists()
         assert (installed_root / "libero" / "benchmark" / "__init__.py").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_looks_like_libero_plus_source_uses_classification_file() -> None:
+    module = _load_setup_libero_module()
+    tmp_path = _fresh_case_dir("setup_libero_case4")
+    try:
+        source_root = tmp_path / "LIBERO-plus"
+        marker = source_root / "libero" / "libero" / "benchmark" / "task_classification.json"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("{}", encoding="utf-8")
+
+        assert module._looks_like_libero_plus_source(source_root)
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_extract_libero_plus_assets_zip_strips_archive_prefix() -> None:
+    module = _load_setup_libero_module()
+    tmp_path = _fresh_case_dir("setup_libero_case5")
+    try:
+        source_root = tmp_path / "LIBERO-plus"
+        archive_path = source_root / "libero" / "libero" / "assets.zip"
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(archive_path, "w") as archive:
+            archive.writestr("long/prefix/LIBERO-plus-0/assets/new_objects/object.xml", "<mujoco/>")
+            archive.writestr("long/prefix/LIBERO-plus-0/assets/scenes/scene.xml", "<mujoco/>")
+
+        assets_dir = module._extract_libero_plus_assets_zip(source_root)
+
+        assert assets_dir == source_root / "libero" / "libero" / "assets"
+        assert (assets_dir / "new_objects" / "object.xml").exists()
+        assert (assets_dir / "scenes" / "scene.xml").exists()
+        assert not (assets_dir / "long").exists()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)

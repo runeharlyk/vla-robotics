@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import typer
 
-from vla.constants import SUITE_MAP
+from vla.constants import resolve_libero_suite_name
 from vla.rl.libero_rollout import _pack_obs
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -234,7 +234,7 @@ def main(
     metadata = dict(payload["metadata"])
     episodes: list[dict] = payload["episodes"]
     suite_key = suite.lower()
-    suite_name = SUITE_MAP.get(suite_key, suite_key)
+    suite_name = resolve_libero_suite_name(suite_key)
     variants_by_instruction = _load_instruction_variants(instruction_variants)
     mujoco_camera_names = _camera_names(camera_names)
 

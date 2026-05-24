@@ -51,6 +51,8 @@ class Mode(StrEnum):
 
 class Simulator(StrEnum):
     LIBERO = "libero"
+    LIBERO_PLUS = "libero_plus"
+    LIBERO_PRO = "libero_pro"
     MANISKILL = "maniskill"
 
 
@@ -74,6 +76,42 @@ SUITE_MAP = {
     "goal": "libero_goal",
     "long": "libero_10",
 }
+
+LIBERO_SUITE_ALIASES = {
+    "spatial": "libero_spatial",
+    "libero_spatial": "libero_spatial",
+    "object": "libero_object",
+    "objects": "libero_object",
+    "libero_object": "libero_object",
+    "goal": "libero_goal",
+    "libero_goal": "libero_goal",
+    "long": "libero_10",
+    "10": "libero_10",
+    "libero_10": "libero_10",
+}
+
+LIBERO_SIMULATOR_ALIASES = {
+    "libero",
+    "libero_plus",
+    "libero-plus",
+    "liberoplus",
+    "libero_pro",
+    "libero-pro",
+    "liberopro",
+}
+
+
+def normalize_simulator_name(simulator: str) -> str:
+    return simulator.strip().lower().replace("-", "_")
+
+
+def is_libero_simulator(simulator: str) -> bool:
+    return simulator.strip().lower() in LIBERO_SIMULATOR_ALIASES
+
+
+def resolve_libero_suite_name(suite: str) -> str:
+    key = suite.strip().lower()
+    return LIBERO_SUITE_ALIASES.get(key, f"libero_{key}")
 
 MANISKILL_TASKS: dict[str, dict] = {
     # ── Two-camera tasks (base_camera + hand_camera) ─────────────────

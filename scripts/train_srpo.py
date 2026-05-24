@@ -258,6 +258,21 @@ def main(
         "directly (faster startup, on the SFT distribution; recommended when the SFT "
         "checkpoint was trained on the same LeRobot dataset).",
     ),
+    demo_replay_seed_mode: str = typer.Option(
+        "episode_index",
+        "--demo-replay-seed-mode",
+        help="Simulator reset seed strategy for demo replay: episode_index, fixed, or none.",
+    ),
+    demo_replay_fixed_seed: int = typer.Option(
+        0,
+        "--demo-replay-fixed-seed",
+        help="Base seed used by fixed and episode_index demo replay seed modes.",
+    ),
+    demo_replay_require_success: bool = typer.Option(
+        True,
+        "--demo-replay-require-success/--no-demo-replay-require-success",
+        help="Require replayed demos to finish successfully before keeping simulator-rendered observations.",
+    ),
     mode: Mode = typer.Option("srpo", "--mode", "-m", help="srpo or sparse_rl"),
     simulator: Simulator = typer.Option("maniskill", "--simulator", help="maniskill or libero"),
     suite: LiberoSuite = typer.Option("spatial", "--suite", help="LIBERO suite (spatial, object, goal, long)"),

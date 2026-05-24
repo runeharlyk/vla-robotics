@@ -5,6 +5,7 @@ import typer
 import wandb
 from tqdm import tqdm
 
+from vla.constants import is_libero_simulator, normalize_simulator_name
 from vla.envs import SimEnvFactory, make_env_factory
 from vla.models import load_policy
 
@@ -23,6 +24,7 @@ def evaluate(
     wandb_project: str | None = typer.Option(None, "--wandb-project"),
     compile_model: bool = typer.Option(False, "--compile/--no-compile"),
 ) -> None:
+    simulator_key = normalize_simulator_name(simulator)
     device_obj = torch.device(device if torch.cuda.is_available() else "cpu")
 
     if device_obj.type == "cuda":
@@ -38,20 +40,20 @@ def evaluate(
     preprocessor = loaded.preprocessor
     postprocessor = loaded.postprocessor
 
-    if simulator.lower() == "libero" and suite.lower() == "all":
+    if is_libero_simulator(simulator) and suite.lower() == "all":
         from vla.constants import resolve_suites
 
         libero_suites = [s for s in resolve_suites("all") if s != "long"]
         factories = [
-            _make_factory(simulator, suite=s, env_id=env_id, state_dim=loaded.state_dim) for s in libero_suites
+            _make_factory(simulator_key, suite=s, env_id=env_id, state_dim=loaded.state_dim) for s in libero_suites
         ]
         suite_label = "all (object, spatial, goal)"
     else:
-        factories = [_make_factory(simulator, suite=suite, env_id=env_id, state_dim=loaded.state_dim)]
+        factories = [_make_factory(simulator_key, suite=suite, env_id=env_id, state_dim=loaded.state_dim)]
         suite_label = factories[0].suite_name
 
     print(f"  Model: {model}, Action dim: {loaded.action_dim}, State dim: {loaded.state_dim}")
-    print(f"  Simulator: {simulator}, Suite/Task: {suite_label}")
+    print(f"  Simulator: {simulator_key}, Suite/Task: {suite_label}")
     print(f"  Device: {device_obj}")
 
     if wandb_project:
@@ -81,10 +83,10 @@ def _make_factory(
     env_id: str | None = None,
     state_dim: int = 8,
 ) -> SimEnvFactory:
-    sim = simulator.lower()
+    sim = normalize_simulator_name(simulator)
     kwargs: dict = {}
 
-    if sim == "libero":
+    if is_libero_simulator(sim):
         kwargs["suite"] = suite or "all"
         kwargs["state_dim"] = state_dim
     elif sim == "maniskill":

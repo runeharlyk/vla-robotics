@@ -19,6 +19,7 @@ from typing import Any
 import torch
 import typer
 
+from vla.constants import is_libero_simulator, normalize_simulator_name, resolve_libero_suite_name
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.env_metadata import EnvMetadata
 from vla.models.smolvla import SmolVLAPolicy
@@ -42,7 +43,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 
 
 def _build_eval_log_prefix(simulator: str, suite: str, task_payload: dict[str, Any]) -> str:
-    if simulator.lower() == "libero":
+    if is_libero_simulator(simulator):
         return f"eval/{suite}/task_{task_payload['task_id']}"
     return f"eval/{simulator}/task_{task_payload['task_id']}"
 
@@ -107,7 +108,12 @@ def _parse_task_ids(raw: str | None) -> list[int] | None:
 def main(
     checkpoint_dir: Path = typer.Option(None, "--checkpoint-dir", "-d", path_type=Path),
     checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
-    simulator: str = typer.Option("maniskill", "--simulator", "-s", help="Simulator backend: maniskill or libero"),
+    simulator: str = typer.Option(
+        "maniskill",
+        "--simulator",
+        "-s",
+        help="Simulator backend: maniskill, libero, libero_plus, or libero_pro",
+    ),
     env_id: str = typer.Option(None, "--env", help="Override env id (default: from checkpoint metadata)"),
     suite: str = typer.Option(
         "spatial",
@@ -188,6 +194,8 @@ def main(
     seed_everything(seed)
     device = get_device()
     resolved_task_ids = _parse_task_ids(task_ids)
+    simulator_key = normalize_simulator_name(simulator)
+    is_libero = is_libero_simulator(simulator)
 
     if task_id is not None and resolved_task_ids is not None:
         raise typer.BadParameter("--task-id and --task-ids are mutually exclusive", param_hint="--task-ids")
@@ -203,7 +211,7 @@ def main(
             param_hint="--wise-ft-alpha",
         )
 
-    if simulator.lower() == "libero" and suite.lower() == "all":
+    if is_libero and suite.lower() == "all":
         raise typer.BadParameter(
             "--suite all is not supported on the single-invocation evaluate.py CLI. "
             "The underlying LIBERO env factory only resolves one suite at a time. "
@@ -255,11 +263,11 @@ def main(
 
     # If evaluating a base checkpoint (no checkpoint_dir), provide better defaults for LIBERO
     if checkpoint_dir is None:
-        if simulator == "libero":
-            resolved_env_id = env_id or f"libero_{suite}"
+        if is_libero:
+            resolved_env_id = env_id or resolve_libero_suite_name(suite)
             resolved_instruction = instruction or "follow the task instruction"
             resolved_control_mode = control_mode or "relative"
-        elif simulator == "maniskill":
+        elif simulator_key == "maniskill":
             resolved_env_id = env_id or "PickCube-v1"
             resolved_instruction = instruction or "pick up the cube"
             resolved_control_mode = control_mode or "pd_joint_delta_pos"
@@ -267,8 +275,8 @@ def main(
     resolved_max_steps = max_steps or 220
 
     # Build a concise log message with only relevant information
-    log_bits = [f"simulator={simulator}"]
-    if simulator == "libero":
+    log_bits = [f"simulator={simulator_key}"]
+    if is_libero:
         log_bits.append(f"suite={suite}")
         if resolved_task_ids is not None:
             log_bits.append(f"task_ids={len(resolved_task_ids)}")
@@ -285,7 +293,7 @@ def main(
 
     logging.info("Evaluating: %s", "  ".join(log_bits))
 
-    resolved_run_name = _default_eval_name(simulator, suite, checkpoint_dir, checkpoint, wandb_name)
+    resolved_run_name = _default_eval_name(simulator_key, suite, checkpoint_dir, checkpoint, wandb_name)
 
     if use_wandb:
         import wandb
@@ -297,7 +305,7 @@ def main(
             config={
                 "checkpoint": checkpoint,
                 "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else None,
-                "simulator": simulator,
+                "simulator": simulator_key,
                 "suite": suite,
                 "env_id": resolved_env_id,
                 "num_episodes": num_episodes,
@@ -323,7 +331,7 @@ def main(
         def task_callback(_task_id, payload):
             return (
                 task_payloads.append(dict(payload)),
-                _log_eval_metrics(metrics_logger, simulator, suite, payload),
+                _log_eval_metrics(metrics_logger, simulator_key, suite, payload),
             )
     else:
 
@@ -334,7 +342,7 @@ def main(
         metrics = evaluate_smolvla(
             policy,
             instruction=resolved_instruction,
-            simulator=simulator,
+            simulator=simulator_key,
             env_id=resolved_env_id,
             num_episodes=num_episodes,
             num_envs=num_envs,
@@ -353,7 +361,7 @@ def main(
         )
         print_metrics(metrics, tag=tag)
         if metrics_logger is not None:
-            overall_prefix = f"eval/{suite}" if simulator.lower() == "libero" else f"eval/{simulator}"
+            overall_prefix = f"eval/{suite}" if is_libero else f"eval/{simulator_key}"
             metrics_logger.log(
                 {
                     f"{overall_prefix}/overall/success_rate": metrics.success_rate,
@@ -374,7 +382,7 @@ def main(
             "checkpoint": checkpoint,
             "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else "",
             "tag": tag,
-            "simulator": simulator,
+            "simulator": simulator_key,
             "suite": suite,
             "env_id": resolved_env_id,
             "instruction": resolved_instruction,

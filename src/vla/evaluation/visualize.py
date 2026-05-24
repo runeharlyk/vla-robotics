@@ -150,6 +150,12 @@ def main(
     tasks: str | None = typer.Option(None, "--tasks", "-t"),
     fps: int = typer.Option(30, "--fps"),
     seed: int = typer.Option(0, "--seed"),
+    max_steps: int | None = typer.Option(
+        None,
+        "--max-steps",
+        min=1,
+        help="Optional rollout horizon override. Defaults to the environment horizon.",
+    ),
     num_envs: int = typer.Option(
         1,
         "--num-envs",
@@ -210,7 +216,7 @@ def main(
 
             env = env_factory(task_id)
             task_desc = env.task_description
-            max_steps = env.max_episode_steps
+            episode_limit = max_steps or env.max_episode_steps
             env.close()
             task_bar.set_description(f"Task {task_id}: {task_desc}")
 
@@ -220,7 +226,7 @@ def main(
                     suite_name=env_factory.suite_name,
                     task_id=task_id,
                     num_envs=num_envs,
-                    max_steps=max_steps,
+                    max_steps=episode_limit,
                     state_dim=loaded.state_dim,
                 )
                 try:
@@ -285,7 +291,7 @@ def main(
         env = env_factory(task_id)
 
         task_desc = env.task_description
-        max_steps = env.max_episode_steps
+        episode_limit = max_steps or env.max_episode_steps
         task_bar.set_description(f"Task {task_id}: {task_desc}")
 
         ep_bar = tqdm(range(episodes), desc="  Episodes", unit="ep", position=1, leave=False)
@@ -304,7 +310,7 @@ def main(
             ):
                 abort_requested = True
 
-            step_bar = tqdm(range(max_steps), desc="    Steps", unit="step", position=2, leave=False)
+            step_bar = tqdm(range(episode_limit), desc="    Steps", unit="step", position=2, leave=False)
             for _step in step_bar:
                 if abort_requested:
                     step_bar.set_postfix(result="stopped")
@@ -326,7 +332,7 @@ def main(
                 if preview.show(
                     frames[-1],
                     status_lines=(
-                        f"Task {task_id} | Episode {ep} | Step {_step + 1}/{max_steps}",
+                        f"Task {task_id} | Episode {ep} | Step {_step + 1}/{episode_limit}",
                         task_desc,
                         "Press q or Esc to stop preview/run",
                     ),
