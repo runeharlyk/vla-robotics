@@ -20,6 +20,17 @@ def test_generate_train_hydra_job_uses_experiment_and_profile() -> None:
     assert "uv run --no-sync python scripts/train_srpo_hydra.py experiment=success_bc_t5_chunk5" in job.script
 
 
+def test_generate_libero_plus_train_job_installs_plus_runtime() -> None:
+    job = generate_hydra_job_script("train", "libero_plus_adaptive_curriculum", "l40s-16")
+
+    assert job.name == "train_libero_plus_adaptive_curriculum_l40s-16"
+    assert "UV_PROJECT_ENVIRONMENT_LIBERO_PLUS" in job.script
+    assert "LIBERO_PLUS_ASSETS" in job.script
+    assert "uv pip install -e .libero-plus-src/" in job.script
+    assert "Missing .libero-plus-src" in job.script
+    assert "uv run --no-sync python scripts/train_srpo_hydra.py experiment=libero_plus_adaptive_curriculum" in job.script
+
+
 def test_generate_eval_hydra_job_uses_experiment_and_profile() -> None:
     job = generate_hydra_job_script("eval", "spatial_rl_28263586_seeded", "a100-12")
 

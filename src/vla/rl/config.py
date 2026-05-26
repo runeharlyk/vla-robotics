@@ -106,6 +106,17 @@ class DynamicSamplingConfig:
 
 
 @dataclass
+class CurriculumConfig:
+    enabled: bool = False
+    start_level: int = 1
+    max_level: int | None = None
+    target_min: float = 0.60
+    target_max: float = 0.80
+    patience: int = 2
+    allow_regression: bool = False
+
+
+@dataclass
 class RolloutConfig:
     num_envs: int = 1
     eval_num_envs: int = 1
@@ -153,6 +164,7 @@ class SRPOConfig(BaseTrainingConfig):
     kl: KLConfig = field(default_factory=KLConfig)
     replay: ReplayConfig = field(default_factory=ReplayConfig)
     sampling: DynamicSamplingConfig = field(default_factory=DynamicSamplingConfig)
+    curriculum: CurriculumConfig = field(default_factory=CurriculumConfig)
     rollout: RolloutConfig = field(default_factory=RolloutConfig)
 
     def to_dict(self) -> dict[str, Any]:
@@ -364,6 +376,10 @@ class SRPOConfig(BaseTrainingConfig):
         return self.sampling.max_retries
 
     @property
+    def curriculum_enabled(self) -> bool:
+        return self.curriculum.enabled
+
+    @property
     def num_rollout_envs(self) -> int:
         return self.rollout.num_envs
 
@@ -405,3 +421,6 @@ class TaskSpec:
     env_id: str = ""
     libero_task_idx: int = 0
     data_path: str = ""
+    curriculum_level: int = 0
+    curriculum_category: str = ""
+    source_task_name: str = ""

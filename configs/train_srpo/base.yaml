@@ -112,6 +112,22 @@ sampling:
   dynamic: false
   dynamic_max_retries: 2
 
+curriculum:
+  enabled: false
+  start_level: 1
+  max_level: null
+  target_min: 0.60
+  target_max: 0.80
+  patience: 2
+  allow_regression: false
+
+libero_plus:
+  category: all
+  difficulty: null
+  max_tasks_per_level: 0
+  classification_path: null
+  shuffle: true
+
 rollout:
   num_envs: 8
   eval_num_envs: 0

@@ -52,6 +52,7 @@ from vla.results_registry import (
 from vla.rl.config import (
     AdvantageConfig,
     AWRConfig,
+    CurriculumConfig,
     DemoAuxConfig,
     DynamicSamplingConfig,
     FlowGRPOConfig,
@@ -111,6 +112,11 @@ def _build_tasks(
     include_demos: bool,
     env_id_override: str | None,
     instruction_override: str | None,
+    libero_plus_category: str = "all",
+    libero_plus_difficulty: int | None = None,
+    libero_plus_max_tasks_per_level: int = 0,
+    libero_plus_classification_path: Path | None = None,
+    libero_plus_shuffle: bool = True,
 ) -> tuple[list[TaskSpec], dict[str, list[Trajectory]] | None, int, int]:
     """Build the task list and optional demo trajectories.
 
@@ -124,6 +130,52 @@ def _build_tasks(
     from vla.constants import ACTION_DIM
 
     demo_trajectories: dict[str, list[Trajectory]] | None = {} if include_demos else None
+
+    if simulator in {Simulator.LIBERO_PLUS, Simulator.LIBERO_PRO} and libero_suite is not None and data_dir is None:
+        from scripts.select_libero_plus_tasks import DEFAULT_CLASSIFICATION_PATH, select_tasks
+        from vla.constants import ACTION_DIM
+
+        selected = select_tasks(
+            classification_path=libero_plus_classification_path or DEFAULT_CLASSIFICATION_PATH,
+            suite=str(libero_suite),
+            category=libero_plus_category,
+            difficulty=libero_plus_difficulty,
+            max_tasks=None,
+            seed=seed,
+            shuffle=libero_plus_shuffle,
+        )
+        if task_ids is not None:
+            requested = set(task_ids)
+            selected = [task for task in selected if task.task_id in requested]
+            if not selected:
+                raise ValueError(f"No LIBERO-Plus tasks matched explicit task_ids={sorted(requested)}")
+        if libero_plus_max_tasks_per_level > 0:
+            per_level_counts: dict[int, int] = {}
+            capped = []
+            for task in selected:
+                level = int(task.difficulty_level or 1)
+                count = per_level_counts.get(level, 0)
+                if count >= libero_plus_max_tasks_per_level:
+                    continue
+                per_level_counts[level] = count + 1
+                capped.append(task)
+            selected = capped
+
+        task_specs = []
+        for task in selected:
+            instruction = task.name.replace("_", " ")
+            task_specs.append(
+                TaskSpec(
+                    task_id=f"{simulator}_{suite}_task_{task.task_id}",
+                    instruction=instruction_override or instruction or "complete the manipulation task",
+                    env_id=env_id_override or f"libero_{libero_suite}",
+                    libero_task_idx=task.task_id,
+                    curriculum_level=int(task.difficulty_level or 1),
+                    curriculum_category=task.category,
+                    source_task_name=task.name,
+                )
+            )
+        return task_specs, demo_trajectories, 8, ACTION_DIM
 
     if simulator is Simulator.LIBERO and libero_suite is not None and data_dir is None:
         from vla.data.libero import LiberoSFTDataset
@@ -163,6 +215,7 @@ def _build_tasks(
                     instruction=instruction_override or task_instruction or "complete the manipulation task",
                     env_id=env_id_override or f"libero_{libero_suite}",
                     libero_task_idx=tidx,
+                    curriculum_level=0,
                 )
             )
             if demo_trajectories is not None:
@@ -484,6 +537,67 @@ def main(
         "--sampling.dynamic-max-retries",
         help="Max number of replacement draws per uniform-reward task before giving up.",
     ),
+    curriculum_enabled: bool = typer.Option(
+        False,
+        "--curriculum.enabled/--no-curriculum.enabled",
+        help="Enable adaptive task-level curriculum for LIBERO-Plus perturbation training.",
+    ),
+    curriculum_start_level: int = typer.Option(
+        1,
+        "--curriculum.start-level",
+        help="Initial perturbation difficulty level.",
+    ),
+    curriculum_max_level: int | None = typer.Option(
+        None,
+        "--curriculum.max-level",
+        help="Maximum perturbation difficulty level to unlock. Defaults to the max selected level.",
+    ),
+    curriculum_target_min: float = typer.Option(
+        0.60,
+        "--curriculum.target-min",
+        help="If rollout success stays below this value, the curriculum holds or regresses.",
+    ),
+    curriculum_target_max: float = typer.Option(
+        0.80,
+        "--curriculum.target-max",
+        help="If rollout success reaches this value for the patience window, unlock the next level.",
+    ),
+    curriculum_patience: int = typer.Option(
+        2,
+        "--curriculum.patience",
+        help="Number of consecutive rollout windows required before changing difficulty.",
+    ),
+    curriculum_allow_regression: bool = typer.Option(
+        False,
+        "--curriculum.allow-regression/--no-curriculum.allow-regression",
+        help="Allow the curriculum to step down when success drops below target_min.",
+    ),
+    libero_plus_category: str = typer.Option(
+        "all",
+        "--libero-plus.category",
+        help="LIBERO-Plus perturbation category alias or exact category name.",
+    ),
+    libero_plus_difficulty: int | None = typer.Option(
+        None,
+        "--libero-plus.difficulty",
+        help="Optional fixed LIBERO-Plus difficulty. Leave unset for adaptive curriculum across levels.",
+    ),
+    libero_plus_max_tasks_per_level: int = typer.Option(
+        0,
+        "--libero-plus.max-tasks-per-level",
+        help="Cap selected LIBERO-Plus tasks per difficulty level. 0 means no cap.",
+    ),
+    libero_plus_classification_path: Path | None = typer.Option(
+        None,
+        "--libero-plus.classification-path",
+        path_type=Path,
+        help="Path to LIBERO-Plus task_classification.json. Defaults to the bundled checkout or installed package.",
+    ),
+    libero_plus_shuffle: bool = typer.Option(
+        True,
+        "--libero-plus.shuffle/--no-libero-plus.shuffle",
+        help="Shuffle LIBERO-Plus task selection before per-level capping.",
+    ),
     n_action_steps: int = typer.Option(
         1,
         "--rollout.n-action-steps",
@@ -522,6 +636,11 @@ def main(
         include_demos=include_demos_internal,
         env_id_override=env_id,
         instruction_override=instruction,
+        libero_plus_category=libero_plus_category,
+        libero_plus_difficulty=libero_plus_difficulty,
+        libero_plus_max_tasks_per_level=libero_plus_max_tasks_per_level,
+        libero_plus_classification_path=libero_plus_classification_path,
+        libero_plus_shuffle=libero_plus_shuffle,
     )
 
     policy = SmolVLAPolicy(
@@ -685,6 +804,15 @@ def main(
         sampling=DynamicSamplingConfig(
             enabled=dynamic_sampling,
             max_retries=dynamic_sampling_max_retries,
+        ),
+        curriculum=CurriculumConfig(
+            enabled=curriculum_enabled,
+            start_level=curriculum_start_level,
+            max_level=curriculum_max_level,
+            target_min=curriculum_target_min,
+            target_max=curriculum_target_max,
+            patience=curriculum_patience,
+            allow_regression=curriculum_allow_regression,
         ),
         rollout=RolloutConfig(
             num_envs=num_rollout_envs,

@@ -112,6 +112,7 @@ def generated_job_script(
     experiment: str,
     config_dir: str,
     entrypoint: str,
+    setup_script: str = "",
 ) -> GeneratedJob:
     profiles = load_yaml(PROFILES_PATH)
     if profile_name not in profiles:
@@ -123,6 +124,7 @@ def generated_job_script(
     body = f"""\
 . jobs/_env.sh
 
+{setup_script}
 export LIBERO_PATH=/work3/s234814/libero
 mkdir -p "$LIBERO_PATH"
 printf "Y\\n/work3/s234814/libero\\nY\\n" \\
@@ -139,6 +141,73 @@ git diff HEAD -- {config_dir} {entrypoint} scripts/train_srpo.py scripts/evaluat
 {command}
 """
     return GeneratedJob(name=job_name, script=header + body)
+
+
+def _libero_plus_setup_script() -> str:
+    return """\
+# LIBERO-Plus/PRO replaces the base `libero` package. Keep that override in
+# a separate venv so ordinary LIBERO jobs still use the lockfile environment.
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT_LIBERO_PLUS:-/work3/s234814/.venvs/vla-robotics-libero-plus}"
+LIBERO_PLUS_ASSETS="${LIBERO_PLUS_ASSETS:-/work3/s234814/libero-plus/assets}"
+
+if [ ! -d "$UV_PROJECT_ENVIRONMENT" ]; then
+  echo "Creating LIBERO-Plus venv at $UV_PROJECT_ENVIRONMENT"
+  uv venv "$UV_PROJECT_ENVIRONMENT"
+fi
+
+if [ ! -d .libero-plus-src ]; then
+  echo "Missing .libero-plus-src; copy or clone the LIBERO-Plus source checkout before submitting."
+  exit 1
+fi
+
+if [ ! -d "$LIBERO_PLUS_ASSETS" ]; then
+  echo "LIBERO_PLUS_ASSETS does not exist: $LIBERO_PLUS_ASSETS"
+  echo "Download and unzip LIBERO-Plus assets first, or override LIBERO_PLUS_ASSETS."
+  exit 1
+fi
+
+uv sync
+uv pip install -e .libero-plus-src/
+export LIBERO_PLUS_ASSETS_PATH="$LIBERO_PLUS_ASSETS"
+
+PACKAGE_ASSETS=.libero-plus-src/libero/libero/assets
+if [ ! -e "$PACKAGE_ASSETS" ]; then
+  ln -s "$LIBERO_PLUS_ASSETS" "$PACKAGE_ASSETS"
+fi
+"""
+
+
+def _uses_libero_plus_runtime(kind: str, experiment: str) -> bool:
+    try:
+        cfg = compose_hydra_experiment(kind, experiment)
+    except Exception:
+        return False
+
+    simulator = str(cfg.get("simulator") or "").strip().lower().replace("-", "_")
+    return simulator in {"libero_plus", "liberoplus", "libero_pro", "liberopro"}
+
+
+def libero_plus_setup_issues() -> tuple[list[str], list[str]]:
+    missing: list[str] = []
+    warnings: list[str] = []
+
+    source_dir = PROJECT_ROOT / ".libero-plus-src"
+    classification_path = source_dir / "libero" / "libero" / "benchmark" / "task_classification.json"
+    assets_dir = Path(os.environ.get("LIBERO_PLUS_ASSETS", "/work3/s234814/libero-plus/assets"))
+
+    if not source_dir.exists():
+        missing.append("libero-plus:.libero-plus-src")
+    elif not classification_path.exists():
+        missing.append(f"libero-plus:{cli_path(classification_path)}")
+    else:
+        warnings.append(f"libero-plus:classification={cli_path(classification_path)}")
+
+    if not assets_dir.exists():
+        missing.append(f"libero-plus:assets={cli_path(assets_dir)}")
+    else:
+        warnings.append(f"libero-plus:assets={cli_path(assets_dir)}")
+
+    return missing, warnings
 
 
 def compose_hydra_experiment(kind: str, experiment: str):
@@ -395,6 +464,10 @@ def validate_hydra_submit(kind: str, experiment: str, profile_name: str, *, subm
             errors.extend(validate_cli_args(target_script(kind), args))
 
     missing, warnings = hpc_setup_issues(submit=submit)
+    if experiment_path.exists() and _uses_libero_plus_runtime(kind, experiment):
+        plus_missing, plus_warnings = libero_plus_setup_issues()
+        missing.extend(plus_missing)
+        warnings.extend(plus_warnings)
     if submit:
         errors.extend(f"missing HPC prerequisite: {item}" for item in missing)
 
@@ -484,6 +557,7 @@ def generate_hydra_job_script(kind: str, experiment: str, profile_name: str) -> 
     job_name = sanitize_job_part(f"{kind}_{experiment}_{profile_name}")
     experiment_arg = shlex.quote(f"experiment={experiment}")
     command = f"uv run --no-sync python scripts/{script_name} {experiment_arg}"
+    setup_script = _libero_plus_setup_script() if _uses_libero_plus_runtime(kind, experiment) else ""
     return generated_job_script(
         job_name=job_name,
         profile_name=profile_name,
@@ -492,6 +566,7 @@ def generate_hydra_job_script(kind: str, experiment: str, profile_name: str) -> 
         experiment=experiment,
         config_dir=config_dir,
         entrypoint=f"scripts/{script_name}",
+        setup_script=setup_script,
     )
 
 

@@ -1,0 +1,63 @@
+# @package _global_
+
+metadata:
+  label: libero-plus-adaptive-curriculum
+  notes: |
+    Sparse-RL continuation from HuggingFaceVLA/smolvla_libero on LIBERO-Plus.
+    Starts at difficulty 1 and progressively unlocks harder perturbation
+    tasks when rollout success remains in the target band.
+
+checkpoint: HuggingFaceVLA/smolvla_libero
+simulator: libero_plus
+suite: spatial
+libero_suite: spatial
+task_ids: all
+mode: sparse_rl
+update_method: fpo
+lr: 2e-6
+trajs_per_task: 8
+iterations: 40
+eval_every: 10
+eval_episodes: 30
+pre_rl_eval: false
+wandb_name: libero-plus-adaptive-curriculum
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.02
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  negative_adv_scale: 1.0
+
+replay:
+  include_demos: false
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+curriculum:
+  enabled: true
+  start_level: 1
+  max_level: 5
+  target_min: 0.60
+  target_max: 0.78
+  patience: 2
+  allow_regression: false
+
+libero_plus:
+  category: all
+  difficulty: null
+  max_tasks_per_level: 12
+  shuffle: true
+
+rollout:
+  num_envs: 8
+  eval_num_envs: 0
+  n_action_steps: 1

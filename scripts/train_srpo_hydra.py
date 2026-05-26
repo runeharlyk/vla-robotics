@@ -38,6 +38,9 @@ PAIRED_BOOL_FLAGS = {
     "demo-aux.enabled",
     "demo-replay",
     "demo-replay-require-success",
+    "curriculum.enabled",
+    "curriculum.allow-regression",
+    "libero-plus.shuffle",
 }
 
 KEY_ALIASES = {

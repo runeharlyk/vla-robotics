@@ -40,6 +40,7 @@ from vla.models.smolvla import SmolVLAPolicy
 from vla.models.world_model import WorldModelEncoder, build_world_model
 from vla.rl.advantage import leave_one_out_advantages_per_task, normalize_advantages_per_task
 from vla.rl.config import SRPOConfig, TaskSpec
+from vla.rl.curriculum import AdaptiveTaskCurriculum
 from vla.rl.policy_update import (
     UpdateMetrics,
     _sample_fixed_noise_time,
@@ -208,6 +209,14 @@ def log_training_config(
     lines.append(f"    dynamic_sampling:           {config.dynamic_sampling}")
     lines.append(f"    dynamic_sampling_max_retries: {config.dynamic_sampling_max_retries}")
     lines.append(f"    n_action_steps:             {config.n_action_steps}")
+    lines.append(f"    curriculum_enabled:         {config.curriculum.enabled}")
+    if config.curriculum.enabled:
+        lines.append(f"    curriculum_start_level:     {config.curriculum.start_level}")
+        lines.append(f"    curriculum_max_level:       {config.curriculum.max_level}")
+        lines.append(f"    curriculum_target_min:      {config.curriculum.target_min}")
+        lines.append(f"    curriculum_target_max:      {config.curriculum.target_max}")
+        lines.append(f"    curriculum_patience:        {config.curriculum.patience}")
+        lines.append(f"    curriculum_allow_regression: {config.curriculum.allow_regression}")
 
     lines.append("")
     lines.append("  SRPO reward (world-model):")
@@ -258,7 +267,7 @@ def build_rollout_engine(
             max_steps=config.max_steps,
         )
 
-    if sim is Simulator.LIBERO:
+    if sim in {Simulator.LIBERO, Simulator.LIBERO_PLUS, Simulator.LIBERO_PRO}:
         from vla.rl.libero_rollout import LiberoRollout
 
         task_id = spec.libero_task_idx if spec else config.task_id
@@ -270,7 +279,7 @@ def build_rollout_engine(
             state_dim=config.state_dim,
         )
 
-    raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero")
+    raise ValueError(f"Unknown simulator {config.simulator!r}. Available: maniskill, libero, libero_plus, libero_pro")
 
 
 # ---------------------------------------------------------------------------
@@ -279,6 +288,10 @@ def build_rollout_engine(
 
 
 _SHARED_LIBERO_KEY = "_shared_libero"
+
+
+def _is_libero_backend(config: SRPOConfig) -> bool:
+    return config.simulator in {Simulator.LIBERO, Simulator.LIBERO_PLUS, Simulator.LIBERO_PRO}
 
 
 def _resolve_success_replay_capacity(config: SRPOConfig) -> int:
@@ -618,7 +631,7 @@ def _get_or_build_engine(
     ``_SHARED_LIBERO_KEY`` and hot-swaps its task via ``reconfigure()``.
     For ManiSkill: creates per-task engines lazily (no subprocess overhead).
     """
-    if config.simulator is Simulator.LIBERO:
+    if _is_libero_backend(config):
         from vla.rl.libero_rollout import LiberoRollout
 
         if _SHARED_LIBERO_KEY in rollout_engines:
@@ -644,7 +657,7 @@ def _evaluate_task(
     rollout_engines: dict[str, RolloutEngine] | None,
 ) -> EvalMetrics:
     """Evaluate a single task, reusing the shared LIBERO engine when available."""
-    if config.simulator is Simulator.LIBERO and rollout_engines is not None and _SHARED_LIBERO_KEY in rollout_engines:
+    if _is_libero_backend(config) and rollout_engines is not None and _SHARED_LIBERO_KEY in rollout_engines:
         engine = _get_or_build_engine(rollout_engines, config, spec)
         use_vec = config.num_rollout_envs > 1
         trajs = engine.collect_batch(
@@ -666,7 +679,7 @@ def _evaluate_task(
         max_steps=config.max_steps,
         seed=config.seed + 20000,
     )
-    if config.simulator is Simulator.LIBERO:
+    if _is_libero_backend(config):
         kwargs.update(
             suite=config.suite,
             task_id=spec.libero_task_idx,
@@ -823,7 +836,7 @@ def train_srpo(
     if rollout_engines is None:
         rollout_engines = {}
 
-    if config.simulator is Simulator.LIBERO and _SHARED_LIBERO_KEY not in rollout_engines:
+    if _is_libero_backend(config) and _SHARED_LIBERO_KEY not in rollout_engines:
         _get_or_build_engine(rollout_engines, config, task_specs[0])
     elif config.simulator is Simulator.MANISKILL and config.num_rollout_envs > 1:
         # ManiSkill GPU PhysX must be enabled before any other PhysX-backed env
@@ -833,6 +846,7 @@ def train_srpo(
             _get_or_build_engine(rollout_engines, config, spec)
 
     spec_lookup: dict[str, TaskSpec] = {s.task_id: s for s in task_specs}
+    curriculum = AdaptiveTaskCurriculum(config.curriculum, task_specs)
 
     success_buffer: dict[str, list[Trajectory]] = defaultdict(list)
     success_rate_ema: dict[str, float] = {s.task_id: 0.0 for s in task_specs}
@@ -893,11 +907,21 @@ def train_srpo(
             total_kept += kept
             log_data[f"{config.mode}/{_spec.task_id}/demos_kept_after_replay"] = kept
         log_data[f"{config.mode}/demos_kept_after_replay_total"] = total_kept
+    active_task_specs = curriculum.active_specs(task_specs)
+    if curriculum.enabled:
+        logger.info(
+            "Adaptive curriculum enabled: level=%d active_tasks=%d/%d",
+            curriculum.level,
+            len(active_task_specs),
+            len(task_specs),
+        )
+        log_data[f"{config.mode}/curriculum/level"] = curriculum.level
+        log_data[f"{config.mode}/curriculum/active_tasks"] = len(active_task_specs)
     if config.pre_rl_eval:
         best_success = evaluate_and_checkpoint(  # iter-0 baseline eval
             policy,
             config,
-            task_specs,
+            active_task_specs,
             0,
             save_path,
             best_success,
@@ -919,10 +943,11 @@ def train_srpo(
         if ref_policy is not None:
             ref_policy.load_state_dict(policy.state_dict())
 
-        # -- 1. Collect trajectories from all tasks -----------------------
+        # -- 1. Collect trajectories from active curriculum tasks ----------
+        active_task_specs = curriculum.active_specs(task_specs)
         rollout_trajectories, per_task_successes = collect_all_trajectories(
             policy,
-            task_specs,
+            active_task_specs,
             rollout_engines,
             config,
             iteration,
@@ -938,7 +963,7 @@ def train_srpo(
         ) = resample_uniform_reward_tasks(
             policy,
             rollout_trajectories,
-            task_specs,
+            active_task_specs,
             rollout_engines,
             config,
             iteration,
@@ -956,6 +981,18 @@ def train_srpo(
                 success_rate_ema[_tid] = (
                     config.success_replay_ema_decay * prev + (1.0 - config.success_replay_ema_decay) * rollout_sr
                 )
+
+        curriculum_decision = curriculum.update(per_task_successes, task_specs, trajs_per_task_per_iter)
+        if curriculum.enabled:
+            logger.info(
+                "Iter %d curriculum: level=%d action=%s active_tasks=%d/%d rollout_sr=%.3f",
+                iteration,
+                curriculum_decision.level,
+                curriculum_decision.action,
+                curriculum_decision.active_task_count,
+                len(task_specs),
+                curriculum_decision.success_rate,
+            )
 
         if replay_capacity > 0:
             for t in rollout_trajectories:
@@ -1087,7 +1124,7 @@ def train_srpo(
             per_task_g_mean = adv_result.per_task_g_mean
 
         skipped_task_set = set(skipped_tasks)
-        if config.update_method is not UpdateMethod.SUCCESS_BC and len(skipped_tasks) == len(task_specs):
+        if config.update_method is not UpdateMethod.SUCCESS_BC and len(skipped_tasks) == len(active_task_specs):
             logger.info(
                 f"Iter {iteration}: skipping update - all tasks have uniform rewards (successes={total_successes})"
             )
@@ -1099,6 +1136,11 @@ def train_srpo(
                 f"{config.mode}/dynamic_sampling/gave_up_tasks": len(dynsample_gave_up),
                 f"{config.mode}/iteration": iteration,
             }
+            if curriculum.enabled:
+                log_data[f"{config.mode}/curriculum/level"] = curriculum_decision.level
+                log_data[f"{config.mode}/curriculum/active_tasks"] = curriculum_decision.active_task_count
+                log_data[f"{config.mode}/curriculum/success_rate"] = curriculum_decision.success_rate
+                log_data[f"{config.mode}/curriculum/action"] = curriculum_decision.action
             for _tid in per_task_g_mean:
                 log_data[f"{config.mode}/{_tid}/g_mean"] = per_task_g_mean[_tid]
             metrics_logger.log(log_data)
@@ -1314,6 +1356,13 @@ def train_srpo(
             f"{config.mode}/dynamic_sampling/gave_up_tasks": len(dynsample_gave_up),
             f"{config.mode}/iteration": iteration,
         }
+        if curriculum.enabled:
+            log_data[f"{config.mode}/curriculum/level"] = curriculum_decision.level
+            log_data[f"{config.mode}/curriculum/active_tasks"] = curriculum_decision.active_task_count
+            log_data[f"{config.mode}/curriculum/success_rate"] = curriculum_decision.success_rate
+            log_data[f"{config.mode}/curriculum/action"] = curriculum_decision.action
+            log_data[f"{config.mode}/curriculum/high_streak"] = curriculum_decision.high_streak
+            log_data[f"{config.mode}/curriculum/low_streak"] = curriculum_decision.low_streak
         if update_metrics.avg_loss != 0.0:
             log_data[f"{config.mode}/sft_kl_dominance"] = update_metrics.avg_sft_kl / abs(update_metrics.avg_loss)
         for _tid, n_retries in dynsample_retries.items():
@@ -1391,7 +1440,7 @@ def train_srpo(
             best_success = evaluate_and_checkpoint(
                 policy,
                 config,
-                task_specs,
+                curriculum.active_specs(task_specs),
                 iteration,
                 save_path,
                 best_success,
