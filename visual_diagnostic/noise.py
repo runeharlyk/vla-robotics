@@ -171,7 +171,13 @@ def _fog(img_uint8: np.ndarray, severity: int) -> np.ndarray:
 
 
 def _glass_blur(img_uint8: np.ndarray, severity: int) -> np.ndarray:
-    """Simulate glass-like distortion via local pixel shuffling + blur."""
+    """Simulate glass-like distortion via local pixel shuffling + blur.
+
+    Produces bit-for-bit identical output to the original triple-nested loop.
+    Speed-up comes from generating all random offsets in one vectorised numpy
+    call (same RNG sequence) and pre-computing swap indices, so the hot loop
+    only does integer array look-ups instead of calling rng.randint() per pixel.
+    """
     if cv2 is None:
         raise ImportError("opencv-python is required for glass_blur")
 
@@ -188,17 +194,42 @@ def _glass_blur(img_uint8: np.ndarray, severity: int) -> np.ndarray:
 
     rng = np.random.RandomState(42)
 
-    for _ in range(n_iters):
-        for i in range(h - delta, delta, -1):
-            for j in range(w - delta, delta, -1):
-                di = rng.randint(-delta, delta + 1)
-                dj = rng.randint(-delta, delta + 1)
-                ni = min(max(i + di, 0), h - 1)
-                nj = min(max(j + dj, 0), w - 1)
-                result[i, j], result[ni, nj] = (
-                    result[ni, nj].copy(),
-                    result[i, j].copy(),
-                )
+    # --- Pre-compute everything outside the hot loop ---
+
+    # Pixel coordinates visited per iteration (same order as original nested loop)
+    i_range = np.arange(h - delta, delta, -1)   # shape (n_rows,)
+    j_range = np.arange(w - delta, delta, -1)   # shape (n_cols,)
+    ii, jj = np.meshgrid(i_range, j_range, indexing="ij")  # (n_rows, n_cols)
+    ii_flat = np.tile(ii.ravel(), n_iters)       # (total,)
+    jj_flat = np.tile(jj.ravel(), n_iters)       # (total,)
+    total = len(ii_flat)
+
+    # Generate ALL random offsets in one call — produces the identical sequence
+    # as calling rng.randint() twice per pixel in the original loop order:
+    #   all_offsets[0]  = di for pixel 0,  all_offsets[1]  = dj for pixel 0, ...
+    all_offsets = rng.randint(-delta, delta + 1, size=2 * total)
+    di_all = all_offsets[0::2]   # shape (total,)
+    dj_all = all_offsets[1::2]   # shape (total,)
+
+    # Clamped neighbour indices (vectorised)
+    ni_all = np.clip(ii_flat + di_all, 0, h - 1)
+    nj_all = np.clip(jj_flat + dj_all, 0, w - 1)
+
+    # Pre-compute flat (1-D) indices for faster array access
+    src = (ii_flat * w + jj_flat).astype(np.intp)
+    dst = (ni_all * w + nj_all).astype(np.intp)
+
+    # Flat view — mutations here are reflected in `result`
+    flat = result.reshape(-1, c)
+
+    # Sequential swaps — order matches original; bit-identical output guaranteed.
+    # The remaining Python loop is fast because every per-iteration cost is a
+    # plain integer array look-up, with no function calls.
+    for k in range(total):
+        s, d = src[k], dst[k]
+        tmp = flat[s].copy()
+        flat[s] = flat[d]
+        flat[d] = tmp
 
     result = cv2.GaussianBlur(result.astype(np.uint8), (0, 0), sigma)
     return result
