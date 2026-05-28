@@ -1,0 +1,79 @@
+# @package _global_
+
+metadata:
+  label: spatial-weak5-specialist-recipe
+  source_config: configs/train_srpo/experiment/spatial_single_specialist_best.yaml
+  notes: |
+    Multitask follow-up that reuses the successful task-4 specialist recipe
+    without warm-starting from the task-4 checkpoint.
+
+    This starts from HuggingFaceVLA/smolvla_libero and trains only on the
+    weaker spatial tasks under the matched n_action_steps=1 protocol. The goal
+    is to test whether the specialist recipe scales to a small weak-task group
+    before spending a full 10-task run.
+
+sft_checkpoint: null
+checkpoint: HuggingFaceVLA/smolvla_libero
+task_ids: "0,3,4,7,9"
+num_demos: 20
+mode: sparse_rl
+update_method: fpo
+lr: 1e-6
+trajs_per_task: 32
+iterations: 80
+eval_every: 10
+eval_episodes: 100
+pre_rl_eval: true
+max_steps: 220
+wandb_name: spatial-weak5-specialist-recipe-fpo-n1-lr1e6
+
+demo_replay: true
+demo_replay_seed_mode: episode_index
+demo_replay_fixed_seed: 0
+demo_replay_require_success: true
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.01
+  adaptive: false
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  loss_reduction: sum
+  positive_adv_only: false
+  negative_adv_scale: 0.0
+  log_ratio_clip: 5.0
+  use_ref_policy_kl: false
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+demo_aux:
+  enabled: true
+  coeff: 0.01
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
+rollout:
+  num_envs: 8
+  eval_num_envs: 8
+  fm_batch_size: 64
+  gradient_checkpointing: true
+  eval_zero_sample: false
+  n_action_steps: 1
