@@ -243,13 +243,62 @@ def _load_libero_v2_from_hf(
         "observation.state": {"mean": st_mean, "std": st_std},
     }
 
+    requested_ep_indices = list(ep_indices)
+    requested_rank_by_episode = {
+        ep_idx: rank for ep_idx, rank in zip(requested_ep_indices, task_episode_ranks, strict=False)
+    }
+
+    def _to_int(value: object) -> int:
+        if isinstance(value, torch.Tensor):
+            return int(value.item())
+        if isinstance(value, np.ndarray):
+            return int(value.item())
+        return int(value)
+
     episode_data_index = {"from": [], "to": []}
-    offset = 0
-    for ep in episodes_meta:
-        length = ep["length"]
-        episode_data_index["from"].append(offset)
-        episode_data_index["to"].append(offset + length)
-        offset += length
+    actual_ep_indices: list[int] = []
+    column_names = set(getattr(ds, "column_names", []))
+    loaded_ep_indices = [_to_int(v) for v in ds["episode_index"]] if "episode_index" in column_names else []
+    if loaded_ep_indices:
+        start = 0
+        current_ep = loaded_ep_indices[0]
+        for row_idx, ep_idx in enumerate(loaded_ep_indices[1:], start=1):
+            if ep_idx == current_ep:
+                continue
+            episode_data_index["from"].append(start)
+            episode_data_index["to"].append(row_idx)
+            actual_ep_indices.append(current_ep)
+            start = row_idx
+            current_ep = ep_idx
+        episode_data_index["from"].append(start)
+        episode_data_index["to"].append(len(loaded_ep_indices))
+        actual_ep_indices.append(current_ep)
+
+        if actual_ep_indices != requested_ep_indices:
+            missing = sorted(set(requested_ep_indices) - set(actual_ep_indices))
+            logger.warning(
+                "LIBERO loaded episode rows differ from metadata selection for %s task_id=%s: "
+                "requested=%d actual=%d missing=%s",
+                repo_id,
+                task_id,
+                len(requested_ep_indices),
+                len(actual_ep_indices),
+                missing[:10],
+            )
+        if task_id is not None:
+            task_episode_ranks = [
+                requested_rank_by_episode.get(ep_idx, fallback_rank)
+                for fallback_rank, ep_idx in enumerate(actual_ep_indices)
+            ]
+        num_loaded_episodes = len(actual_ep_indices)
+    else:
+        offset = 0
+        for ep in episodes_meta:
+            length = ep["length"]
+            episode_data_index["from"].append(offset)
+            episode_data_index["to"].append(offset + length)
+            offset += length
+        num_loaded_episodes = len(episodes_meta)
 
     class _Wrapped:
         """Thin wrapper giving a dict-of-tensors interface over a HF Dataset."""
@@ -283,7 +332,7 @@ def _load_libero_v2_from_hf(
             return out
 
     wrapped = _Wrapped(ds, episode_data_index, task_map)
-    return wrapped, task_map, stats, len(episodes_meta), task_episode_ranks
+    return wrapped, task_map, stats, num_loaded_episodes, task_episode_ranks
 
 
 class LiberoDataset(Dataset):
