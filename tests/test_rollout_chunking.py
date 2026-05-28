@@ -6,7 +6,7 @@ import torch
 from vla.models.smolvla import SmolVLAPolicy
 from vla.rl.policy_update.base import _actions_and_mask_for_loss
 from vla.rl.rollout import SingleStepResult, collect_single_episode_chunked
-from vla.rl.vec_env import StepResult, collect_wave_chunked
+from vla.rl.vec_env import StepResult, collect_metrics_wave_chunked, collect_wave_chunked
 
 
 class _FakeSingleAdapter:
@@ -172,7 +172,11 @@ def test_chunked_rollout_can_reconstruct_v28_sliding_targets() -> None:
 def test_collect_wave_chunked_tracks_per_env_masks() -> None:
     adapter = _FakeVecAdapter()
 
-    def policy_chunk_batch_fn(images: torch.Tensor, instruction: str, states: torch.Tensor | None = None) -> torch.Tensor:
+    def policy_chunk_batch_fn(
+        images: torch.Tensor,
+        instruction: str,
+        states: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         bases = states[:, 0].to(torch.float32)
         chunks = []
         for base in bases:
@@ -201,6 +205,31 @@ def test_collect_wave_chunked_tracks_per_env_masks() -> None:
     assert env1.rewards.tolist() == [2.0]
     assert env1.chunk_mask is not None
     assert env1.chunk_mask.tolist() == [[True, True]]
+
+
+def test_collect_metrics_wave_chunked_does_not_materialize_trajectories() -> None:
+    adapter = _FakeVecAdapter()
+
+    def policy_chunk_batch_fn(
+        images: torch.Tensor,
+        instruction: str,
+        states: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        return torch.ones(images.shape[0], 3, 1)
+
+    summary = collect_metrics_wave_chunked(
+        adapter,
+        policy_chunk_batch_fn,
+        "task",
+        active_n=2,
+        seed=0,
+        max_steps=5,
+        n_action_steps=2,
+    )
+
+    assert summary.successes == 2
+    assert summary.rewards == [3.0, 2.0]
+    assert summary.lengths == [3, 2]
 
 
 def test_build_action_chunks_masks_unexecuted_chunk_tail() -> None:

@@ -454,6 +454,30 @@ class LiberoRollout:
             policy_chunk_batch_fn=policy_chunk_batch_fn,
         )
 
+    def collect_metrics(
+        self,
+        policy_batch_fn: Any,
+        instruction: str,
+        num_trajectories: int = 16,
+        seed: int | None = None,
+        n_action_steps: int = 1,
+        policy_chunk_batch_fn: Any | None = None,
+    ) -> Any:
+        """Collect evaluation metrics without storing full trajectories."""
+        from vla.rl.vec_env import collect_metrics_vectorized
+
+        adapter = _LiberoVecAdapter(self)
+        return collect_metrics_vectorized(
+            adapter,
+            policy_batch_fn,
+            instruction,
+            num_trajectories,
+            seed,
+            self.max_steps,
+            n_action_steps=n_action_steps,
+            policy_chunk_batch_fn=policy_chunk_batch_fn,
+        )
+
     def close(self) -> None:
         self.vec_env.close()
 

@@ -9,8 +9,7 @@ import torch
 
 from vla.diagnostics import eval as eval_mod
 from vla.diagnostics.eval import metrics_from_trajectories
-from vla.rl.rollout import Trajectory
-from vla.rl.vec_env import StepResult, collect_wave_chunked
+from vla.rl.vec_env import RolloutMetrics, StepResult, collect_wave_chunked
 
 
 @dataclass
@@ -162,7 +161,7 @@ def test_libero_flow_sde_eval_uses_flow_sampler(monkeypatch) -> None:
         def reconfigure(self, *args, **kwargs) -> None:
             pass
 
-        def collect_batch(self, **kwargs):
+        def collect_metrics(self, **kwargs):
             calls.append(kwargs)
             sample = kwargs["policy_chunk_batch_fn"](
                 torch.zeros(1, 1, 3, 8, 8),
@@ -170,17 +169,7 @@ def test_libero_flow_sde_eval_uses_flow_sampler(monkeypatch) -> None:
                 torch.zeros(1, 8),
             )
             assert sample.shape == (1, 5, 7)
-            return [
-                Trajectory(
-                    images=torch.zeros(1, 3, 8, 8),
-                    states=torch.zeros(1, 8),
-                    actions=torch.zeros(1, 7),
-                    rewards=torch.ones(1),
-                    dones=torch.ones(1),
-                    success=True,
-                    length=1,
-                )
-            ]
+            return RolloutMetrics(successes=1, rewards=[1.0], lengths=[5])
 
         def close(self) -> None:
             pass
@@ -206,7 +195,5 @@ def test_libero_flow_sde_eval_uses_flow_sampler(monkeypatch) -> None:
 
     assert metrics.success_rate == 1.0
     assert policy.configured == (0.03, 10)
-    assert calls[0]["policy_fn"].__name__ == "_single_fn"
     assert calls[0]["policy_batch_fn"].__name__ == "_batch_fn"
-    assert calls[0]["policy_chunk_fn"].__name__ == "_chunk_single_fn"
     assert calls[0]["policy_chunk_batch_fn"].__name__ == "_chunk_batch_fn"

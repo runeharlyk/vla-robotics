@@ -32,6 +32,24 @@ class StepResult:
     successes: list[bool]
 
 
+@dataclass
+class RolloutMetrics:
+    """Metric-only rollout summary for evaluation paths.
+
+    This deliberately avoids storing observations/actions so eval jobs do
+    not pay the memory cost required by RL policy updates.
+    """
+
+    successes: int
+    rewards: list[float]
+    lengths: list[int]
+
+    def extend(self, other: RolloutMetrics) -> None:
+        self.successes += other.successes
+        self.rewards.extend(other.rewards)
+        self.lengths.extend(other.lengths)
+
+
 @runtime_checkable
 class VecEnvAdapter(Protocol):
     """Thin adapter that normalises vectorised env interfaces.
@@ -173,6 +191,71 @@ def collect_wave(
         )
 
     return trajectories
+
+
+def collect_metrics_wave(
+    adapter: VecEnvAdapter,
+    policy_batch_fn: Any,
+    instruction: str,
+    active_n: int,
+    seed: int | None,
+    max_steps: int,
+) -> RolloutMetrics:
+    """Run one vectorised wave and keep only eval metrics."""
+    N = adapter.num_envs
+    raw_obs = adapter.reset(seed)
+
+    episode_rewards = [0.0] * N
+    episode_lengths = [0] * N
+    success_flags = [False] * N
+    env_done = [i >= active_n for i in range(N)]
+
+    for _step in range(max_steps):
+        if all(env_done):
+            break
+
+        images_batch, states_batch = adapter.extract_batch_obs(raw_obs)
+        active_indices = [i for i in range(N) if not env_done[i]]
+        if not active_indices:
+            break
+
+        active_imgs = images_batch[active_indices]
+        active_states = states_batch[active_indices]
+
+        with torch.no_grad():
+            active_result = policy_batch_fn(active_imgs, instruction, active_states)
+        active_actions, _flow_sample = _split_action_result(active_result)
+
+        if isinstance(active_actions, torch.Tensor):
+            active_actions_np = active_actions.detach().cpu().numpy()
+        else:
+            active_actions_np = np.asarray(active_actions, dtype=np.float32)
+        if active_actions_np.ndim == 1:
+            active_actions_np = active_actions_np[np.newaxis]
+
+        action_dim = active_actions_np.shape[-1]
+        actions_np = np.zeros((N, action_dim), dtype=np.float32)
+        for idx, env_i in enumerate(active_indices):
+            actions_np[env_i] = active_actions_np[idx]
+
+        result = adapter.step(actions_np)
+        raw_obs = result.raw_obs
+
+        for env_i in active_indices:
+            episode_rewards[env_i] += float(result.rewards[env_i])
+            episode_lengths[env_i] += 1
+            step_done = result.terminateds[env_i] or result.truncateds[env_i]
+
+            if result.successes[env_i]:
+                success_flags[env_i] = True
+            if step_done:
+                env_done[env_i] = True
+
+    return RolloutMetrics(
+        successes=sum(1 for i in range(active_n) if success_flags[i]),
+        rewards=[episode_rewards[i] for i in range(active_n)],
+        lengths=[episode_lengths[i] for i in range(active_n)],
+    )
 
 
 def collect_wave_chunked(
@@ -321,6 +404,86 @@ def collect_wave_chunked(
     return trajectories
 
 
+def collect_metrics_wave_chunked(
+    adapter: VecEnvAdapter,
+    policy_chunk_batch_fn: Any,
+    instruction: str,
+    active_n: int,
+    seed: int | None,
+    max_steps: int,
+    n_action_steps: int,
+) -> RolloutMetrics:
+    """Run one chunked vectorised wave and keep only eval metrics."""
+    if n_action_steps < 1:
+        raise ValueError(f"n_action_steps must be >= 1, got {n_action_steps}")
+
+    N = adapter.num_envs
+    raw_obs = adapter.reset(seed)
+
+    episode_rewards = [0.0] * N
+    episode_lengths = [0] * N
+    success_flags = [False] * N
+    env_done = [i >= active_n for i in range(N)]
+
+    while not all(env_done):
+        images_batch, states_batch = adapter.extract_batch_obs(raw_obs)
+
+        active_indices = [i for i in range(N) if not env_done[i]]
+        if not active_indices:
+            break
+
+        active_imgs = images_batch[active_indices]
+        active_states = states_batch[active_indices]
+
+        with torch.no_grad():
+            chunks_result = policy_chunk_batch_fn(active_imgs, instruction, active_states)
+        chunks, _flow_sample = _split_action_result(chunks_result)
+
+        if isinstance(chunks, torch.Tensor):
+            chunks_np = chunks.detach().cpu().numpy()
+        else:
+            chunks_np = np.asarray(chunks, dtype=np.float32)
+        if chunks_np.ndim != 3:
+            raise ValueError(
+                f"policy_chunk_batch_fn must return (B, chunk_size, action_dim), got shape {chunks_np.shape}"
+            )
+
+        action_dim = chunks_np.shape[-1]
+        dec_last_done = {env_i: False for env_i in active_indices}
+
+        for k in range(n_action_steps):
+            active_now = [i for i in active_indices if not dec_last_done[i] and episode_lengths[i] < max_steps]
+            if not active_now:
+                break
+
+            actions_np = np.zeros((N, action_dim), dtype=np.float32)
+            for env_i in active_now:
+                idx = active_indices.index(env_i)
+                actions_np[env_i] = chunks_np[idx, k]
+
+            result = adapter.step(actions_np)
+            raw_obs = result.raw_obs
+
+            for env_i in active_now:
+                episode_rewards[env_i] += float(result.rewards[env_i])
+                episode_lengths[env_i] += 1
+                step_done = result.terminateds[env_i] or result.truncateds[env_i]
+                if result.successes[env_i]:
+                    success_flags[env_i] = True
+                if step_done or episode_lengths[env_i] >= max_steps:
+                    dec_last_done[env_i] = True
+
+        for env_i in active_indices:
+            if dec_last_done[env_i] or episode_lengths[env_i] >= max_steps:
+                env_done[env_i] = True
+
+    return RolloutMetrics(
+        successes=sum(1 for i in range(active_n) if success_flags[i]),
+        rewards=[episode_rewards[i] for i in range(active_n)],
+        lengths=[episode_lengths[i] for i in range(active_n)],
+    )
+
+
 def collect_trajectories_vectorized(
     adapter: VecEnvAdapter,
     policy_batch_fn: Any,
@@ -367,3 +530,51 @@ def collect_trajectories_vectorized(
         wave_idx += 1
 
     return all_trajectories[:num_trajectories]
+
+
+def collect_metrics_vectorized(
+    adapter: VecEnvAdapter,
+    policy_batch_fn: Any,
+    instruction: str,
+    num_trajectories: int,
+    seed: int | None,
+    max_steps: int,
+    n_action_steps: int = 1,
+    policy_chunk_batch_fn: Any | None = None,
+) -> RolloutMetrics:
+    """Collect eval metrics via vectorised rollout without storing trajectories."""
+    if n_action_steps > 1 and policy_chunk_batch_fn is None:
+        raise ValueError("n_action_steps > 1 requires policy_chunk_batch_fn")
+
+    N = adapter.num_envs
+    summary = RolloutMetrics(successes=0, rewards=[], lengths=[])
+    remaining = num_trajectories
+    wave_idx = 0
+
+    while remaining > 0:
+        active_n = min(N, remaining)
+        wave_seed = (seed + wave_idx * N) if seed is not None else None
+        if n_action_steps > 1:
+            wave_summary = collect_metrics_wave_chunked(
+                adapter,
+                policy_chunk_batch_fn,
+                instruction,
+                active_n,
+                wave_seed,
+                max_steps,
+                n_action_steps,
+            )
+        else:
+            wave_summary = collect_metrics_wave(adapter, policy_batch_fn, instruction, active_n, wave_seed, max_steps)
+
+        if not wave_summary.lengths:
+            raise RuntimeError("Vectorized metric collection made no progress")
+        summary.extend(wave_summary)
+        remaining -= len(wave_summary.lengths)
+        wave_idx += 1
+
+    return RolloutMetrics(
+        successes=summary.successes,
+        rewards=summary.rewards[:num_trajectories],
+        lengths=summary.lengths[:num_trajectories],
+    )

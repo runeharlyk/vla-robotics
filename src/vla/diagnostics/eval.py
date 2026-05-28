@@ -270,20 +270,10 @@ def _evaluate_libero_vectorized(
             return policy.predict_action_flow_grpo_batch(images, instr, states)
         return policy.predict_action_batch(images, instr, states)
 
-    def _single_fn(image: torch.Tensor, instr: str, state: torch.Tensor) -> torch.Tensor:
-        if sampler == "flow_sde":
-            return policy.predict_action_flow_grpo(image, instr, state)
-        return policy.predict_action(image, instr, state)
-
     def _chunk_batch_fn(images: torch.Tensor, instr: str, states: torch.Tensor) -> torch.Tensor:
         if sampler == "flow_sde":
             return policy.predict_action_chunk_flow_grpo_batch(images, instr, states)
         return policy.predict_action_chunk_batch(images, instr, states)
-
-    def _chunk_single_fn(image: torch.Tensor, instr: str, state: torch.Tensor) -> torch.Tensor:
-        if sampler == "flow_sde":
-            return policy.predict_action_chunk_flow_grpo(image, instr, state)
-        return policy.predict_action_chunk(image, instr, state)
 
     try:
         total_successes = 0
@@ -304,23 +294,21 @@ def _evaluate_libero_vectorized(
                 task_seed,
             )
             try:
-                task_trajectories = rollout.collect_batch(
-                    policy_fn=_single_fn,
+                task_summary = rollout.collect_metrics(
+                    policy_batch_fn=_batch_fn,
                     instruction=instruction,
                     num_trajectories=num_episodes,
                     seed=task_seed,
-                    policy_batch_fn=_batch_fn,
                     n_action_steps=n_action_steps,
-                    policy_chunk_fn=_chunk_single_fn if n_action_steps > 1 else None,
                     policy_chunk_batch_fn=_chunk_batch_fn if n_action_steps > 1 else None,
                 )
             except Exception:
                 logger.exception("LIBERO eval failed on task_id=%d", current_task_id)
                 raise
 
-            task_successes = sum(1 for t in task_trajectories if t.success)
-            task_rewards = [float(t.rewards.sum()) for t in task_trajectories]
-            task_lengths = [t.length for t in task_trajectories]
+            task_successes = task_summary.successes
+            task_rewards = task_summary.rewards
+            task_lengths = task_summary.lengths
             total_successes += task_successes
             total_rewards.extend(task_rewards)
             total_lengths.extend(task_lengths)
