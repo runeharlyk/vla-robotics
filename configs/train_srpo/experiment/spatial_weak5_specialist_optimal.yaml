@@ -1,0 +1,115 @@
+# @package _global_
+
+metadata:
+  label: spatial-weak5-specialist-optimal
+  source_config: configs/train_srpo/experiment/spatial_weak5_specialist_recipe.yaml
+  notes: |
+    Signal-corrected weak-group multitask run. Same headroom tasks and matched
+    n_action_steps=1 eval protocol as spatial_weak5_specialist_recipe, but the
+    advantage/loss path is changed to actually use the RL contrast instead of
+    collapsing to trust-region behavior cloning.
+
+    Diagnosis (vs. spatial_weak5_specialist_recipe):
+    - At the targeted SFT success rates (~0.65-0.76), z-scored leave-one-out
+      gives the minority failures ~2.5x the magnitude of the successes, yet
+      negative_adv_scale=0.0 discarded that dominant tail.
+    - success_max_ratio=0.5 + include_demos + demo_aux inflated the effective
+      per-task success count before advantage computation, diluting the online
+      contrast into positive-only imitation.
+    - The asymmetric clip (0.05 low / 0.08 high) put the tighter trust region
+      on exactly the negative tail that carries the signal.
+
+    Evidence base:
+    - v9-t-2-neg-scale-0.5 (single-task t2, NO replay/demos, neg_scale=0.5,
+      clip 0.05/0.08, lr 3e-6) reached 0.88 final eval. This is the only
+      run that used neg_scale=0.5 and it succeeded.
+    - neg_scale=1.0 was destructive in v8/v10, but specifically on SATURATED
+      tasks (t1/t8 at 0.91-0.94) where the ~2 failures per batch are unlucky
+      stochastic noise. The weak group (0.65-0.76) has a genuine ~30% failure
+      rate, so that destruction mechanism barely applies here.
+    - Live logs of the running recipe show severe under-stepping (step_kl
+      ~5e-6, shift decaying to ~7e-4) and a diluted advantage pool: per-task
+      g_mean is 0.83-0.92 while true rollout success is ~0.70, because
+      replayed successes + demos (all g=1.0) inflate the LOO pool.
+
+    Change (single knob, for a clean A/B against the running n1 recipe which
+    is the matched control with neg_scale=0.0):
+    - fpo.negative_adv_scale: 0.0 -> 0.5 (use the dominant signal at half
+      weight so the net pull stays positive toward successes; matches the
+      only neg_scale value with a 0.88 precedent).
+
+    EVERYTHING else is held identical to spatial_weak5_specialist_recipe:
+    tasks, lr=1e-6, demos, iterations, KL anchors, demo_aux, dynamic sampling,
+    K=32, clip 0.05/0.08, replay (success_max_ratio=0.5). This makes the
+    result unambiguously attributable to the negative tail. Warm-starts from
+    the SFT base.
+
+    Follow-ups, only if this run under-steps (step_kl stays ~1e-5):
+    - replay.success_max_ratio 0.5 -> 0.25 (un-dilute the LOO pool).
+    - lr 1e-6 -> 2e-6 (the proven neg=0.5 single-task run used 3e-6).
+
+sft_checkpoint: null
+checkpoint: HuggingFaceVLA/smolvla_libero
+task_ids: "0,3,4,7,9"
+num_demos: 20
+mode: sparse_rl
+update_method: fpo
+lr: 1e-6
+trajs_per_task: 32
+iterations: 80
+eval_every: 10
+eval_episodes: 100
+pre_rl_eval: true
+max_steps: 220
+wandb_name: spatial-weak5-specialist-optimal-fpo-n1-neg05
+
+demo_replay: true
+demo_replay_seed_mode: episode_index
+demo_replay_fixed_seed: 0
+demo_replay_require_success: true
+
+kl:
+  coeff: 0.01
+  sft_coeff: 0.01
+  adaptive: false
+
+ppo:
+  epochs: 1
+  minibatch_trajs: 4
+  clip_epsilon: 0.05
+  clip_epsilon_high: 0.08
+
+fpo:
+  num_fm_noise_samples: 4
+  full_chunk_target: true
+  loss_reduction: sum
+  positive_adv_only: false
+  negative_adv_scale: 0.5
+  log_ratio_clip: 5.0
+  use_ref_policy_kl: false
+
+replay:
+  include_demos: true
+  success_total_size: 320
+  success_alpha: 1.0
+  success_ema_decay: 0.8
+  success_max_ratio: 0.5
+
+sampling:
+  dynamic: true
+  dynamic_max_retries: 2
+
+demo_aux:
+  enabled: true
+  coeff: 0.01
+  epochs: 1
+  minibatch_trajs: 4
+  loss_reduction: mean
+
+rollout:
+  num_envs: 8
+  eval_num_envs: 8
+  fm_batch_size: 64
+  gradient_checkpointing: true
+  eval_zero_sample: false
+  n_action_steps: 1
