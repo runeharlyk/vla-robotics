@@ -39,6 +39,15 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
             f.write(json.dumps(row) + "\n")
 
 
+def _run_file_stem(run) -> str:
+    """Return a stable, collision-resistant local filename stem for a W&B run."""
+    name = sanitize_name(str(_safe_attr(run, "name", "") or "run"))
+    run_id = sanitize_name(str(_safe_attr(run, "id", "") or ""))
+    if run_id and not name.endswith(f"_{run_id}"):
+        return f"{name}_{run_id}"
+    return name or run_id or "run"
+
+
 def _jsonable(value: Any) -> Any:
     """Return a JSON-safe representation without failing on W&B internals."""
     if value is None or isinstance(value, (bool, int, float, str)):
@@ -408,7 +417,7 @@ def sync(
     skipped = 0
 
     for run in tqdm(runs, desc=f"Writing JSONs to {out_folder.name}/"):
-        name = sanitize_name(run.name)
+        name = _run_file_stem(run)
         if not name:
             continue
 

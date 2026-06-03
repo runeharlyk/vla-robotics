@@ -45,6 +45,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -355,9 +358,10 @@ def comparison_cmd(
 
 
 SUITE_ORDER = ["spatial", "object", "goal", "long"]
-ANCHOR_ORDER = ["SFT", "RL", "WiSE-FT", "Distill"]
+ANCHOR_ORDER = ["SFT", "FPO Specialist", "RL", "WiSE-FT", "Distill"]
 ANCHOR_COLORS = {
     "SFT": "#7F7F7F",
+    "FPO Specialist": "#4878A8",
     "RL": "#4878A8",
     "WiSE-FT": "#6DA86D",
     "Distill": "#C0504D",
@@ -488,6 +492,7 @@ def headline_cmd(
     results_dir: Path = typer.Option("results/evals", "--results-dir", "-r"),  # noqa: B008
     sft_pattern: str = typer.Option("eval_sft_spatial_*.json", "--sft-pattern"),
     rl_pattern: str = typer.Option("eval_p5a_cross_suite_*.json", "--rl-pattern"),
+    rl_label: str = typer.Option("RL", "--rl-label", help="Legend label for the RL/FPO anchor."),
     wiseft_pattern: str | None = typer.Option(
         None,
         "--wiseft-pattern",
@@ -510,7 +515,7 @@ def headline_cmd(
     records_by_anchor: dict[str, dict[str, dict[str, Any]]] = {}
     for anchor, pattern in [
         ("SFT", sft_pattern),
-        ("RL", rl_pattern),
+        (rl_label, rl_pattern),
         ("WiSE-FT", wiseft_pattern),
         ("Distill", distill_pattern),
     ]:
