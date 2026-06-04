@@ -34,13 +34,13 @@ def _apply_theme() -> None:
     """Set a clean, publication-ready theme for all plots."""
     sns.set_theme(
         style="whitegrid",
-        font_scale=0.85,
+        font_scale=1.2,
         rc={
-            "axes.titlesize": 11,
-            "axes.labelsize": 10,
-            "xtick.labelsize": 8,
-            "ytick.labelsize": 8,
-            "legend.fontsize": 8,
+            "axes.titlesize": 15,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 15,
+            "ytick.labelsize": 15,
+            "legend.fontsize": 15,
             "figure.dpi": 200,
         },
     )
@@ -203,7 +203,7 @@ def plot_success_vs_severity(df: pd.DataFrame, outdir: Path, fmt: str) -> None:
     ax.set_title("Success vs Severity by Noise Type")
     ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
     ax.legend(ncol=2, frameon=True, fancybox=True, framealpha=0.8,
-              fontsize=8, loc="lower left")
+              fontsize=10, loc="lower left")
     out_path = outdir / f"success_vs_severity_by_noise.{fmt}"
     fig.savefig(out_path, dpi=200)
     plt.close(fig)
@@ -298,7 +298,7 @@ def plot_task_drop_heatmap(df: pd.DataFrame, sev: int, outdir: Path, fmt: str) -
     # Dynamic sizing: scale height with number of tasks
     fig_h = max(4, n_tasks * 0.35 + 1.5)
     fig_w = max(7, n_noise * 1.2 + 3.5)
-    annot_fontsize = 8 if n_tasks <= 15 else 6
+    annot_fontsize = 10 if n_tasks <= 15 else 8
 
     fig, ax = plt.subplots(figsize=(fig_w, fig_h), constrained_layout=True)
 
@@ -321,7 +321,7 @@ def plot_task_drop_heatmap(df: pd.DataFrame, sev: int, outdir: Path, fmt: str) -
     ax.set_ylabel("Task")
     ax.set_xlabel("Noise type")
     ax.tick_params(axis="x", rotation=35)
-    ax.tick_params(axis="y", rotation=0, labelsize=7)
+    ax.tick_params(axis="y", rotation=0, labelsize=9)
 
     out_path = outdir / f"task_noise_drop_heatmap_s{sev}.{fmt}"
     fig.savefig(out_path, dpi=200)
@@ -351,7 +351,7 @@ def plot_noise_ranking(df: pd.DataFrame, sev: int, outdir: Path, fmt: str) -> No
     if clean_rate is not None:
         ax.axvline(clean_rate, color="black", linestyle="--", linewidth=1,
                    label="clean baseline")
-        ax.legend(frameon=True, fancybox=True, framealpha=0.8, fontsize=8)
+        ax.legend(frameon=True, fancybox=True, framealpha=0.8, fontsize=10)
 
     ax.set_xlim(0, 1.05)
     ax.set_xlabel("Success rate")
@@ -359,7 +359,7 @@ def plot_noise_ranking(df: pd.DataFrame, sev: int, outdir: Path, fmt: str) -> No
 
     # Add value annotations on bars
     for i, (idx, val) in enumerate(rates.items()):
-        ax.text(val + 0.02, i, f"{val:.1%}", va="center", fontsize=8)
+        ax.text(val + 0.02, i, f"{val:.1%}", va="center", fontsize=10)
 
     out_path = outdir / f"noise_ranking_s{sev}.{fmt}"
     fig.savefig(out_path, dpi=200)
@@ -409,7 +409,7 @@ def plot_episode_length_distribution(
 
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles, labels, frameon=True, fancybox=True,
-              framealpha=0.8, fontsize=8, loc="upper right")
+              framealpha=0.8, fontsize=10, loc="upper right")
 
     out_path = outdir / f"episode_length_distribution.{fmt}"
     fig.savefig(out_path, dpi=200)
@@ -478,7 +478,7 @@ def plot_severity_by_suite(df: pd.DataFrame, outdir: Path, fmt: str) -> None:
     # Single shared legend
     handles, labels = axes[0][0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=min(len(noise_types) + 1, 6),
-               frameon=True, fancybox=True, framealpha=0.8, fontsize=8,
+               frameon=True, fancybox=True, framealpha=0.8, fontsize=10,
                bbox_to_anchor=(0.5, -0.02))
 
     # Hide unused axes
@@ -531,14 +531,14 @@ def plot_noise_robustness_radar(
                 label=suite, color=palette[i])
         ax.fill(angles, values, alpha=0.1, color=palette[i])
 
-    ax.set_thetagrids(np.degrees(angles[:-1]), noise_types, fontsize=8)
+    ax.set_thetagrids(np.degrees(angles[:-1]), noise_types, fontsize=10)
     ax.set_ylim(0, 1.0)
     ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
-    ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], fontsize=7, color="grey")
+    ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], fontsize=9, color="grey")
     ax.set_title(f"Noise Robustness Profile (Severity {sev})", y=1.08,
                  fontweight="bold")
     ax.legend(loc="lower right", bbox_to_anchor=(1.25, 0.0),
-              frameon=True, fancybox=True, framealpha=0.8, fontsize=8)
+              frameon=True, fancybox=True, framealpha=0.8, fontsize=10)
 
     out_path = outdir / f"noise_robustness_radar_s{sev}.{fmt}"
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
@@ -596,11 +596,70 @@ def plot_success_delta_bars(
     ax.set_xticklabels(noise_types, rotation=25, ha="right")
     ax.set_ylabel("Δ Success rate (clean − noised)")
     ax.set_title(f"Success Rate Drop by Noise Type (Severity {sev})")
-    ax.legend(frameon=True, fancybox=True, framealpha=0.8, fontsize=8,
-              title="Suite", title_fontsize=8)
+    ax.legend(frameon=True, fancybox=True, framealpha=0.8, fontsize=10,
+              title="Suite", title_fontsize=10)
 
     out_path = outdir / f"success_delta_bars_s{sev}.{fmt}"
     fig.savefig(out_path, dpi=200)
+    plt.close(fig)
+
+
+def plot_success_delta_bars_combined(
+    df: pd.DataFrame, outdir: Path, fmt: str
+) -> None:
+    """Grouped bar chart: success-rate Δ (clean − noised) per noise type, by suite, averaged across all severities."""
+    noised = df[df["noise_type"] != "clean"]
+    if noised.empty:
+        return
+
+    clean_suite = clean_baseline(df, ["suite"])
+    grouped = (
+        noised.groupby(["suite", "noise_type"])["success"]
+        .agg(["mean", "count"])
+        .reset_index()
+    )
+    merged = grouped.merge(clean_suite, on="suite", how="left")
+    merged["delta"] = merged["clean_success"] - merged["mean"]
+
+    # Binomial SE on the drop (approximate)
+    merged["se"] = np.sqrt(
+        merged["mean"] * (1 - merged["mean"]) / merged["count"].clip(lower=1)
+    )
+
+    noise_types = sorted(merged["noise_type"].unique())
+    suites = sorted(merged["suite"].unique())
+    n_noise = len(noise_types)
+    n_suites = len(suites)
+
+    x = np.arange(n_noise)
+    width = 0.8 / max(n_suites, 1)
+    palette = sns.color_palette(_PALETTE, n_suites)
+
+    fig, ax = plt.subplots(
+        figsize=(max(7, n_noise * 1.5 + 2), 5), constrained_layout=True
+    )
+
+    for i, suite in enumerate(suites):
+        suite_data = merged[merged["suite"] == suite].set_index("noise_type")
+        vals = [suite_data.loc[nt, "delta"] if nt in suite_data.index else 0
+                for nt in noise_types]
+        errs = [suite_data.loc[nt, "se"] if nt in suite_data.index else 0
+                for nt in noise_types]
+        offset = (i - n_suites / 2 + 0.5) * width
+        ax.bar(x + offset, vals, width, yerr=errs, label=suite,
+               color=palette[i], edgecolor="white", linewidth=0.5,
+               capsize=2, error_kw={"linewidth": 0.8})
+
+    ax.axhline(0, color="black", linewidth=0.5)
+    ax.set_xticks(x)
+    ax.set_xticklabels(noise_types, rotation=25, ha="right")
+    ax.set_ylabel("Δ Success rate (clean − noised)")
+    ax.set_title("Success Rate Drop by Noise Type (Averaged across Severities)")
+    ax.legend(frameon=True, fancybox=True, framealpha=0.8, fontsize=10,
+              title="Suite", title_fontsize=10)
+    
+    out_path = outdir / f"success_delta_bars_combined.{fmt}"
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -619,7 +678,6 @@ def main() -> None:
     df = load_csvs(args.csv)
     print_coverage(df)
 
-    # --- Existing plots (fixed) ---
     plot_success_vs_severity(df, outdir, args.format)
 
     focus = choose_focus_severity(df, args.focus_severity)
@@ -628,13 +686,14 @@ def main() -> None:
         plot_task_drop_heatmap(df, focus, outdir, args.format)
         plot_noise_ranking(df, focus, outdir, args.format)
 
-    # --- New plots ---
     plot_episode_length_distribution(df, outdir, args.format)
     plot_severity_by_suite(df, outdir, args.format)
 
     if focus is not None:
         plot_noise_robustness_radar(df, focus, outdir, args.format)
         plot_success_delta_bars(df, focus, outdir, args.format)
+    
+    plot_success_delta_bars_combined(df, outdir, args.format)
 
     print(f"Saved plots to: {outdir}")
 
