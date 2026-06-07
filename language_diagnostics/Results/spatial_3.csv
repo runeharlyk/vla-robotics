@@ -1,0 +1,801 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,0,2000,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,1,2001,True,101
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,2,2002,True,104
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,3,2003,True,111
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,4,2004,True,114
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,5,2005,True,111
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,6,2006,True,94
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,7,2007,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,8,2008,True,92
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,9,2009,True,106
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,10,2010,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,11,2011,True,126
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,12,2012,True,115
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,13,2013,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,14,2014,True,103
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,15,2015,True,99
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,16,2016,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,17,2017,True,117
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,18,2018,True,95
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,19,2019,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,20,2020,True,103
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,23,2023,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,24,2024,True,94
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,25,2025,True,113
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,26,2026,True,109
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,27,2027,True,103
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,28,2028,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,29,2029,True,110
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,30,2030,True,93
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,31,2031,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,33,2033,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,34,2034,True,106
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,35,2035,True,97
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,36,2036,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,37,2037,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,38,2038,True,90
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,39,2039,True,109
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,40,2040,True,106
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,41,2041,True,123
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,43,2043,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,44,2044,True,112
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,45,2045,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,46,2046,True,88
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,48,2048,True,98
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,original,0,pick up the black bowl from table center and place it on the plate,49,2049,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,0,2000,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,1,2001,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,2,2002,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,3,2003,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,4,2004,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,5,2005,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,6,2006,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,7,2007,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,8,2008,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,9,2009,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,10,2010,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,11,2011,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,12,2012,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,13,2013,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,14,2014,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,15,2015,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,16,2016,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,17,2017,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,18,2018,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,19,2019,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,20,2020,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,23,2023,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,24,2024,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,25,2025,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,26,2026,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,27,2027,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,28,2028,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,29,2029,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,30,2030,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,31,2031,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,33,2033,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,34,2034,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,35,2035,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,36,2036,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,37,2037,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,38,2038,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,39,2039,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,40,2040,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,41,2041,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,43,2043,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,44,2044,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,45,2045,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,46,2046,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,48,2048,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,politeness,0,please pick up the black bowl from table center and place it on the plate,49,2049,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,0,2000,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,1,2001,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,2,2002,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,3,2003,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,4,2004,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,5,2005,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,6,2006,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,7,2007,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,8,2008,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,9,2009,True,109
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,10,2010,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,11,2011,True,105
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,12,2012,True,112
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,13,2013,True,119
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,14,2014,True,108
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,15,2015,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,16,2016,True,117
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,17,2017,True,113
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,18,2018,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,19,2019,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,20,2020,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,23,2023,True,101
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,24,2024,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,25,2025,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,26,2026,True,108
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,27,2027,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,28,2028,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,29,2029,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,30,2030,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,31,2031,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,33,2033,True,117
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,34,2034,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,35,2035,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,36,2036,True,113
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,37,2037,True,116
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,38,2038,True,102
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,39,2039,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,40,2040,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,41,2041,True,113
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,43,2043,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,44,2044,True,111
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,45,2045,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,46,2046,True,121
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,48,2048,True,114
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verb_paraphrase,0,grab the black bowl from table center and place it on the plate,49,2049,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",0,2000,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",1,2001,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",2,2002,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",3,2003,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",4,2004,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",5,2005,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",6,2006,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",7,2007,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",8,2008,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",9,2009,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",10,2010,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",11,2011,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",12,2012,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",13,2013,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",14,2014,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",15,2015,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",16,2016,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",17,2017,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",18,2018,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",19,2019,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",20,2020,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",23,2023,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",24,2024,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",25,2025,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",26,2026,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",27,2027,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",28,2028,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",29,2029,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",30,2030,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",31,2031,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",33,2033,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",34,2034,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",35,2035,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",36,2036,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",37,2037,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",38,2038,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",39,2039,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",40,2040,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",41,2041,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",43,2043,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",44,2044,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",45,2045,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",46,2046,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",48,2048,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,sentence_structure,0,"the black bowl from table center, pick it up and place it on the plate",49,2049,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,0,2000,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,1,2001,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,2,2002,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,3,2003,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,4,2004,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,5,2005,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,6,2006,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,7,2007,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,8,2008,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,9,2009,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,10,2010,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,11,2011,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,12,2012,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,13,2013,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,14,2014,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,15,2015,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,16,2016,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,17,2017,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,18,2018,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,19,2019,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,20,2020,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,23,2023,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,24,2024,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,25,2025,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,26,2026,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,27,2027,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,28,2028,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,29,2029,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,30,2030,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,31,2031,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,33,2033,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,34,2034,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,35,2035,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,36,2036,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,37,2037,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,38,2038,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,39,2039,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,40,2040,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,41,2041,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,43,2043,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,44,2044,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,45,2045,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,46,2046,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,48,2048,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,verbosity,0,in this task you have to pick up the black bowl from table center and place it on the plate for me,49,2049,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,0,2000,True,102
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,1,2001,True,114
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,2,2002,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,3,2003,True,101
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,4,2004,True,93
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,5,2005,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,6,2006,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,7,2007,True,99
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,8,2008,True,97
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,9,2009,True,94
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,10,2010,True,97
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,11,2011,True,97
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,12,2012,True,92
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,13,2013,True,98
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,14,2014,True,100
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,15,2015,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,16,2016,True,110
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,17,2017,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,18,2018,True,92
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,19,2019,True,130
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,20,2020,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,23,2023,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,24,2024,True,89
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,25,2025,True,92
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,26,2026,True,101
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,27,2027,True,90
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,28,2028,True,100
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,29,2029,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,30,2030,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,31,2031,True,97
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,33,2033,True,82
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,34,2034,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,35,2035,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,36,2036,True,88
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,37,2037,True,103
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,38,2038,True,100
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,39,2039,True,87
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,40,2040,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,41,2041,True,91
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,43,2043,True,113
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,44,2044,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,45,2045,True,102
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,46,2046,True,110
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,48,2048,True,99
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,carefully,0,pick up the black bowl from table center and place it on the plate carefully,49,2049,True,108
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,0,2000,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,1,2001,True,85
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,2,2002,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,3,2003,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,4,2004,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,5,2005,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,6,2006,True,100
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,7,2007,True,98
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,8,2008,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,9,2009,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,10,2010,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,11,2011,True,102
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,12,2012,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,13,2013,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,14,2014,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,15,2015,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,16,2016,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,17,2017,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,18,2018,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,19,2019,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,20,2020,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,23,2023,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,24,2024,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,25,2025,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,26,2026,True,104
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,27,2027,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,28,2028,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,29,2029,True,115
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,30,2030,True,199
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,31,2031,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,33,2033,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,34,2034,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,35,2035,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,36,2036,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,37,2037,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,38,2038,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,39,2039,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,40,2040,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,41,2041,True,137
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,43,2043,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,44,2044,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,45,2045,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,46,2046,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,48,2048,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,quickly,0,pick up the black bowl from table center and place it on the plate quickly,49,2049,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,0,2000,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,1,2001,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,2,2002,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,3,2003,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,4,2004,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,5,2005,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,6,2006,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,7,2007,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,8,2008,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,9,2009,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,10,2010,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,11,2011,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,12,2012,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,13,2013,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,14,2014,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,15,2015,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,16,2016,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,17,2017,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,18,2018,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,19,2019,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,20,2020,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,21,2021,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,22,2022,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,23,2023,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,24,2024,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,25,2025,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,26,2026,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,27,2027,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,28,2028,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,29,2029,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,30,2030,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,31,2031,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,32,2032,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,33,2033,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,34,2034,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,35,2035,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,36,2036,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,37,2037,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,38,2038,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,39,2039,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,40,2040,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,41,2041,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,42,2042,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,43,2043,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,44,2044,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,45,2045,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,46,2046,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,47,2047,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,48,2048,False,280
+spatial,2,pick up the black bowl from table center and place it on the plate,2000,do_not_move,0,do not move the black bowl from table center and place it on the plate,49,2049,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,0,3000,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,1,3001,True,83
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,2,3002,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,3,3003,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,4,3004,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,5,3005,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,6,3006,True,81
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,7,3007,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,8,3008,True,89
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,9,3009,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,10,3010,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,11,3011,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,12,3012,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,13,3013,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,14,3014,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,15,3015,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,16,3016,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,17,3017,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,18,3018,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,19,3019,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,20,3020,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,21,3021,True,81
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,22,3022,True,92
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,23,3023,True,81
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,24,3024,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,25,3025,True,83
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,26,3026,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,27,3027,True,102
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,28,3028,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,29,3029,True,97
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,30,3030,True,77
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,31,3031,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,32,3032,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,33,3033,True,104
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,34,3034,True,95
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,35,3035,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,36,3036,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,37,3037,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,38,3038,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,39,3039,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,40,3040,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,41,3041,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,42,3042,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,43,3043,True,94
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,44,3044,True,83
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,45,3045,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,46,3046,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,47,3047,True,83
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,48,3048,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,original,0,pick up the black bowl on the cookie box and place it on the plate,49,3049,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,0,3000,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,1,3001,True,197
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,2,3002,True,207
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,3,3003,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,4,3004,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,5,3005,True,277
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,6,3006,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,7,3007,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,8,3008,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,9,3009,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,10,3010,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,11,3011,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,12,3012,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,13,3013,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,14,3014,True,224
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,15,3015,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,16,3016,True,123
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,17,3017,True,113
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,18,3018,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,19,3019,True,132
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,20,3020,True,121
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,21,3021,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,22,3022,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,23,3023,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,24,3024,True,123
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,25,3025,True,261
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,26,3026,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,27,3027,True,105
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,28,3028,True,113
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,29,3029,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,30,3030,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,31,3031,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,32,3032,True,231
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,33,3033,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,34,3034,True,131
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,35,3035,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,36,3036,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,37,3037,True,146
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,38,3038,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,39,3039,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,40,3040,True,263
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,41,3041,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,42,3042,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,43,3043,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,44,3044,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,45,3045,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,46,3046,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,47,3047,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,48,3048,True,114
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,politeness,0,please pick up the black bowl on the cookie box and place it on the plate,49,3049,True,122
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,0,3000,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,1,3001,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,2,3002,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,3,3003,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,4,3004,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,5,3005,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,6,3006,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,7,3007,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,8,3008,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,9,3009,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,10,3010,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,11,3011,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,12,3012,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,13,3013,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,14,3014,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,15,3015,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,16,3016,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,17,3017,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,18,3018,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,19,3019,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,20,3020,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,21,3021,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,22,3022,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,23,3023,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,24,3024,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,25,3025,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,26,3026,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,27,3027,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,28,3028,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,29,3029,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,30,3030,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,31,3031,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,32,3032,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,33,3033,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,34,3034,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,35,3035,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,36,3036,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,37,3037,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,38,3038,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,39,3039,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,40,3040,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,41,3041,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,42,3042,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,43,3043,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,44,3044,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,45,3045,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,46,3046,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,47,3047,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,48,3048,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verb_paraphrase,0,grab the black bowl on the cookie box and place it on the plate,49,3049,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",0,3000,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",1,3001,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",2,3002,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",3,3003,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",4,3004,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",5,3005,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",6,3006,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",7,3007,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",8,3008,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",9,3009,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",10,3010,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",11,3011,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",12,3012,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",13,3013,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",14,3014,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",15,3015,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",16,3016,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",17,3017,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",18,3018,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",19,3019,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",20,3020,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",21,3021,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",22,3022,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",23,3023,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",24,3024,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",25,3025,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",26,3026,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",27,3027,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",28,3028,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",29,3029,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",30,3030,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",31,3031,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",32,3032,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",33,3033,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",34,3034,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",35,3035,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",36,3036,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",37,3037,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",38,3038,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",39,3039,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",40,3040,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",41,3041,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",42,3042,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",43,3043,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",44,3044,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",45,3045,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",46,3046,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",47,3047,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",48,3048,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,sentence_structure,0,"the black bow on the cookie box, pick it up and place it on the plate",49,3049,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,0,3000,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,1,3001,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,2,3002,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,3,3003,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,4,3004,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,5,3005,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,6,3006,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,7,3007,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,8,3008,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,9,3009,True,247
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,10,3010,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,11,3011,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,12,3012,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,13,3013,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,14,3014,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,15,3015,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,16,3016,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,17,3017,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,18,3018,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,19,3019,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,20,3020,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,21,3021,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,22,3022,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,23,3023,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,24,3024,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,25,3025,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,26,3026,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,27,3027,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,28,3028,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,29,3029,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,30,3030,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,31,3031,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,32,3032,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,33,3033,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,34,3034,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,35,3035,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,36,3036,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,37,3037,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,38,3038,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,39,3039,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,40,3040,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,41,3041,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,42,3042,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,43,3043,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,44,3044,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,45,3045,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,46,3046,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,47,3047,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,48,3048,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,verbosity,0,in this task you have to pick up the black bowl on the cookie box and place it on the plate for me,49,3049,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,0,3000,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,1,3001,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,2,3002,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,3,3003,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,4,3004,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,5,3005,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,6,3006,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,7,3007,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,8,3008,True,89
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,9,3009,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,10,3010,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,11,3011,True,89
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,12,3012,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,13,3013,True,89
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,14,3014,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,15,3015,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,16,3016,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,17,3017,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,18,3018,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,19,3019,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,20,3020,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,21,3021,True,94
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,22,3022,True,81
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,23,3023,True,83
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,24,3024,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,25,3025,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,26,3026,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,27,3027,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,28,3028,True,89
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,29,3029,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,30,3030,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,31,3031,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,32,3032,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,33,3033,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,34,3034,True,89
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,35,3035,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,36,3036,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,37,3037,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,38,3038,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,39,3039,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,40,3040,True,95
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,41,3041,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,42,3042,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,43,3043,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,44,3044,True,82
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,45,3045,True,81
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,46,3046,True,82
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,47,3047,True,84
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,48,3048,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,carefully,0,pick up the black bowl on the cookie box and place it on the plate carefully,49,3049,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,0,3000,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,1,3001,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,2,3002,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,3,3003,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,4,3004,True,85
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,5,3005,True,87
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,6,3006,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,7,3007,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,8,3008,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,9,3009,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,10,3010,True,96
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,11,3011,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,12,3012,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,13,3013,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,14,3014,True,94
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,15,3015,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,16,3016,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,17,3017,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,18,3018,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,19,3019,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,20,3020,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,21,3021,True,79
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,22,3022,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,23,3023,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,24,3024,True,83
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,25,3025,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,26,3026,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,27,3027,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,28,3028,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,29,3029,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,30,3030,True,82
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,31,3031,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,32,3032,True,98
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,33,3033,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,34,3034,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,35,3035,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,36,3036,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,37,3037,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,38,3038,True,89
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,39,3039,True,94
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,40,3040,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,41,3041,True,93
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,42,3042,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,43,3043,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,44,3044,True,95
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,45,3045,True,90
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,46,3046,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,47,3047,True,91
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,48,3048,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,quickly,0,pick up the black bowl on the cookie box and place it on the plate quickly,49,3049,True,92
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,0,3000,True,113
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,1,3001,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,2,3002,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,3,3003,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,4,3004,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,5,3005,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,6,3006,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,7,3007,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,8,3008,True,102
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,9,3009,True,96
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,10,3010,True,101
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,11,3011,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,12,3012,True,103
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,13,3013,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,14,3014,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,15,3015,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,16,3016,True,109
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,17,3017,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,18,3018,True,107
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,19,3019,True,115
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,20,3020,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,21,3021,True,105
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,22,3022,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,23,3023,True,98
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,24,3024,True,174
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,25,3025,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,26,3026,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,27,3027,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,28,3028,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,29,3029,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,30,3030,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,31,3031,True,99
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,32,3032,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,33,3033,True,103
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,34,3034,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,35,3035,True,97
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,36,3036,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,37,3037,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,38,3038,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,39,3039,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,40,3040,True,114
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,41,3041,True,86
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,42,3042,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,43,3043,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,44,3044,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,45,3045,True,103
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,46,3046,True,94
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,47,3047,True,88
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,48,3048,False,280
+spatial,3,pick up the black bowl on the cookie box and place it on the plate,3000,do_not_move,0,do not move the black bowl on the cookie box and place it on the plate,49,3049,False,280
