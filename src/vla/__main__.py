@@ -130,5 +130,38 @@ def playback(
     )
 
 
+@app.command()
+def decompose(
+    ctx: typer.Context,
+    instruction: str = typer.Option(..., "--instruction", "-i"),
+    checkpoint: str = typer.Option("HuggingFaceVLA/smolvla_libero", "--checkpoint", "-c"),
+    model_id: str | None = typer.Option(None, "--model-id"),
+    image_path: str | None = typer.Option(None, "--image-path"),
+    scene_context: str = typer.Option("", "--scene-context"),
+    device: str = typer.Option("cuda", "--device", "-d"),
+    max_subgoals: int = typer.Option(6, "--max-subgoals", min=1),
+    max_new_tokens: int = typer.Option(256, "--max-new-tokens", min=1),
+    temperature: float = typer.Option(0.0, "--temperature", min=0.0),
+    benchmark_hint: str = typer.Option("LIBERO Long", "--benchmark-hint"),
+    offline_only: bool = typer.Option(True, "--offline-only/--online"),
+) -> None:
+    """Decompose a long-horizon instruction into short subgoals."""
+    mod = importlib.import_module("vla.planning.smolvlm_decompose")
+    result = mod.decompose_instruction(
+        instruction=instruction,
+        checkpoint=checkpoint,
+        model_id=model_id,
+        image_path=image_path,
+        scene_context=scene_context,
+        device=device,
+        max_subgoals=max_subgoals,
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        benchmark_hint=benchmark_hint,
+        offline_only=offline_only,
+    )
+    typer.echo(mod.format_decomposition(result))
+
+
 if __name__ == "__main__":
     app()

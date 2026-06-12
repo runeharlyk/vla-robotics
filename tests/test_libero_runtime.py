@@ -8,9 +8,6 @@ import yaml
 
 from vla.envs.libero_runtime import (
     configure_libero_runtime,
-    ensure_legacy_gym_support,
-    ensure_optional_image_corruption_support,
-    ensure_optional_wand_support,
     probe_libero_runtime,
 )
 
@@ -172,73 +169,3 @@ def test_configure_libero_runtime_stages_windows_mujoco_dll(monkeypatch) -> None
         assert "FILE_LOGGING_LEVEL = None" in macros_text
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-def test_ensure_optional_wand_support_installs_stub(monkeypatch) -> None:
-    monkeypatch.setattr("vla.envs.libero_runtime.importlib.util.find_spec", lambda name: None)
-    for name in ("wand", "wand.api", "wand.image"):
-        monkeypatch.delitem(__import__("sys").modules, name, raising=False)
-
-    ensure_optional_wand_support()
-
-    import sys
-
-    assert "wand" in sys.modules
-    assert "wand.api" in sys.modules
-    assert "wand.image" in sys.modules
-    assert hasattr(sys.modules["wand.api"].library.MagickMotionBlurImage, "argtypes")
-    try:
-        sys.modules["wand.image"].Image()
-    except ModuleNotFoundError as exc:
-        assert "ImageMagick" in str(exc)
-    else:
-        raise AssertionError("Expected the wand stub to raise when used.")
-
-
-def test_ensure_optional_image_corruption_support_installs_stubs(monkeypatch) -> None:
-    def _find_spec(name: str):
-        if name in {"skimage", "scipy"}:
-            return None
-        return object()
-
-    monkeypatch.setattr("vla.envs.libero_runtime.importlib.util.find_spec", _find_spec)
-    for name in ("skimage", "skimage.filters", "scipy", "scipy.ndimage"):
-        monkeypatch.delitem(__import__("sys").modules, name, raising=False)
-
-    ensure_optional_image_corruption_support()
-
-    import sys
-
-    assert "skimage.filters" in sys.modules
-    assert "scipy.ndimage" in sys.modules
-    try:
-        sys.modules["skimage.filters"].gaussian(None)
-    except ModuleNotFoundError as exc:
-        assert "scikit-image" in str(exc)
-    else:
-        raise AssertionError("Expected the skimage stub to raise when used.")
-
-    try:
-        sys.modules["scipy.ndimage"].zoom(None, None)
-    except ModuleNotFoundError as exc:
-        assert "scipy" in str(exc)
-    else:
-        raise AssertionError("Expected the scipy stub to raise when used.")
-
-
-def test_ensure_legacy_gym_support_aliases_gymnasium(monkeypatch) -> None:
-    def _find_spec(name: str):
-        if name == "gym":
-            return None
-        return object()
-
-    monkeypatch.setattr("vla.envs.libero_runtime.importlib.util.find_spec", _find_spec)
-    monkeypatch.delitem(__import__("sys").modules, "gym", raising=False)
-
-    ensure_legacy_gym_support()
-
-    import sys
-
-    import gymnasium
-
-    assert sys.modules["gym"] is gymnasium

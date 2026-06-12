@@ -43,7 +43,7 @@ def save_trajectories_as_sft_pt(
     metadata: dict[str, Any] | None = None,
     default_instruction: str = "complete the manipulation task",
     instructions_by_task: dict[str, str] | None = None,
-    only_successful: bool = False,
+    only_successful: bool = True,
     action_chunk_size: int = 50,
 ) -> Path:
     """Save rollout trajectories as a ``.pt`` file consumable by ``FewDemoDataset``.
@@ -91,8 +91,9 @@ def save_trajectories_as_sft_pt(
     if not episodes:
         raise ValueError("No non-empty trajectories to save")
 
+    unique_instructions = list(dict.fromkeys(str(ep["instruction"]) for ep in episodes))
     resolved_metadata: dict[str, Any] = {
-        "instruction": default_instruction,
+        "instruction": unique_instructions[0] if len(unique_instructions) == 1 else default_instruction,
         "action_dim": action_dim,
         "state_dim": state_dim,
         "image_size": image_size,

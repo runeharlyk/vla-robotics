@@ -73,7 +73,8 @@ def test_visualize_uses_inference_mode_and_autocast(monkeypatch) -> None:
             return {"pixels": {"image": np.zeros((8, 8, 3), dtype=np.uint8)}}, {}
 
         def obs_to_batch(self, raw_obs: dict, device=None) -> dict:
-            image = torch.zeros((1, 3, 8, 8), dtype=torch.float32, device=device)
+            del device
+            image = torch.zeros((1, 3, 8, 8), dtype=torch.float32)
             return {"observation.images.image": image, "task": [self.task_description]}
 
         def step(self, action: np.ndarray):
