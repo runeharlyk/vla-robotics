@@ -1,0 +1,801 @@
+suite,task_id,task_description,episode_seed_base,variant_type,variant_index,prompt,rollout_index,episode_seed,success,episode_length
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,0,100000,True,217
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,1,100001,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,2,100002,True,161
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,3,100003,True,164
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,4,100004,True,150
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,5,100005,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,6,100006,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,7,100007,True,228
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,8,100008,True,231
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,9,100009,True,177
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,10,100010,True,257
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,11,100011,True,142
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,12,100012,True,227
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,13,100013,True,174
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,15,100015,True,184
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,16,100016,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,17,100017,True,152
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,18,100018,True,140
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,19,100019,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,20,100020,True,178
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,21,100021,True,146
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,22,100022,True,143
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,23,100023,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,24,100024,True,163
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,25,100025,True,189
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,26,100026,True,166
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,27,100027,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,28,100028,True,229
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,29,100029,True,153
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,30,100030,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,31,100031,True,210
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,32,100032,True,152
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,33,100033,True,177
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,34,100034,True,145
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,35,100035,True,190
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,36,100036,True,183
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,37,100037,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,38,100038,True,197
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,39,100039,True,145
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,40,100040,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,41,100041,True,152
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,42,100042,True,123
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,43,100043,True,212
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,45,100045,True,192
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,47,100047,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,48,100048,True,240
+object,0,pick up the alphabet soup and place it in the basket,100000,original,0,pick up the alphabet soup and place it in the basket,49,100049,True,140
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,0,100000,True,248
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,1,100001,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,2,100002,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,3,100003,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,4,100004,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,5,100005,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,6,100006,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,7,100007,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,8,100008,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,9,100009,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,10,100010,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,11,100011,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,12,100012,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,13,100013,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,15,100015,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,16,100016,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,17,100017,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,18,100018,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,19,100019,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,20,100020,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,21,100021,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,22,100022,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,23,100023,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,24,100024,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,25,100025,True,178
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,26,100026,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,27,100027,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,28,100028,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,29,100029,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,30,100030,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,31,100031,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,32,100032,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,33,100033,True,255
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,34,100034,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,35,100035,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,36,100036,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,37,100037,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,38,100038,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,39,100039,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,40,100040,True,174
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,41,100041,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,42,100042,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,43,100043,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,45,100045,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,47,100047,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,48,100048,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,politeness,0,please pick up the alphabet soup and place it in the basket,49,100049,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,0,100000,True,135
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,1,100001,True,139
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,2,100002,True,130
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,3,100003,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,4,100004,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,5,100005,True,193
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,6,100006,True,216
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,7,100007,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,8,100008,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,9,100009,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,10,100010,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,11,100011,True,147
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,12,100012,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,13,100013,True,129
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,15,100015,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,16,100016,True,179
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,17,100017,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,18,100018,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,19,100019,True,233
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,20,100020,True,134
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,21,100021,True,238
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,22,100022,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,23,100023,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,24,100024,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,25,100025,True,127
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,26,100026,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,27,100027,True,125
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,28,100028,True,170
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,29,100029,True,141
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,30,100030,True,207
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,31,100031,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,32,100032,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,33,100033,True,234
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,34,100034,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,35,100035,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,36,100036,True,158
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,37,100037,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,38,100038,True,119
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,39,100039,True,144
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,40,100040,True,197
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,41,100041,True,122
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,42,100042,True,257
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,43,100043,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,45,100045,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,47,100047,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,48,100048,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verb_paraphrase,0,grab the alphabet soup and place it in the basket,49,100049,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",0,100000,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",1,100001,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",2,100002,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",3,100003,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",4,100004,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",5,100005,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",6,100006,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",7,100007,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",8,100008,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",9,100009,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",10,100010,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",11,100011,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",12,100012,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",13,100013,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",15,100015,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",16,100016,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",17,100017,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",18,100018,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",19,100019,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",20,100020,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",21,100021,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",22,100022,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",23,100023,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",24,100024,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",25,100025,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",26,100026,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",27,100027,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",28,100028,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",29,100029,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",30,100030,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",31,100031,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",32,100032,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",33,100033,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",34,100034,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",35,100035,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",36,100036,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",37,100037,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",38,100038,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",39,100039,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",40,100040,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",41,100041,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",42,100042,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",43,100043,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",45,100045,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",47,100047,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",48,100048,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,sentence_structure,0,"the alphabet soup, pick it up and place it in the basket",49,100049,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,0,100000,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,1,100001,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,2,100002,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,3,100003,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,4,100004,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,5,100005,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,6,100006,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,7,100007,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,8,100008,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,9,100009,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,10,100010,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,11,100011,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,12,100012,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,13,100013,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,15,100015,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,16,100016,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,17,100017,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,18,100018,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,19,100019,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,20,100020,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,21,100021,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,22,100022,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,23,100023,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,24,100024,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,25,100025,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,26,100026,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,27,100027,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,28,100028,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,29,100029,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,30,100030,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,31,100031,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,32,100032,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,33,100033,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,34,100034,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,35,100035,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,36,100036,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,37,100037,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,38,100038,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,39,100039,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,40,100040,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,41,100041,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,42,100042,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,43,100043,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,45,100045,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,47,100047,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,48,100048,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,verbosity,0,in this task you have to  pick up the alphabet soup and place it in the basket for me,49,100049,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,0,100000,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,1,100001,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,2,100002,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,3,100003,True,194
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,4,100004,True,266
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,5,100005,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,6,100006,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,7,100007,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,8,100008,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,9,100009,True,245
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,10,100010,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,11,100011,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,12,100012,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,13,100013,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,15,100015,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,16,100016,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,17,100017,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,18,100018,True,276
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,19,100019,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,20,100020,True,247
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,21,100021,True,227
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,22,100022,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,23,100023,True,278
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,24,100024,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,25,100025,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,26,100026,True,149
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,27,100027,True,271
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,28,100028,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,29,100029,True,233
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,30,100030,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,31,100031,True,154
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,32,100032,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,33,100033,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,34,100034,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,35,100035,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,36,100036,True,229
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,37,100037,True,250
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,38,100038,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,39,100039,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,40,100040,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,41,100041,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,42,100042,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,43,100043,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,45,100045,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,47,100047,True,251
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,48,100048,True,242
+object,0,pick up the alphabet soup and place it in the basket,100000,carefully,0,pick up the alphabet soup and place it in the basket carefully,49,100049,True,175
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,0,100000,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,1,100001,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,2,100002,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,3,100003,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,4,100004,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,5,100005,True,216
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,6,100006,True,186
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,7,100007,True,254
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,8,100008,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,9,100009,True,235
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,10,100010,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,11,100011,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,12,100012,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,13,100013,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,15,100015,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,16,100016,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,17,100017,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,18,100018,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,19,100019,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,20,100020,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,21,100021,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,22,100022,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,23,100023,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,24,100024,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,25,100025,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,26,100026,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,27,100027,True,207
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,28,100028,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,29,100029,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,30,100030,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,31,100031,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,32,100032,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,33,100033,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,34,100034,True,248
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,35,100035,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,36,100036,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,37,100037,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,38,100038,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,39,100039,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,40,100040,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,41,100041,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,42,100042,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,43,100043,True,253
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,45,100045,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,47,100047,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,48,100048,True,199
+object,0,pick up the alphabet soup and place it in the basket,100000,quickly,0,pick up the alphabet soup and place it in the basket quickly,49,100049,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,0,100000,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,1,100001,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,2,100002,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,3,100003,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,4,100004,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,5,100005,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,6,100006,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,7,100007,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,8,100008,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,9,100009,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,10,100010,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,11,100011,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,12,100012,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,13,100013,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,14,100014,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,15,100015,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,16,100016,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,17,100017,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,18,100018,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,19,100019,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,20,100020,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,21,100021,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,22,100022,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,23,100023,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,24,100024,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,25,100025,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,26,100026,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,27,100027,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,28,100028,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,29,100029,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,30,100030,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,31,100031,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,32,100032,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,33,100033,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,34,100034,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,35,100035,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,36,100036,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,37,100037,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,38,100038,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,39,100039,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,40,100040,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,41,100041,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,42,100042,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,43,100043,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,44,100044,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,45,100045,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,46,100046,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,47,100047,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,48,100048,False,280
+object,0,pick up the alphabet soup and place it in the basket,100000,do_not_move,0,do not move the alphabet soup and place it in the basket,49,100049,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,0,101000,True,173
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,1,101001,True,121
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,2,101002,True,133
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,3,101003,True,147
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,4,101004,True,122
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,5,101005,True,131
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,6,101006,True,176
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,7,101007,True,162
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,8,101008,True,135
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,9,101009,True,128
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,10,101010,True,126
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,11,101011,True,134
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,12,101012,True,139
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,13,101013,True,138
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,14,101014,True,112
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,15,101015,True,154
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,16,101016,True,127
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,17,101017,True,122
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,18,101018,True,136
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,19,101019,True,123
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,20,101020,True,141
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,21,101021,True,151
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,22,101022,True,146
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,23,101023,True,122
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,24,101024,True,158
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,25,101025,True,122
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,26,101026,True,182
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,27,101027,True,120
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,28,101028,True,119
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,29,101029,True,194
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,30,101030,True,119
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,31,101031,True,130
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,32,101032,True,127
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,33,101033,True,114
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,34,101034,True,155
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,35,101035,True,125
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,36,101036,True,210
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,37,101037,True,147
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,38,101038,True,133
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,39,101039,True,143
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,40,101040,True,145
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,41,101041,True,122
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,42,101042,True,118
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,43,101043,True,138
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,44,101044,True,144
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,45,101045,True,127
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,46,101046,True,141
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,47,101047,True,120
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,48,101048,True,161
+object,1,pick up the cream cheese and place it in the basket,101000,original,0,pick up the cream cheese and place it in the basket,49,101049,True,129
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,0,101000,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,1,101001,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,2,101002,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,3,101003,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,4,101004,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,5,101005,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,6,101006,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,7,101007,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,8,101008,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,9,101009,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,10,101010,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,11,101011,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,12,101012,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,13,101013,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,14,101014,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,15,101015,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,16,101016,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,17,101017,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,18,101018,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,19,101019,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,20,101020,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,21,101021,True,226
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,22,101022,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,23,101023,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,24,101024,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,25,101025,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,26,101026,True,227
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,27,101027,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,28,101028,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,29,101029,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,30,101030,True,226
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,31,101031,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,32,101032,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,33,101033,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,34,101034,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,35,101035,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,36,101036,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,37,101037,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,38,101038,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,39,101039,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,40,101040,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,41,101041,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,42,101042,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,43,101043,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,44,101044,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,45,101045,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,46,101046,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,47,101047,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,48,101048,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,politeness,0,please pick up the cream cheese and place it in the basket,49,101049,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,0,101000,True,126
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,1,101001,True,170
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,2,101002,True,128
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,3,101003,True,167
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,4,101004,True,188
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,5,101005,True,130
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,6,101006,True,187
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,7,101007,True,130
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,8,101008,True,151
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,9,101009,True,161
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,10,101010,True,153
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,11,101011,True,129
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,12,101012,True,143
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,13,101013,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,14,101014,True,134
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,15,101015,True,128
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,16,101016,True,142
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,17,101017,True,184
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,18,101018,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,19,101019,True,133
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,20,101020,True,123
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,21,101021,True,140
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,22,101022,True,133
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,23,101023,True,173
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,24,101024,True,154
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,25,101025,True,146
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,26,101026,True,212
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,27,101027,True,136
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,28,101028,True,205
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,29,101029,True,193
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,30,101030,True,137
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,31,101031,True,201
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,32,101032,True,144
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,33,101033,True,188
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,34,101034,True,140
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,35,101035,True,121
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,36,101036,True,252
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,37,101037,True,146
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,38,101038,True,136
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,39,101039,True,131
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,40,101040,True,152
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,41,101041,True,141
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,42,101042,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,43,101043,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,44,101044,True,177
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,45,101045,True,129
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,46,101046,True,200
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,47,101047,True,175
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,48,101048,True,136
+object,1,pick up the cream cheese and place it in the basket,101000,verb_paraphrase,0,grab the cream cheese and place it in the basket,49,101049,True,183
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",0,101000,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",1,101001,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",2,101002,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",3,101003,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",4,101004,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",5,101005,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",6,101006,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",7,101007,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",8,101008,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",9,101009,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",10,101010,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",11,101011,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",12,101012,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",13,101013,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",14,101014,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",15,101015,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",16,101016,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",17,101017,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",18,101018,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",19,101019,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",20,101020,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",21,101021,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",22,101022,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",23,101023,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",24,101024,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",25,101025,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",26,101026,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",27,101027,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",28,101028,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",29,101029,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",30,101030,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",31,101031,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",32,101032,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",33,101033,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",34,101034,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",35,101035,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",36,101036,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",37,101037,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",38,101038,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",39,101039,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",40,101040,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",41,101041,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",42,101042,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",43,101043,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",44,101044,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",45,101045,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",46,101046,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",47,101047,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",48,101048,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,sentence_structure,0,"the cream cheese, pick it up and place it in the basket",49,101049,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,0,101000,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,1,101001,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,2,101002,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,3,101003,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,4,101004,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,5,101005,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,6,101006,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,7,101007,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,8,101008,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,9,101009,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,10,101010,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,11,101011,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,12,101012,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,13,101013,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,14,101014,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,15,101015,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,16,101016,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,17,101017,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,18,101018,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,19,101019,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,20,101020,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,21,101021,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,22,101022,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,23,101023,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,24,101024,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,25,101025,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,26,101026,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,27,101027,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,28,101028,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,29,101029,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,30,101030,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,31,101031,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,32,101032,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,33,101033,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,34,101034,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,35,101035,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,36,101036,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,37,101037,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,38,101038,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,39,101039,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,40,101040,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,41,101041,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,42,101042,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,43,101043,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,44,101044,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,45,101045,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,46,101046,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,47,101047,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,48,101048,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,verbosity,0,in this task you have to pick up the cream cheese and place it in the basket for me,49,101049,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,0,101000,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,1,101001,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,2,101002,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,3,101003,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,4,101004,True,232
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,5,101005,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,6,101006,True,157
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,7,101007,True,152
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,8,101008,True,135
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,9,101009,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,10,101010,True,135
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,11,101011,True,144
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,12,101012,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,13,101013,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,14,101014,True,135
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,15,101015,True,231
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,16,101016,True,146
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,17,101017,True,179
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,18,101018,True,134
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,19,101019,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,20,101020,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,21,101021,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,22,101022,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,23,101023,True,141
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,24,101024,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,25,101025,True,136
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,26,101026,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,27,101027,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,28,101028,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,29,101029,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,30,101030,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,31,101031,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,32,101032,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,33,101033,True,182
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,34,101034,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,35,101035,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,36,101036,True,141
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,37,101037,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,38,101038,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,39,101039,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,40,101040,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,41,101041,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,42,101042,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,43,101043,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,44,101044,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,45,101045,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,46,101046,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,47,101047,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,48,101048,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,carefully,0,pick up the cream cheese and place it in the basket carefully,49,101049,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,0,101000,True,171
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,1,101001,True,177
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,2,101002,True,122
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,3,101003,True,131
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,4,101004,True,164
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,5,101005,True,124
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,6,101006,True,143
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,7,101007,True,199
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,8,101008,True,152
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,9,101009,True,131
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,10,101010,True,131
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,11,101011,True,121
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,12,101012,True,123
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,13,101013,True,123
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,14,101014,True,132
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,15,101015,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,16,101016,True,262
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,17,101017,True,125
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,18,101018,True,159
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,19,101019,True,212
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,20,101020,True,130
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,21,101021,True,125
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,22,101022,True,130
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,23,101023,True,121
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,24,101024,True,134
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,25,101025,True,144
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,26,101026,True,132
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,27,101027,True,128
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,28,101028,True,157
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,29,101029,True,168
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,30,101030,True,140
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,31,101031,True,128
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,32,101032,True,121
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,33,101033,True,131
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,34,101034,True,134
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,35,101035,True,129
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,36,101036,True,142
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,37,101037,True,136
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,38,101038,True,123
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,39,101039,True,120
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,40,101040,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,41,101041,True,139
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,42,101042,True,127
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,43,101043,True,187
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,44,101044,True,155
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,45,101045,True,145
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,46,101046,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,47,101047,True,150
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,48,101048,True,120
+object,1,pick up the cream cheese and place it in the basket,101000,quickly,0,pick up the cream cheese and place it in the basket quickly,49,101049,True,126
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,0,101000,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,1,101001,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,2,101002,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,3,101003,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,4,101004,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,5,101005,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,6,101006,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,7,101007,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,8,101008,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,9,101009,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,10,101010,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,11,101011,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,12,101012,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,13,101013,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,14,101014,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,15,101015,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,16,101016,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,17,101017,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,18,101018,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,19,101019,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,20,101020,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,21,101021,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,22,101022,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,23,101023,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,24,101024,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,25,101025,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,26,101026,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,27,101027,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,28,101028,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,29,101029,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,30,101030,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,31,101031,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,32,101032,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,33,101033,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,34,101034,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,35,101035,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,36,101036,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,37,101037,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,38,101038,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,39,101039,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,40,101040,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,41,101041,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,42,101042,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,43,101043,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,44,101044,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,45,101045,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,46,101046,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,47,101047,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,48,101048,False,280
+object,1,pick up the cream cheese and place it in the basket,101000,do_not_move,0,do not move the cream cheese and place it in the basket,49,101049,False,280

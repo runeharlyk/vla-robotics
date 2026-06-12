@@ -1,0 +1,33 @@
+{
+  "generated_at_utc": "2026-04-16T07:42:00.650178+00:00",
+  "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "contrastive_negation",
+    "do_not_move"
+  ],
+  "tasks": [
+    {
+      "suite": "spatial",
+      "task_id": 0,
+      "task_description": "pick up the black bowl between the plate and the ramekin and place it on the plate",
+      "prompts": {
+        "original": "pick up the black bowl between the plate and the ramekin and place it on the plate",
+        "politeness": "please pick up the black bowl between the plate and the ramekin and place it on the plate",
+        "verb_paraphrase": "grab the black bowl between the plate and the ramekin and place it on the plate",
+        "sentence_structure": "the black bowl between the plate and the ramekin, pick it upand place it on the plate",
+        "verbosity": "Now for this task, pick up the black bowl between the plate and the ramekin and place it on the plate",
+        "carefully": "Pick up the black bowl between the plate and the ramekin and place it on the plate carefully",
+        "quickly": "pick up the black bowl between the plate and the ramekin and place it on the plate quickly",
+        "contrastive_negation": "Do not move the red, but the black bowl between the plate and the ramekin and place it on the plate",
+        "do_not_move": "do not move the black bowl between the plate and the ramekin and place it on the plate"
+      }
+    }
+  ]
+}

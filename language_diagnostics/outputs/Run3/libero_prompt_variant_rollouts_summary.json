@@ -1,0 +1,29 @@
+{
+  "generated_at_utc": "2026-04-16T09:12:47.074991+00:00",
+  "args": {
+    "episodes": 1,
+    "max_steps": 280,
+    "seed": 0,
+    "state_dim": 8,
+    "action_dim": 7,
+    "device": "cuda",
+    "output_dir": "language_diagnostics/outputs",
+    "prompt_plan_path": "language_diagnostics/libero_prompt_variant_prompt_plan.json",
+    "progress_every": 10,
+    "step_progress_every": 0
+  },
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "contrastive_negation",
+    "do_not_move"
+  ],
+  "prompt_plan_path": "language_diagnostics/libero_prompt_variant_prompt_plan.json",
+  "num_rollout_rows": 9,
+  "num_prompt_rows": 9
+}

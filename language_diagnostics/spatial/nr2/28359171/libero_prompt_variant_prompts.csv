@@ -1,0 +1,9 @@
+suite,task_id,task_description,variant_type,prompt
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,original,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,politeness,please pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,verb_paraphrase,grab the black bowl in the top drawer of the wooden cabinet and place it on the plate
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,sentence_structure,"the black bowl in the top drawer of the wooden cabinet, pick it up and place it on the plate"
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,verbosity,in this task you have to pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate for me
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,carefully,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate carefully
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,quickly,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate quickly
+spatial,4,pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate,do_not_move,do not move any other items while grabing the black bowl in the top drawer of the wooden cabinet and place it on the plate

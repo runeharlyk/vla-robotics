@@ -1,0 +1,17 @@
+suite,task_id,task_description,variant_type,prompt
+goal,0,open the middle drawer of the cabinet,original,open the middle drawer of the cabinet
+goal,0,open the middle drawer of the cabinet,politeness,please open the middle drawer of the cabinet
+goal,0,open the middle drawer of the cabinet,verb_paraphrase,pull out the middle drawer of the cabinet
+goal,0,open the middle drawer of the cabinet,sentence_structure,"the middle drawer of the cabinet, open it"
+goal,0,open the middle drawer of the cabinet,verbosity,in this task you have to open the middle drawer of the cabinet for me
+goal,0,open the middle drawer of the cabinet,carefully,open the middle drawer of the cabinet carefully
+goal,0,open the middle drawer of the cabinet,quickly,open the middle drawer of the cabinet quickly
+goal,0,open the middle drawer of the cabinet,do_not_move,do not open middle drawer of the cabinet
+goal,1,put the bowl on the stove,original,put the bowl on the stove
+goal,1,put the bowl on the stove,politeness,please put the bowl on the stove
+goal,1,put the bowl on the stove,verb_paraphrase,place the bowl on the stove
+goal,1,put the bowl on the stove,sentence_structure,"the bowl, put it on the stove"
+goal,1,put the bowl on the stove,verbosity,in this task you have to put the bowl on the stove for me
+goal,1,put the bowl on the stove,carefully,put the bowl on the stove carefully
+goal,1,put the bowl on the stove,quickly,put the bowl on the stove quickly
+goal,1,put the bowl on the stove,do_not_move,do not place the bowl on the stove

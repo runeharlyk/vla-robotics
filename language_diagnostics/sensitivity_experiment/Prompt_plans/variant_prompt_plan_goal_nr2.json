@@ -1,0 +1,31 @@
+{
+  "generated_at_utc": "2026-04-27T09:22:48.854385+00:00",
+  "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+  "variant_types": [
+    "original",
+    "politeness",
+    "verb_paraphrase",
+    "sentence_structure",
+    "verbosity",
+    "carefully",
+    "quickly",
+    "do_not_move"
+  ],
+  "tasks": [
+    {
+      "suite": "goal",
+      "task_id": 4,
+      "task_description": "put the bowl on top of the cabinet",
+      "prompts": {
+        "original": "put the bowl on top of the cabinet",
+        "politeness": "please put the bowl on top of the cabinet",
+        "verb_paraphrase": "place the bowl on top of the cabinet",
+        "sentence_structure": "the bowl, put it on top of the cabinet",
+        "verbosity": "in this task you have to put the bowl on top of the cabinet for me",
+        "carefully": "put the bowl on top of the cabinet carefully",
+        "quickly": "put the bowl on top of the cabinet quickly",
+        "do_not_move": "do not put the bowl on top of the cabinet"
+      }
+    }
+  ]
+}

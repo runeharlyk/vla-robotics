@@ -1,0 +1,17 @@
+suite,task_id,task_description,variant_type,prompt
+object,0,pick up the alphabet soup and place it in the basket,original,pick up the alphabet soup and place it in the basket
+object,0,pick up the alphabet soup and place it in the basket,politeness,please pick up the alphabet soup and place it in the basket
+object,0,pick up the alphabet soup and place it in the basket,verb_paraphrase,grab the alphabet soup and place it in the basket
+object,0,pick up the alphabet soup and place it in the basket,sentence_structure,"the alphabet soup, pick it up and place it in the basket"
+object,0,pick up the alphabet soup and place it in the basket,verbosity,in this task you have to  pick up the alphabet soup and place it in the basket for me
+object,0,pick up the alphabet soup and place it in the basket,carefully,pick up the alphabet soup and place it in the basket carefully
+object,0,pick up the alphabet soup and place it in the basket,quickly,pick up the alphabet soup and place it in the basket quickly
+object,0,pick up the alphabet soup and place it in the basket,do_not_move,do not move the alphabet soup and place it in the basket
+object,1,pick up the cream cheese and place it in the basket,original,pick up the cream cheese and place it in the basket
+object,1,pick up the cream cheese and place it in the basket,politeness,please pick up the cream cheese and place it in the basket
+object,1,pick up the cream cheese and place it in the basket,verb_paraphrase,grab the cream cheese and place it in the basket
+object,1,pick up the cream cheese and place it in the basket,sentence_structure,"the cream cheese, pick it up and place it in the basket"
+object,1,pick up the cream cheese and place it in the basket,verbosity,in this task you have to pick up the cream cheese and place it in the basket for me
+object,1,pick up the cream cheese and place it in the basket,carefully,pick up the cream cheese and place it in the basket carefully
+object,1,pick up the cream cheese and place it in the basket,quickly,pick up the cream cheese and place it in the basket quickly
+object,1,pick up the cream cheese and place it in the basket,do_not_move,do not move the cream cheese and place it in the basket

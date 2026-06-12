@@ -1,0 +1,9 @@
+suite,task_id,task_description,variant_type,prompt
+object,4,pick up the ketchup and place it in the basket,original,pick up the ketchup and place it in the basket
+object,4,pick up the ketchup and place it in the basket,politeness,please pick up the ketchup and place it in the basket
+object,4,pick up the ketchup and place it in the basket,verb_paraphrase,grab the ketchup and place it in the basket
+object,4,pick up the ketchup and place it in the basket,sentence_structure,"the ketchup, pick it up and place it in the basket"
+object,4,pick up the ketchup and place it in the basket,verbosity,in this task you have to pick up the ketchup and place it in the basket for me
+object,4,pick up the ketchup and place it in the basket,carefully,pick up the ketchup and place it in the basket carefully
+object,4,pick up the ketchup and place it in the basket,quickly,pick up the ketchup and place it in the basket quickly
+object,4,pick up the ketchup and place it in the basket,do_not_move,do not move the ketchup and place it in the basket
