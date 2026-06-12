@@ -32,7 +32,7 @@ Why the LR / epoch defaults differ from train_sft.py:
       polish away the teacher's residual mistakes without forgetting
       the SFT base, so ``lr=2e-5`` (5x lower) and ``num-epochs=10``
       (5x fewer) are appropriate. This recipe is documented in
-      ``docs/thesis_research_plan.md`` Phase 4 and was derived from
+      the Phase 4 distillation plan and was derived from
       RIPT-VLA + WiSE-FT distill recipes adapted to SmolVLA scale.
 
 For a no-augmentation A/B baseline, pass ``--no-augment``.
@@ -128,6 +128,7 @@ def main(
 ) -> None:
     """Self-distill SmolVLA from collected RL rollouts."""
     import wandb
+
     from vla.constants import CHECKPOINTS_DIR
     from vla.data.rollout_distill import build_rollout_distill_dataset
     from vla.models.smolvla import SmolVLAPolicy

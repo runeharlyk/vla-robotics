@@ -2,7 +2,6 @@
 
 metadata:
   label: spatial-all-chunk5-nodynamic-replay
-  source_doc: docs/libero_spatial_rl_experiment_plan.md
   notes: "All-suite chunk-5 run without dynamic sampling. Tests whether the task-5 chunk benefit transfers when dynamic sampling is removed."
 
 task_ids: all

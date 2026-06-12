@@ -2,7 +2,6 @@
 
 metadata:
   label: p1d-v8a-noise-sample-1
-  source_doc: docs/thesis_research_plan.md
   source_config: configs/train_srpo/experiment/p1a_v8a_control_v7_clone.yaml
   profile: l40s-16-mem8
   notes: |

@@ -28,7 +28,9 @@ def test_generate_libero_plus_train_job_installs_plus_runtime() -> None:
     assert "LIBERO_PLUS_ASSETS" in job.script
     assert "uv pip install -e .libero-plus-src/" in job.script
     assert "Missing .libero-plus-src" in job.script
-    assert "uv run --no-sync python scripts/train_srpo_hydra.py experiment=libero_plus_adaptive_curriculum" in job.script
+    assert (
+        "uv run --no-sync python scripts/train_srpo_hydra.py experiment=libero_plus_adaptive_curriculum" in job.script
+    )
 
 
 def test_generate_eval_hydra_job_uses_experiment_and_profile() -> None:

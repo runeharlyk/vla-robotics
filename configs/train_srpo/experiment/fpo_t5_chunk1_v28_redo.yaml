@@ -2,7 +2,6 @@
 
 metadata:
   label: fpo-t5-chunk1-v28-redo
-  source_doc: docs/libero_spatial_rl_experiment_plan.md
   notes: |
     Re-do of the chunk-1 v28 control under the new env-reset seeding,
     with the proper eval budget. The previous attempt (job 28314273,

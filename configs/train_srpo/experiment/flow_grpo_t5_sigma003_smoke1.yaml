@@ -2,7 +2,6 @@
 
 metadata:
   label: flow-grpo-t5-sigma003-smoke1
-  source_doc: docs/flow_grpo_paper_overview.md
   notes: >-
     One-iteration Flow-GRPO mechanics test after the SFT Flow-SDE scout.
     Scout result: normal chunk-5 SFT was 70.5% over 20 eps/task, while

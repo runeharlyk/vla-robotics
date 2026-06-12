@@ -2,7 +2,6 @@
 
 metadata:
   label: p1c-v12-rev-success-bc-sftkl002
-  source_doc: docs/thesis_research_plan.md
   source_config: configs/train_srpo/experiment/v12_multi_success_bc_rlpd5050_utd.yaml
   notes: |
     Thesis Phase 1, run C (conditional): success_bc + RLPD 50/50 demo

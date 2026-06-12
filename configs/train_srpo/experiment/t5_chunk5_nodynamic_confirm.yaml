@@ -2,7 +2,6 @@
 
 metadata:
   label: t5-chunk5-nodynamic-confirm
-  source_doc: docs/libero_spatial_rl_experiment_plan.md
   notes: "Task-5 chunk-5 confirmation without dynamic sampling. Matches the strongest new task-5 signal from job 28263586, but with 100-episode evals."
 
 task_ids: "5"

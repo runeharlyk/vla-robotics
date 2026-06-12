@@ -238,6 +238,7 @@ def test_ensure_legacy_gym_support_aliases_gymnasium(monkeypatch) -> None:
     ensure_legacy_gym_support()
 
     import sys
+
     import gymnasium
 
     assert sys.modules["gym"] is gymnasium

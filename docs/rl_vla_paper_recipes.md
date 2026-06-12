@@ -5,8 +5,7 @@ Written so future jobs can cite a specific paper section instead of rediscoverin
 
 > **Scope.**
 > This is a *synthesis* document.
-> It does not replace [thesis_research_plan.md](./thesis_research_plan.md) or [libero_spatial_rl_experiment_plan.md](./libero_spatial_rl_experiment_plan.md).
-> Both remain authoritative for workstreams and tactical job settings.
+> It complements the surviving experiment summaries and tactical job settings.
 > This document contributes (a) a paper-by-paper checklist of ingredients, (b) an explicit map from each ingredient to code that already exists in this repo, and (c) two proposed L40s jobs (v8, v9) that extend the existing v4/v7 FPO recipe with ingredients from πRL, SimpleVLA-RL, and SRPO.
 
 ## Table of contents
@@ -241,7 +240,6 @@ Each line below is "what v7 does today" vs "what the paper does":
 
 ## 6. Updated W1–W8 priorities with new W3b and W9
 
-The authoritative workstream list is in [thesis_research_plan.md §3](./thesis_research_plan.md#3-prioritized-workstreams-w1w8).
 The deltas below are proposed additions or re-orderings motivated by the cross-paper synthesis above.
 
 - **W1 — Finish what is running.** Unchanged. Finish v7 / v4 promo evals first.

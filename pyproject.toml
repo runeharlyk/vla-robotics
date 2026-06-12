@@ -69,8 +69,6 @@ dev = [
     "pytest==9.0.2",
     "ruff==0.15.4",
     "mypy==1.19.1",
-    "mkdocs-material==9.7.1",
-    "mkdocstrings-python==2.0.2",
     "ipykernel>=7.2.0",
     "pyright>=1.1.408",
 ]

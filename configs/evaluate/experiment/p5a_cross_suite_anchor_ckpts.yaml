@@ -2,7 +2,6 @@
 
 metadata:
   label: p5a-cross-suite-anchor-ckpts
-  source_doc: docs/thesis_research_plan.md
   notes: |
     Thesis Phase 5, run A: evaluate the four thesis anchor checkpoints
     on all four LIBERO suites (spatial, object, goal, long) at

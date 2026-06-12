@@ -79,13 +79,6 @@ def test(ctx: Context) -> None:
 
 
 @task
-def docs(ctx: Context, serve: bool = False) -> None:
-    """Build (or serve) mkdocs documentation."""
-    cmd = "uv run mkdocs serve" if serve else "uv run mkdocs build --strict"
-    _run(ctx, cmd)
-
-
-@task
 def download_libero(ctx: Context, suite: str = "all") -> None:
     """Download LIBERO datasets from HuggingFace via LeRobot."""
     _run(ctx, f"uv run python scripts/download_libero.py --suite {suite}")
@@ -262,7 +255,9 @@ def submit_eval(
     """
     if not experiment:
         print("Usage: invoke submit-eval --experiment <train-config> [--checkpoint best|last|best-rollout]")
-        print("  Optional overrides: --n-action-steps INT --num-episodes INT --checkpoint-dir PATH --training-job-id ID")
+        print(
+            "  Optional overrides: --n-action-steps INT --num-episodes INT --checkpoint-dir PATH --training-job-id ID"
+        )
         print(f"  GPU profiles: {', '.join(load_yaml(PROFILES_PATH))}")
         raise SystemExit(1)
 
@@ -499,13 +494,6 @@ def train_srpo(
         f"uv run python scripts/train_srpo.py --sft-checkpoint {sft_checkpoint} --mode {mode} "
         f"--num-demos {num_demos} --seed {seed} --world-model {world_model} {wandb_flag}",
     )
-
-
-@task
-def run_experiment(ctx: Context, config: str = "configs/srpo_pickcube.yaml", no_wandb: bool = False) -> None:
-    """Run the full SRPO validation experiment matrix."""
-    wandb_flag = "--no-wandb" if no_wandb else ""
-    _run(ctx, f"uv run python scripts/run_experiment.py --config {config} {wandb_flag}")
 
 
 @task

@@ -1,9 +1,9 @@
 # Sparse-RL path to ≥ 90% on LIBERO spatial @ `n_action_steps=1`
 
 This document captures the analysis from the late-April 2026 review session.
-It is intentionally narrower than [thesis_research_plan.md](./thesis_research_plan.md) and [rl_vla_paper_recipes.md](./rl_vla_paper_recipes.md): it answers the specific question "how do we get above 90 % on LIBERO spatial under `n_action_steps=1` eval, given that SRPO/dense reward does not work for us in practice".
+It answers the specific question "how do we get above 90 % on LIBERO spatial under `n_action_steps=1` eval, given that SRPO/dense reward does not work for us in practice".
 
-The decisions and numbers here supersede the `--mode srpo` recommendations in `rl_vla_paper_recipes.md` §6 (W3b) for the immediate next 2–3 weeks.
+The decisions and numbers here supersede the earlier `--mode srpo` recommendations for the immediate next 2-3 weeks.
 The dense-reward path remains documented and reversible; see §6 below.
 
 ## Table of contents
@@ -268,7 +268,7 @@ Backbone size is fixed; everything else is on the table.
    `full_chunk_target=True` makes this safe by keeping chunk coherence supervised across all 50 positions.
 3. **Apply DAPO-style sparse-RL ingredients one at a time, in priority order**:
    - **a. Clip-higher**: widen upper FPO clip from `0.08` to `0.16` (lower stays at `0.05`).
-     Designed in [rl_vla_paper_recipes.md §7.1](./rl_vla_paper_recipes.md).
+     Designed from the sparse-RL recipe notes.
    - **b. Strong SFT-KL anchor**: `sft_kl_coeff=0.02` (vs `0.005` we drifted to).
      The audit showed `raw_sft_kl` at 1–3 vs target 0.01 in recent runs — the anchor was non-binding.
      Without dense reward we need it more, not less.
@@ -344,5 +344,5 @@ Risk register:
 ## Provenance
 
 - Research session: 2026-04-26 to 2026-05-02.
-- Anchor docs: [thesis_research_plan.md](./thesis_research_plan.md), [rl_vla_paper_recipes.md](./rl_vla_paper_recipes.md), [libero_spatial_rl_experiment_plan.md](./libero_spatial_rl_experiment_plan.md), [smolvla_libero_eval.md](./smolvla_libero_eval.md), [fpo_hyperparameter_experiments.md](./fpo_hyperparameter_experiments.md), [srpo_reward_study_and_online_progress_clusters.md](./srpo_reward_study_and_online_progress_clusters.md).
+- Anchor docs: [fpo_hyperparameter_experiments.md](./fpo_hyperparameter_experiments.md), [srpo_reward_study_and_online_progress_clusters.md](./srpo_reward_study_and_online_progress_clusters.md).
 - Key external refs: SmolVLA paper [arXiv 2506.01844](https://arxiv.org/pdf/2506.01844), SRPO paper [arXiv 2511.15605](https://arxiv.org/abs/2511.15605), SimpleVLA-RL [arXiv 2509.09674](https://arxiv.org/abs/2509.09674), LIBERO-PRO [arXiv 2510.03827](https://arxiv.org/html/2510.03827v1), lerobot [issue #1005](https://github.com/huggingface/lerobot/issues/1005), lerobot [issue #3312](https://github.com/huggingface/lerobot/issues/3312).

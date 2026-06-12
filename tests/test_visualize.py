@@ -115,13 +115,16 @@ def test_visualize_uses_inference_mode_and_autocast(monkeypatch) -> None:
     monkeypatch.setattr("torch.cuda.is_available", lambda: True)
     monkeypatch.setattr("torch.inference_mode", _fake_inference_mode)
     monkeypatch.setattr("torch.autocast", _fake_autocast)
-    monkeypatch.setattr("vla.models.load_policy", lambda *_args, **_kwargs: SimpleNamespace(
-        policy=_FakePolicy(),
-        preprocessor=lambda batch: batch,
-        postprocessor=lambda action: action,
-        state_dim=0,
-        action_dim=7,
-    ))
+    monkeypatch.setattr(
+        "vla.models.load_policy",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            policy=_FakePolicy(),
+            preprocessor=lambda batch: batch,
+            postprocessor=lambda action: action,
+            state_dim=0,
+            action_dim=7,
+        ),
+    )
     monkeypatch.setattr("vla.evaluation.evaluate._make_factory", lambda *_args, **_kwargs: _FakeFactory())
     monkeypatch.setattr(visualize, "_save_video", lambda *_args, **_kwargs: None)
 
@@ -238,13 +241,16 @@ def test_visualize_respects_max_steps_override(monkeypatch) -> None:
         def __call__(self, task_id: int) -> _FakeEnv:
             return _FakeEnv()
 
-    monkeypatch.setattr("vla.models.load_policy", lambda *_args, **_kwargs: SimpleNamespace(
-        policy=_FakePolicy(),
-        preprocessor=lambda batch: batch,
-        postprocessor=lambda action: action,
-        state_dim=0,
-        action_dim=7,
-    ))
+    monkeypatch.setattr(
+        "vla.models.load_policy",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            policy=_FakePolicy(),
+            preprocessor=lambda batch: batch,
+            postprocessor=lambda action: action,
+            state_dim=0,
+            action_dim=7,
+        ),
+    )
     monkeypatch.setattr("vla.evaluation.evaluate._make_factory", lambda *_args, **_kwargs: _FakeFactory())
     monkeypatch.setattr(visualize, "_save_video", lambda *_args, **_kwargs: None)
 

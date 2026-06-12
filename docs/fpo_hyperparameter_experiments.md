@@ -291,7 +291,7 @@ Switching to `srpo` mode with world-model progress rewards provides continuous r
 | sft_kl_coeff | 0.005 – 0.02 | **0.02** when long single-task or multi-task | ≤ 0.005 (anchor non-binding past iter ~30) | Multi-task vs t5-chunk5 long runs §11 |
 | n_action_steps (training) | 1–5 | **1** for n=1 eval; **5** acceptable for wall-clock | > 5 untested at this LR | §10, eval pending |
 | full_chunk_target | true | **true** | false untested; expect chunk-coherence drift | §12, all jobs to date |
-| dynamic_sampling | on/off | **on** as safety net | — at trajs=32 below saturation | Multi-task §13; rl_vla_paper_recipes §3 |
+| dynamic_sampling | on/off | **on** as safety net | — at trajs=32 below saturation | Multi-task §13 |
 
 ---
 
@@ -301,7 +301,7 @@ This appendix captures findings from FPO runs after the LIBERO init-state/reset 
 The original §1–§9 findings were collected on task-2 with the previous (easier) reset distribution.
 Hyperparameter conclusions there still hold; the new findings below extend them to task-5, to multi-task `--task-ids all`, and to chunk-aware execution at `--n-action-steps > 1`.
 
-For the strategic plan that uses these findings see [sparse_rl_path_to_90_spatial.md](./sparse_rl_path_to_90_spatial.md) and [libero_spatial_rl_experiment_plan.md](./libero_spatial_rl_experiment_plan.md).
+For the strategic plan that uses these findings see [sparse_rl_path_to_90_spatial.md](./sparse_rl_path_to_90_spatial.md).
 
 ### Run summary — task-5 / multi-task under new env
 

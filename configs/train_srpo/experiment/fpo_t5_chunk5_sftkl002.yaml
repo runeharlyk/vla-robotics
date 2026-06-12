@@ -2,7 +2,6 @@
 
 metadata:
   label: fpo-t5-chunk5-sftkl002
-  source_doc: docs/libero_spatial_rl_experiment_plan.md
   notes: |
     FPO chunk-5 with the SFT-anchor coefficient pushed to 0.02 (4x the
     0.005 used by 28327579 / "t5_chunk5_nodynamic_confirm" and 20x the

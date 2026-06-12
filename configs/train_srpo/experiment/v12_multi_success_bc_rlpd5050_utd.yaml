@@ -2,7 +2,6 @@
 
 metadata:
   label: v12-multi-success-bc-rlpd5050-utd
-  source_doc: docs/rlpd_porting_notes.md
   source_config: configs/train_srpo/experiment/v11b_multi_success_bc_replay320.yaml
   notes: |
     Track A2 follow-up: port two RLPD/HIL-SERL ideas (Ball et al. 2023;

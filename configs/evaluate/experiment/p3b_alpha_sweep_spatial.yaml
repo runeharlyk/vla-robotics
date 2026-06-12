@@ -2,7 +2,6 @@
 
 metadata:
   label: p3b-alpha-sweep-spatial
-  source_doc: docs/thesis_research_plan.md
   notes: |
     Thesis Phase 3, run B: WiSE-FT alpha sweep on spatial. Evaluates
     five interpolation points alpha in {0.0, 0.25, 0.5, 0.75, 1.0}

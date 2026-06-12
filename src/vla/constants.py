@@ -113,6 +113,7 @@ def resolve_libero_suite_name(suite: str) -> str:
     key = suite.strip().lower()
     return LIBERO_SUITE_ALIASES.get(key, f"libero_{key}")
 
+
 MANISKILL_TASKS: dict[str, dict] = {
     # ── Two-camera tasks (base_camera + hand_camera) ─────────────────
     "PegInsertionSide-v1": {

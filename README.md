@@ -40,7 +40,6 @@ uv run python scripts/setup_libero.py --install --config-dir C:\libero-config --
 
 Latest results are tracking in:
 - `results/` for raw training and eval results
-- [docs/smolvla_libero_eval.md](docs/smolvla_libero_eval.md) for SmolVLA LIBERO results
 - [docs/fpo_hyperparameter_experiments.md](docs/fpo_hyperparameter_experiments.md) for FPO hyperparameter experiments
 
 Current SmolVLA LIBERO results:

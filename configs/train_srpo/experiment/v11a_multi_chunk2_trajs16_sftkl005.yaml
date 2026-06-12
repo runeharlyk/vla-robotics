@@ -2,7 +2,6 @@
 
 metadata:
   label: v11a-multi-chunk2-trajs16-sftkl005
-  source_doc: docs/wise_ft_alpha_sweep_decision_tree.md
   source_config: configs/train_srpo/experiment/v9_multi_chunk2_trajs8_neg0_lr1_scout.yaml
   notes: |
     Track A2 ablation: clone the v10b chunk-2 trajs-16 stochrollouts recipe

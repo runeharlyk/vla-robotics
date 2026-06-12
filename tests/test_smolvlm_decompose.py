@@ -74,9 +74,7 @@ def test_extract_numbered_payload_handles_plain_text_plan() -> None:
 
 
 def test_extract_imperative_payload_handles_concatenated_actions() -> None:
-    payload = _extract_imperative_payload(
-        "put the alphabet soup in the basket put the tomato sauce in the basket"
-    )
+    payload = _extract_imperative_payload("put the alphabet soup in the basket put the tomato sauce in the basket")
 
     assert payload["subgoals"] == [
         "put the alphabet soup in the basket",

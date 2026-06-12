@@ -13,7 +13,6 @@ from omegaconf import OmegaConf
 from scripts.evaluate_hydra import config_to_evaluate_args, expand_eval_configs
 from vla.utils.wise_ft import wise_ft_merge_into_policy
 
-
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs" / "evaluate"
 
 

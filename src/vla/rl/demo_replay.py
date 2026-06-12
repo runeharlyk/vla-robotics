@@ -161,8 +161,7 @@ def _replay_seed_for_demo(
             return int(demo.init_state_id)
         fallback_seed = seed + spec_idx * 10_000 + demo_idx
         logger.warning(
-            "Demo %d for task index %d has no source episode or init_state_id; "
-            "falling back to seed=%d.",
+            "Demo %d for task index %d has no source episode or init_state_id; falling back to seed=%d.",
             demo_idx,
             spec_idx,
             fallback_seed,
@@ -171,8 +170,7 @@ def _replay_seed_for_demo(
     if mode == "collection_offset":
         return seed + 50_000 + spec_idx * 10_000 + demo_idx
     raise ValueError(
-        f"Unknown replay seed mode {seed_mode!r}. "
-        "Choose from: episode_index, fixed, fixed_offset, collection_offset."
+        f"Unknown replay seed mode {seed_mode!r}. Choose from: episode_index, fixed, fixed_offset, collection_offset."
     )
 
 

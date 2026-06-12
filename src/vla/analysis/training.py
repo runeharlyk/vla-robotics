@@ -7,7 +7,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from statistics import mean, median
+from statistics import mean
 from typing import Any
 
 DEFAULT_HPARAM_KEYS = (
@@ -277,7 +277,12 @@ def metric_series(run: TrainingRun, key: str, *, dedupe_x: bool = False) -> list
     return [(x_value, deduped[x_value]) for x_value in sorted(deduped)]
 
 
-def _first_existing_metric_series(run: TrainingRun, keys: tuple[str, ...], *, dedupe_x: bool = False) -> tuple[str | None, list[tuple[int, float]]]:
+def _first_existing_metric_series(
+    run: TrainingRun,
+    keys: tuple[str, ...],
+    *,
+    dedupe_x: bool = False,
+) -> tuple[str | None, list[tuple[int, float]]]:
     for key in keys:
         series = metric_series(run, key, dedupe_x=dedupe_x)
         if series:
@@ -346,13 +351,18 @@ def summarize_run(
     runtime_values = [_as_float(row.get("_runtime")) for row in run.curve_rows]
     runtime_values = [value for value in runtime_values if value is not None]
 
-    trajs_per_task = _as_int(run.config.get("trajs_per_task_per_iter")) or _as_int(run.record.get("trajs_per_task_per_iter"))
+    trajs_per_task = _as_int(run.config.get("trajs_per_task_per_iter")) or _as_int(
+        run.record.get("trajs_per_task_per_iter")
+    )
     rollout_denom = None
     if trajs_per_task is not None and trajs_per_task > 0 and run.num_tasks > 0:
         rollout_denom = float(trajs_per_task * run.num_tasks)
     rollout_success_rates = [value / rollout_denom for value in rollout_successes] if rollout_denom else []
     runtime_seconds = max(runtime_values) if runtime_values else None
-    max_iteration = max((x_value for x_value, _ in metric_series(run, f"{run.metric_prefix}/rollout_successes")), default=None)
+    max_iteration = max(
+        (x_value for x_value, _ in metric_series(run, f"{run.metric_prefix}/rollout_successes")),
+        default=None,
+    )
     hours_per_iteration = None
     if runtime_seconds is not None and isinstance(max_iteration, int) and max_iteration > 0:
         hours_per_iteration = (runtime_seconds / 3600.0) / max_iteration
@@ -397,9 +407,7 @@ def summarize_run(
         "degrading": status == "degrading",
         "mean_loss": _mean_or_none(loss_values),
         "max_loss": _max_or_none(loss_values),
-        "positive_loss_fraction": (
-            sum(value > 0 for value in loss_values) / len(loss_values) if loss_values else None
-        ),
+        "positive_loss_fraction": (sum(value > 0 for value in loss_values) / len(loss_values) if loss_values else None),
         "mean_raw_kl": _mean_or_none(raw_kl_values),
         "max_raw_kl": _max_or_none(raw_kl_values),
         "mean_clip_frac": _mean_or_none(clip_values),
@@ -428,10 +436,7 @@ def build_run_summaries(
     degrade_threshold: float = 0.05,
     stable_tolerance: float = 0.02,
 ) -> list[dict[str, Any]]:
-    return [
-        summarize_run(run, degrade_threshold=degrade_threshold, stable_tolerance=stable_tolerance)
-        for run in runs
-    ]
+    return [summarize_run(run, degrade_threshold=degrade_threshold, stable_tolerance=stable_tolerance) for run in runs]
 
 
 def group_summaries_by_cohort(summaries: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -453,7 +458,9 @@ def annotate_cohort_health(
                 summary["healthy"] = False
             continue
 
-        finals = [summary["final_eval"] for summary in cohort_summaries if isinstance(summary.get("final_eval"), (int, float))]
+        finals = [
+            summary["final_eval"] for summary in cohort_summaries if isinstance(summary.get("final_eval"), (int, float))
+        ]
         if not finals:
             for summary in cohort_summaries:
                 summary["healthy"] = False
@@ -544,9 +551,21 @@ def summarize_hyperparameter_effects(
                 continue
 
             for value_label, value_runs in value_groups.items():
-                finals = [float(summary["final_eval"]) for summary in value_runs if isinstance(summary.get("final_eval"), (int, float))]
-                bests = [float(summary["best_eval"]) for summary in value_runs if isinstance(summary.get("best_eval"), (int, float))]
-                drops = [float(summary["success_drop"]) for summary in value_runs if isinstance(summary.get("success_drop"), (int, float))]
+                finals = [
+                    float(summary["final_eval"])
+                    for summary in value_runs
+                    if isinstance(summary.get("final_eval"), (int, float))
+                ]
+                bests = [
+                    float(summary["best_eval"])
+                    for summary in value_runs
+                    if isinstance(summary.get("best_eval"), (int, float))
+                ]
+                drops = [
+                    float(summary["success_drop"])
+                    for summary in value_runs
+                    if isinstance(summary.get("success_drop"), (int, float))
+                ]
                 rows.append(
                     {
                         "cohort_id": cohort_id,
@@ -596,9 +615,7 @@ def filter_summaries(
         filtered = [summary for summary in filtered if _normalize_suite(summary.get("suite")) == suite]
     if simulator is not None:
         simulator = _normalize_method(simulator)
-        filtered = [
-            summary for summary in filtered if _normalize_method(summary.get("simulator")) == simulator
-        ]
+        filtered = [summary for summary in filtered if _normalize_method(summary.get("simulator")) == simulator]
     if num_tasks is not None:
         filtered = [summary for summary in filtered if int(summary.get("num_tasks", 0)) == num_tasks]
     return filtered
@@ -660,7 +677,9 @@ def build_rollout_success_percent_table(
     rows: list[dict[str, Any]] = []
 
     for index, run in enumerate(ordered_runs, start=1):
-        trajs_per_task = _as_int(run.config.get("trajs_per_task_per_iter")) or _as_int(run.record.get("trajs_per_task_per_iter"))
+        trajs_per_task = _as_int(run.config.get("trajs_per_task_per_iter")) or _as_int(
+            run.record.get("trajs_per_task_per_iter")
+        )
         if trajs_per_task is None or trajs_per_task <= 0 or run.num_tasks <= 0:
             continue
 

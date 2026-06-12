@@ -2,7 +2,6 @@
 
 metadata:
   label: v11b-multi-success-bc-replay320
-  source_doc: docs/wise_ft_alpha_sweep_decision_tree.md
   source_config: configs/train_srpo/experiment/success_bc_t5_chunk5_replay320.yaml
   notes: |
     Track A2 ablation: multi-task RIPT-VLA-style success-only BC.

@@ -556,8 +556,7 @@ def format_long_horizon_result(result: LongHorizonResult) -> str:
     if result.judge_events:
         last = result.judge_events[-1]
         lines.append(
-            f"Last judge: step={last.step} label={last.predicted_label} "
-            f"yes={last.yes_prob:.3f} no={last.no_prob:.3f}"
+            f"Last judge: step={last.step} label={last.predicted_label} yes={last.yes_prob:.3f} no={last.no_prob:.3f}"
         )
     return "\n".join(lines)
 
