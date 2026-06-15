@@ -1,0 +1,42 @@
+{
+  "generated_at_utc": "2026-06-04T07:54:00.722711+00:00",
+  "args": {
+    "suites": [
+      "spatial",
+      "object",
+      "goal"
+    ],
+    "tasks_per_suite": 5,
+    "episodes": 50,
+    "max_steps": 280,
+    "severity": [
+      5
+    ],
+    "noise_types": [
+      "motion_blur",
+      "gaussian_blur",
+      "zoom_blur",
+      "fog",
+      "glass_blur"
+    ],
+    "seed": 0,
+    "state_dim": 8,
+    "action_dim": 7,
+    "device": "cuda",
+    "output_dir": "/work3/s234863/visual_cor_suc_s5",
+    "progress_every": 10,
+    "step_progress_every": 0
+  },
+  "noise_types_tested": [
+    "motion_blur",
+    "gaussian_blur",
+    "zoom_blur",
+    "fog",
+    "glass_blur"
+  ],
+  "severities_tested": [
+    5
+  ],
+  "num_rollout_rows": 4500,
+  "conditions_completed": 90
+}
