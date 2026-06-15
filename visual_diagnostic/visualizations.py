@@ -27,7 +27,49 @@ uv run visual_diagnostic/visualizations.py
 # Global theme
 # ---------------------------------------------------------------------------
 
+# Shared warm palette for noise types — kept in sync with
+# smolvla_visual_pilot/plot_result.py so the same noise_type maps to the same
+# colour everywhere the visual-noise experiments are plotted.  Peach → orange
+# → red → magenta → wine sweep, and clearly distinct from the blue/green
+# palettes used by the language-perturbation experiments.
+NOISE_PALETTE = {
+    "motion_blur":   "#FFD60A",   # bright yellow
+    "gaussian_blur": "#FB8500",   # vivid orange
+    "zoom_blur":     "#E63946",   # red
+    "fog":           "#228B22",   # vivid pink (clearly pink — was too close
+                                  # to zoom_blur red in the previous shade)
+    "glass_blur":    "#6A0DAD",   # deep purple
+}
+
+NOISE_ORDER = ["motion_blur", "gaussian_blur", "zoom_blur", "fog", "glass_blur"]
+
+# Suite colours stay warm but are visually distinct from the noise gradient.
+SUITE_PALETTE = {
+    "object":  "#BC4749",   # brick red
+    "goal":    "#D4A373",   # tan
+    "spatial": "#774936",   # warm brown
+}
+
+# Fallback palette name kept for legacy uses (episode-length plot, etc.).
 _PALETTE = "colorblind"
+
+
+def _noise_color(nt: str) -> str:
+    """Look up a stable colour for a noise type, with a sensible fallback."""
+    return NOISE_PALETTE.get(nt, "#888888")
+
+
+def _suite_color(suite: str, idx: int = 0) -> str:
+    """Look up a stable colour for a suite, with a sensible fallback."""
+    fallback = sns.color_palette("Dark2", 8).as_hex()
+    return SUITE_PALETTE.get(suite, fallback[idx % len(fallback)])
+
+
+def _sorted_noise_types(noise_types) -> list[str]:
+    """Sort noise types by the canonical NOISE_ORDER, unknowns trailing."""
+    known = [nt for nt in NOISE_ORDER if nt in noise_types]
+    unknown = sorted(nt for nt in noise_types if nt not in NOISE_ORDER)
+    return known + unknown
 
 
 def _apply_theme() -> None:
@@ -184,14 +226,15 @@ def plot_success_vs_severity(df: pd.DataFrame, outdir: Path, fmt: str) -> None:
     clean_mean = clean_baseline(df, []).get("clean_success")
     clean_rate = float(clean_mean.iloc[0]) if clean_mean is not None and not clean_mean.empty else None
 
-    palette = sns.color_palette(_PALETTE, n_colors=grouped["noise_type"].nunique())
+    noise_types_ordered = _sorted_noise_types(grouped["noise_type"].unique())
 
     fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
-    for i, nt in enumerate(sorted(grouped["noise_type"].unique())):
+    for nt in noise_types_ordered:
         sub = grouped[grouped["noise_type"] == nt].sort_values("severity")
-        ax.plot(sub["severity"], sub["mean"], marker="o", label=nt, color=palette[i])
+        color = _noise_color(nt)
+        ax.plot(sub["severity"], sub["mean"], marker="o", label=nt, color=color)
         ax.fill_between(sub["severity"], sub["ci_low"], sub["ci_high"],
-                        alpha=0.15, color=palette[i])
+                        alpha=0.15, color=color)
 
     if clean_rate is not None:
         ax.axhline(clean_rate, color="black", linestyle="--", linewidth=1,
@@ -227,6 +270,10 @@ def plot_suite_drop_heatmaps(df: pd.DataFrame, outdir: Path, fmt: str) -> None:
     for sev in sorted(merged["severity"].unique()):
         sub = merged[merged["severity"] == sev]
         pivot = sub.pivot(index="suite", columns="noise_type", values="drop")
+        # Reorder columns by canonical noise order for cross-plot consistency.
+        col_order = [nt for nt in NOISE_ORDER if nt in pivot.columns] + \
+                    [nt for nt in pivot.columns if nt not in NOISE_ORDER]
+        pivot = pivot[col_order]
 
         n_rows, n_cols = pivot.shape
         fig_h = max(2.5, n_rows * 0.6 + 1.5)
@@ -291,6 +338,11 @@ def plot_task_drop_heatmap(df: pd.DataFrame, sev: int, outdir: Path, fmt: str) -
         .index
     )
     pivot = merged.pivot(index="task_label", columns="noise_type", values="drop").loc[order]
+    # Reorder noise columns by canonical order so each task heatmap matches the
+    # other plots column-for-column.
+    col_order = [nt for nt in NOISE_ORDER if nt in pivot.columns] + \
+                [nt for nt in pivot.columns if nt not in NOISE_ORDER]
+    pivot = pivot[col_order]
 
     n_tasks = len(pivot)
     n_noise = len(pivot.columns)
@@ -342,11 +394,12 @@ def plot_noise_ranking(df: pd.DataFrame, sev: int, outdir: Path, fmt: str) -> No
     clean_mean = clean_baseline(df, []).get("clean_success")
     clean_rate = float(clean_mean.iloc[0]) if clean_mean is not None and not clean_mean.empty else None
 
-    palette = sns.color_palette(_PALETTE, n_colors=len(rates))
+    # Colour each bar by its noise type so this chart matches the others.
+    bar_colors = [_noise_color(nt) for nt in rates.index]
 
     fig, ax = plt.subplots(figsize=(7, max(3, len(rates) * 0.5 + 1)),
                            constrained_layout=True)
-    rates.plot(kind="barh", color=palette, ax=ax, edgecolor="white", linewidth=0.5)
+    rates.plot(kind="barh", color=bar_colors, ax=ax, edgecolor="white", linewidth=0.5)
 
     if clean_rate is not None:
         ax.axvline(clean_rate, color="black", linestyle="--", linewidth=1,
@@ -382,7 +435,7 @@ def plot_episode_length_distribution(
     noised["outcome"] = noised["success"].map({True: "Success", False: "Failure"})
     max_steps = noised["episode_length"].max()
 
-    noise_types = sorted(noised["noise_type"].unique())
+    noise_types = _sorted_noise_types(noised["noise_type"].unique())
     fig_w = max(8, len(noise_types) * 1.3 + 2)
 
     fig, ax = plt.subplots(figsize=(fig_w, 5), constrained_layout=True)
@@ -391,7 +444,7 @@ def plot_episode_length_distribution(
         x="noise_type",
         y="episode_length",
         hue="outcome",
-        palette={"Success": "#4CAF50", "Failure": "#E53935"},
+        palette={"Success": "#F77F00", "Failure": "#6A040F"},
         fliersize=2,
         linewidth=0.7,
         ax=ax,
@@ -426,8 +479,8 @@ def plot_severity_by_suite(df: pd.DataFrame, outdir: Path, fmt: str) -> None:
     if len(suites) < 1:
         return
 
-    noise_types = sorted(noised["noise_type"].unique())
-    palette = dict(zip(noise_types, sns.color_palette(_PALETTE, len(noise_types))))
+    noise_types = _sorted_noise_types(noised["noise_type"].unique())
+    palette = {nt: _noise_color(nt) for nt in noise_types}
 
     n_cols = min(len(suites), 3)
     n_rows = (len(suites) + n_cols - 1) // n_cols
@@ -512,10 +565,11 @@ def plot_noise_robustness_radar(
         .reset_index()
     )
 
+    # Order noise axes consistently with the rest of the report.
+    noise_types = _sorted_noise_types(noise_types)
+
     angles = np.linspace(0, 2 * np.pi, n_vars, endpoint=False).tolist()
     angles += angles[:1]  # close the polygon
-
-    palette = sns.color_palette(_PALETTE, len(suites))
 
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={"projection": "polar"},
                            constrained_layout=True)
@@ -527,9 +581,10 @@ def plot_noise_robustness_radar(
             values.append(float(row["success"].iloc[0]) if not row.empty else 0.0)
         values += values[:1]  # close polygon
 
+        color = _suite_color(suite, i)
         ax.plot(angles, values, "o-", linewidth=1.5, markersize=4,
-                label=suite, color=palette[i])
-        ax.fill(angles, values, alpha=0.1, color=palette[i])
+                label=suite, color=color)
+        ax.fill(angles, values, alpha=0.1, color=color)
 
     ax.set_thetagrids(np.degrees(angles[:-1]), noise_types, fontsize=10)
     ax.set_ylim(0, 1.0)
@@ -567,14 +622,13 @@ def plot_success_delta_bars(
         merged["mean"] * (1 - merged["mean"]) / merged["count"].clip(lower=1)
     )
 
-    noise_types = sorted(merged["noise_type"].unique())
+    noise_types = _sorted_noise_types(merged["noise_type"].unique())
     suites = sorted(merged["suite"].unique())
     n_noise = len(noise_types)
     n_suites = len(suites)
 
     x = np.arange(n_noise)
     width = 0.8 / max(n_suites, 1)
-    palette = sns.color_palette(_PALETTE, n_suites)
 
     fig, ax = plt.subplots(
         figsize=(max(7, n_noise * 1.5 + 2), 5), constrained_layout=True
@@ -588,7 +642,7 @@ def plot_success_delta_bars(
                 for nt in noise_types]
         offset = (i - n_suites / 2 + 0.5) * width
         ax.bar(x + offset, vals, width, yerr=errs, label=suite,
-               color=palette[i], edgecolor="white", linewidth=0.5,
+               color=_suite_color(suite, i), edgecolor="white", linewidth=0.5,
                capsize=2, error_kw={"linewidth": 0.8})
 
     ax.axhline(0, color="black", linewidth=0.5)
@@ -626,14 +680,13 @@ def plot_success_delta_bars_combined(
         merged["mean"] * (1 - merged["mean"]) / merged["count"].clip(lower=1)
     )
 
-    noise_types = sorted(merged["noise_type"].unique())
+    noise_types = _sorted_noise_types(merged["noise_type"].unique())
     suites = sorted(merged["suite"].unique())
     n_noise = len(noise_types)
     n_suites = len(suites)
 
     x = np.arange(n_noise)
     width = 0.8 / max(n_suites, 1)
-    palette = sns.color_palette(_PALETTE, n_suites)
 
     fig, ax = plt.subplots(
         figsize=(max(7, n_noise * 1.5 + 2), 5), constrained_layout=True
@@ -647,7 +700,7 @@ def plot_success_delta_bars_combined(
                 for nt in noise_types]
         offset = (i - n_suites / 2 + 0.5) * width
         ax.bar(x + offset, vals, width, yerr=errs, label=suite,
-               color=palette[i], edgecolor="white", linewidth=0.5,
+               color=_suite_color(suite, i), edgecolor="white", linewidth=0.5,
                capsize=2, error_kw={"linewidth": 0.8})
 
     ax.axhline(0, color="black", linewidth=0.5)

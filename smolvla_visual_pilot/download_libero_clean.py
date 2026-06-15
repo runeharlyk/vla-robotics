@@ -135,6 +135,29 @@ def _write_frames(video_path: Path, frame_indices: np.ndarray, cam_grp: h5py.Gro
         cam_grp.create_dataset("frames", shape=(0,), maxshape=(None,), dtype=np.uint8)
     return total
 
+
+def _decode_image_column(arr: np.ndarray) -> np.ndarray:
+    """Decode a parquet image column (object array of {'bytes', 'path'} dicts
+    or raw bytes) into a (N, H, W, C) uint8 numpy array."""
+    try:
+        from PIL import Image
+    except ImportError:
+        raise SystemExit("Pillow required for _image dataset variants: pip install Pillow")
+    import io
+    frames = []
+    for val in arr:
+        if isinstance(val, dict):
+            data = val.get("bytes")
+            if data is None:
+                continue
+        else:
+            data = val
+        frames.append(np.array(Image.open(io.BytesIO(data)).convert("RGB")))
+    if not frames:
+        raise RuntimeError("Image column had no decodable frames")
+    return np.stack(frames, axis=0).astype(np.uint8)
+
+
 # ---------------------------------------------------------------------------
 # Episode converter
 # ---------------------------------------------------------------------------
@@ -148,11 +171,18 @@ def convert_episode(
     task_instruction: str,
     episode_index: int,
     video_frame_offset: int,
+    cameras: list[str],
     compression: str | None = "lzf",
     frame_batch: int = 64,
 ) -> None:
     output_h5.parent.mkdir(parents=True, exist_ok=True)
     num_rows = len(episode_data["index"])
+
+    # Detect image-bytes columns embedded in parquet (lerobot _image variant).
+    image_cols_in_parquet = {
+        c for c in cameras
+        if c in episode_data and episode_data[c].dtype == object
+    }
 
     with h5py.File(output_h5, "w") as h5:
         # parquet columns (observation.state, action, ...)
@@ -160,6 +190,12 @@ def convert_episode(
         for col_name, arr in episode_data.items():
             if col_name == "frame_index":
                 continue # we'll use this for videos, but can also save it
+            if col_name in image_cols_in_parquet:
+                continue  # routed to videos/ group below
+            # Skip object/string-dtype columns (e.g. "task"): not storable as native HDF5,
+            # and the task instruction is already saved as an h5 attribute below.
+            if arr.dtype == object or arr.dtype.kind in ("O", "U", "S"):
+                continue
             tail = arr.shape[1:]
             ds = pq_grp.create_dataset(
                 col_name, shape=(num_rows,) + tail, dtype=arr.dtype,
@@ -178,14 +214,25 @@ def convert_episode(
         vid_grp = h5.require_group("videos")
         frame_counts: dict[str, int] = {}
         frame_indices = episode_data.get("frame_index", np.arange(num_rows))
-        
-        for camera, vpath in sorted(video_paths.items()):
-            if not vpath.exists():
-                print(f"    WARNING: video missing — skipping camera '{camera}'")
-                continue
+
+        all_cameras = sorted(set(video_paths) | image_cols_in_parquet)
+        for camera in all_cameras:
             cam_grp = vid_grp.require_group(camera)
-            abs_frame_indices = frame_indices + video_frame_offset
-            nf = _write_frames(vpath, abs_frame_indices, cam_grp, frame_batch, compression)
+            if camera in image_cols_in_parquet:
+                frames = _decode_image_column(episode_data[camera])
+                cam_grp.create_dataset(
+                    "frames", data=frames,
+                    chunks=(min(frame_batch, frames.shape[0]),) + frames.shape[1:],
+                    compression=compression,
+                )
+                nf = frames.shape[0]
+            else:
+                vpath = video_paths.get(camera)
+                if vpath is None or not vpath.exists():
+                    print(f"    WARNING: video missing — skipping camera '{camera}'")
+                    continue
+                abs_frame_indices = frame_indices + video_frame_offset
+                nf = _write_frames(vpath, abs_frame_indices, cam_grp, frame_batch, compression)
             if nf != num_rows:
                 raise RuntimeError(
                     f"Frame/parquet mismatch for '{camera}': {nf} frames extracted vs {num_rows} expected"
@@ -332,6 +379,7 @@ def run(
                 task_instruction=task_instruction,
                 episode_index=ep_idx,
                 video_frame_offset=ep_frame_offsets[ep_idx],
+                cameras=cameras,
                 compression=compression,
                 frame_batch=frame_batch,
             )
