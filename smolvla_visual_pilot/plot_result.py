@@ -239,7 +239,7 @@ def plot_headline_summary(df: pd.DataFrame, out_dir: Path) -> None:
                     ecolor="#333", capsize=3, linewidth=1.0, zorder=4)
         for xi, val, nt in zip(x_base + offset, vals, noise_types):
             ax.text(xi, val + 1.0, f"{val:.0f}%",
-                    ha="center", va="bottom", fontsize=8, color="#333")
+                    ha="center", va="bottom", fontsize=13, color="#333")
             if val > worst_val:
                 worst_val = val
                 worst_label = f"{NOISE_NICE.get(nt, nt)} s{s}: {val:.0f}%"
@@ -247,15 +247,17 @@ def plot_headline_summary(df: pd.DataFrame, out_dir: Path) -> None:
     ax.annotate(
         f"Worst: {worst_label}",
         xy=(0.99, 0.97), xycoords="axes fraction",
-        ha="right", va="top", fontsize=10, fontweight="bold", color="#E63946",
+        ha="right", va="top", fontsize=13, fontweight="bold", color="#E63946",
         bbox=dict(boxstyle="round,pad=0.3", facecolor="#fff0f0",
                   edgecolor="#E63946", linewidth=1.2),
     )
 
+    ax.tick_params(axis="y", labelsize=12)
+
     ax.axhline(0, color="#888", linewidth=0.8, linestyle="--", zorder=2,
                label="Clean reference (0%)")
     ax.set_xticks(x_base)
-    ax.set_xticklabels([NOISE_NICE.get(nt, nt) for nt in noise_types], fontsize=11)
+    ax.set_xticklabels([NOISE_NICE.get(nt, nt) for nt in noise_types], fontsize=13)
     ax.set_ylabel("Relative Deviation  ‖noisy − clean‖ / ‖clean‖  (%)")
     ax.set_title("SmolVLA Action Deviation from Clean Rollout Under Visual Corruption",
                  fontweight="bold", fontsize=13.5, pad=14)
@@ -453,11 +455,12 @@ def plot_dimension_radar(df: pd.DataFrame, out_dir: Path) -> None:
         ax.fill(angles, vals, alpha=0.08, color=NOISE_PALETTE[nt])
 
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(DIM_NAMES, fontsize=14, fontweight="medium")
+    ax.set_xticklabels(DIM_NAMES, fontsize=12, fontweight="medium")
+    ax.tick_params(axis="y", labelsize=12)
     ax.set_title(f"Per-Dimension Error Profile",
                  fontweight="bold", fontsize=17, pad=25)
     ax.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05),
-              frameon=True, fancybox=True, framealpha=0.9, edgecolor="#ccc")
+              frameon=True, fancybox=True, framealpha=0.9, edgecolor="#ccc",fontsize=12)
     _save(fig, out_dir / "dimension_radar_chart.png")
 
 
@@ -500,7 +503,7 @@ def plot_severity_radar_multiples(df: pd.DataFrame, out_dir: Path) -> None:
         ax.set_xticks(angles[:-1])
         ax.set_xticklabels(DIM_NAMES, fontsize=11, fontweight="medium")
         ax.set_ylim(0, global_max)
-        ax.tick_params(axis="y", labelsize=9)
+        ax.tick_params(axis="y", labelsize=12)
         ax.set_title(f"Severity {s}", fontweight="bold", fontsize=13, pad=20)
 
     fig.subplots_adjust(wspace=0.4)
