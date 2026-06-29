@@ -128,6 +128,12 @@ def main(
     ),
     inv_lambda: float = typer.Option(1.0, "--inv-lambda", help="Weight of the latent-invariance loss."),
     inv_target: str = typer.Option("ema", "--inv-target", help="Invariance target encoder: ema | online."),
+    unfreeze_backbone: bool = typer.Option(
+        False,
+        "--unfreeze-backbone/--freeze-backbone",
+        help="Train the VLM backbone (vision+language). REQUIRED for the latent-invariance "
+        "objective to shape perception; with the frozen default the prefix features cannot change.",
+    ),
     save_tag: str = typer.Option(
         None, "--save-tag", help="Deterministic checkpoint subdir under checkpoints/sft (default: auto run id)."
     ),
@@ -195,7 +201,13 @@ def main(
         action_dim=dataset.action_dim,
         state_dim=dataset.state_dim,
         device=str(device),
+        train_expert_only=not unfreeze_backbone,
+        freeze_vision_encoder=not unfreeze_backbone,
     )
+    if unfreeze_backbone:
+        policy.enable_gradient_checkpointing(True)
+    n_trainable = sum(p.numel() for p in policy.parameters() if p.requires_grad)
+    logger.info("Trainable params: %.1fM (unfreeze_backbone=%s)", n_trainable / 1e6, unfreeze_backbone)
 
     if resume:
         logger.info("Loading policy weights from %s", resume)
@@ -252,7 +264,7 @@ def main(
     )
 
     run = None
-    final_name = f"sft_{data_tag}_{demos_tag}_seed{seed}"
+    final_name = save_tag or f"sft_{data_tag}_{demos_tag}_seed{seed}"
     if use_wandb:
         wb_config = config.to_dict()
         wb_config.update(

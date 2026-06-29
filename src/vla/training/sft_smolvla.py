@@ -109,6 +109,7 @@ class SFTConfig(BaseTrainingConfig):
     micro_batch_size: int = 4
     num_epochs: int = 50
     eval_every: int = 5
+    log_every_steps: int = 100
     max_steps: int = 200
     save_dir: str = "checkpoints/sft"
     eval_suite: str = "all"
@@ -271,6 +272,7 @@ def train_sft(
         epoch_loss = 0.0
         epoch_inv_loss = 0.0
         epoch_drift = 0.0
+        last_sft = last_inv = last_drift = 0.0
         epoch_grad_norm = 0.0
         num_micro_batches = 0
         num_optimizer_steps = 0
@@ -328,8 +330,10 @@ def train_sft(
                 z_clean = inv.encode_clean(policy, images, instr_input, states)
                 loss_inv = invariance_loss(z_pert, z_clean, inv.predictor)
                 total = out["loss"] + config.invariance.lambda_inv * loss_inv
-                epoch_inv_loss += loss_inv.item()
-                epoch_drift += feature_drift(z_clean, z_pert)
+                last_inv = loss_inv.item()
+                last_drift = feature_drift(z_clean, z_pert)
+                epoch_inv_loss += last_inv
+                epoch_drift += last_drift
             else:
                 # Arm A: stock SFT baseline.
                 with autocast:
@@ -339,11 +343,22 @@ def train_sft(
             (total / grad_accum_steps).backward()
             accum_count += 1
 
-            epoch_loss += out["loss"].item()
+            last_sft = out["loss"].item()
+            epoch_loss += last_sft
             num_micro_batches += 1
 
             if num_micro_batches % grad_accum_steps == 0:
                 _flush_accumulated()
+                if global_step % config.log_every_steps == 0:
+                    step_msg = f"  step {global_step}/{total_optimizer_steps}  loss={last_sft:.4f}"
+                    step_payload = {"sft/step_loss": last_sft, "sft/global_step": global_step}
+                    if inv is not None and not config.invariance.augment_only:
+                        step_msg += f"  inv_loss={last_inv:.4f}  drift={last_drift:.4f}"
+                        step_payload["sft/step_inv_loss"] = last_inv
+                        step_payload["sft/step_drift"] = last_drift
+                    logger.info(step_msg)
+                    if metrics_logger is not None:
+                        metrics_logger.log(step_payload)
 
         _flush_accumulated()
 

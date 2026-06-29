@@ -101,6 +101,8 @@ class SmolVLAPolicy(nn.Module):
         state_dim: int = 0,
         device: str = "cuda",
         dtype: torch.dtype = torch.bfloat16,
+        train_expert_only: bool | None = None,
+        freeze_vision_encoder: bool | None = None,
     ) -> None:
         super().__init__()
         self.action_dim = action_dim
@@ -115,6 +117,13 @@ class SmolVLAPolicy(nn.Module):
         self.flow_grpo_sde_steps = 0
 
         ckpt_config = self._load_ckpt_config(checkpoint)
+        # Optionally override the frozen-backbone defaults. The latent-invariance
+        # objective can only reshape perception if the VLM backbone is trainable;
+        # with the default train_expert_only=True the prefix features are frozen.
+        if train_expert_only is not None:
+            ckpt_config["train_expert_only"] = train_expert_only
+        if freeze_vision_encoder is not None:
+            ckpt_config["freeze_vision_encoder"] = freeze_vision_encoder
         self.ckpt_config = ckpt_config
 
         self.vlm_model_name: str = ckpt_config["vlm_model_name"]

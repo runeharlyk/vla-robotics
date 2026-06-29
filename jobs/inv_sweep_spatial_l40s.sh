@@ -37,9 +37,11 @@ uv run python scripts/train_sft.py \
     --libero-suite spatial \
     --eval-suite spatial \
     --arm "$ARM" \
+    --unfreeze-backbone \
     --inv-target ema \
     --inv-lambda 1.0 \
-    --epochs 15 \
+    --lr 2.5e-5 \
+    --epochs 5 \
     --eval-episodes 0 \
     --batch-size 32 \
     --micro-batch-size 4 \
