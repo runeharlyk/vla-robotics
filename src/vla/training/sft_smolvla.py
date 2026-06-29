@@ -380,7 +380,8 @@ def train_sft(
                 log_payload["sft/feature_drift"] = avg_drift
             metrics_logger.log(log_payload)
 
-        if epoch % config.eval_every == 0 or epoch == config.num_epochs:
+        do_eval = config.eval_episodes > 0 and (epoch % config.eval_every == 0 or epoch == config.num_epochs)
+        if do_eval:
             metrics = evaluate_smolvla(
                 policy,
                 instruction=eval_instruction,

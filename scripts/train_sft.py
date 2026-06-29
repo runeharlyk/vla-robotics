@@ -128,6 +128,9 @@ def main(
     ),
     inv_lambda: float = typer.Option(1.0, "--inv-lambda", help="Weight of the latent-invariance loss."),
     inv_target: str = typer.Option("ema", "--inv-target", help="Invariance target encoder: ema | online."),
+    save_tag: str = typer.Option(
+        None, "--save-tag", help="Deterministic checkpoint subdir under checkpoints/sft (default: auto run id)."
+    ),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
 ) -> None:
     """Fine-tune SmolVLA via behaviour cloning.
@@ -200,7 +203,7 @@ def main(
 
     task_tag = resolved_env_id.lower().replace("-", "_")
     demos_tag = f"demos{num_demos}" if num_demos is not None else "all"
-    save_dir = str(CHECKPOINTS_DIR / "sft" / f"{task_tag}_{demos_tag}_seed{seed}_{run_id()}")
+    save_dir = str(CHECKPOINTS_DIR / "sft" / (save_tag or f"{task_tag}_{demos_tag}_seed{seed}_{run_id()}"))
 
     arm = arm.lower()
     # (apply_vision, apply_language, augment_only)
