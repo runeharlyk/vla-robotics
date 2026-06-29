@@ -38,6 +38,7 @@ from vla.results_registry import (
     write_json,
     write_training_registry,
 )
+from vla.training.invariance import InvarianceConfig
 from vla.training.metrics_logger import MetricsLogger
 from vla.training.sft_smolvla import SFTConfig, train_sft
 from vla.utils import get_device, run_id, seed_everything
@@ -120,6 +121,13 @@ def main(
         "-r",
         help="Resume from checkpoint dir (e.g. checkpoints/sft/.../last)",
     ),
+    arm: str = typer.Option(
+        "baseline",
+        "--arm",
+        help="Robustness arm (latent-invariance objective): baseline | augment | vision | language | both.",
+    ),
+    inv_lambda: float = typer.Option(1.0, "--inv-lambda", help="Weight of the latent-invariance loss."),
+    inv_target: str = typer.Option("ema", "--inv-target", help="Invariance target encoder: ema | online."),
     use_wandb: bool = typer.Option(True, "--wandb/--no-wandb"),
 ) -> None:
     """Fine-tune SmolVLA via behaviour cloning.
@@ -194,6 +202,30 @@ def main(
     demos_tag = f"demos{num_demos}" if num_demos is not None else "all"
     save_dir = str(CHECKPOINTS_DIR / "sft" / f"{task_tag}_{demos_tag}_seed{seed}_{run_id()}")
 
+    arm = arm.lower()
+    # (apply_vision, apply_language, augment_only)
+    _arm_views = {
+        "augment": (True, True, True),
+        "vision": (True, False, False),
+        "language": (False, True, False),
+        "both": (True, True, False),
+    }
+    if arm == "baseline":
+        inv_cfg = InvarianceConfig(enabled=False)
+    elif arm in _arm_views:
+        apply_vision, apply_language, augment_only = _arm_views[arm]
+        inv_cfg = InvarianceConfig(
+            enabled=True,
+            apply_vision=apply_vision,
+            apply_language=apply_language,
+            augment_only=augment_only,
+            lambda_inv=inv_lambda,
+            target=inv_target,
+            seed=seed,
+        )
+    else:
+        raise typer.BadParameter(f"Unknown --arm {arm!r}; choose baseline|augment|vision|language|both")
+
     config = SFTConfig(
         lr=lr,
         batch_size=batch_size,
@@ -213,6 +245,7 @@ def main(
         eval_suite=eval_suite,
         control_mode=resolved_control_mode,
         resume_from=resume,
+        invariance=inv_cfg,
     )
 
     run = None

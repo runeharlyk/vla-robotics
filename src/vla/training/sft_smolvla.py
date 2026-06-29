@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import torch
@@ -24,6 +24,12 @@ from vla.base_config import BaseTrainingConfig
 from vla.diagnostics.eval import evaluate_smolvla, print_metrics
 from vla.env_metadata import EnvMetadata
 from vla.models.smolvla import SmolVLAPolicy
+from vla.training.invariance import (
+    InvarianceConfig,
+    InvarianceModule,
+    feature_drift,
+    invariance_loss,
+)
 from vla.training.checkpoint import save_best_checkpoint
 from vla.training.lr_scheduler import cosine_decay_with_warmup_lambda_lr
 from vla.training.metrics_logger import MetricsLogger
@@ -108,6 +114,7 @@ class SFTConfig(BaseTrainingConfig):
     eval_suite: str = "all"
     control_mode: str = "pd_joint_delta_pos"
     resume_from: str | None = None
+    invariance: InvarianceConfig = field(default_factory=InvarianceConfig)
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +195,22 @@ def train_sft(
 
     optimizer, trainable = config.build_optimizer(policy)
 
+    inv: InvarianceModule | None = None
+    if config.invariance.enabled:
+        inv = InvarianceModule(policy, config.invariance)
+        inv_params = inv.trainable_parameters()
+        if inv_params:
+            optimizer.add_param_group({"params": inv_params, "lr": config.lr})
+            trainable = trainable + inv_params
+        logger.info(
+            "Latent-invariance ENABLED  vision=%s language=%s augment_only=%s target=%s lambda=%.3f",
+            config.invariance.apply_vision,
+            config.invariance.apply_language,
+            config.invariance.augment_only,
+            config.invariance.target,
+            config.invariance.lambda_inv,
+        )
+
     micro_bs = min(config.micro_batch_size, config.batch_size)
     grad_accum_steps = max(math.ceil(config.batch_size / micro_bs), 1)
     dataloader = DataLoader(
@@ -246,6 +269,8 @@ def train_sft(
     for epoch in range(start_epoch + 1, config.num_epochs + 1):
         policy.train()
         epoch_loss = 0.0
+        epoch_inv_loss = 0.0
+        epoch_drift = 0.0
         epoch_grad_norm = 0.0
         num_micro_batches = 0
         num_optimizer_steps = 0
@@ -263,23 +288,55 @@ def train_sft(
                     if param.grad is not None:
                         param.grad.mul_(scale)
             epoch_grad_norm += _optimizer_step(optimizer, scheduler, trainable, config.max_grad_norm)
+            if inv is not None:
+                inv.ema_step(policy)
             num_optimizer_steps += 1
             global_step += 1
             accum_count = 0
 
         for batch in dataloader:
-            images = batch["image"].to(policy.device)
+            cpu_images = batch["image"]
+            images = cpu_images.to(policy.device)
             target_action_chunks = batch["action_chunk"].to(policy.device)
             target_action_mask = batch["action_mask"].to(policy.device)
             states = batch["state"].to(policy.device)
-            batch_instructions = batch["instruction"]
-            unique_instrs = set(batch_instructions)
-            instr_input: str | list[str] = batch_instructions if len(unique_instrs) > 1 else list(unique_instrs)[0]
+            instr_list = list(batch["instruction"])
+            unique_instrs = set(instr_list)
 
-            with torch.autocast(device_type=policy.device.type, dtype=policy.dtype):
-                out = policy(images, instr_input, target_action_chunks, target_action_mask, states=states)
-            loss = out["loss"] / grad_accum_steps
-            loss.backward()
+            def _instr(items: list[str]) -> str | list[str]:
+                return items if len(set(items)) > 1 else items[0]
+
+            instr_input: str | list[str] = _instr(instr_list)
+
+            autocast = torch.autocast(device_type=policy.device.type, dtype=policy.dtype)
+
+            if inv is not None and config.invariance.augment_only:
+                # Arm A': train the SFT objective directly on the nuisance view.
+                nz_imgs, nz_instr = inv.make_views(cpu_images, instr_list)
+                with autocast:
+                    out = policy(
+                        nz_imgs.to(policy.device), _instr(nz_instr),
+                        target_action_chunks, target_action_mask, states=states,
+                    )
+                total = out["loss"]
+            elif inv is not None:
+                # Arms B / C / D: clean SFT + latent-invariance on the fused features.
+                nz_imgs, nz_instr = inv.make_views(cpu_images, instr_list)
+                with autocast:
+                    out = policy(images, instr_input, target_action_chunks, target_action_mask, states=states)
+                    z_pert = policy.encode_prefix_pooled(nz_imgs.to(policy.device), _instr(nz_instr), states)
+                z_clean = inv.encode_clean(policy, images, instr_input, states)
+                loss_inv = invariance_loss(z_pert, z_clean, inv.predictor)
+                total = out["loss"] + config.invariance.lambda_inv * loss_inv
+                epoch_inv_loss += loss_inv.item()
+                epoch_drift += feature_drift(z_clean, z_pert)
+            else:
+                # Arm A: stock SFT baseline.
+                with autocast:
+                    out = policy(images, instr_input, target_action_chunks, target_action_mask, states=states)
+                total = out["loss"]
+
+            (total / grad_accum_steps).backward()
             accum_count += 1
 
             epoch_loss += out["loss"].item()
@@ -292,26 +349,36 @@ def train_sft(
 
         avg_loss = epoch_loss / max(num_micro_batches, 1)
         avg_grad_norm = epoch_grad_norm / max(num_optimizer_steps, 1)
+        avg_inv_loss = epoch_inv_loss / max(num_micro_batches, 1)
+        avg_drift = epoch_drift / max(num_micro_batches, 1)
         current_lr = scheduler.get_last_lr()[0]
+        inv_suffix = (
+            f"  inv_loss={avg_inv_loss:.6f}  drift={avg_drift:.4f}"
+            if inv is not None and not config.invariance.augment_only
+            else ""
+        )
         logger.info(
-            "SFT epoch %d/%d  loss=%.6f  grad_norm=%.4f  lr=%.2e  step=%d",
+            "SFT epoch %d/%d  loss=%.6f  grad_norm=%.4f  lr=%.2e  step=%d%s",
             epoch,
             config.num_epochs,
             avg_loss,
             avg_grad_norm,
             current_lr,
             global_step,
+            inv_suffix,
         )
         if metrics_logger is not None:
-            metrics_logger.log(
-                {
-                    "sft/loss": avg_loss,
-                    "sft/grad_norm": avg_grad_norm,
-                    "sft/lr": current_lr,
-                    "sft/epoch": epoch,
-                    "sft/step": global_step,
-                }
-            )
+            log_payload = {
+                "sft/loss": avg_loss,
+                "sft/grad_norm": avg_grad_norm,
+                "sft/lr": current_lr,
+                "sft/epoch": epoch,
+                "sft/step": global_step,
+            }
+            if inv is not None and not config.invariance.augment_only:
+                log_payload["sft/inv_loss"] = avg_inv_loss
+                log_payload["sft/feature_drift"] = avg_drift
+            metrics_logger.log(log_payload)
 
         if epoch % config.eval_every == 0 or epoch == config.num_epochs:
             metrics = evaluate_smolvla(

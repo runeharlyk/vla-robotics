@@ -6,7 +6,7 @@ Lives at the top of the ``vla`` package so that both ``vla.training`` and
 
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
 import torch
@@ -36,8 +36,18 @@ class BaseTrainingConfig:
     simulator: Simulator = Simulator.MANISKILL
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize all fields to a plain dict (useful for W&B config)."""
-        return {f.name: getattr(self, f.name) for f in fields(self)}
+        """Serialize all fields to a plain dict (useful for W&B config).
+
+        Nested dataclass fields (e.g. ``SFTConfig.invariance``) are recursively
+        converted to dicts so the result is JSON-serializable.
+        """
+
+        def _serialize(value: Any) -> Any:
+            if is_dataclass(value) and not isinstance(value, type):
+                return {f.name: _serialize(getattr(value, f.name)) for f in fields(value)}
+            return value
+
+        return {f.name: _serialize(getattr(self, f.name)) for f in fields(self)}
 
     def build_optimizer(
         self,

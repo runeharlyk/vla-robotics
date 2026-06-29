@@ -726,6 +726,38 @@ class SmolVLAPolicy(nn.Module):
 
         return {"loss": loss}
 
+    @property
+    def prefix_dim(self) -> int:
+        """Hidden size of the fused prefix embeddings (VLM text hidden size)."""
+        return self.model.vlm_with_expert.config.text_config.hidden_size
+
+    def encode_prefix_pooled(
+        self,
+        images: torch.Tensor,
+        instruction: str | list[str],
+        states: torch.Tensor | None = None,
+        model=None,
+    ) -> torch.Tensor:
+        """Masked mean-pool of the fused vision+language prefix embeddings.
+
+        Returns a ``(B, prefix_dim)`` representation — exactly the fused
+        conditioning features the flow-matching action expert cross-attends to.
+        This is the locus for the latent-invariance objective (see
+        :mod:`vla.training.invariance`).  Preprocessing is identical to
+        :meth:`forward`; ``model`` may be an EMA copy of ``self.model`` so the
+        clean/canonical view can be encoded by a slow-moving target encoder.
+        Respects the ambient autograd mode (the caller wraps the clean view in
+        ``torch.no_grad`` and lets gradients flow through the nuisance view).
+        """
+        model = model if model is not None else self.model
+        imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
+        img_list, mask_list = self._prepare_images(imgs)
+        tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
+        s = self._prepare_state_input(states, batch_size=imgs.shape[0])
+        embs, pad, _ = model.embed_prefix(img_list, mask_list, tokens, tmasks, s)
+        w = pad.unsqueeze(-1).to(embs.dtype)
+        return (embs * w).sum(dim=1) / w.sum(dim=1).clamp(min=1.0)
+
     def _build_action_chunks(
         self,
         actions: torch.Tensor,
