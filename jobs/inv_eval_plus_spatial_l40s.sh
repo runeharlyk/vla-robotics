@@ -18,7 +18,10 @@
 # -------------------------------------------------
 . jobs/_env.sh
 
-# SUFFIX selects the objective version: "" = v1 checkpoints, "_v2" = direct-alignment.
+# SUFFIX selects the objective version: "" = v1, "_v3" = current.
+# Baseline is only trained as v1, so eval it separately, e.g.:
+#   SUFFIX=""    bsub -J "inv_eval_plus[1]"   < this_script
+#   SUFFIX="_v3" bsub -J "inv_eval_plus[2-5]" < this_script
 SUFFIX="${SUFFIX:-}"
 ARMS="baseline augment vision language both"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")

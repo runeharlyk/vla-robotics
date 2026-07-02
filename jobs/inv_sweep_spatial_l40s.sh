@@ -29,11 +29,18 @@ if [ -z "${WANDB_API_KEY:-}" ] && [ ! -f "$HOME/.netrc" ]; then
   echo "wandb: no credentials found -> WANDB_MODE=offline"
 fi
 
-# SUFFIX distinguishes objective versions; v2 = direct alignment (no predictor
-# head — v1's predictor absorbed the invariance mapping; drift rose while
-# inv_loss collapsed). baseline/augment have no invariance component, so their
-# v1 checkpoints remain valid: submit v2 as `bsub -J "inv_sweep[3-5]" < this`.
-SUFFIX="${SUFFIX:-_v2}"
+# SUFFIX distinguishes objective versions.
+#   v2 = direct alignment, no predictor (v1's predictor absorbed the mapping).
+#   v3 = v2 + THREE code-review fixes: (a) encode_prefix_pooled now pools the
+#        CONTEXTUAL prefix (through the VLM transformer) instead of raw input
+#        embeddings — v1/v2's language arm never sent gradient into the LLM;
+#        (b) templated paraphrase fallback — the variants JSON covered only 5
+#        of 10 Spatial tasks, so half the language-arm data was silently clean;
+#        (c) augment arm now trains on a fair 50/50 clean/nuisance mix (was
+#        100% nuisance).
+# Baseline (arm 1) has no invariance/nuisance component -> its v1 checkpoint
+# stays valid. Submit v3 as: bsub -J "inv_sweep[2-5]" < this_script
+SUFFIX="${SUFFIX:-_v3}"
 
 ARMS="baseline augment vision language both"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")

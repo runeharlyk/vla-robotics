@@ -240,6 +240,9 @@ def main(
             apply_vision=apply_vision,
             apply_language=apply_language,
             augment_only=augment_only,
+            # Augment arm sees a fair 50/50 clean/nuisance data mix; the
+            # invariance arms always use a nuisance context view.
+            nuisance_prob=0.5 if augment_only else 1.0,
             lambda_inv=inv_lambda,
             target=inv_target,
             use_predictor=inv_predictor,

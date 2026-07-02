@@ -747,25 +747,47 @@ class SmolVLAPolicy(nn.Module):
         states: torch.Tensor | None = None,
         model=None,
     ) -> torch.Tensor:
-        """Masked mean-pool of the fused vision+language prefix embeddings.
+        """Masked mean-pool of the CONTEXTUAL fused prefix representation.
 
-        Returns a ``(B, prefix_dim)`` representation — exactly the fused
-        conditioning features the flow-matching action expert cross-attends to.
+        Runs the vision+language+state prefix through the VLM transformer
+        (the same prefix pass whose keys/values the flow-matching action
+        expert cross-attends to) and mean-pools the output hidden states.
+        Returns ``(B, prefix_dim)``.
+
         This is the locus for the latent-invariance objective (see
-        :mod:`vla.training.invariance`).  Preprocessing is identical to
-        :meth:`forward`; ``model`` may be an EMA copy of ``self.model`` so the
-        clean/canonical view can be encoded by a slow-moving target encoder.
-        Respects the ambient autograd mode (the caller wraps the clean view in
-        ``torch.no_grad`` and lets gradients flow through the nuisance view).
+        :mod:`vla.training.invariance`).  Pooling the *input* embeddings
+        instead would be wrong: language tokens would be raw embedding-table
+        lookups that never pass through the LLM, so vision-language fusion
+        (and any invariance gradient into the LLM) would not exist.
+
+        Preprocessing is identical to :meth:`forward`; ``model`` may be an EMA
+        copy of ``self.model`` so the clean view is encoded by a slow-moving
+        target.  Respects the ambient autograd mode (callers wrap the clean
+        view in ``torch.no_grad`` and let gradients flow through the nuisance
+        view).
         """
+        from vla.models.vla_flow_matching import _make_att_2d_masks
+
         model = model if model is not None else self.model
         imgs = self._to_float01(images).to(self.device, dtype=self.dtype)
         img_list, mask_list = self._prepare_images(imgs)
         tokens, tmasks = self._tokenize(instruction, batch_size=imgs.shape[0])
         s = self._prepare_state_input(states, batch_size=imgs.shape[0])
-        embs, pad, _ = model.embed_prefix(img_list, mask_list, tokens, tmasks, s)
-        w = pad.unsqueeze(-1).to(embs.dtype)
-        return (embs * w).sum(dim=1) / w.sum(dim=1).clamp(min=1.0)
+        embs, pad, att = model.embed_prefix(img_list, mask_list, tokens, tmasks, s)
+
+        att_2d = _make_att_2d_masks(pad, att)
+        pos_ids = torch.cumsum(pad, dim=1) - 1
+        outputs, _ = model.vlm_with_expert.forward(
+            attention_mask=att_2d,
+            position_ids=pos_ids,
+            past_key_values=None,
+            inputs_embeds=[embs, None],
+            use_cache=True,
+            fill_kv_cache=True,
+        )
+        prefix_out = outputs[0]
+        w = pad.unsqueeze(-1).to(prefix_out.dtype)
+        return (prefix_out * w).sum(dim=1) / w.sum(dim=1).clamp(min=1.0)
 
     def _build_action_chunks(
         self,

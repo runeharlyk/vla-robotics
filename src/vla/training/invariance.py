@@ -78,6 +78,11 @@ class InvarianceConfig:
     # Visual nuisance -------------------------------------------------------
     noise_types: tuple[str, ...] = DEFAULT_TRAIN_NOISE_TYPES
     severities: tuple[int, ...] = (1, 2, 3)
+    # Per-sample, per-modality probability of applying the nuisance. 1.0 for
+    # the invariance arms (the context view should always be a nuisance view);
+    # 0.5 for the augment arm so it sees a fair clean/augmented data mix
+    # (v1 trained augment on 100% nuisance — an unfairly weak baseline).
+    nuisance_prob: float = 1.0
     # Language nuisance -----------------------------------------------------
     variants_path: str = "smolvla_language_pilot/instruction_variants.json"
     variant_types: tuple[str, ...] = DEFAULT_TRAIN_VARIANT_TYPES
@@ -129,11 +134,29 @@ def load_instruction_variants(
     raise ValueError(f"Unrecognised instruction-variants schema in {p}")
 
 
+# Deterministic, meaning-preserving templates matching the TRAIN variant types
+# (politeness, verb_paraphrase).  Fallback for base instructions missing from
+# the variants JSON — which covers only 5 of the 10 LIBERO Spatial tasks, so
+# without this fallback half the language-arm samples silently trained with the
+# canonical instruction.  Held-out types (sentence_structure, verbosity) are
+# deliberately NOT templated so they stay unseen for evaluation.
+_POLITENESS_PREFIXES = ("please ", "kindly ", "could you ")
+_VERB_SWAPS = (("pick up", "grab"), ("pick up", "lift"), ("pick up", "take"), ("put", "place"))
+
+
+def _template_paraphrases(base: str) -> list[str]:
+    out = [prefix + base for prefix in _POLITENESS_PREFIXES]
+    for old, new in _VERB_SWAPS:
+        if old in base:
+            out.append(base.replace(old, new, 1))
+    return out
+
+
 def paraphrase(base: str, variants: dict[str, list[str]], gen: torch.Generator) -> str:
-    """Return a random paraphrase of *base* (or *base* itself if none available)."""
-    choices = variants.get(base) or variants.get("*") or []
+    """Return a random paraphrase of *base* (templated fallback if unlisted)."""
+    choices = variants.get(base) or variants.get("*")
     if not choices:
-        return base
+        choices = variants[base] = _template_paraphrases(base)  # memoize
     idx = int(torch.randint(0, len(choices), (1,), generator=gen).item())
     return choices[idx]
 
@@ -213,11 +236,31 @@ def build_nuisance_views(
 
     Honours ``cfg.apply_vision`` / ``cfg.apply_language``: an axis that is off
     passes the clean input through unchanged, so arms B (vision-only) and C
-    (language-only) are obtained purely from config.
+    (language-only) are obtained purely from config.  ``cfg.nuisance_prob``
+    gates each modality per sample (used by the augment arm for a fair
+    clean/augmented mix; invariance arms keep it at 1.0).
     """
-    nuisance_images = corrupt_images(images, cfg, gen) if cfg.apply_vision else _to_float01(images).cpu()
-    if cfg.apply_language and variants:
-        nuisance_instructions = [paraphrase(instr, variants, gen) for instr in instructions]
+    b = images.shape[0]
+
+    def _gate() -> torch.Tensor:
+        if cfg.nuisance_prob >= 1.0:
+            return torch.ones(b, dtype=torch.bool)
+        return torch.rand(b, generator=gen) < cfg.nuisance_prob
+
+    clean_imgs = _to_float01(images).cpu()
+    if cfg.apply_vision:
+        vision_on = _gate()
+        nuisance_images = corrupt_images(images, cfg, gen)
+        nuisance_images[~vision_on] = clean_imgs[~vision_on]
+    else:
+        nuisance_images = clean_imgs
+
+    if cfg.apply_language:
+        lang_on = _gate()
+        nuisance_instructions = [
+            paraphrase(instr, variants, gen) if on else instr
+            for instr, on in zip(instructions, lang_on.tolist(), strict=True)
+        ]
     else:
         nuisance_instructions = list(instructions)
     return nuisance_images, nuisance_instructions

@@ -23,7 +23,10 @@ export LIBERO_PATH=/work3/s234814/libero
 mkdir -p "$LIBERO_PATH"
 printf "Y\n%s\nY\n" "$LIBERO_PATH" | uv run python -c "import libero.libero; print('Libero configured')"
 
-# SUFFIX selects the objective version: "" = v1 checkpoints, "_v2" = direct-alignment.
+# SUFFIX selects the objective version: "" = v1, "_v3" = current.
+# Baseline is only trained as v1, so eval it separately, e.g.:
+#   SUFFIX=""    bsub -J "inv_eval_clean[1]"   < this_script
+#   SUFFIX="_v3" bsub -J "inv_eval_clean[2-5]" < this_script
 SUFFIX="${SUFFIX:-}"
 ARMS="baseline augment vision language both"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
