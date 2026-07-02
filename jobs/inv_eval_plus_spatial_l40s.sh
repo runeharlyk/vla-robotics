@@ -18,9 +18,11 @@
 # -------------------------------------------------
 . jobs/_env.sh
 
+# SUFFIX selects the objective version: "" = v1 checkpoints, "_v2" = direct-alignment.
+SUFFIX="${SUFFIX:-}"
 ARMS="baseline augment vision language both"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
-CHECKPOINT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42/last"
+CHECKPOINT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/last"
 SUITE="${SUITE:-spatial}"
 CATEGORY="${CATEGORY:-all}"
 MAX_TASKS="${MAX_TASKS:-100}"
@@ -30,7 +32,7 @@ SEED="${SEED:-42}"
 MAX_STEPS="${MAX_STEPS:-220}"
 LIBERO_PLUS_ASSETS="${LIBERO_PLUS_ASSETS:-/work3/s234814/libero-plus/assets}"
 WANDB_PROJECT="${WANDB_PROJECT:-vla-libero-plus-eval}"
-WANDB_NAME="inv_plus_${ARM}_seed42"
+WANDB_NAME="inv_plus_${ARM}_seed42${SUFFIX}"
 
 # LIBERO-Plus replaces the base `libero` package; keep it in its own venv.
 export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT_LIBERO_PLUS:-/work3/s234814/.venvs/vla-robotics-libero-plus}"

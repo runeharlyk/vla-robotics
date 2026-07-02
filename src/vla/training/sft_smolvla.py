@@ -272,6 +272,7 @@ def train_sft(
         epoch_loss = 0.0
         epoch_inv_loss = 0.0
         epoch_drift = 0.0
+        num_drift_probes = 0
         last_sft = last_inv = last_drift = 0.0
         epoch_grad_norm = 0.0
         num_micro_batches = 0
@@ -331,9 +332,16 @@ def train_sft(
                 loss_inv = invariance_loss(z_pert, z_clean, inv.predictor)
                 total = out["loss"] + config.invariance.lambda_inv * loss_inv
                 last_inv = loss_inv.item()
-                last_drift = feature_drift(z_clean, z_pert)
                 epoch_inv_loss += last_inv
-                epoch_drift += last_drift
+                # Drift probe: clean and nuisance views through the SAME online
+                # encoder (EMA-clean would conflate EMA lag with sensitivity).
+                # Sampled every probe_every micro-batches to keep it ~free.
+                if num_micro_batches % max(config.invariance.probe_every, 1) == 0:
+                    with torch.no_grad(), autocast:
+                        z_clean_online = policy.encode_prefix_pooled(images, instr_input, states)
+                    last_drift = feature_drift(z_clean_online, z_pert)
+                    epoch_drift += last_drift
+                    num_drift_probes += 1
             else:
                 # Arm A: stock SFT baseline.
                 with autocast:
@@ -365,7 +373,7 @@ def train_sft(
         avg_loss = epoch_loss / max(num_micro_batches, 1)
         avg_grad_norm = epoch_grad_norm / max(num_optimizer_steps, 1)
         avg_inv_loss = epoch_inv_loss / max(num_micro_batches, 1)
-        avg_drift = epoch_drift / max(num_micro_batches, 1)
+        avg_drift = epoch_drift / max(num_drift_probes, 1)
         current_lr = scheduler.get_last_lr()[0]
         inv_suffix = (
             f"  inv_loss={avg_inv_loss:.6f}  drift={avg_drift:.4f}"

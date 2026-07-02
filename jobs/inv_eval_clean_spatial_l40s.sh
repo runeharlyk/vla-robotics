@@ -23,10 +23,12 @@ export LIBERO_PATH=/work3/s234814/libero
 mkdir -p "$LIBERO_PATH"
 printf "Y\n%s\nY\n" "$LIBERO_PATH" | uv run python -c "import libero.libero; print('Libero configured')"
 
+# SUFFIX selects the objective version: "" = v1 checkpoints, "_v2" = direct-alignment.
+SUFFIX="${SUFFIX:-}"
 ARMS="baseline augment vision language both"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
-CKPT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42/last"
-echo "=== clean eval: arm=$ARM ckpt=$CKPT ==="
+CKPT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/last"
+echo "=== clean eval: arm=$ARM suffix=$SUFFIX ckpt=$CKPT ==="
 
 uv run python scripts/evaluate.py \
   --checkpoint "$CKPT" \
@@ -40,4 +42,4 @@ uv run python scripts/evaluate.py \
   --fixed-noise-seed 42 \
   --wandb \
   --wandb-project vla-libero-eval \
-  --wandb-name "inv_clean_${ARM}_seed42"
+  --wandb-name "inv_clean_${ARM}_seed42${SUFFIX}"

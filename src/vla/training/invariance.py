@@ -67,8 +67,14 @@ class InvarianceConfig:
     lambda_inv: float = 1.0            # weight of the invariance term
     target: str = "ema"                # "ema" (JEPA) or "online" (SimSiam stop-grad)
     ema_decay: float = 0.999
-    use_predictor: bool = True
+    # Default False: the v1 sweep showed the predictor ABSORBS the invariance
+    # mapping (inv_loss -> ~0 while raw representation drift rises), so the
+    # backbone never becomes invariant.  Collapse-safety does not require a
+    # predictor here — the SFT action loss anchors the representation and the
+    # EMA targets are sample-specific — so align the backbone directly.
+    use_predictor: bool = False
     predictor_bottleneck: int = 4      # hidden = D // predictor_bottleneck
+    probe_every: int = 25              # micro-batches between drift probes (online vs online)
     # Visual nuisance -------------------------------------------------------
     noise_types: tuple[str, ...] = DEFAULT_TRAIN_NOISE_TYPES
     severities: tuple[int, ...] = (1, 2, 3)
@@ -286,6 +292,10 @@ def feature_drift(z_clean: torch.Tensor, z_pert: torch.Tensor) -> float:
     Independent of the predictor — measures how invariant the representation
     already is.  This is the load-bearing metric that separates our *mechanism*
     (features are invariant) from emergent-outcome baselines.
+
+    IMPORTANT: pass both views through the SAME (online) encoder.  The v1 sweep
+    probed online-nuisance vs EMA-clean, which conflates EMA lag with nuisance
+    sensitivity and makes the number uninterpretable.
     """
     a = F.normalize(z_clean.float(), dim=-1)
     b = F.normalize(z_pert.float(), dim=-1)

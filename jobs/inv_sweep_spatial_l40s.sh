@@ -29,9 +29,15 @@ if [ -z "${WANDB_API_KEY:-}" ] && [ ! -f "$HOME/.netrc" ]; then
   echo "wandb: no credentials found -> WANDB_MODE=offline"
 fi
 
+# SUFFIX distinguishes objective versions; v2 = direct alignment (no predictor
+# head — v1's predictor absorbed the invariance mapping; drift rose while
+# inv_loss collapsed). baseline/augment have no invariance component, so their
+# v1 checkpoints remain valid: submit v2 as `bsub -J "inv_sweep[3-5]" < this`.
+SUFFIX="${SUFFIX:-_v2}"
+
 ARMS="baseline augment vision language both"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
-echo "=== inv_sweep element $LSB_JOBINDEX -> arm=$ARM (seed 42) ==="
+echo "=== inv_sweep element $LSB_JOBINDEX -> arm=$ARM (seed 42, suffix=$SUFFIX) ==="
 
 uv run python scripts/train_sft.py \
     --libero-suite spatial \
@@ -40,10 +46,11 @@ uv run python scripts/train_sft.py \
     --unfreeze-backbone \
     --inv-target ema \
     --inv-lambda 1.0 \
+    --no-inv-predictor \
     --lr 2.5e-5 \
     --epochs 5 \
     --eval-episodes 0 \
     --batch-size 32 \
     --micro-batch-size 4 \
     --seed 42 \
-    --save-tag "spatial_${ARM}_seed42"
+    --save-tag "spatial_${ARM}_seed42${SUFFIX}"

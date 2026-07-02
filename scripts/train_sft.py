@@ -128,6 +128,12 @@ def main(
     ),
     inv_lambda: float = typer.Option(1.0, "--inv-lambda", help="Weight of the latent-invariance loss."),
     inv_target: str = typer.Option("ema", "--inv-target", help="Invariance target encoder: ema | online."),
+    inv_predictor: bool = typer.Option(
+        False,
+        "--inv-predictor/--no-inv-predictor",
+        help="Use a predictor head on the nuisance branch. Default OFF: the v1 sweep showed the "
+        "predictor absorbs the invariance mapping so the backbone never becomes invariant.",
+    ),
     unfreeze_backbone: bool = typer.Option(
         False,
         "--unfreeze-backbone/--freeze-backbone",
@@ -236,6 +242,7 @@ def main(
             augment_only=augment_only,
             lambda_inv=inv_lambda,
             target=inv_target,
+            use_predictor=inv_predictor,
             seed=seed,
         )
     else:
