@@ -9,7 +9,7 @@
 #
 # NOTE: --epochs / -W are starting values. Check the first element's per-epoch
 # time in the log and resize before relying on the full run.
-#BSUB -J inv_sweep[1-5]
+#BSUB -J inv_sweep[1-6]
 #BSUB -q gpul40s
 #BSUB -W 24:00
 #BSUB -n 4
@@ -42,7 +42,7 @@ fi
 # stays valid. Submit v3 as: bsub -J "inv_sweep[2-5]" < this_script
 SUFFIX="${SUFFIX:-_v3}"
 
-ARMS="baseline augment vision language both"
+ARMS="baseline augment vision language both both_aug"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
 echo "=== inv_sweep element $LSB_JOBINDEX -> arm=$ARM (seed 42, suffix=$SUFFIX) ==="
 

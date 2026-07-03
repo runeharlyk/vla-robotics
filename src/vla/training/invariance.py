@@ -90,6 +90,14 @@ class InvarianceConfig:
     # the rest. NOTE: the std estimate uses the micro-batch, which is small
     # (4) — treat this as coarse insurance, not precise shaping.
     lambda_var: float = 0.0
+    # v4 arm ("both_aug"): also train the SFT action loss on a mixed
+    # clean/nuisance view (like the augment arm) IN ADDITION to the invariance
+    # loss.  Motivated by the v1 eval: nuisance augmentation alone reached
+    # 84.5% clean (+10pp over unfrozen baseline) — comparing augment vs
+    # augment+invariance isolates what the representation objective adds on
+    # top of that strong augmentation effect.
+    augment_sft: bool = False
+    sft_nuisance_prob: float = 0.5
     # Language nuisance -----------------------------------------------------
     variants_path: str = "smolvla_language_pilot/instruction_variants.json"
     variant_types: tuple[str, ...] = DEFAULT_TRAIN_VARIANT_TYPES
@@ -238,21 +246,24 @@ def build_nuisance_views(
     cfg: InvarianceConfig,
     variants: dict[str, list[str]],
     gen: torch.Generator,
+    prob: float | None = None,
 ) -> tuple[torch.Tensor, list[str]]:
     """Return (nuisance_images, nuisance_instructions) for the context view.
 
     Honours ``cfg.apply_vision`` / ``cfg.apply_language``: an axis that is off
     passes the clean input through unchanged, so arms B (vision-only) and C
-    (language-only) are obtained purely from config.  ``cfg.nuisance_prob``
-    gates each modality per sample (used by the augment arm for a fair
-    clean/augmented mix; invariance arms keep it at 1.0).
+    (language-only) are obtained purely from config.  ``prob`` (default
+    ``cfg.nuisance_prob``) gates each modality per sample (used by the augment
+    arm and the v4 augmented-SFT view for a fair clean/augmented mix;
+    invariance context views keep it at 1.0).
     """
     b = images.shape[0]
+    nuisance_prob = cfg.nuisance_prob if prob is None else prob
 
     def _gate() -> torch.Tensor:
-        if cfg.nuisance_prob >= 1.0:
+        if nuisance_prob >= 1.0:
             return torch.ones(b, dtype=torch.bool)
-        return torch.rand(b, generator=gen) < cfg.nuisance_prob
+        return torch.rand(b, generator=gen) < nuisance_prob
 
     clean_imgs = _to_float01(images).cpu()
     if cfg.apply_vision:
@@ -403,8 +414,10 @@ class InvarianceModule:
     def trainable_parameters(self) -> list[nn.Parameter]:
         return list(self.predictor.parameters()) if self.predictor is not None else []
 
-    def make_views(self, cpu_images: torch.Tensor, instructions: list[str]) -> tuple[torch.Tensor, list[str]]:
-        return build_nuisance_views(cpu_images, instructions, self.cfg, self.variants, self.gen)
+    def make_views(
+        self, cpu_images: torch.Tensor, instructions: list[str], prob: float | None = None
+    ) -> tuple[torch.Tensor, list[str]]:
+        return build_nuisance_views(cpu_images, instructions, self.cfg, self.variants, self.gen, prob=prob)
 
     def encode_clean(self, policy, images, instructions, states) -> torch.Tensor:
         """Encode the clean/canonical view to the target representation (no grad)."""

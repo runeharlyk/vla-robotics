@@ -324,10 +324,21 @@ def train_sft(
                     )
                 total = out["loss"]
             elif inv is not None:
-                # Arms B / C / D: clean SFT + latent-invariance on the fused features.
+                # Arms B / C / D: SFT + latent-invariance on the fused features.
+                # v4 ("both_aug"): the SFT view is itself a mixed clean/nuisance
+                # view (augmentation), while the invariance pair stays
+                # full-nuisance vs canonical-clean.
                 nz_imgs, nz_instr = inv.make_views(cpu_images, instr_list)
+                if config.invariance.augment_sft:
+                    sft_imgs_cpu, sft_instr_list = inv.make_views(
+                        cpu_images, instr_list, prob=config.invariance.sft_nuisance_prob
+                    )
+                    sft_imgs = sft_imgs_cpu.to(policy.device)
+                    sft_instr: str | list[str] = _instr(sft_instr_list)
+                else:
+                    sft_imgs, sft_instr = images, instr_input
                 with autocast:
-                    out = policy(images, instr_input, target_action_chunks, target_action_mask, states=states)
+                    out = policy(sft_imgs, sft_instr, target_action_chunks, target_action_mask, states=states)
                     z_pert = policy.encode_prefix_pooled(nz_imgs.to(policy.device), _instr(nz_instr), states)
                 z_clean = inv.encode_clean(policy, images, instr_input, states)
                 loss_inv = invariance_loss(z_pert, z_clean, inv.predictor)
@@ -342,9 +353,22 @@ def train_sft(
                 if num_micro_batches % max(config.invariance.probe_every, 1) == 0:
                     with torch.no_grad(), autocast:
                         z_clean_online = policy.encode_prefix_pooled(images, instr_input, states)
+                        # Per-modality decomposition (arm D/v4 only): which
+                        # axis is actually aligning?
+                        if config.invariance.apply_vision and config.invariance.apply_language:
+                            z_vis = policy.encode_prefix_pooled(nz_imgs.to(policy.device), instr_input, states)
+                            z_lang = policy.encode_prefix_pooled(images, _instr(nz_instr), states)
+                            step_drift_extra = {
+                                "sft/step_drift_vision": feature_drift(z_clean_online, z_vis),
+                                "sft/step_drift_language": feature_drift(z_clean_online, z_lang),
+                            }
+                        else:
+                            step_drift_extra = {}
                     last_drift = feature_drift(z_clean_online, z_pert)
                     epoch_drift += last_drift
                     num_drift_probes += 1
+                    if metrics_logger is not None and step_drift_extra:
+                        metrics_logger.log({**step_drift_extra, "sft/global_step": global_step})
             else:
                 # Arm A: stock SFT baseline.
                 with autocast:
@@ -446,5 +470,17 @@ def train_sft(
 
         policy.save_checkpoint(save_path / "last", env_metadata=_save_meta)
         _save_training_state(save_path / "last", optimizer, scheduler, epoch, global_step, best_success)
+
+        # Also save the EMA (Polyak-averaged) weights: a slow-moving average of
+        # the online model, maintained for free by the invariance target. It is
+        # typically more robust to the catastrophic forgetting seen with the
+        # unfrozen backbone (v1 baseline lost ~6pp clean) — evaluate both.
+        if inv is not None and inv.ema is not None:
+            online_model = policy.model
+            try:
+                policy.model = inv.ema.model
+                policy.save_checkpoint(save_path / "ema", env_metadata=_save_meta)
+            finally:
+                policy.model = online_model
 
     return policy

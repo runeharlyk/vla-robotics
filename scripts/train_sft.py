@@ -124,7 +124,7 @@ def main(
     arm: str = typer.Option(
         "baseline",
         "--arm",
-        help="Robustness arm (latent-invariance objective): baseline | augment | vision | language | both.",
+        help="Robustness arm (latent-invariance objective): baseline | augment | vision | language | both | both_aug.",
     ),
     inv_lambda: float = typer.Option(1.0, "--inv-lambda", help="Weight of the latent-invariance loss."),
     inv_lambda_var: float = typer.Option(
@@ -229,22 +229,26 @@ def main(
     save_dir = str(CHECKPOINTS_DIR / "sft" / (save_tag or f"{task_tag}_{demos_tag}_seed{seed}_{run_id()}"))
 
     arm = arm.lower()
-    # (apply_vision, apply_language, augment_only)
+    # (apply_vision, apply_language, augment_only, augment_sft)
     _arm_views = {
-        "augment": (True, True, True),
-        "vision": (True, False, False),
-        "language": (False, True, False),
-        "both": (True, True, False),
+        "augment": (True, True, True, False),
+        "vision": (True, False, False, False),
+        "language": (False, True, False, False),
+        "both": (True, True, False, False),
+        # v4: augmentation on the SFT view + invariance loss — isolates what
+        # the representation objective adds on top of the (strong) augment arm.
+        "both_aug": (True, True, False, True),
     }
     if arm == "baseline":
         inv_cfg = InvarianceConfig(enabled=False)
     elif arm in _arm_views:
-        apply_vision, apply_language, augment_only = _arm_views[arm]
+        apply_vision, apply_language, augment_only, augment_sft = _arm_views[arm]
         inv_cfg = InvarianceConfig(
             enabled=True,
             apply_vision=apply_vision,
             apply_language=apply_language,
             augment_only=augment_only,
+            augment_sft=augment_sft,
             # Augment arm sees a fair 50/50 clean/nuisance data mix; the
             # invariance arms always use a nuisance context view.
             nuisance_prob=0.5 if augment_only else 1.0,

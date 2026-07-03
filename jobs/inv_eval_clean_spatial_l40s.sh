@@ -5,7 +5,7 @@
 # under the calibrated protocol (MuJoCo 3.3.2, seeded init, n_action_steps=1,
 # 100 episodes/task). Run after jobs/inv_sweep_spatial_l40s.sh produces
 # checkpoints/sft/spatial_<arm>_seed42/last.
-#BSUB -J inv_eval_clean[1-5]
+#BSUB -J inv_eval_clean[1-6]
 #BSUB -q gpul40s
 #BSUB -W 12:00
 #BSUB -n 12
@@ -28,7 +28,7 @@ printf "Y\n%s\nY\n" "$LIBERO_PATH" | uv run python -c "import libero.libero; pri
 #   SUFFIX=""    bsub -J "inv_eval_clean[1]"   < this_script
 #   SUFFIX="_v3" bsub -J "inv_eval_clean[2-5]" < this_script
 SUFFIX="${SUFFIX:-}"
-ARMS="baseline augment vision language both"
+ARMS="baseline augment vision language both both_aug"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
 CKPT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/last"
 echo "=== clean eval: arm=$ARM suffix=$SUFFIX ckpt=$CKPT ==="

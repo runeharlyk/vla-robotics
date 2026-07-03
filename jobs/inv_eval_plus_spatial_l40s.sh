@@ -4,7 +4,7 @@
 # LIBERO-Plus (perturbed) eval for the 5 invariance arms (one array element
 # each), all perturbation categories. Mirrors jobs/eval_smolvla_libero_plus_l40s.sh
 # but points CHECKPOINT at each arm's trained checkpoint. Run after the sweep.
-#BSUB -J inv_eval_plus[1-5]
+#BSUB -J inv_eval_plus[1-6]
 #BSUB -q gpul40s
 #BSUB -W 12:00
 #BSUB -n 16
@@ -23,7 +23,7 @@
 #   SUFFIX=""    bsub -J "inv_eval_plus[1]"   < this_script
 #   SUFFIX="_v3" bsub -J "inv_eval_plus[2-5]" < this_script
 SUFFIX="${SUFFIX:-}"
-ARMS="baseline augment vision language both"
+ARMS="baseline augment vision language both both_aug"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
 CHECKPOINT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/last"
 SUITE="${SUITE:-spatial}"
