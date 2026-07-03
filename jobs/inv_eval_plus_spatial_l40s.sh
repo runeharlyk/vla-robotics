@@ -1,6 +1,9 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
+# Queue: override at submit time with `bsub -q gpua100 < this_script` (CLI beats #BSUB).
+# Training fits gpul40s/gpua100; evals also fit gpua10/gpua40. AVOID gpuv100 (V100 has
+# no bf16 support and SmolVLA runs in bfloat16). Requeue pending jobs with `bmod -q`.
 # LIBERO-Plus (perturbed) eval for the 5 invariance arms (one array element
 # each), all perturbation categories. Mirrors jobs/eval_smolvla_libero_plus_l40s.sh
 # but points CHECKPOINT at each arm's trained checkpoint. Run after the sweep.

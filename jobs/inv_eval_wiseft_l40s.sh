@@ -1,6 +1,9 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
+# Queue: override at submit time with `bsub -q gpua100 < this_script` (CLI beats #BSUB).
+# Training fits gpul40s/gpua100; evals also fit gpua10/gpua40. AVOID gpuv100 (V100 has
+# no bf16 support and SmolVLA runs in bfloat16). Requeue pending jobs with `bmod -q`.
 # WiSE-FT interpolation sweep (Wortsman et al. 2021): evaluate
 #   theta(alpha) = (1-alpha)*public_SFT + alpha*fine-tuned_arm
 # on clean LIBERO Spatial under the calibrated protocol. Targets the ~6pp

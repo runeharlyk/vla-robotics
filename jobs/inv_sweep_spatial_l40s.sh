@@ -1,6 +1,9 @@
 #!/bin/sh
 
 # ---------------- LSF directives ----------------
+# Queue: override at submit time with `bsub -q gpua100 < this_script` (CLI beats #BSUB).
+# Training fits gpul40s/gpua100; evals also fit gpua10/gpua40. AVOID gpuv100 (V100 has
+# no bf16 support and SmolVLA runs in bfloat16). Requeue pending jobs with `bmod -q`.
 # Course-1 sweep: the 5-arm ladder for the latent-invariance objective.
 # One array element per arm (baseline / augment / vision / language / both),
 # each on its own L40s.  Trains on full LIBERO Spatial, seed 42, with in-loop
