@@ -29,6 +29,7 @@ from vla.training.invariance import (
     InvarianceModule,
     feature_drift,
     invariance_loss,
+    variance_loss,
 )
 from vla.training.checkpoint import save_best_checkpoint
 from vla.training.lr_scheduler import cosine_decay_with_warmup_lambda_lr
@@ -331,6 +332,8 @@ def train_sft(
                 z_clean = inv.encode_clean(policy, images, instr_input, states)
                 loss_inv = invariance_loss(z_pert, z_clean, inv.predictor)
                 total = out["loss"] + config.invariance.lambda_inv * loss_inv
+                if config.invariance.lambda_var > 0:
+                    total = total + config.invariance.lambda_var * variance_loss(z_pert, z_clean)
                 last_inv = loss_inv.item()
                 epoch_inv_loss += last_inv
                 # Drift probe: clean and nuisance views through the SAME online

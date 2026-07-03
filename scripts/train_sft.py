@@ -127,6 +127,11 @@ def main(
         help="Robustness arm (latent-invariance objective): baseline | augment | vision | language | both.",
     ),
     inv_lambda: float = typer.Option(1.0, "--inv-lambda", help="Weight of the latent-invariance loss."),
+    inv_lambda_var: float = typer.Option(
+        0.0,
+        "--inv-lambda-var",
+        help="Weight of the relative variance (anti-collapse) regularizer on the nuisance rep (0 = off).",
+    ),
     inv_target: str = typer.Option("ema", "--inv-target", help="Invariance target encoder: ema | online."),
     inv_predictor: bool = typer.Option(
         False,
@@ -244,6 +249,7 @@ def main(
             # invariance arms always use a nuisance context view.
             nuisance_prob=0.5 if augment_only else 1.0,
             lambda_inv=inv_lambda,
+            lambda_var=inv_lambda_var,
             target=inv_target,
             use_predictor=inv_predictor,
             seed=seed,

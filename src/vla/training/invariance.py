@@ -83,6 +83,13 @@ class InvarianceConfig:
     # 0.5 for the augment arm so it sees a fair clean/augmented data mix
     # (v1 trained augment on 100% nuisance — an unfairly weak baseline).
     nuisance_prob: float = 1.0
+    # Optional VICReg/VISReg-style per-dimension variance regularizer on the
+    # pooled nuisance representation (anti-collapse insurance; see VISReg,
+    # arXiv:2606.02572). 0.0 = off (default, keeps v3 arms comparable). The
+    # SFT action loss already anchors action-relevant dimensions; this guards
+    # the rest. NOTE: the std estimate uses the micro-batch, which is small
+    # (4) — treat this as coarse insurance, not precise shaping.
+    lambda_var: float = 0.0
     # Language nuisance -----------------------------------------------------
     variants_path: str = "smolvla_language_pilot/instruction_variants.json"
     variant_types: tuple[str, ...] = DEFAULT_TRAIN_VARIANT_TYPES
@@ -326,6 +333,23 @@ def invariance_loss(
     pred = F.normalize(pred, dim=-1)
     target = F.normalize(z_clean.detach().float(), dim=-1)
     return 1.0 - (pred * target).sum(dim=-1).mean()
+
+
+def variance_loss(z_pert: torch.Tensor, z_clean: torch.Tensor, eps: float = 1e-4) -> torch.Tensor:
+    """VISReg-inspired scale loss, made *relative*: match the nuisance rep's
+    per-dimension batch std to the (stop-grad) clean rep's std.
+
+    Our pooled features come straight from the backbone (no projector), so
+    their natural scale is not 1 — an absolute ``std -> 1`` target (VICReg /
+    VISReg) would distort the features the action expert consumes.  The actual
+    failure mode to guard against is the invariance objective *shrinking* the
+    nuisance representation's spread relative to the clean one, so we penalize
+    the per-dimension std ratio's deviation from 1.  Gradient stays constant
+    as collapse deepens (VISReg's argument for the squared form).
+    """
+    std_p = (z_pert.float().var(dim=0, unbiased=False) + eps).sqrt()
+    std_c = (z_clean.detach().float().var(dim=0, unbiased=False) + eps).sqrt()
+    return ((1.0 - std_p / std_c) ** 2).mean()
 
 
 @torch.no_grad()
