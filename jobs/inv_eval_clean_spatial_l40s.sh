@@ -28,9 +28,13 @@ printf "Y\n%s\nY\n" "$LIBERO_PATH" | uv run python -c "import libero.libero; pri
 #   SUFFIX=""    bsub -J "inv_eval_clean[1]"   < this_script
 #   SUFFIX="_v3" bsub -J "inv_eval_clean[2-5]" < this_script
 SUFFIX="${SUFFIX:-}"
+# CKPT_NAME selects which saved weights to eval: last (default) or ema (Polyak average).
+CKPT_NAME="${CKPT_NAME:-last}"
+NAME_TAG=""
+if [ "$CKPT_NAME" != "last" ]; then NAME_TAG="_${CKPT_NAME}"; fi
 ARMS="baseline augment vision language both both_aug"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
-CKPT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/last"
+CKPT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/${CKPT_NAME}"
 echo "=== clean eval: arm=$ARM suffix=$SUFFIX ckpt=$CKPT ==="
 
 uv run python scripts/evaluate.py \
@@ -45,4 +49,4 @@ uv run python scripts/evaluate.py \
   --fixed-noise-seed 42 \
   --wandb \
   --wandb-project vla-libero-eval \
-  --wandb-name "inv_clean_${ARM}_seed42${SUFFIX}"
+  --wandb-name "inv_clean_${ARM}_seed42${SUFFIX}${NAME_TAG}"
