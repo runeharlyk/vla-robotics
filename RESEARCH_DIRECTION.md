@@ -97,6 +97,19 @@ Baseline (arm 1) v1 checkpoint stays valid; v3 retrains arms 2–5: `bsub -J "in
 Known vendored quirk (harmless, single-GPU): `set_requires_grad`'s "freeze last VLM layers" list uses `text_model.model.layers.*` which doesn't match real names (`vlm.model.text_model.layers.*`) — those layers simply stay trainable in unfreeze mode.
 Success criterion for v3 training: **drift falls** over steps.
 
+## Frontier scan #2 (2026-07-03) — verified roadmap for the next phase
+
+Novelty re-verified: closest new competitor **FiberTune (2606.08653)** ("residual visual collapse along action fibers", frozen-teacher alignment + effective-rank reg) is **visual-only** → the cross-modal fused-conditioning claim still stands. Cite + contrast; borrow effective-rank ablation and frozen-teacher-vs-EMA baseline. Its fiber framing independently explains why our invariance loss and augmentation help.
+
+**Second headline contribution identified: augmentation-as-anti-forgetting.** No paper attributes anti-forgetting in VLA fine-tuning to nuisance augmentation (3 targeted searches). Framing: input-side dual of VLM2VLA (2509.22195, forgetting = distribution mismatch); robustness half grounded in flat-minima theory (2505.24592, AAAI-26). **Mandatory baseline: small-buffer experience replay** (2603.03818 — 2% replay nearly eliminates forgetting; feature-reuse mechanism). Scale tension to address: 3B VLAs barely forget vs our 6pp at 0.45B. Note LIBERO-Plus itself documents augmentation→robustness (79.6%); the anti-forgetting/clean-gain framing is ours.
+
+**v5 candidate objective: SIGReg (LeJEPA 2511.08544) EMA-free arm** — sketched isotropic-Gaussian regularizer replaces the EMA teacher entirely; LeWorldModel (2603.19312) validates the recipe for action-conditioned latent world models but only at 15M params with no language → first application to fused VLA conditioning features is verifiably unexplored. Plan: SIGReg+symmetric alignment vs EMA target vs frozen teacher.
+
+Mechanistic probes to add: representation drift (have), rapid-recovery, MMMU-style VLM-capability retention (VLA-GSE quantifies FFT forgetting 53.2→35.6 MMMU), flatness proxy across arms.
+Theory hooks: JEPA→planning regret bound (2606.27014); Rob≤Cap diagnostic (2605.25889 — its DPI tradeoff bound was REFUTED, cite only the validated inequality). Also refuted: "VLAs ignore language."
+Honest limitation: our nuisances are photometric+paraphrase; LIBERO-Plus's worst axes are geometric (camera/init-state) — report or add a geometric view.
+Crowded (avoid): PEFT/MoE anti-forgetting (VLA-GSE 2605.06175, 81.2% LIBERO-Plus = current bar), visual-only preservation, leaderboard chasing. Open: ours + SIGReg-at-VLA-scale + augmentation-anti-forgetting theory + flatness-on-VLA + invariance-aware System-2 (weakly evidenced).
+
 ## Repo integration notes
 
 - Backbone / fused-feature attach point, SFT entry + CFM loss, eval harness, ImageNet-C + language perturbation generators, V-JEPA2 path: **to be filled in from the repo map** (the `vjepa2` world-model path and `libero_plus_*` configs already exist — reuse them).
