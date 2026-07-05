@@ -1,0 +1,29 @@
+{
+  "suite": "spatial",
+  "variant_type": "verbosity",
+  "note": "Held-out paraphrase type for the language-robustness closed-loop eval (training uses politeness/verb_paraphrase only; see vla.training.invariance DEFAULT_HELDOUT_VARIANT_TYPES). Keys are canonical LIBERO Spatial task descriptions; scripts/evaluate.py --instruction-overrides consumes this file. Tasks 0-4 come from the Qwen2.5-3B prompt plan; the other five follow the same construction.",
+  "per_task_source": {
+    "pick up the black bowl between the plate and the ramekin and place it on the plate": "qwen2.5-3b (variant_prompt_plan_full.json)",
+    "pick up the black bowl from table center and place it on the plate": "qwen2.5-3b (variant_prompt_plan_full.json)",
+    "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate": "qwen2.5-3b (variant_prompt_plan_full.json)",
+    "pick up the black bowl next to the cookie box and place it on the plate": "template (matches LLM-plan style; VET ME)",
+    "pick up the black bowl next to the plate and place it on the plate": "template (matches LLM-plan style; VET ME)",
+    "pick up the black bowl next to the ramekin and place it on the plate": "qwen2.5-3b (variant_prompt_plan_full.json)",
+    "pick up the black bowl on the cookie box and place it on the plate": "qwen2.5-3b (variant_prompt_plan_full.json)",
+    "pick up the black bowl on the ramekin and place it on the plate": "template (matches LLM-plan style; VET ME)",
+    "pick up the black bowl on the stove and place it on the plate": "template (matches LLM-plan style; VET ME)",
+    "pick up the black bowl on the wooden cabinet and place it on the plate": "template (matches LLM-plan style; VET ME)"
+  },
+  "overrides": {
+    "pick up the black bowl between the plate and the ramekin and place it on the plate": "in this task you have to pick up the black bowl between the plate and the ramekin and place it on the plate for me",
+    "pick up the black bowl from table center and place it on the plate": "in this task you have to pick up the black bowl from table center and place it on the plate for me",
+    "pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate": "in this task you have to pick up the black bowl in the top drawer of the wooden cabinet and place it on the plate for me",
+    "pick up the black bowl next to the cookie box and place it on the plate": "in this task you have to pick up the black bowl next to the cookie box and place it on the plate for me",
+    "pick up the black bowl next to the plate and place it on the plate": "in this task you have to pick up the black bowl next to the plate and place it on the plate for me",
+    "pick up the black bowl next to the ramekin and place it on the plate": "in this task you have to pick up the black bowl next to the ramekin and place it on the plate for me",
+    "pick up the black bowl on the cookie box and place it on the plate": "in this task you have to pick up the black bowl on the cookie box and place it on the plate for me",
+    "pick up the black bowl on the ramekin and place it on the plate": "in this task you have to pick up the black bowl on the ramekin and place it on the plate for me",
+    "pick up the black bowl on the stove and place it on the plate": "in this task you have to pick up the black bowl on the stove and place it on the plate for me",
+    "pick up the black bowl on the wooden cabinet and place it on the plate": "in this task you have to pick up the black bowl on the wooden cabinet and place it on the plate for me"
+  }
+}

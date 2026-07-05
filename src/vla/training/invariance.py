@@ -50,6 +50,24 @@ DEFAULT_HELDOUT_VARIANT_TYPES = ("sentence_structure", "verbosity")
 DEFAULT_TRAIN_NOISE_TYPES = ("gaussian_blur", "motion_blur", "fog")
 DEFAULT_HELDOUT_NOISE_TYPES = ("glass_blur", "zoom_blur")
 
+# Corruptions that hard-require opencv-python at apply time; noise.py raises
+# ImportError for these only when the type is first drawn, i.e. mid-epoch.
+CV2_NOISE_TYPES = frozenset({"gaussian_blur", "motion_blur", "glass_blur"})
+
+
+def check_corruption_deps(noise_types: tuple[str, ...]) -> None:
+    """Fail fast (at startup, not mid-epoch) if a configured corruption needs cv2."""
+    needed = sorted(CV2_NOISE_TYPES.intersection(noise_types))
+    if not needed:
+        return
+    try:
+        import cv2  # noqa: F401
+    except ImportError as err:
+        raise ImportError(
+            f"opencv-python is required for configured corruption(s) {needed} but is not "
+            "importable. Install it or drop those noise types."
+        ) from err
+
 
 @dataclass
 class InvarianceConfig:
@@ -364,6 +382,18 @@ def variance_loss(z_pert: torch.Tensor, z_clean: torch.Tensor, eps: float = 1e-4
 
 
 @torch.no_grad()
+def feature_drift_per_sample(z_clean: torch.Tensor, z_pert: torch.Tensor) -> torch.Tensor:
+    """Per-sample cosine distance between clean and nuisance reps, shape ``(B,)``.
+
+    Used by the offline probe (``scripts/probe_drift.py``), which needs the
+    per-sample distribution for bootstrap confidence intervals.
+    """
+    a = F.normalize(z_clean.float(), dim=-1)
+    b = F.normalize(z_pert.float(), dim=-1)
+    return 1.0 - (a * b).sum(dim=-1)
+
+
+@torch.no_grad()
 def feature_drift(z_clean: torch.Tensor, z_pert: torch.Tensor) -> float:
     """Diagnostic probe: mean cosine distance between clean and nuisance reps.
 
@@ -375,9 +405,7 @@ def feature_drift(z_clean: torch.Tensor, z_pert: torch.Tensor) -> float:
     probed online-nuisance vs EMA-clean, which conflates EMA lag with nuisance
     sensitivity and makes the number uninterpretable.
     """
-    a = F.normalize(z_clean.float(), dim=-1)
-    b = F.normalize(z_pert.float(), dim=-1)
-    return (1.0 - (a * b).sum(dim=-1)).mean().item()
+    return feature_drift_per_sample(z_clean, z_pert).mean().item()
 
 
 class InvarianceModule:
@@ -396,6 +424,8 @@ class InvarianceModule:
 
     def __init__(self, policy, cfg: InvarianceConfig) -> None:
         self.cfg = cfg
+        if cfg.apply_vision:
+            check_corruption_deps(cfg.noise_types)
         self.gen = torch.Generator().manual_seed(cfg.seed)
         self.variants = (
             load_instruction_variants(cfg.variants_path, cfg.variant_types) if cfg.apply_language else {}

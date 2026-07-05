@@ -97,6 +97,31 @@ Baseline (arm 1) v1 checkpoint stays valid; v3 retrains arms 2–5: `bsub -J "in
 Known vendored quirk (harmless, single-GPU): `set_requires_grad`'s "freeze last VLM layers" list uses `text_model.model.layers.*` which doesn't match real names (`vlm.model.text_model.layers.*`) — those layers simply stay trainable in unfreeze mode.
 Success criterion for v3 training: **drift falls** over steps.
 
+## Status update (2026-07-04) — v3 partial readout, crash triage, eval tooling
+
+**v3 drift criterion: PASSING in every probed arm.**
+both_v3 vision drift fell 0.017→0.0046 and language drift 5.4e-4→4.2e-4 before its crash; language_v3 (completed, 5 epochs) drift fell 5.4e-4→4.2e-4 with healthy SFT loss (0.854→0.698).
+inv_loss decreases without collapsing — no v1 absorption signature.
+Caveats: language_v3 inv_loss is flat (~0.0034→0.0040), and language drift is ~20–40× smaller than vision drift — consistent with the pooled mean being dominated by image tokens (few language tokens in a large average; the state token is shared across views and further inflates cosine similarity).
+Per-modality pooled alignment is therefore the leading v5 candidate; the offline probe (below) can compare pooling variants on existing checkpoints before committing GPU-days.
+
+**Run triage:** `both_v3` (iab1vtks) died ~15 optimizer steps into epoch 2 (3.4 h); `vision_v3`/`augment_v3` (Jul-3 launch, commit 22615b8) stalled mid-epoch-1 with wandb stuck "running" (hard kill, no cleanup).
+NOT training instability: step_loss is trendless micro-batch noise (0.13–2.2 across the whole run) and inv/drift metrics are healthy to the last row.
+Pattern: all three image-corrupting arms died within hours on three hosts and two commits; the language-only arm (no cv2/numpy corruption path) finished 16.6 h — points at a resource kill tied to the vision path, not a code regression.
+Confirm on HPC before relaunch: `tail logs/inv_sweep/<jobid>_<idx>.out` (LSF epilogue prints TERM_MEMLIMIT / Max Memory) or `bhist -l <jobid>`; note the sweep requests only `rusage[mem=4GB]` × 4 cores.
+Relaunch arms `[2-6]` — the documented `[2-5]` command omits `both_aug`.
+
+**Correction: the clean-parity bar is A′, not A.**
+v1 clean evals (100 ep/task, episode-bootstrap 95% CIs): augment A′ 84.5 [82.2, 86.7] > public SFT 80.4 > baseline A 74.5 [71.8, 77.2] > language 73.1 > vision 70.6 > both 69.4.
+A′ vs A does not overlap — the +10 pp augmentation-as-anti-forgetting effect is robust to episode noise.
+Primary Q1 contrast going forward: `augment` vs `both_aug` (identical SFT data distribution, ± invariance term).
+
+**New eval tooling (this commit):**
+- `scripts/probe_drift.py` — offline per-modality drift probe on HELD-OUT nuisances (glass_blur/zoom_blur sev 3–5, sentence_structure/verbosity) with a checkpoint-independent seeded view plan and bootstrap CIs; `--nuisances train` for sanity vs training telemetry. Frames without held-out paraphrase coverage are excluded from the language/both axes.
+- Language closed-loop eval: `scripts/evaluate.py --instruction-overrides <json> --variant-type <t>` swaps each task's instruction for a held-out paraphrase under the otherwise-unchanged calibrated protocol (vectorized LIBERO path; strict — missing task key fails loudly). Committed override files: `language_diagnostics/heldout_overrides/spatial_{sentence_structure,verbosity}.json` (tasks 0–4 from the Qwen prompt plan, one typo fixed; the other five templated in the same style — vet before first use). Job: `jobs/inv_eval_lang_spatial_l40s.sh` (arms × 2 held-out types).
+- `plot_results.py ci-table` — success rates with within-run episode-bootstrap 95% CIs (understates seed variance under fixed_noise_seed).
+- Guardrails: invariance arms now hard-fail without `--unfreeze-backbone`; cv2 is checked at startup instead of crashing mid-epoch.
+
 ## Frontier scan #2 (2026-07-03) — verified roadmap for the next phase
 
 Novelty re-verified: closest new competitor **FiberTune (2606.08653)** ("residual visual collapse along action fibers", frozen-teacher alignment + effective-rank reg) is **visual-only** → the cross-modal fused-conditioning claim still stands. Cite + contrast; borrow effective-rank ablation and frozen-teacher-vs-EMA baseline. Its fiber framing independently explains why our invariance loss and augmentation help.

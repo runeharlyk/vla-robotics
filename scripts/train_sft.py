@@ -160,6 +160,22 @@ def main(
     if data_path and libero_suite:
         raise typer.BadParameter("Specify either --data or --libero-suite, not both.")
 
+    arm = arm.lower()
+    if arm in {"vision", "language", "both", "both_aug"} and not unfreeze_backbone:
+        # With the backbone frozen the nuisance branch has no trainable
+        # parameters (predictor off by default), so the invariance loss
+        # contributes nothing and the arm silently degenerates to baseline.
+        raise typer.BadParameter(
+            f"--arm {arm} requires --unfreeze-backbone: with the frozen default the "
+            "invariance gradient cannot reach the prefix features and the run "
+            "silently trains as the baseline."
+        )
+    if arm == "augment" and not unfreeze_backbone:
+        logger.warning(
+            "--arm augment with a frozen backbone trains only the action expert on "
+            "nuisance views; the sweep ladder trains all arms with --unfreeze-backbone."
+        )
+
     seed_everything(seed)
     device = get_device()
 
@@ -228,7 +244,6 @@ def main(
     demos_tag = f"demos{num_demos}" if num_demos is not None else "all"
     save_dir = str(CHECKPOINTS_DIR / "sft" / (save_tag or f"{task_tag}_{demos_tag}_seed{seed}_{run_id()}"))
 
-    arm = arm.lower()
     # (apply_vision, apply_language, augment_only, augment_sft)
     _arm_views = {
         "augment": (True, True, True, False),
@@ -259,7 +274,9 @@ def main(
             seed=seed,
         )
     else:
-        raise typer.BadParameter(f"Unknown --arm {arm!r}; choose baseline|augment|vision|language|both")
+        raise typer.BadParameter(
+            f"Unknown --arm {arm!r}; choose baseline|augment|vision|language|both|both_aug"
+        )
 
     config = SFTConfig(
         lr=lr,

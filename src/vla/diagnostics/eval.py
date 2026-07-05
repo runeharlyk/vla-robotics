@@ -12,7 +12,7 @@ for significantly faster wall-clock time (see ``num_envs`` in
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -242,6 +242,7 @@ def _evaluate_libero_vectorized(
     flow_grpo_sigma: float = 0.10,
     flow_grpo_sde_steps: int = 0,
     task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
+    instruction_overrides: Mapping[str, str] | None = None,
 ) -> EvalMetrics:
     from vla.rl.libero_rollout import LiberoRollout
 
@@ -284,7 +285,25 @@ def _evaluate_libero_vectorized(
                 rollout.reconfigure(suite, current_task_id)
             if fixed_noise_seed is not None and hasattr(policy, "reset_eval_noise"):
                 policy.reset_eval_noise(fixed_noise_seed + current_task_id * num_episodes)
+            # Language-perturbation eval: replace the canonical instruction for
+            # this task while keeping every other protocol knob identical.
+            # Keyed by canonical description (not task_id) so a wrong or stale
+            # override file fails loudly instead of silently evaluating clean
+            # or pairing a paraphrase with the wrong task.
             instruction = rollout.task_description
+            if instruction_overrides is not None:
+                if instruction not in instruction_overrides:
+                    raise ValueError(
+                        f"instruction_overrides has no entry for task_id={current_task_id} "
+                        f"(canonical: {instruction!r}); refusing to silently evaluate clean."
+                    )
+                instruction = instruction_overrides[rollout.task_description]
+                logger.info(
+                    "Instruction override for task_id=%d: %r (canonical: %r)",
+                    current_task_id,
+                    instruction,
+                    rollout.task_description,
+                )
             task_seed = seed + current_task_id * num_episodes
             logger.info(
                 "Starting LIBERO eval task %d/%d (task_id=%d, seed=%d)",
@@ -327,6 +346,7 @@ def _evaluate_libero_vectorized(
                     {
                         "task_id": current_task_id,
                         "task_description": instruction,
+                        "canonical_task_description": rollout.task_description,
                         "task_index": idx,
                         "tasks_total": len(resolved_task_ids),
                         "num_episodes": num_episodes,
@@ -363,6 +383,7 @@ def evaluate_smolvla(
     flow_grpo_sigma: float = 0.10,
     flow_grpo_sde_steps: int = 0,
     task_metrics_callback: Callable[[int, dict[str, Any]], None] | None = None,
+    instruction_overrides: Mapping[str, str] | None = None,
 ) -> EvalMetrics:
     """Convenience wrapper: evaluate a :class:`SmolVLAPolicy` in any simulator.
 
@@ -387,6 +408,16 @@ def evaluate_smolvla(
 
     if task_ids is not None and not is_libero:
         raise ValueError("task_ids is currently supported only for LIBERO evaluation")
+
+    if instruction_overrides is not None and not (
+        is_libero and (num_envs > 1 or n_action_steps > 1 or task_ids is not None)
+    ):
+        # The non-vectorized path reads the instruction from the env batch, so
+        # overrides would be silently ignored there — fail instead.
+        raise ValueError(
+            "instruction_overrides requires the vectorized LIBERO eval path "
+            "(simulator=libero with num_envs > 1); the calibrated protocol uses num_envs=4."
+        )
 
     if is_libero and (num_envs > 1 or n_action_steps > 1 or task_ids is not None):
         logger.info(
@@ -415,6 +446,7 @@ def evaluate_smolvla(
             flow_grpo_sigma=flow_grpo_sigma,
             flow_grpo_sde_steps=flow_grpo_sde_steps,
             task_metrics_callback=task_metrics_callback,
+            instruction_overrides=instruction_overrides,
         )
 
     if sampler == "flow_sde":

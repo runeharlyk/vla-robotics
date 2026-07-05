@@ -49,6 +49,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import typer
@@ -216,6 +217,41 @@ def select_best_per_method(records: list[dict[str, Any]]) -> list[dict[str, Any]
     return [best[m] for m in sorted(best, key=_sort_key)]
 
 
+def episode_successes(record: dict[str, Any]) -> np.ndarray:
+    """Reconstruct per-episode binary outcomes from a record's task_metrics.
+
+    Older records carry only per-task ``success_rate``; fall back to the
+    record-level per-task ``num_episodes`` to recover the counts.
+    """
+    default_n = int(record.get("num_episodes", 0) or 0)
+    outcomes: list[int] = []
+    for task in record.get("task_metrics", []):
+        n = int(task.get("num_episodes", default_n) or 0)
+        if n <= 0:
+            continue
+        s = int(task.get("successes", round(float(task.get("success_rate", 0.0)) * n)))
+        outcomes.extend([1] * s + [0] * (n - s))
+    return np.asarray(outcomes, dtype=np.float64)
+
+
+def bootstrap_success_ci(
+    record: dict[str, Any], n_resamples: int = 10_000, seed: int = 0
+) -> tuple[float, float] | None:
+    """95% percentile-bootstrap CI of the overall success rate, episode level.
+
+    This is a WITHIN-RUN interval (episode sampling noise only): under
+    ``fixed_noise_seed`` it understates run-to-run seed variance, so treat it
+    as a lower bound on the uncertainty of cross-arm comparisons.
+    """
+    outcomes = episode_successes(record)
+    if outcomes.size == 0:
+        return None
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, outcomes.size, size=(n_resamples, outcomes.size))
+    means = outcomes[idx].mean(axis=1)
+    return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
+
+
 def build_comparison_dataframe(records: list[dict[str, Any]]) -> pd.DataFrame:
     """Build a long-form DataFrame from eval records for seaborn plotting."""
     rows: list[dict[str, Any]] = []
@@ -344,7 +380,15 @@ def comparison_cmd(
     if require_eval_commit:
         logger.info("Applied eval commit filter: keeping commits containing %s", require_eval_commit)
     for r in records:
-        logger.info("  %s -- %s (%.1f%%)", r["_source"], r.get("training_method", "unknown"), r["success_rate"] * 100)
+        ci = bootstrap_success_ci(r)
+        ci_str = f"  ci95=[{ci[0] * 100:.1f}, {ci[1] * 100:.1f}]" if ci else ""
+        logger.info(
+            "  %s -- %s (%.1f%%)%s",
+            r["_source"],
+            r.get("training_method", "unknown"),
+            r["success_rate"] * 100,
+            ci_str,
+        )
 
     records = select_best_per_method(records)
     logger.info("Selected %d best records (one per method)", len(records))
@@ -706,6 +750,64 @@ def robustness_table_cmd(
     output_md.write_text(table.to_markdown(floatfmt=".1f"), encoding="utf-8")
     logger.info("Wrote robustness table to %s and %s", output_csv, output_md)
     print(table.to_string(float_format=lambda v: f"{v:6.2f}"))
+
+
+def build_ci_table(records: list[dict[str, Any]]) -> pd.DataFrame:
+    """One row per eval record: success rate with a within-run bootstrap CI."""
+    rows: list[dict[str, Any]] = []
+    for record in records:
+        ci = bootstrap_success_ci(record)
+        rows.append(
+            {
+                "Eval": record.get("eval_name") or record.get("_source", ""),
+                "Suite": record.get("suite", ""),
+                "Variant": record.get("variant_type", "") or "clean",
+                "Success Rate": float(record.get("success_rate", 0.0)) * 100.0,
+                "CI95 Low": ci[0] * 100.0 if ci else float("nan"),
+                "CI95 High": ci[1] * 100.0 if ci else float("nan"),
+                "Episodes": int(episode_successes(record).size),
+            }
+        )
+    return pd.DataFrame(rows).sort_values("Success Rate", ascending=False)
+
+
+@app.command(name="ci-table")
+def ci_table_cmd(
+    results_dir: Path = typer.Option("results/evals", "--results-dir", "-r"),  # noqa: B008
+    pattern: str = typer.Option("inv_*.json", "--pattern", "-p"),
+    output_md: Path = typer.Option(None, "--output-md", help="Optional markdown output path"),  # noqa: B008
+) -> None:
+    """Success rates with 95% episode-bootstrap CIs for matching eval records.
+
+    The intervals are WITHIN-RUN (episode sampling noise only); under
+    ``fixed_noise_seed`` they understate run-to-run seed variance, so
+    non-overlapping intervals are necessary but not sufficient for a
+    seed-robust difference between arms.
+    """
+    results_path = Path(results_dir)
+    if not results_path.is_absolute():
+        results_path = PROJECT_ROOT / results_path
+
+    records: list[dict[str, Any]] = []
+    for path in sorted(results_path.glob(pattern)):
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            logger.warning("Skipping invalid JSON: %s", path)
+            continue
+        record["_source"] = path.name
+        records.append(record)
+
+    if not records:
+        logger.error("No eval records matched %s in %s", pattern, results_path)
+        raise typer.Exit(1)
+
+    table = build_ci_table(records)
+    print(table.to_string(index=False, float_format=lambda v: f"{v:6.1f}"))
+    if output_md is not None:
+        output_md.parent.mkdir(parents=True, exist_ok=True)
+        output_md.write_text(table.to_markdown(index=False, floatfmt=".1f"), encoding="utf-8")
+        logger.info("Wrote CI table to %s", output_md)
 
 
 if __name__ == "__main__":

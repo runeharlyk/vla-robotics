@@ -11,6 +11,7 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
@@ -78,11 +79,15 @@ def _default_eval_name(
     checkpoint_dir: Path | None,
     checkpoint: str,
     wandb_name: str | None,
+    variant_type: str | None = None,
 ) -> str:
     if wandb_name:
         return wandb_name
     checkpoint_tag = checkpoint_dir.name if checkpoint_dir else checkpoint.split("/")[-1]
-    return f"eval_{simulator}_{suite}_{checkpoint_tag}"
+    # Language-perturbation evals get their own name so they never overwrite
+    # the clean eval record for the same checkpoint.
+    variant_suffix = f"_lang_{variant_type}" if variant_type else ""
+    return f"eval_{simulator}_{suite}_{checkpoint_tag}{variant_suffix}"
 
 
 def _parse_task_ids(raw: str | None) -> list[int] | None:
@@ -164,6 +169,18 @@ def main(
     wandb_name: str | None = typer.Option(None, "--wandb-name", help="Optional W&B run name"),
     wandb_entity: str | None = typer.Option(None, "--wandb-entity", help="Optional W&B entity/team"),
     instruction: str = typer.Option(None, "--instruction", help="Override instruction (default: from checkpoint)"),
+    instruction_overrides: Path = typer.Option(
+        None,
+        "--instruction-overrides",
+        help="JSON file mapping LIBERO task_id -> replacement instruction "
+        "(language-perturbation eval; every other protocol knob stays identical).",
+    ),
+    variant_type: str = typer.Option(
+        None,
+        "--variant-type",
+        help="Label for the instruction-override variant type (e.g. sentence_structure); "
+        "recorded in the eval record and appended to the default eval name.",
+    ),
     control_mode: str = typer.Option(None, "--control-mode", help="Override control mode (default: from checkpoint)"),
     action_dim: int = typer.Option(7, "--action-dim", help="Action dimension (used when no checkpoint-dir)"),
     state_dim: int = typer.Option(8, "--state-dim", help="State dimension (used when no checkpoint-dir)"),
@@ -199,6 +216,25 @@ def main(
 
     if task_id is not None and resolved_task_ids is not None:
         raise typer.BadParameter("--task-id and --task-ids are mutually exclusive", param_hint="--task-ids")
+
+    resolved_overrides: dict[str, str] | None = None
+    if instruction_overrides is not None:
+        if not is_libero:
+            raise typer.BadParameter(
+                "--instruction-overrides is only supported for LIBERO evaluation",
+                param_hint="--instruction-overrides",
+            )
+        raw_overrides = json.loads(instruction_overrides.read_text(encoding="utf-8"))
+        # Accept either a flat {canonical: variant} map or the committed
+        # override-file schema with metadata: {"variant_type": ..., "overrides": {...}}.
+        mapping = raw_overrides.get("overrides", raw_overrides) if isinstance(raw_overrides, dict) else None
+        if not mapping or not isinstance(mapping, dict):
+            raise typer.BadParameter(
+                f"No overrides parsed from {instruction_overrides}", param_hint="--instruction-overrides"
+            )
+        resolved_overrides = {str(k): str(v) for k, v in mapping.items()}
+        if variant_type is None and isinstance(raw_overrides, dict):
+            variant_type = raw_overrides.get("variant_type")
 
     if checkpoint_dir is not None:
         ckpt_data = torch.load(checkpoint_dir / "policy.pt", map_location="cpu", weights_only=False)
@@ -293,7 +329,9 @@ def main(
 
     logging.info("Evaluating: %s", "  ".join(log_bits))
 
-    resolved_run_name = _default_eval_name(simulator_key, suite, checkpoint_dir, checkpoint, wandb_name)
+    resolved_run_name = _default_eval_name(
+        simulator_key, suite, checkpoint_dir, checkpoint, wandb_name, variant_type=variant_type
+    )
 
     if use_wandb:
         import wandb
@@ -321,6 +359,8 @@ def main(
                 "task_ids": resolved_task_ids,
                 "wise_ft_alpha": wise_ft_alpha,
                 "wise_ft_diagnostics": wise_ft_diag,
+                "instruction_overrides": str(instruction_overrides) if instruction_overrides else None,
+                "variant_type": variant_type,
             },
         )
         metrics_logger = MetricsLogger(wandb_run=wandb_run)
@@ -358,6 +398,7 @@ def main(
             suite=suite,
             fixed_noise_seed=fixed_noise_seed,
             task_metrics_callback=task_callback,
+            instruction_overrides=resolved_overrides,
         )
         print_metrics(metrics, tag=tag)
         if metrics_logger is not None:
@@ -398,6 +439,8 @@ def main(
             "fixed_noise_seed": fixed_noise_seed,
             "task_id": task_id,
             "task_ids": resolved_task_ids or "",
+            "instruction_overrides_path": str(instruction_overrides) if instruction_overrides else "",
+            "variant_type": variant_type or "",
             "wise_ft_alpha": wise_ft_alpha if wise_ft_alpha is not None else "",
             "wandb_run_name": resolved_run_name if use_wandb else "",
             "success_rate": metrics.success_rate,
