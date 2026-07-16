@@ -1,0 +1,107 @@
+{
+  "record_type": "drift_probe",
+  "recorded_at": "2026-07-07T01:01:39.578354+00:00",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "checkpoint_dir": "",
+  "suite": "spatial",
+  "seed": 42,
+  "nuisances": "heldout",
+  "noise_types": [
+    "glass_blur",
+    "zoom_blur"
+  ],
+  "severities": [
+    3,
+    4,
+    5
+  ],
+  "variant_types": [
+    "sentence_structure",
+    "verbosity"
+  ],
+  "variants_path": "smolvla_language_pilot/instruction_variants.json",
+  "num_frames": 512,
+  "language_covered_frames": 249,
+  "results": {
+    "vision": {
+      "n": 512,
+      "mean": 0.044997101882472634,
+      "ci95": [
+        0.0438314776372863,
+        0.04618515324254986
+      ],
+      "per_type": {
+        "glass_blur": {
+          "n": 256,
+          "mean": 0.05549425934441388,
+          "ci95": [
+            0.054361100186361,
+            0.05661475562956184
+          ]
+        },
+        "zoom_blur": {
+          "n": 256,
+          "mean": 0.03449994442053139,
+          "ci95": [
+            0.03353676517144777,
+            0.03552255603135564
+          ]
+        }
+      }
+    },
+    "language": {
+      "n": 249,
+      "mean": 0.001873102054059745,
+      "ci95": [
+        0.0017966562186379031,
+        0.001952561006009818
+      ],
+      "per_type": {
+        "sentence_structure": {
+          "n": 126,
+          "mean": 0.0015391338439214798,
+          "ci95": [
+            0.0014600700684010038,
+            0.0016213089937255497
+          ]
+        },
+        "verbosity": {
+          "n": 123,
+          "mean": 0.0022152158302989433,
+          "ci95": [
+            0.00211249562056084,
+            0.002322223237374934
+          ]
+        }
+      }
+    },
+    "both": {
+      "n": 249,
+      "mean": 0.04466662923973727,
+      "ci95": [
+        0.04312222171500026,
+        0.04628048319534126
+      ],
+      "per_type": {
+        "glass_blur+sentence_structure": {
+          "n": 126,
+          "mean": 0.05382743099379161,
+          "ci95": [
+            0.05230708629602478,
+            0.05539063260195747
+          ]
+        },
+        "zoom_blur+verbosity": {
+          "n": 123,
+          "mean": 0.035282393296559654,
+          "ci95": [
+            0.03381419093385944,
+            0.03676448286306567
+          ]
+        }
+      }
+    }
+  },
+  "git_commit": "bab6b7085b5df35db7b7b2030303588899a10a46",
+  "git_branch": "latent-invariance-backbone"
+}

@@ -1,0 +1,107 @@
+{
+  "record_type": "drift_probe",
+  "recorded_at": "2026-07-07T01:08:58.079684+00:00",
+  "checkpoint": "HuggingFaceVLA/smolvla_libero",
+  "checkpoint_dir": "/work3/s234814/vla-robotics/checkpoints/sft/spatial_augment_seed42_v3/last",
+  "suite": "spatial",
+  "seed": 42,
+  "nuisances": "heldout",
+  "noise_types": [
+    "glass_blur",
+    "zoom_blur"
+  ],
+  "severities": [
+    3,
+    4,
+    5
+  ],
+  "variant_types": [
+    "sentence_structure",
+    "verbosity"
+  ],
+  "variants_path": "smolvla_language_pilot/instruction_variants.json",
+  "num_frames": 512,
+  "language_covered_frames": 249,
+  "results": {
+    "vision": {
+      "n": 512,
+      "mean": 0.02608811587560922,
+      "ci95": [
+        0.02544542599353008,
+        0.02672121303039603
+      ],
+      "per_type": {
+        "glass_blur": {
+          "n": 256,
+          "mean": 0.029302513925358653,
+          "ci95": [
+            0.028604326862841846,
+            0.030017926351865752
+          ]
+        },
+        "zoom_blur": {
+          "n": 256,
+          "mean": 0.022873717825859785,
+          "ci95": [
+            0.021999162854626775,
+            0.02377409502514638
+          ]
+        }
+      }
+    },
+    "language": {
+      "n": 249,
+      "mean": 0.0017979281494416386,
+      "ci95": [
+        0.0017275376432392014,
+        0.0018718100814934236
+      ],
+      "per_type": {
+        "sentence_structure": {
+          "n": 126,
+          "mean": 0.0016293535156855507,
+          "ci95": [
+            0.0015253133835300566,
+            0.0017390093041790857
+          ]
+        },
+        "verbosity": {
+          "n": 123,
+          "mean": 0.001970614359630802,
+          "ci95": [
+            0.0018861911403454416,
+            0.002057110645422121
+          ]
+        }
+      }
+    },
+    "both": {
+      "n": 249,
+      "mean": 0.028000356442478287,
+      "ci95": [
+        0.027191928801048232,
+        0.028852991281024903
+      ],
+      "per_type": {
+        "glass_blur+sentence_structure": {
+          "n": 126,
+          "mean": 0.030248341579285878,
+          "ci95": [
+            0.029335381362646344,
+            0.031167445532859318
+          ]
+        },
+        "zoom_blur+verbosity": {
+          "n": 123,
+          "mean": 0.0256975423998949,
+          "ci95": [
+            0.02440867543947406,
+            0.027007023178464998
+          ]
+        }
+      }
+    }
+  },
+  "git_commit": "bab6b7085b5df35db7b7b2030303588899a10a46",
+  "git_branch": "latent-invariance-backbone"
+}
