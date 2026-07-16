@@ -41,13 +41,18 @@ if [ ! -d "$UV_PROJECT_ENVIRONMENT" ]; then
 fi
 
 echo "Syncing main project deps into LIBERO-Plus venv..."
-uv sync
+# NEVER let base `libero` (a locked pyproject dep) into this venv: a regular
+# site-packages package beats the PYTHONPATH namespace package below, silently
+# swapping LIBERO-Plus for base LIBERO at import time. `uv pip uninstall` does
+# not reliably see the sync-installed copy, so also remove leftovers on disk.
+uv sync --no-install-package libero
 
 echo "Installing LIBERO-Plus extras and removing base LIBERO package..."
 if [ -f .libero-plus-src/extra_requirements.txt ]; then
   uv pip install -r .libero-plus-src/extra_requirements.txt
 fi
-uv pip uninstall -y libero || true
+rm -rf "$UV_PROJECT_ENVIRONMENT"/lib/python*/site-packages/libero \
+       "$UV_PROJECT_ENVIRONMENT"/lib/python*/site-packages/libero-*.dist-info
 export PYTHONPATH="$PWD/.libero-plus-src${PYTHONPATH:+:$PYTHONPATH}"
 
 PACKAGE_ASSETS=.libero-plus-src/libero/libero/assets
@@ -59,6 +64,12 @@ if [ ! -e "$PACKAGE_ASSETS" ]; then
   fi
   ln -s "$LIBERO_PLUS_ASSETS" "$PACKAGE_ASSETS"
 fi
+
+# Dedicated LIBERO config dir (see jobs/inv_eval_plus_spatial_l40s.sh): keeps plus
+# paths out of the shared ~/.libero/config.yaml and always regenerates from scratch.
+export LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-/work3/s234814/libero-plus/.libero-config}"
+mkdir -p "$LIBERO_CONFIG_PATH"
+rm -f "$LIBERO_CONFIG_PATH/config.yaml"
 
 export LIBERO_PATH="${LIBERO_PATH:-/work3/s234814/libero-plus}"
 mkdir -p "$LIBERO_PATH"

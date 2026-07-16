@@ -16,7 +16,7 @@
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -u s234814@dtu.dk
 #BSUB -Ne
-#BSUB -env "LSB_JOB_REPORT_MAIL=N"
+#BSUB -env "all, LSB_JOB_REPORT_MAIL=N"
 #BSUB -oo logs/inv_eval_plus/%J_%I.out
 # -------------------------------------------------
 . jobs/_env.sh
@@ -50,11 +50,17 @@ if [ ! -d "$UV_PROJECT_ENVIRONMENT" ]; then
   echo "Creating LIBERO-Plus venv at $UV_PROJECT_ENVIRONMENT"
   uv venv "$UV_PROJECT_ENVIRONMENT"
 fi
-uv sync
+# NEVER let base `libero` (a locked pyproject dep) into this venv: a regular
+# site-packages package beats the PYTHONPATH namespace package below, silently
+# swapping LIBERO-Plus (2402 spatial tasks) for base LIBERO (10) at import time.
+# `uv pip uninstall` does not reliably see the sync-installed copy, so also
+# remove any leftover directly on disk.
+uv sync --no-install-package libero
 if [ -f .libero-plus-src/extra_requirements.txt ]; then
   uv pip install -r .libero-plus-src/extra_requirements.txt
 fi
-uv pip uninstall -y libero || true
+rm -rf "$UV_PROJECT_ENVIRONMENT"/lib/python*/site-packages/libero \
+       "$UV_PROJECT_ENVIRONMENT"/lib/python*/site-packages/libero-*.dist-info
 export PYTHONPATH="$PWD/.libero-plus-src${PYTHONPATH:+:$PYTHONPATH}"
 
 PACKAGE_ASSETS=.libero-plus-src/libero/libero/assets
@@ -66,6 +72,15 @@ if [ ! -e "$PACKAGE_ASSETS" ]; then
   fi
   ln -s "$LIBERO_PLUS_ASSETS" "$PACKAGE_ASSETS"
 fi
+
+# Dedicated LIBERO config dir so LIBERO-Plus paths (bddl_files/assets/benchmark_root)
+# resolve to the plus source tree, NOT the base-libero paths baked into the shared
+# ~/.libero/config.yaml (which the clean/lang/probe jobs rely on). Always start from
+# a MISSING config: libero only regenerates it when absent, so a config written by a
+# previous bad run (e.g. base libero imported) would otherwise poison every later run.
+export LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-/work3/s234814/libero-plus/.libero-config}"
+mkdir -p "$LIBERO_CONFIG_PATH"
+rm -f "$LIBERO_CONFIG_PATH/config.yaml"
 
 export LIBERO_PATH="${LIBERO_PATH:-/work3/s234814/libero-plus}"
 mkdir -p "$LIBERO_PATH"

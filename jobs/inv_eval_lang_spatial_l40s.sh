@@ -20,7 +20,7 @@
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -u s234814@dtu.dk
 #BSUB -Ne
-#BSUB -env "LSB_JOB_REPORT_MAIL=N"
+#BSUB -env "all, LSB_JOB_REPORT_MAIL=N"
 #BSUB -oo logs/inv_eval_lang/%J_%I.out
 # -------------------------------------------------
 . jobs/_env.sh
