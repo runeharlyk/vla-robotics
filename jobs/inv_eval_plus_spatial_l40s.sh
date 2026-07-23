@@ -30,7 +30,7 @@ SUFFIX="${SUFFIX:-}"
 CKPT_NAME="${CKPT_NAME:-last}"
 NAME_TAG=""
 if [ "$CKPT_NAME" != "last" ]; then NAME_TAG="_${CKPT_NAME}"; fi
-ARMS="baseline augment vision language both both_aug"
+ARMS="baseline augment vision language both both_aug augment_full"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
 CHECKPOINT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/${CKPT_NAME}"
 SUITE="${SUITE:-spatial}"

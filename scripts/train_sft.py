@@ -145,6 +145,15 @@ def main(
         help="Train the VLM backbone (vision+language). REQUIRED for the latent-invariance "
         "objective to shape perception; with the frozen default the prefix features cannot change.",
     ),
+    nuisance_prob: float = typer.Option(
+        None,
+        "--nuisance-prob",
+        min=0.0,
+        max=1.0,
+        help="Override the per-sample nuisance probability of the arm (augment arm defaults "
+        "to 0.5 = fair clean/nuisance mix; invariance arms to 1.0). E.g. --arm augment "
+        "--nuisance-prob 1.0 trains on 100%% augmented views.",
+    ),
     save_tag: str = typer.Option(
         None, "--save-tag", help="Deterministic checkpoint subdir under checkpoints/sft (default: auto run id)."
     ),
@@ -265,8 +274,9 @@ def main(
             augment_only=augment_only,
             augment_sft=augment_sft,
             # Augment arm sees a fair 50/50 clean/nuisance data mix; the
-            # invariance arms always use a nuisance context view.
-            nuisance_prob=0.5 if augment_only else 1.0,
+            # invariance arms always use a nuisance context view. --nuisance-prob
+            # overrides either default (e.g. a 100%-augmented rate-ablation arm).
+            nuisance_prob=nuisance_prob if nuisance_prob is not None else (0.5 if augment_only else 1.0),
             lambda_inv=inv_lambda,
             lambda_var=inv_lambda_var,
             target=inv_target,
