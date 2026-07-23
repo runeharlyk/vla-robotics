@@ -29,6 +29,7 @@ from vla.training.invariance import (
     InvarianceModule,
     feature_drift,
     invariance_loss,
+    jepa_loss,
     variance_loss,
 )
 from vla.training.checkpoint import save_best_checkpoint
@@ -199,6 +200,14 @@ def train_sft(
 
     inv: InvarianceModule | None = None
     if config.invariance.enabled:
+        if config.invariance.temporal:
+            config.invariance.jepa_action_dim = int(getattr(dataset, "action_dim", 0))
+            if getattr(dataset, "jepa_offset", None) != config.invariance.jepa_horizon:
+                raise ValueError(
+                    "JEPA arm requires the dataset to yield future frames: construct "
+                    f"LiberoSFTDataset(jepa_offset={config.invariance.jepa_horizon}) "
+                    f"(got jepa_offset={getattr(dataset, 'jepa_offset', None)})."
+                )
         inv = InvarianceModule(policy, config.invariance)
         inv_params = inv.trainable_parameters()
         if inv_params:
@@ -323,6 +332,28 @@ def train_sft(
                         target_action_chunks, target_action_mask, states=states,
                     )
                 total = out["loss"]
+            elif inv is not None and config.invariance.temporal:
+                # Arm E ("jepa"): SFT + action-conditioned temporal latent
+                # prediction.  The backbone must encode enough controllable
+                # state at t for the predictor to roll it forward to the EMA
+                # representation at t+k — information-preserving, unlike the
+                # view-invariance arms.
+                future_images = batch["future_image"].to(policy.device)
+                future_states = batch["future_state"].to(policy.device)
+                with autocast:
+                    out = policy(images, instr_input, target_action_chunks, target_action_mask, states=states)
+                    z_t = policy.encode_prefix_pooled(images, instr_input, states)
+                z_future = inv.encode_clean(policy, future_images, instr_input, future_states)
+                k = config.invariance.jepa_horizon
+                action_cond = (
+                    target_action_chunks[:, :k] * target_action_mask[:, :k].unsqueeze(-1)
+                ).flatten(1)
+                loss_inv = jepa_loss(z_t, action_cond, z_future, inv.predictor)
+                total = out["loss"] + config.invariance.lambda_inv * loss_inv
+                if config.invariance.lambda_var > 0:
+                    total = total + config.invariance.lambda_var * variance_loss(z_t, z_future)
+                last_inv = loss_inv.item()
+                epoch_inv_loss += last_inv
             elif inv is not None:
                 # Arms B / C / D: SFT + latent-invariance on the fused features.
                 # v4 ("both_aug"): the SFT view is itself a mixed clean/nuisance

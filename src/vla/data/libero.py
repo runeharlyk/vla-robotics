@@ -431,6 +431,7 @@ class LiberoSFTDataset(Dataset):
         seed: int = 42,
         task_id: int | None = None,
         action_chunk_size: int = 50,
+        jepa_offset: int | None = None,
     ) -> None:
         repo_id = LIBERO_SUITES.get(suite.lower())
         if not repo_id:
@@ -461,6 +462,11 @@ class LiberoSFTDataset(Dataset):
         )
 
         self.action_dim: int = int(act_mean.shape[0])
+        # JEPA arm: when set, __getitem__ additionally returns the observation
+        # ``jepa_offset`` steps ahead (clamped to the episode end) as
+        # ``future_image`` / ``future_state`` for temporal latent prediction.
+        # None (default) adds no extra frame IO for the other arms.
+        self.jepa_offset: int | None = jepa_offset
         self.num_episodes: int = num_eps
         self.instruction: str = next(iter(self._task_map.values()), "complete the manipulation task")
         self.control_mode: str = "libero_default"
@@ -549,7 +555,7 @@ class LiberoSFTDataset(Dataset):
             task_idx = task_idx.item()
         instr = self._task_map.get(int(task_idx), self.instruction)
 
-        return {
+        item: dict[str, torch.Tensor | str] = {
             "image": image.float(),
             "state": state.float(),
             "action": action,
@@ -557,6 +563,38 @@ class LiberoSFTDataset(Dataset):
             "action_mask": action_mask,
             "instruction": instr,
         }
+        if self.jepa_offset is not None:
+            future_idx = min(idx + self.jepa_offset, ep_end - 1)
+            future_image, future_state = self._frame_at(future_idx)
+            item["future_image"] = future_image
+            item["future_state"] = future_state
+        return item
+
+    def _frame_at(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Load and process (image, state) for a single timestep.
+
+        Mirrors the image/state handling of ``__getitem__`` (multi-view stack,
+        squeeze, float) for the JEPA future frame.
+        """
+        sample = self._ds[idx]
+        image = sample["observation.images.image"]
+        if image.ndim == 4:
+            image = image.squeeze(0)
+        image2 = sample.get("observation.images.wrist_image")
+        if image2 is None:
+            image2 = sample.get("observation.images.image2")
+        if image2 is not None:
+            if isinstance(image2, np.ndarray):
+                image2 = torch.from_numpy(image2)
+            if image2.ndim == 4:
+                image2 = image2.squeeze(0)
+            image = torch.stack([image, image2], dim=0)
+        state = sample.get("observation.state", torch.zeros(max(self.state_dim, 1)))
+        if isinstance(state, np.ndarray):
+            state = torch.from_numpy(state)
+        if state.ndim > 1:
+            state = state.squeeze(0)
+        return image.float(), state.float()
 
     @property
     def image_size(self) -> int:

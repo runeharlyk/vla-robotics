@@ -124,7 +124,8 @@ def main(
     arm: str = typer.Option(
         "baseline",
         "--arm",
-        help="Robustness arm (latent-invariance objective): baseline | augment | vision | language | both | both_aug.",
+        help="Robustness arm: baseline | augment | vision | language | both | both_aug | jepa "
+        "(jepa = action-conditioned temporal latent prediction, v5).",
     ),
     inv_lambda: float = typer.Option(1.0, "--inv-lambda", help="Weight of the latent-invariance loss."),
     inv_lambda_var: float = typer.Option(
@@ -154,6 +155,13 @@ def main(
         "to 0.5 = fair clean/nuisance mix; invariance arms to 1.0). E.g. --arm augment "
         "--nuisance-prob 1.0 trains on 100%% augmented views.",
     ),
+    jepa_horizon: int = typer.Option(
+        8,
+        "--jepa-horizon",
+        min=1,
+        help="JEPA arm only: how many steps ahead the temporal latent prediction targets "
+        "(must be <= the action chunk size, 50).",
+    ),
     save_tag: str = typer.Option(
         None, "--save-tag", help="Deterministic checkpoint subdir under checkpoints/sft (default: auto run id)."
     ),
@@ -170,7 +178,7 @@ def main(
         raise typer.BadParameter("Specify either --data or --libero-suite, not both.")
 
     arm = arm.lower()
-    if arm in {"vision", "language", "both", "both_aug"} and not unfreeze_backbone:
+    if arm in {"vision", "language", "both", "both_aug", "jepa"} and not unfreeze_backbone:
         # With the backbone frozen the nuisance branch has no trainable
         # parameters (predictor off by default), so the invariance loss
         # contributes nothing and the arm silently degenerates to baseline.
@@ -195,7 +203,12 @@ def main(
     if libero_suite:
         from vla.data.libero import LiberoSFTDataset
 
-        dataset = LiberoSFTDataset(libero_suite, num_demos=num_demos, seed=seed)
+        dataset = LiberoSFTDataset(
+            libero_suite,
+            num_demos=num_demos,
+            seed=seed,
+            jepa_offset=jepa_horizon if arm == "jepa" else None,
+        )
         data_tag = f"libero_{libero_suite}"
         default_simulator = "libero"
     else:
@@ -265,6 +278,21 @@ def main(
     }
     if arm == "baseline":
         inv_cfg = InvarianceConfig(enabled=False)
+    elif arm == "jepa":
+        # v5: action-conditioned temporal latent prediction (JEPA proper) —
+        # no nuisance views, no invariance loss; the objective constrains what
+        # the fused features must CONTAIN (controllable dynamics state).
+        inv_cfg = InvarianceConfig(
+            enabled=True,
+            temporal=True,
+            apply_vision=False,
+            apply_language=False,
+            jepa_horizon=jepa_horizon,
+            lambda_inv=inv_lambda,
+            lambda_var=inv_lambda_var,
+            target=inv_target,
+            seed=seed,
+        )
     elif arm in _arm_views:
         apply_vision, apply_language, augment_only, augment_sft = _arm_views[arm]
         inv_cfg = InvarianceConfig(

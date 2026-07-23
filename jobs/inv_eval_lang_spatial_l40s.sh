@@ -10,8 +10,8 @@
 # is replaced by a HELD-OUT paraphrase type (sentence_structure / verbosity —
 # training only ever sees politeness / verb_paraphrase). The paraphrase drop vs
 # the arm's own clean eval is the language-axis robustness gap.
-# Array layout: elements 1-7 = arms x sentence_structure, 8-14 = arms x verbosity.
-#BSUB -J inv_eval_lang[1-14]
+# Array layout: elements 1-8 = arms x sentence_structure, 9-16 = arms x verbosity.
+#BSUB -J inv_eval_lang[1-16]
 #BSUB -q gpul40s
 #BSUB -W 12:00
 #BSUB -n 12
@@ -39,10 +39,10 @@ CKPT_NAME="${CKPT_NAME:-last}"
 NAME_TAG=""
 if [ "$CKPT_NAME" != "last" ]; then NAME_TAG="_${CKPT_NAME}"; fi
 
-ARMS="baseline augment vision language both both_aug augment_full"
-ARM_IDX=$(( (LSB_JOBINDEX - 1) % 7 + 1 ))
+ARMS="baseline augment vision language both both_aug augment_full jepa"
+ARM_IDX=$(( (LSB_JOBINDEX - 1) % 8 + 1 ))
 ARM=$(echo "$ARMS" | cut -d' ' -f"$ARM_IDX")
-if [ "$LSB_JOBINDEX" -le 7 ]; then VARIANT=sentence_structure; else VARIANT=verbosity; fi
+if [ "$LSB_JOBINDEX" -le 8 ]; then VARIANT=sentence_structure; else VARIANT=verbosity; fi
 OVERRIDES="language_diagnostics/heldout_overrides/spatial_${VARIANT}.json"
 CKPT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/${CKPT_NAME}"
 echo "=== lang eval: arm=$ARM variant=$VARIANT suffix=$SUFFIX ckpt=$CKPT ==="

@@ -116,6 +116,19 @@ class InvarianceConfig:
     # top of that strong augmentation effect.
     augment_sft: bool = False
     sft_nuisance_prob: float = 0.5
+    # v5 arm ("jepa"): action-conditioned temporal latent prediction instead of
+    # view-invariance.  Predict the EMA representation of the observation
+    # ``jepa_horizon`` steps ahead from the current fused features plus the
+    # executed action chunk.  This is the information-PRESERVING branch of the
+    # JEPA family (I-JEPA/V-JEPA/VLA-JEPA): the v3 ladder showed the invariance
+    # branch Goodharts (drift falls 4x, behavior unmoved), so v5 constrains
+    # what the features must CONTAIN (controllable dynamics state) rather than
+    # what they must ignore.  The predictor is essential here — unlike the v1
+    # identity-predictor it is conditioned on actions, so it cannot absorb the
+    # objective by learning a constant mapping.
+    temporal: bool = False
+    jepa_horizon: int = 8              # steps ahead to predict (<= action_chunk_size)
+    jepa_action_dim: int = 0           # set from the dataset before building the module
     # Language nuisance -----------------------------------------------------
     variants_path: str = "smolvla_language_pilot/instruction_variants.json"
     variant_types: tuple[str, ...] = DEFAULT_TRAIN_VARIANT_TYPES
@@ -324,6 +337,50 @@ class Predictor(nn.Module):
         return self.net(x)
 
 
+class ActionConditionedPredictor(nn.Module):
+    """JEPA predictor: (z_t, flattened action chunk) -> predicted z_{t+k}.
+
+    Unlike the identity :class:`Predictor` (which the v1 sweep showed absorbs a
+    view-invariance objective), this predictor solves a non-trivial task —
+    latent forward dynamics — so it is load-bearing rather than a collapse
+    shortcut.  Kept fp32 like the invariance head.
+    """
+
+    def __init__(self, dim: int, action_dim: int, horizon: int, bottleneck: int = 2) -> None:
+        super().__init__()
+        in_dim = dim + action_dim * horizon
+        hidden = max(dim // max(bottleneck, 1), 1)
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden),
+            nn.LayerNorm(hidden),
+            nn.GELU(),
+            nn.Linear(hidden, hidden),
+            nn.LayerNorm(hidden),
+            nn.GELU(),
+            nn.Linear(hidden, dim),
+        )
+
+    def forward(self, z_t: torch.Tensor, action_cond: torch.Tensor) -> torch.Tensor:
+        return self.net(torch.cat([z_t.float(), action_cond.float()], dim=-1))
+
+
+def jepa_loss(
+    z_t: torch.Tensor,
+    action_cond: torch.Tensor,
+    z_future: torch.Tensor,
+    predictor: ActionConditionedPredictor,
+) -> torch.Tensor:
+    """Negative-cosine latent-prediction loss with stop-grad on the future target.
+
+    Gradient flows into the backbone through ``z_t`` (the current fused
+    features must encode enough controllable state for the predictor to roll
+    it forward) and into the predictor; the EMA-encoded future is the target.
+    """
+    pred = F.normalize(predictor(z_t.float(), action_cond), dim=-1)
+    target = F.normalize(z_future.detach().float(), dim=-1)
+    return 1.0 - (pred * target).sum(dim=-1).mean()
+
+
 class EmaEncoder:
     """Holds an EMA copy of ``policy.model`` used to encode the clean view.
 
@@ -424,21 +481,33 @@ class InvarianceModule:
 
     def __init__(self, policy, cfg: InvarianceConfig) -> None:
         self.cfg = cfg
-        if cfg.apply_vision:
+        if cfg.apply_vision and not cfg.temporal:
             check_corruption_deps(cfg.noise_types)
         self.gen = torch.Generator().manual_seed(cfg.seed)
         self.variants = (
-            load_instruction_variants(cfg.variants_path, cfg.variant_types) if cfg.apply_language else {}
+            load_instruction_variants(cfg.variants_path, cfg.variant_types)
+            if cfg.apply_language and not cfg.temporal
+            else {}
         )
         dim = policy.prefix_dim
         # Keep the invariance head in fp32 for stable cosine alignment even when
         # the backbone runs under bf16 autocast (inputs are cast to fp32 in
-        # ``invariance_loss``).
-        self.predictor = (
-            Predictor(dim, cfg.predictor_bottleneck).to(policy.device)
-            if cfg.use_predictor
-            else None
-        )
+        # ``invariance_loss`` / ``jepa_loss``).
+        if cfg.temporal:
+            if cfg.jepa_action_dim <= 0:
+                raise ValueError(
+                    "InvarianceConfig.temporal=True requires jepa_action_dim > 0 "
+                    "(set it from the dataset's action_dim before building the module)."
+                )
+            self.predictor = ActionConditionedPredictor(
+                dim, cfg.jepa_action_dim, cfg.jepa_horizon
+            ).to(policy.device)
+        else:
+            self.predictor = (
+                Predictor(dim, cfg.predictor_bottleneck).to(policy.device)
+                if cfg.use_predictor
+                else None
+            )
         self.ema = EmaEncoder(policy.model) if cfg.target == "ema" else None
 
     def trainable_parameters(self) -> list[nn.Parameter]:

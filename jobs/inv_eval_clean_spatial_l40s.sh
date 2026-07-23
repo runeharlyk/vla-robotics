@@ -35,7 +35,7 @@ SUFFIX="${SUFFIX:-}"
 CKPT_NAME="${CKPT_NAME:-last}"
 NAME_TAG=""
 if [ "$CKPT_NAME" != "last" ]; then NAME_TAG="_${CKPT_NAME}"; fi
-ARMS="baseline augment vision language both both_aug augment_full"
+ARMS="baseline augment vision language both both_aug augment_full jepa"
 ARM=$(echo "$ARMS" | cut -d' ' -f"$LSB_JOBINDEX")
 CKPT="$VLA_WORK3/checkpoints/sft/spatial_${ARM}_seed42${SUFFIX}/${CKPT_NAME}"
 echo "=== clean eval: arm=$ARM suffix=$SUFFIX ckpt=$CKPT ==="
